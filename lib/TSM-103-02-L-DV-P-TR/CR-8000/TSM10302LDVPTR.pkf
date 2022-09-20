@@ -1,0 +1,10 @@
+(unit MM)
+
+(package "TSM10302LDVPTR"
+    (type UNDEF)
+    (uver 2)
+    (mountForm default
+        (footprintRef "TSM10302LDVPTR")
+        (spec "default")
+    )
+)

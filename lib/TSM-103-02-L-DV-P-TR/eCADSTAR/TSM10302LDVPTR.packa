@@ -1,0 +1,13 @@
+(unit MM)
+
+(package "TSM-103-02-L-DV-P-TR"
+    (type UNDEF)
+    (uver 2)
+    (cuser "SamacSys")
+    (uuser "SamacSys")
+    (utime 2020-01-27-09:41:02)
+    (mountForm default
+        (footprintRef "TSM10302LDVPTR")
+        (spec "System")
+    )
+)

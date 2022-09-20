@@ -1,0 +1,11 @@
+FILE_TYPE = MULTI_PHYS_TABLE;
+
+PART 'TSM_103_02_L_DV_P_TR'
+CLASS = IO
+{========================================================================================}
+:"MANUFACTURER_NAME", "MANUFACTURER_PART_NUMBER"= "PART_NUMBER", "JEDEC_TYPE", "PACK_TYPE", "MOUSER_PART_NUMBER", "MOUSER_PRICE/STOCK", "DESCRIPTION", "DATASHEET", "HEIGHT";
+{========================================================================================}
+ "SAMTEC", "TSM-103-02-L-DV-P-TR" (!) = "", "TSM10302LDVPTR", "Other", "200-TSM10302LDVPTR", "https://www.mouser.com/Search/Refine.aspx?Keyword=200-TSM10302LDVPTR", "Headers & Wire Housings", "https://componentsearchengine.com/Datasheets/1/TSM-103-02-L-DV-P-TR.pdf", "12.19 mm"
+END_PART
+
+END.

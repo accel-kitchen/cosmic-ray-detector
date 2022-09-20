@@ -1,0 +1,27 @@
+EESchema-LIBRARY Version 2.3
+#encoding utf-8
+#SamacSys ECAD Model TSM-103-02-L-DV-P-TR
+#/1156296/203391/2.45/6/4/Connector
+DEF TSM-103-02-L-DV-P-TR J 0 30 Y Y 1 F N
+F0 "J" 650 300 50 H V L CNN
+F1 "TSM-103-02-L-DV-P-TR" 650 200 50 H V L CNN
+F2 "TSM10302LDVPTR" 650 100 50 H I L CNN
+F3 "https://componentsearchengine.com/Datasheets/1/TSM-103-02-L-DV-P-TR.pdf" 650 0 50 H I L CNN
+F4 "Headers & Wire Housings" 650 -100 50 H I L CNN "Description"
+F5 "12.19" 650 -200 50 H I L CNN "Height"
+F6 "200-TSM10302LDVPTR" 650 -300 50 H I L CNN "Mouser Part Number"
+F7 "https://www.mouser.com/Search/Refine.aspx?Keyword=200-TSM10302LDVPTR" 650 -400 50 H I L CNN "Mouser Price/Stock"
+F8 "SAMTEC" 650 -500 50 H I L CNN "Manufacturer_Name"
+F9 "TSM-103-02-L-DV-P-TR" 650 -600 50 H I L CNN "Manufacturer_Part_Number"
+DRAW
+X 1 1 0 0 200 R 50 50 0 0 U
+X 2 2 800 0 200 L 50 50 0 0 U
+X 3 3 0 -100 200 R 50 50 0 0 U
+X 4 4 800 -100 200 L 50 50 0 0 U
+X 5 5 0 -200 200 R 50 50 0 0 U
+X 6 6 800 -200 200 L 50 50 0 0 U
+P 5 0 1 6 200 100 600 100 600 -300 200 -300 200 100 N
+ENDDRAW
+ENDDEF
+#
+#End Library

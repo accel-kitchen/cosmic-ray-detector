@@ -1,0 +1,9 @@
+Manufacturer=SAMTEC
+PartNumber=TSM-103-02-L-DV-P-TR
+PartCategory=Connector
+PackageCategory=Other
+PinCount=6
+Version=1.2
+Released=2020-01-27 09:41:02
+Downloaded=2020-01-27 15:59:07
+3D=Y

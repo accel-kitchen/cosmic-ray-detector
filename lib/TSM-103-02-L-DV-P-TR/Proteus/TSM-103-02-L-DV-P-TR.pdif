@@ -1,0 +1,140 @@
+;Proteus Design Interchange Format
+(PDIF
+ (vendor "SamacSys Limited")
+ (version 1 0)
+ (library
+  (part "TSM-103-02-L-DV-P-TR"
+   (description "Headers & Wire Housings")
+   (family "CON")
+   (package "TSM10302LDVPTR")
+   (attribute "Datasheet Link" "https://componentsearchengine.com/Datasheets/1/TSM-103-02-L-DV-P-TR.pdf")
+   (attribute "Geometry.Height" "12.19mm")
+   (attribute "Mouser Part Number" "200-TSM10302LDVPTR")
+   (attribute "Mouser Price/Stock" "https://www.mouser.com/Search/Refine.aspx?Keyword=200-TSM10302LDVPTR")
+   (attribute "Manufacturer_Name" "SAMTEC")
+   (attribute "Manufacturer_Part_Number" "TSM-103-02-L-DV-P-TR")
+   (gate
+    (symbol "TSM-103-02-L-DV-P-TR")
+    (pin "1" 1 PS)
+    (pin "2" 2 PS)
+    (pin "3" 3 PS)
+    (pin "4" 4 PS)
+    (pin "5" 5 PS)
+    (pin "6" 6 PS)
+   )
+  )
+  (symbol "TSM-103-02-L-DV-P-TR"
+   (units THOU)
+   (origin (pt 0 0))
+   (graphic
+    (stroke 10)
+    (path (pt 200 100) (pt 600 100) (pt 600 -300) (pt 200 -300) (pt 200 100) (closed))
+   )
+   (terminal
+    (body (symbol "PIN") (pt 0 0) (rot 0) (mir 0) (visible true))
+    (name (pt 230 0) (rot 0) (just MIDDLE LEFT) (visible true))
+    (number (pt 140 20) (rot 0) (just BOTTOM RIGHT) (visible true)))
+   (terminal
+    (body (symbol "PIN") (pt 800 0) (rot 0) (mir X) (visible true))
+    (name (pt 230 0) (rot 0) (just MIDDLE LEFT) (visible true))
+    (number (pt 140 20) (rot 0) (just BOTTOM RIGHT) (visible true)))
+   (terminal
+    (body (symbol "PIN") (pt 0 -100) (rot 0) (mir 0) (visible true))
+    (name (pt 230 0) (rot 0) (just MIDDLE LEFT) (visible true))
+    (number (pt 140 20) (rot 0) (just BOTTOM RIGHT) (visible true)))
+   (terminal
+    (body (symbol "PIN") (pt 800 -100) (rot 0) (mir X) (visible true))
+    (name (pt 230 0) (rot 0) (just MIDDLE LEFT) (visible true))
+    (number (pt 140 20) (rot 0) (just BOTTOM RIGHT) (visible true)))
+   (terminal
+    (body (symbol "PIN") (pt 0 -200) (rot 0) (mir 0) (visible true))
+    (name (pt 230 0) (rot 0) (just MIDDLE LEFT) (visible true))
+    (number (pt 140 20) (rot 0) (just BOTTOM RIGHT) (visible true)))
+   (terminal
+    (body (symbol "PIN") (pt 800 -200) (rot 0) (mir X) (visible true))
+    (name (pt 230 0) (rot 0) (just MIDDLE LEFT) (visible true))
+    (number (pt 140 20) (rot 0) (just BOTTOM RIGHT) (visible true)))
+  )
+  (symbol "PIN"
+   (units THOU)
+   (origin (pt 0 0))
+   (graphic
+    (stroke 10)
+    (path (pt 0 0) (pt 200 0))))
+  (symbol "PINSHORT"
+   (units THOU)
+   (origin (pt 0 0))
+   (graphic
+    (stroke 10)
+    (path (pt 0 0) (pt 100 0))))
+  (package "TSM10302LDVPTR"
+   (units MM)
+   (layer TASM
+    (graphic
+     (stroke 0.2)
+     (path
+      (closed true)
+      (pt -3.81 -2.54)
+      (pt 3.81 -2.54)
+      (pt 3.81 2.54)
+      (pt -3.81 2.54)
+      (pt -3.81 -2.54))))
+   (layer TSLK
+    (graphic
+     (stroke 0.1)
+     (path
+      (closed true)
+      (pt -3.81 2.54)
+      (pt -3.81 2.54)
+      (pt -3.81 -2.54)
+      (pt -3.81 -2.54)
+      (pt -3.81 2.54))))
+   (layer TSLK
+    (graphic
+     (stroke 0.1)
+     (path
+      (closed true)
+      (pt 3.81 2.54)
+      (pt 3.81 2.54)
+      (pt 3.81 -2.5)
+      (pt 3.81 -2.5)
+      (pt 3.81 2.54))))
+   (layer OCCA
+    (graphic
+     (stroke 0.1)
+     (path
+      (closed true)
+      (pt -4.81 5.315)
+      (pt 4.81 5.315)
+      (pt 4.81 -5.95)
+      (pt -4.81 -5.95)
+      (pt -4.81 5.315))))
+   (layer TSLK
+    (graphic
+     (stroke 0.2)
+     (path
+      (closed false)
+      (pt -2.5 -4.9)
+      (arc (pt -2.500 -4.900) (pt -2.500 -4.950) (pt -2.400 -4.850) (start 180.0) (sweep 180.0))
+      (pt -2.4 -4.9)
+      (arc (pt -2.400 -4.900) (pt -2.500 -4.950) (pt -2.400 -4.850) (start 180.0) (sweep .0))
+      (pt -2.5 -4.9)
+      (arc (pt -2.500 -4.900) (pt -2.500 -4.950) (pt -2.400 -4.850) (start 180.0) (sweep 180.0))
+      (pt -2.4 -4.9))))
+   (leg 1 (pt -2.540 -2.475) (padstack 0))
+   (leg 2 (pt -2.540 2.475) (padstack 0))
+   (leg 3 (pt 0.000 -2.475) (padstack 0))
+   (leg 4 (pt 0.000 2.475) (padstack 0))
+   (leg 5 (pt 2.540 -2.475) (padstack 0))
+   (leg 6 (pt 2.540 2.475) (padstack 0))
+   (padstack 0
+    (plated false)
+    (pad (layer TCOP) (rectf 1.270 3.680 0 0 90.000))
+   )
+   (model "TSM-103-02-L-DV-P-TR.stp"
+    (euler 0 0 0)
+    (offset 0 0 0)
+   )
+  )
+ )
+)

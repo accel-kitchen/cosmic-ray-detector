@@ -1,0 +1,3 @@
+(fp_lib_table
+  (lib (name "cosmic-ray-detector")(type "KiCad")(uri "${KIPRJMOD}/lib/cosmic-ray-detector.pretty")(options "")(descr "")(disabled))
+)
