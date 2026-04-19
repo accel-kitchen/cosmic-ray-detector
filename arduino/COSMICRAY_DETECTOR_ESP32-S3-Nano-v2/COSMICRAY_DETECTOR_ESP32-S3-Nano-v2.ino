@@ -49,6 +49,7 @@ const int BUZZER_PIN   = 43;  // D1
 const int COIN_OUT_PIN = 10;  // D7
 const int DIG_IN_PINS[3] = { 9, 8, 7 };    // D6, D5, D4
 const int ANA_IN_PINS[3] = { 2, 3, 13 };   // A1, A2, A6
+const int LED_PIN      = 6;   // D3 (検出表示LED)
 static constexpr int SD_SPI_CS_PIN = 18;         // D9  / CS  -> microSD (J8, CS2)
 static constexpr int SD_SPI_UNUSED_CS_PIN = 21;  // D10 / CS1 (keep deasserted)
 static constexpr int SD_SPI_MOSI_PIN = 38;       // D11 / COPI
@@ -87,11 +88,15 @@ static constexpr unsigned long DISPLAY_INTERVAL_MS = 2000;
 static constexpr unsigned long TEMP_READ_INTERVAL_MS = 2000;
 static constexpr unsigned int TRIG_RESET_PULSE_US = 20;
 static constexpr unsigned int ADC_SAMPLE_DELAY_US = 5;
-// 繧ｳ繧､繝ｳ繧ｷ繝・Φ繧ｹ蜃ｺ蜉帙ヱ繝ｫ繧ｹ蟷・(us)
-static constexpr unsigned int COIN_OUT_PULSE_US = 1000;
+// COIN_OUT パルス幅 (us, 非ブロッキング / micros() で管理)
+static constexpr unsigned int COIN_OUT_PULSE_US = 100;
+// 自ボードが COIN_OUT HIGH を出してから DIG_IN を読むまでの同期待ち時間 (us)
+// 相手ボードが自身の ISR を処理して COIN_OUT HIGH を立てるまでのマージン。
+static constexpr unsigned int COIN_SYNC_DELAY_US = 50;
 // 繝悶じ繝ｼ繝医・繝ｳ (Hz) 縺ｨ魑ｴ蜍墓凾髢・(ms)
 static constexpr unsigned int BUZZER_FREQ_HZ = 2000;
 static constexpr unsigned long BUZZER_MS = 10;
+static constexpr unsigned long LED_BLINK_MS = 20;
 
 enum TriggerMode : uint8_t {
   TRIGGER_MODE_DIGITAL_ONLY = 0,
@@ -135,7 +140,12 @@ int adc = 0;
 int pwmDuty = 0;
 TriggerMode triggerMode = TRIGGER_MODE_DIGITAL_ONLY;
 bool analogArmed = true;
+bool sdEnabled   = true;
+bool extEnabled  = true;
+bool oledEnabled = true;
 unsigned long lastTempReadMs = 0;
+unsigned long ledOffMs = 0;
+unsigned long coinOffUs = 0;
 
 // ISR 繝輔Λ繧ｰ
 volatile bool triggerFlag = false;
@@ -162,6 +172,11 @@ void loadThresholds();
 void saveThresholds();
 void printThresholds();
 void printTriggerMode();
+void printSdStatus();
+void printExtStatus();
+void printOledStatus();
+void applySdEnable();
+void applyOledEnable();
 void calibrateThreshold(int samples, int sigOffset);
 void applyThresholdPwm();
 void applyTriggerMode();
@@ -343,6 +358,9 @@ void printBootHeader() {
   snprintf(buf, sizeof(buf), "### Signal threshold: %d (Duty %d)", SIGNAL_THRESHOLD, pwmDuty);
   dualPrintln(buf);
   printTriggerMode();
+  printSdStatus();
+  printExtStatus();
+  printOledStatus();
 
   dualPrintln("### Event Time[ms] ADC[0-4095] Deadtime[ms] Temp[C] Hum[%%] Press[hPa] Dig1 Dig2 Dig3 Ana1 Ana2 Ana3");
   dualPrintln(hdr1);
@@ -384,6 +402,38 @@ void executeCommand(const char* cmd) {
     printTriggerMode();
   } else if (strcmp(cmd, "GET_MODE") == 0) {
     printTriggerMode();
+  } else if (strncmp(cmd, "SET_SD:", 7) == 0) {
+    if (strcmp(cmd + 7, "ON") == 0) {
+      sdEnabled = true;
+    } else if (strcmp(cmd + 7, "OFF") == 0) {
+      sdEnabled = false;
+    }
+    saveThresholds();
+    applySdEnable();
+    printSdStatus();
+  } else if (strcmp(cmd, "GET_SD") == 0) {
+    printSdStatus();
+  } else if (strncmp(cmd, "SET_EXT:", 8) == 0) {
+    if (strcmp(cmd + 8, "ON") == 0) {
+      extEnabled = true;
+    } else if (strcmp(cmd + 8, "OFF") == 0) {
+      extEnabled = false;
+    }
+    saveThresholds();
+    printExtStatus();
+  } else if (strcmp(cmd, "GET_EXT") == 0) {
+    printExtStatus();
+  } else if (strncmp(cmd, "SET_OLED:", 9) == 0) {
+    if (strcmp(cmd + 9, "ON") == 0) {
+      oledEnabled = true;
+    } else if (strcmp(cmd + 9, "OFF") == 0) {
+      oledEnabled = false;
+    }
+    saveThresholds();
+    applyOledEnable();
+    printOledStatus();
+  } else if (strcmp(cmd, "GET_OLED") == 0) {
+    printOledStatus();
   }
 }
 
@@ -415,6 +465,9 @@ void loadThresholds() {
   SIGNAL_THRESHOLD = prefs.getInt("sig_thresh", 120);
   int storedAdcBits = prefs.getInt("sig_bits", hasStoredThreshold ? LEGACY_ADC_BITS : ADC_BITS);
   triggerMode = (TriggerMode)prefs.getUChar("trig_mode", (uint8_t)TRIGGER_MODE_DIGITAL_ONLY);
+  sdEnabled   = prefs.getUChar("sd_en",   1) != 0;
+  extEnabled  = prefs.getUChar("ext_en",  1) != 0;
+  oledEnabled = prefs.getUChar("oled_en", 1) != 0;
   prefs.end();
 
   if (hasStoredThreshold && storedAdcBits > 0 && storedAdcBits != ADC_BITS) {
@@ -432,6 +485,9 @@ void saveThresholds() {
   prefs.putInt("sig_thresh", SIGNAL_THRESHOLD);
   prefs.putInt("sig_bits", ADC_BITS);
   prefs.putUChar("trig_mode", (uint8_t)triggerMode);
+  prefs.putUChar("sd_en",   sdEnabled   ? 1 : 0);
+  prefs.putUChar("ext_en",  extEnabled  ? 1 : 0);
+  prefs.putUChar("oled_en", oledEnabled ? 1 : 0);
   prefs.end();
 }
 
@@ -448,6 +504,37 @@ void printTriggerMode() {
     dualPrintln("MODE:DUAL");
   } else {
     dualPrintln("MODE:DIGITAL");
+  }
+}
+
+void printSdStatus() {
+  dualPrintln(sdEnabled ? "SD:ON" : "SD:OFF");
+}
+
+void printExtStatus() {
+  dualPrintln(extEnabled ? "EXT:ON" : "EXT:OFF");
+}
+
+void printOledStatus() {
+  dualPrintln(oledEnabled ? "OLED:ON" : "OLED:OFF");
+}
+
+void applySdEnable() {
+  if (!sdEnabled) {
+    if (sdLogFile) {
+      sdLogFile.close();
+    }
+    sdReady = false;
+  } else if (!sdReady) {
+    initSdLogging();
+  }
+}
+
+void applyOledEnable() {
+  if (OLED != 1) return;
+  if (!oledEnabled) {
+    display.clearDisplay();
+    display.display();
   }
 }
 
@@ -579,6 +666,8 @@ void setup() {
   digitalWrite(COIN_OUT_PIN, LOW);
   pinMode(BUZZER_PIN, OUTPUT);
   digitalWrite(BUZZER_PIN, LOW);
+  pinMode(LED_PIN, OUTPUT);
+  digitalWrite(LED_PIN, LOW);
 
   for (int i = 0; i < 3; i++) {
     pinMode(DIG_IN_PINS[i], INPUT);
@@ -625,6 +714,17 @@ void setup() {
 // ==========================================
 void loop() {
   unsigned long now = millis();
+
+  if (ledOffMs && now >= ledOffMs) {
+    digitalWrite(LED_PIN, LOW);
+    ledOffMs = 0;
+  }
+
+  if (coinOffUs && (int32_t)(micros() - coinOffUs) >= 0) {
+    digitalWrite(COIN_OUT_PIN, LOW);
+    coinOffUs = 0;
+  }
+
   processSerialCommand();
 
   if (bmeReady && (lastTempReadMs == 0 || now - lastTempReadMs >= TEMP_READ_INTERVAL_MS)) {
@@ -656,7 +756,7 @@ void loop() {
     triggerFlag = false;
   }
 
-  if (OLED == 1) {
+  if (OLED == 1 && oledEnabled) {
     if (now - lastDisplayMs >= DISPLAY_INTERVAL_MS) {
       lastDisplayMs = now;
       updateDisplay();
@@ -670,6 +770,25 @@ void loop() {
 void handleTriggerEvent(bool fromDigitalTrigger) {
   unsigned long measurement_t1 = micros();
 
+  int dig[3] = {0, 0, 0};
+  int ana[3] = {0, 0, 0};
+
+  if (extEnabled) {
+    // まず COIN_OUT を HIGH に立てる (相手ボードに自トリガを通知)。
+    // 相手も対称に動作するので、両者が「相手の COIN_OUT HIGH」を観測できる。
+    // LOW に戻すのは loop() 内で非同期に行う (micros() ベース)。
+    digitalWrite(COIN_OUT_PIN, HIGH);
+    coinOffUs = micros() + COIN_OUT_PULSE_US;
+
+    // 相手側が ISR → COIN_OUT HIGH に到達するのを待つ。
+    delayMicroseconds(COIN_SYNC_DELAY_US);
+
+    // 相手の COIN_OUT (= 自ボードの DIG_IN) を読む。
+    for (int i = 0; i < 3; i++) {
+      dig[i] = digitalRead(DIG_IN_PINS[i]);
+    }
+  }
+
   delayMicroseconds(ADC_SAMPLE_DELAY_US);
   adc = analogRead(SELF_SIG_IN);
   if (fromDigitalTrigger && adc < SIGNAL_THRESHOLD) {
@@ -680,21 +799,15 @@ void handleTriggerEvent(bool fromDigitalTrigger) {
     return;
   }
 
-  int dig[3];
-  int ana[3];
-  for (int i = 0; i < 3; i++) {
-    dig[i] = digitalRead(DIG_IN_PINS[i]);
-  }
-  for (int i = 0; i < 3; i++) {
-    ana[i] = analogRead(ANA_IN_PINS[i]);
+  if (extEnabled) {
+    for (int i = 0; i < 3; i++) {
+      ana[i] = analogRead(ANA_IN_PINS[i]);
+    }
   }
 
   bool coincidence = (dig[0] == HIGH) || (dig[1] == HIGH) || (dig[2] == HIGH);
   if (coincidence) {
-    digitalWrite(COIN_OUT_PIN, HIGH);
     tone(BUZZER_PIN, BUZZER_FREQ_HZ, BUZZER_MS);
-    delayMicroseconds(COIN_OUT_PULSE_US);
-    digitalWrite(COIN_OUT_PIN, LOW);
   }
 
   digitalWrite(TRIG_RESET, HIGH);
@@ -702,6 +815,9 @@ void handleTriggerEvent(bool fromDigitalTrigger) {
   digitalWrite(TRIG_RESET, LOW);
 
   count++;
+
+  digitalWrite(LED_PIN, HIGH);
+  ledOffMs = millis() + LED_BLINK_MS;
 
   char eventBuf[160];
   snprintf(eventBuf, sizeof(eventBuf),
