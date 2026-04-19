@@ -128,8 +128,8 @@ char sdLogPath[16] = {0};
 // ==========================================
 //   繧ｰ繝ｭ繝ｼ繝舌Ν螟画焚
 // ==========================================
-unsigned long start_time = 0UL;
-unsigned long total_deadtime = 0UL;
+uint64_t start_time_us = 0ULL;
+uint64_t total_deadtime_us = 0ULL;
 unsigned long count = 0UL;
 unsigned long lastDisplayMs = 0;
 
@@ -362,7 +362,7 @@ void printBootHeader() {
   printExtStatus();
   printOledStatus();
 
-  dualPrintln("### Event Time[ms] ADC[0-4095] Deadtime[ms] Temp[C] Hum[%%] Press[hPa] Dig1 Dig2 Dig3 Ana1 Ana2 Ana3");
+  dualPrintln("### Event Time[us] ADC[0-4095] Deadtime[us] Temp[C] Hum[%%] Press[hPa] Dig1 Dig2 Dig3 Ana1 Ana2 Ana3");
   dualPrintln(hdr1);
 }
 
@@ -645,6 +645,20 @@ void initBLE() {
 }
 
 // ==========================================
+// 64-bit microsecond counter (Arduino micros() + software wrap tracking).
+// Must be called at least once per ~71 minutes to catch the 32-bit wrap.
+// In this sketch it is called from handleTriggerEvent() and updateDisplay().
+// ==========================================
+uint64_t micros64() {
+  static uint64_t extended = 0;
+  uint32_t now = micros();
+  uint32_t last_lo = (uint32_t)extended;
+  if (now < last_lo) extended += (uint64_t)1 << 32;
+  extended = (extended & 0xFFFFFFFF00000000ULL) | now;
+  return extended;
+}
+
+// ==========================================
 // Setup
 // ==========================================
 void setup() {
@@ -705,7 +719,7 @@ void setup() {
 
   if (OLED == 1) updateDisplay();
   delay(900);
-  start_time = millis();
+  start_time_us = micros64();
   lastDisplayMs = millis();
 }
 
@@ -795,7 +809,7 @@ void handleTriggerEvent(bool fromDigitalTrigger) {
     digitalWrite(TRIG_RESET, HIGH);
     delayMicroseconds(TRIG_RESET_PULSE_US);
     digitalWrite(TRIG_RESET, LOW);
-    total_deadtime += (micros() - measurement_t1) / 1000UL;
+    total_deadtime_us += micros() - measurement_t1;
     return;
   }
 
@@ -819,15 +833,17 @@ void handleTriggerEvent(bool fromDigitalTrigger) {
   digitalWrite(LED_PIN, HIGH);
   ledOffMs = millis() + LED_BLINK_MS;
 
-  char eventBuf[160];
+  char eventBuf[200];
   snprintf(eventBuf, sizeof(eventBuf),
-           "%lu %lu %d %lu %.1f %.1f %.1f %d %d %d %d %d %d",
-           count, millis() - start_time, adc,
-           total_deadtime, temperatureC, humidityPct, pressureHPa,
+           "%lu %llu %d %llu %.1f %.1f %.1f %d %d %d %d %d %d",
+           count,
+           (unsigned long long)(micros64() - start_time_us), adc,
+           (unsigned long long)total_deadtime_us,
+           temperatureC, humidityPct, pressureHPa,
            dig[0], dig[1], dig[2], ana[0], ana[1], ana[2]);
   dualPrintln(eventBuf);
 
-  total_deadtime += (micros() - measurement_t1) / 1000UL;
+  total_deadtime_us += micros() - measurement_t1;
 }
 
 // ==========================================
@@ -840,12 +856,12 @@ void updateDisplay() {
     updateBme();
   }
 
-  unsigned long total_time_ms = (millis() - start_time) - total_deadtime;
+  uint64_t total_time_us = (micros64() - start_time_us) - total_deadtime_us;
 
   float count_average = 0.0f;
   float count_std = 0.0f;
-  if (count > 0 && total_time_ms > 0) {
-    float total_time_s = total_time_ms / 1000.0f;
+  if (count > 0 && total_time_us > 0) {
+    float total_time_s = (float)(total_time_us / 1000ULL) / 1000.0f;
     count_average = count / total_time_s;
     count_std = sqrt((float)count) / total_time_s;
   }
@@ -858,13 +874,14 @@ void updateDisplay() {
   display.print(count);
   display.print(F(" T:"));
 
-  unsigned long elapsed_time = millis() - start_time;
-  int hours = elapsed_time / 3600000UL;
-  int minutes = (elapsed_time / 60000UL) % 60;
-  int seconds = (elapsed_time / 1000UL) % 60;
+  uint64_t elapsed_us = micros64() - start_time_us;
+  uint32_t hours = (uint32_t)(elapsed_us / 3600000000ULL);
+  int minutes = (int)((elapsed_us / 60000000ULL) % 60ULL);
+  int seconds = (int)((elapsed_us / 1000000ULL) % 60ULL);
 
-  char time_str[9];
-  snprintf(time_str, sizeof(time_str), "%02d:%02d:%02d", hours, minutes, seconds);
+  char time_str[16];
+  snprintf(time_str, sizeof(time_str), "%lu:%02d:%02d",
+           (unsigned long)hours, minutes, seconds);
   display.println(time_str);
 
   display.print(F("Rate: "));
@@ -888,7 +905,7 @@ void updateDisplay() {
   }
   display.display();
 
-  total_deadtime += (micros() - OLED_t1 + 73UL) / 1000UL;
+  total_deadtime_us += micros() - OLED_t1 + 73UL;
 }
 
 // ==========================================
