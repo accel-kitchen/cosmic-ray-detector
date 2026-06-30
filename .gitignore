@@ -1,0 +1,11 @@
+# KiCad transient / auto-generated files
+_autosave-*
+*-backups/
+*-cache.lib
+*-rescue.lib
+*-rescue.dcm
+*.kicad_sch-bak
+*.sch-bak
+
+# Claude Code local config
+.claude/
