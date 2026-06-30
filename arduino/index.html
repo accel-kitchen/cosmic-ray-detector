@@ -1,0 +1,2259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CosmicRay Recorder v2</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f0f2f5;
+      color: #333;
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: 300px;
+      min-width: 300px;
+      background: #fff;
+      border-right: 1px solid #e0e0e0;
+      padding: 20px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .sidebar-section { }
+    .sidebar-section h3 {
+      font-size: 14px;
+      font-weight: 600;
+      color: #555;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .sidebar-section h3 .icon { font-size: 16px; }
+    .sidebar-section p {
+      font-size: 12px;
+      color: #888;
+      line-height: 1.6;
+      margin-bottom: 8px;
+    }
+    .sidebar-section ul {
+      font-size: 12px;
+      color: #888;
+      line-height: 1.8;
+      padding-left: 18px;
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s, opacity 0.2s;
+      width: 100%;
+    }
+    .btn:hover { opacity: 0.85; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-primary { background: #00b8a9; color: #fff; }
+    .btn-danger { background: #e74c3c; color: #fff; }
+    .btn-secondary { background: #eee; color: #333; }
+    .btn-warning { background: #f39c12; color: #fff; }
+    .btn-outline {
+      background: transparent;
+      border: 1px solid #ddd;
+      color: #555;
+    }
+    .btn-ble { background: #4a90d9; color: #fff; }
+    .btn-sm { padding: 6px 12px; font-size: 12px; }
+    .btn-group { display: flex; gap: 8px; }
+    .btn-group .btn { flex: 1; }
+
+    /* Segmented mode selector */
+    .mode-select {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    .mode-select button {
+      padding: 8px 6px;
+      border: none;
+      background: #fff;
+      color: #555;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+      border-right: 1px solid #eee;
+    }
+    .mode-select button:last-child { border-right: none; }
+    .mode-select button:hover:not(:disabled) { background: #f4f6f8; }
+    .mode-select button:disabled { opacity: 0.4; cursor: not-allowed; }
+    .mode-select button.active {
+      background: #00b8a9;
+      color: #fff;
+    }
+    .mode-select button.active.dual { background: #6f42c1; }
+    .mode-select button.active.analog { background: #e67e22; }
+    .mode-select.four { grid-template-columns: repeat(4, 1fr); }
+    .mode-select.two  { grid-template-columns: repeat(2, 1fr); }
+
+    /* Feature toggles */
+    .feature-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+    .feature-row label {
+      flex: 1;
+      font-size: 12px;
+      color: #555;
+    }
+    .feature-row .mode-select {
+      flex: 0 0 110px;
+    }
+
+    /* Input */
+    .input-group { margin-bottom: 10px; }
+    .input-group label {
+      display: block;
+      font-size: 12px;
+      color: #666;
+      margin-bottom: 4px;
+    }
+    .input-group input, .input-group select, .input-group textarea {
+      width: 100%;
+      padding: 6px 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+    .input-row {
+      display: flex;
+      gap: 8px;
+    }
+    .input-row .input-group { flex: 1; }
+
+    /* Main content */
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* Header */
+    .header {
+      background: #fff;
+      border-bottom: 1px solid #e0e0e0;
+      padding: 12px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .header h1 {
+      font-size: 18px;
+      font-weight: 600;
+      color: #333;
+    }
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      font-size: 13px;
+      color: #666;
+      flex-wrap: wrap;
+    }
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+    .status-dot.connected { background: #2ecc71; }
+    .status-dot.disconnected { background: #e74c3c; }
+
+    /* Content area */
+    .content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px 24px;
+    }
+
+    /* Section header */
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    .section-header h2 {
+      font-size: 16px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Cards */
+    .card {
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .card h3 {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: #444;
+    }
+
+    /* Charts row */
+    .charts-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+    .chart-container {
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+    .chart-container h3 {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: #444;
+    }
+    .chart-wrapper {
+      position: relative;
+      flex: 1 1 auto;
+      min-height: 280px;
+      width: 100%;
+    }
+    .chart-wrapper canvas {
+      display: block;
+      width: 100% !important;
+      height: 100% !important;
+      position: absolute;
+      inset: 0;
+    }
+
+    /* Stats row */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .stat-card {
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      padding: 16px;
+      text-align: center;
+    }
+    .stat-card .stat-value {
+      font-size: 24px;
+      font-weight: 700;
+      color: #00b8a9;
+    }
+    .stat-card .stat-label {
+      font-size: 12px;
+      color: #888;
+      margin-top: 4px;
+    }
+
+    /* Env row (Temp / Hum / Press) */
+    .env-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .env-card {
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      padding: 16px;
+      text-align: center;
+    }
+    .env-card .env-value { font-size: 22px; font-weight: 700; color: #2c3e50; }
+    .env-card .env-label { font-size: 12px; color: #888; margin-top: 4px; }
+
+    /* External detectors block */
+    .ext-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+    .ext-cell {
+      border: 1px solid #eee;
+      border-radius: 6px;
+      padding: 10px 12px;
+      font-size: 12px;
+      background: #fafbfc;
+    }
+    .ext-cell .ext-label { font-size: 11px; color: #888; letter-spacing: 0.02em; }
+    .ext-cell .ext-row {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 4px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #333;
+    }
+    .ext-dot {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #bbb;
+      margin-right: 4px;
+      vertical-align: middle;
+    }
+    .ext-dot.on { background: #2ecc71; }
+
+    /* Data table */
+    .table-wrapper {
+      overflow-x: auto;
+      max-height: 340px;
+      overflow-y: auto;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+    thead th {
+      background: #f8f9fa;
+      padding: 8px 10px;
+      text-align: left;
+      font-weight: 600;
+      color: #555;
+      border-bottom: 2px solid #e0e0e0;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+    tbody td {
+      padding: 5px 10px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    tbody tr:hover { background: #f8f9fa; }
+    .no-data {
+      text-align: center;
+      padding: 40px;
+      color: #aaa;
+      font-size: 14px;
+    }
+
+    /* Raw data terminal */
+    .raw-data {
+      background: #1a1a2e;
+      border-radius: 8px;
+      padding: 16px;
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: 12px;
+      color: #4ade80;
+      max-height: 220px;
+      overflow-y: auto;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      gap: 0;
+      margin-bottom: 16px;
+      border-bottom: 2px solid #e0e0e0;
+    }
+    .tab {
+      padding: 8px 20px;
+      font-size: 13px;
+      font-weight: 500;
+      color: #888;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+      transition: color 0.2s, border-color 0.2s;
+    }
+    .tab:hover { color: #555; }
+    .tab.active {
+      color: #00b8a9;
+      border-bottom-color: #00b8a9;
+    }
+
+    /* Threshold display */
+    .thresh-current {
+      font-size: 12px;
+      color: #888;
+      margin-top: 6px;
+      padding: 6px 8px;
+      background: #f8f9fa;
+      border-radius: 4px;
+      line-height: 1.5;
+    }
+
+    /* Alert */
+    .alert {
+      padding: 12px 16px;
+      border-radius: 6px;
+      font-size: 13px;
+      margin-bottom: 12px;
+    }
+    .alert-warning {
+      background: #fff3cd;
+      color: #856404;
+      border: 1px solid #ffc107;
+    }
+
+    /* Mode Badge */
+    .mode-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      border: 1px solid transparent;
+    }
+    .mode-badge.unknown { background: #f5f5f5; color: #9e9e9e; border-color: #e0e0e0; }
+    .mode-badge.digital { background: #e0f7f4; color: #007a6e; border-color: #80d9cd; }
+    .mode-badge.dual    { background: #efe7fb; color: #4a289a; border-color: #c3b2ec; }
+    .mode-badge.analog  { background: #fff0dc; color: #a0500b; border-color: #f5b874; }
+
+    /* Auto-Save status */
+    .autosave-status {
+      font-size: 11px;
+      margin-top: 8px;
+      padding: 6px 8px;
+      border-radius: 4px;
+      line-height: 1.6;
+    }
+    .autosave-status.idle    { background: #f5f5f5; color: #999; }
+    .autosave-status.active  { background: #e6f9f7; color: #007a6e; border: 1px solid #b2e8e3; }
+    .autosave-status.error   { background: #fdecea; color: #c0392b; border: 1px solid #f5b7b1; }
+
+    /* Footer */
+    .footer {
+      background: #fff;
+      border-top: 1px solid #e0e0e0;
+      padding: 12px 24px;
+      font-size: 11px;
+      color: #999;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      flex-shrink: 0;
+    }
+    .footer a { color: #00b8a9; text-decoration: none; }
+    .footer a:hover { text-decoration: underline; }
+
+    /* Logo */
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid #eee;
+    }
+    .logo-text h2 { font-size: 15px; font-weight: 600; }
+    .logo-text p { font-size: 11px; color: #999; }
+  </style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<aside class="sidebar">
+  <div class="logo">
+    <div class="logo-text">
+      <h2>CosmicRay Recorder v2</h2>
+      <p>Radiation Detector Data Acquisition App</p>
+    </div>
+  </div>
+
+  <!-- Notes -->
+  <div class="sidebar-section">
+    <h3><span class="icon">&#x1f4cb;</span> Notes &amp; Tips</h3>
+    <ul>
+      <li>Works on Chrome / Edge</li>
+      <li>USB: Web Serial API (9600 bps)</li>
+      <li>BLE: Web Bluetooth API</li>
+      <li>BLE requires HTTPS or localhost</li>
+      <li>ADC range is 0&ndash;4095 (12-bit)</li>
+    </ul>
+  </div>
+
+  <!-- Auto-Save -->
+  <div class="sidebar-section">
+    <h3><span class="icon">&#x1f4be;</span> Auto-Save</h3>
+    <p>Select a folder to automatically save data as it arrives. Requires Chrome / Edge.</p>
+    <div class="input-group">
+      <label>Save Format</label>
+      <select id="autoSaveFormat">
+        <option value="dat">.dat only</option>
+        <option value="csv">.csv only</option>
+        <option value="both">Both (.dat &amp; .csv)</option>
+      </select>
+    </div>
+    <button class="btn btn-primary" id="btnSelectFolder">&#x1f4c2; Select Save Folder</button>
+    <div class="autosave-status idle" id="autoSaveStatus">Not configured</div>
+  </div>
+
+  <!-- File Settings -->
+  <div class="sidebar-section">
+    <h3><span class="icon">&#x1f4c1;</span> File Settings</h3>
+    <p>Add a comment (written into the file header on download)</p>
+    <div class="input-group">
+      <textarea id="fileComment" rows="2" style="resize:vertical;" placeholder="Measurement notes..."></textarea>
+    </div>
+    <button class="btn btn-primary" id="btnExportDat" disabled>&#x1f4e5; Download (.dat)</button>
+    <div style="height:6px"></div>
+    <button class="btn btn-outline" id="btnExportCsv" disabled>&#x1f4e5; Download (.csv)</button>
+    <div id="exportStatus" style="display:none; font-size:12px; color:#007a6e; margin-top:8px;"></div>
+    <div class="alert alert-warning" id="memWarning" style="display:none; margin-top:10px;"></div>
+    <div style="height:6px"></div>
+    <button class="btn btn-secondary" id="btnClearData">&#x1f5d1; Clear Data</button>
+  </div>
+
+  <!-- Connection -->
+  <div class="sidebar-section">
+    <h3><span class="icon">&#x1f50c;</span> Connect to CosmicRay</h3>
+    <div class="input-group" id="baudRateGroup">
+      <label>Baud Rate (USB)</label>
+      <select id="baudRate">
+        <option value="9600" selected>9600</option>
+        <option value="115200">115200</option>
+      </select>
+    </div>
+    <div class="input-group">
+      <label>Bluetooth Device Name</label>
+      <input type="text" id="bleName" value="CosmicRay" maxlength="24" placeholder="CosmicRay">
+    </div>
+    <div id="connectButtons">
+      <button class="btn btn-primary" id="btnConnectUSB">&#x1f50c; Connect USB</button>
+      <div style="height:6px"></div>
+      <button class="btn btn-ble" id="btnConnectBLE">&#x1f4f6; Connect Bluetooth</button>
+    </div>
+    <div id="connectionInfo" style="display:none;margin-top:8px;">
+      <button class="btn btn-warning" id="btnPauseLog">&#x23f8;&#xfe0f; Stop Logging</button>
+      <div style="height:6px"></div>
+      <button class="btn btn-danger" id="btnDisconnect">&#x26a0; Disconnect</button>
+      <div id="logPausedInfo" class="thresh-current" style="margin-top:6px;display:none;">&#x23f8;&#xfe0f; Logging paused &mdash; incoming events are ignored (device keeps measuring).</div>
+    </div>
+    <div style="margin-top:10px;">
+      <button class="btn btn-outline btn-sm" id="btnSetBleName" disabled>&#x1f4dd; Rename &amp; Reboot</button>
+      <div class="thresh-current" id="bleNameInfo" style="margin-top:6px;">1&ndash;24 printable ASCII. Device reboots on save.</div>
+    </div>
+  </div>
+
+  <!-- Chart Refresh -->
+  <div class="sidebar-section">
+    <h3><span class="icon">&#x1f504;</span> Chart Refresh</h3>
+    <p>Histogram &amp; rate chart update interval.</p>
+    <div class="mode-select four" id="refreshSelect">
+      <button type="button" data-interval="1000">1s</button>
+      <button type="button" data-interval="3000" class="active">3s</button>
+      <button type="button" data-interval="10000">10s</button>
+      <button type="button" data-interval="manual">Manual</button>
+    </div>
+    <div style="height:6px"></div>
+    <button class="btn btn-outline btn-sm" id="btnRefreshNow" disabled>&#x1f504; Refresh Now</button>
+  </div>
+
+  <!-- Trigger Mode -->
+  <div class="sidebar-section">
+    <h3><span class="icon">&#x1f500;</span> Trigger Mode</h3>
+    <p>Digital: ISR on D0 edge. Dual: ISR + ADC re-check. Analog: A0 polling only.</p>
+    <div class="mode-select" id="modeSelect">
+      <button type="button" data-mode="DIGITAL" disabled>Digital</button>
+      <button type="button" data-mode="DUAL"    disabled>Dual</button>
+      <button type="button" data-mode="ANALOG"  disabled>Analog</button>
+    </div>
+    <div class="thresh-current" id="modeInfo">Not connected</div>
+  </div>
+
+  <!-- Feature Toggles -->
+  <div class="sidebar-section">
+    <h3><span class="icon">&#x1f39b;&#xfe0f;</span> Feature Toggles</h3>
+    <p>Runtime on/off for deadtime / power optimization.</p>
+
+    <div class="feature-row">
+      <label>SD Logging</label>
+      <div class="mode-select two" id="featSD" data-feature="SD">
+        <button type="button" data-val="ON"  disabled>On</button>
+        <button type="button" data-val="OFF" disabled>Off</button>
+      </div>
+    </div>
+    <div class="feature-row">
+      <label>External Channels</label>
+      <div class="mode-select two" id="featEXT" data-feature="EXT">
+        <button type="button" data-val="ON"  disabled>On</button>
+        <button type="button" data-val="OFF" disabled>Off</button>
+      </div>
+    </div>
+    <div class="feature-row">
+      <label>OLED Display</label>
+      <div class="mode-select two" id="featOLED" data-feature="OLED">
+        <button type="button" data-val="ON"  disabled>On</button>
+        <button type="button" data-val="OFF" disabled>Off</button>
+      </div>
+    </div>
+    <div class="feature-row">
+      <label>Buzzer Sound</label>
+      <div class="mode-select two" id="featBUZZER" data-feature="BUZZER">
+        <button type="button" data-val="ON"  disabled>On</button>
+        <button type="button" data-val="OFF" disabled>Off</button>
+      </div>
+    </div>
+    <div class="thresh-current" id="featInfo">Not connected</div>
+  </div>
+
+  <!-- Threshold Control -->
+  <div class="sidebar-section">
+    <h3><span class="icon">&#x2699;</span> Threshold Control</h3>
+    <div class="input-group">
+      <label>Signal Threshold (0&ndash;4095, 12-bit)</label>
+      <input type="number" id="threshSignal" min="0" max="4095" value="120">
+    </div>
+    <div class="btn-group">
+      <button class="btn btn-primary btn-sm" id="btnSetThresh" disabled>Set</button>
+      <button class="btn btn-outline btn-sm" id="btnGetThresh" disabled>Get</button>
+    </div>
+    <div style="height:6px"></div>
+    <div class="input-group">
+      <label>Auto Calibrate Margin (above sampled max)</label>
+      <input type="number" id="autoMargin" min="0" max="4095" value="50">
+    </div>
+    <button class="btn btn-secondary" id="btnAutoThresh" disabled>&#x1f50d; Auto Calibrate</button>
+    <div class="thresh-current" id="threshInfo">Not connected</div>
+  </div>
+</aside>
+
+<!-- Main -->
+<div class="main">
+  <!-- Header -->
+  <header class="header">
+    <h1>&#x1f4ca; Data Analysis</h1>
+    <div class="header-right">
+      <span id="elapsedTime">Elapsed: --:--:--</span>
+      <span id="modeBadge" class="mode-badge unknown">&#x1f4e1; Mode: --</span>
+      <span><span class="status-dot disconnected" id="statusDot"></span> <span id="statusText">Not connected</span></span>
+    </div>
+  </header>
+
+  <!-- Content -->
+  <div class="content">
+    <div id="apiWarning" class="alert alert-warning" style="display:none;"></div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <div class="tab active" data-tab="analysis">Analysis</div>
+      <div class="tab" data-tab="stats">Statistics</div>
+    </div>
+
+    <!-- Analysis Tab -->
+    <div id="tab-analysis">
+      <!-- Charts -->
+      <div class="charts-row">
+        <div class="chart-container">
+          <h3>&#x1f4ca; ADC Energy Histogram</h3>
+          <div class="chart-wrapper">
+            <canvas id="histogramChart"></canvas>
+          </div>
+          <div style="margin-top:8px;">
+            <label style="font-size:12px;color:#888;">ADC Bin Width:
+              <select id="binWidth" style="padding:2px 6px;font-size:12px;border:1px solid #ddd;border-radius:3px;">
+                <option value="4">4</option>
+                <option value="8">8</option>
+                <option value="16">16</option>
+                <option value="32">32</option>
+                <option value="64" selected>64</option>
+                <option value="128">128</option>
+              </select>
+            </label>
+          </div>
+        </div>
+        <div class="chart-container">
+          <h3>&#x1f4c8; Count Rate Over Time</h3>
+          <div class="chart-wrapper">
+            <canvas id="rateChart"></canvas>
+          </div>
+          <div style="margin-top:8px;">
+            <label style="font-size:12px;color:#888;">Data points: <span id="rateDataCount">0</span></label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stats Row -->
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-value" id="statTotalEvents">0</div>
+          <div class="stat-label">Total Events</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="statRate">0.00</div>
+          <div class="stat-label">Avg. Rate (cps)</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="statAdc">--</div>
+          <div class="stat-label">Avg. ADC (0-4095)</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="statDeadtime">--</div>
+          <div class="stat-label">Total Deadtime (s)</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="statElapsed">00:00:00</div>
+          <div class="stat-label">Elapsed Time</div>
+        </div>
+      </div>
+
+      <!-- Environment (BME280) -->
+      <div class="env-row">
+        <div class="env-card">
+          <div class="env-value"><span id="envTemp">--</span> &deg;C</div>
+          <div class="env-label">Temperature (BME280)</div>
+        </div>
+        <div class="env-card">
+          <div class="env-value"><span id="envHum">--</span> %</div>
+          <div class="env-label">Humidity (BME280)</div>
+        </div>
+        <div class="env-card">
+          <div class="env-value"><span id="envPress">--</span> hPa</div>
+          <div class="env-label">Pressure (BME280)</div>
+        </div>
+      </div>
+
+      <!-- External detectors (latest) -->
+      <div class="card">
+        <h3>&#x1f9ea; External Detectors (latest event)</h3>
+        <div class="ext-grid" id="extGrid">
+          <!-- filled by JS -->
+        </div>
+      </div>
+
+      <!-- Measurement Data Table -->
+      <div class="card">
+        <h3>&#x1f4cb; Measurement Data</h3>
+        <p style="font-size:12px;color:#888;margin-bottom:12px;">Displayed newest first (latest 100 rows)</p>
+        <div class="table-wrapper" id="tableWrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>PC Timestamp</th>
+                <th>Time [&micro;s]</th>
+                <th>ADC [0-4095]</th>
+                <th>Deadtime [&micro;s]</th>
+                <th>Temp [&deg;C]</th>
+                <th>Hum [%]</th>
+                <th>Press [hPa]</th>
+                <th>D1</th><th>D2</th><th>D3</th>
+                <th>A1</th><th>A2</th><th>A3</th>
+              </tr>
+            </thead>
+            <tbody id="dataTableBody">
+            </tbody>
+          </table>
+          <div class="no-data" id="noDataMsg">Waiting for data...</div>
+        </div>
+      </div>
+
+      <!-- Raw Data -->
+      <div class="card">
+        <h3>&#x1f4df; Raw Data</h3>
+        <p style="font-size:12px;color:#888;margin-bottom:8px;">Raw data received from CosmicRay (latest 100 lines)</p>
+        <div class="raw-data" id="rawDataDisplay">Waiting for connection...</div>
+      </div>
+    </div>
+
+    <!-- Stats Tab -->
+    <div id="tab-stats" style="display:none;">
+      <div class="card">
+        <h3>Detailed Statistics</h3>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr><th>Item</th><th>Value</th></tr>
+            </thead>
+            <tbody id="statsTableBody">
+              <tr><td>Total Events</td><td id="ds_total">0</td></tr>
+              <tr><td>Measurement Time</td><td id="ds_elapsed">--</td></tr>
+              <tr><td>Avg. Count Rate (cps)</td><td id="ds_rate">--</td></tr>
+              <tr><td>Count Rate Std Dev</td><td id="ds_rateStd">--</td></tr>
+              <tr><td>Avg. Temperature (&deg;C)</td><td id="ds_temp">--</td></tr>
+              <tr><td>Temp. Std Dev</td><td id="ds_tempStd">--</td></tr>
+              <tr><td>Max / Min Temperature (&deg;C)</td><td id="ds_tempRange">--</td></tr>
+              <tr><td>Avg. Humidity (%)</td><td id="ds_hum">--</td></tr>
+              <tr><td>Max / Min Humidity (%)</td><td id="ds_humRange">--</td></tr>
+              <tr><td>Avg. Pressure (hPa)</td><td id="ds_press">--</td></tr>
+              <tr><td>Max / Min Pressure (hPa)</td><td id="ds_pressRange">--</td></tr>
+              <tr><td>Total Deadtime (s)</td><td id="ds_deadtime">--</td></tr>
+              <tr><td>Avg. ADC Value</td><td id="ds_adcMean">--</td></tr>
+              <tr><td>Max ADC Value</td><td id="ds_adcMax">--</td></tr>
+              <tr><td>Dig1 / Dig2 / Dig3 hit rate</td><td id="ds_digRate">--</td></tr>
+              <tr><td>Avg. Ana1 / Ana2 / Ana3</td><td id="ds_anaMean">--</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <span>
+      &copy; 2020&ndash;2026 <a href="https://accel-kitchen.com/" target="_blank" rel="noopener">Accel Kitchen LLC</a>
+      &nbsp;&mdash;&nbsp; <a href="mailto:info@accel-kitchen.com">info@accel-kitchen.com</a>
+    </span>
+    <span>CosmicRay Recorder v2</span>
+  </footer>
+</div>
+
+<script>
+// ========== Firmware constants (match description.md) ==========
+const ADC_MAX = 4095;                  // 12-bit ADC
+const EVENT_TOKEN_COUNT = 13;          // count, time_us, adc, deadtime_us, T, H, P, d1..3, a1..3
+const VALID_MODES = ['DIGITAL', 'DUAL', 'ANALOG'];
+
+// Throttling / memory caps (to keep the page responsive under high event rates)
+const MAX_EVENTS            = 1000000; // cap on state.events kept in memory (table/recompute/download). Oldest dropped past this, with a visible warning.
+const UI_UPDATE_INTERVAL    = 300;     // ms between chart/table/card refreshes
+const STATS_UPDATE_INTERVAL = 1000;    // ms between stats-card refreshes
+const MAX_RATE_HISTORY      = 200;     // cap on state.rateHistory
+
+// ========== BLE UUIDs (Nordic UART Service) ==========
+const BLE_SERVICE_UUID = '6e400001-b5a3-f393-e0a9-e50e24dcca9e';
+const BLE_TX_UUID      = '6e400003-b5a3-f393-e0a9-e50e24dcca9e';  // Notify (device -> web)
+const BLE_RX_UUID      = '6e400002-b5a3-f393-e0a9-e50e24dcca9e';  // Write  (web -> device)
+
+// ========== State ==========
+const state = {
+  connectionType: null,  // null | 'usb' | 'ble'
+  // USB Serial
+  port: null,
+  reader: null,
+  writer: null,
+  readLoopPromise: null,
+  // BLE
+  bleDevice: null,
+  bleServer: null,
+  bleRxChar: null,
+  // Common
+  isConnected: false,
+  paused: false,          // web-side logging pause (Stop/Resume); device keeps measuring
+  events: [],
+  rateHistory: [],
+  sessionStart: null,
+  rawLines: [],
+  stats: {
+    sumTemp: 0, sumTemp2: 0, minTemp: Infinity, maxTemp: -Infinity,
+    sumHum: 0,  minHum:  Infinity, maxHum:  -Infinity,
+    sumPress: 0, minPress: Infinity, maxPress: -Infinity,
+    sumAdc: 0, maxAdc: 0,
+    digHits: [0, 0, 0],
+    sumAna:  [0, 0, 0],
+  },
+  mode: null,             // 'DIGITAL' | 'DUAL' | 'ANALOG' | null
+  threshold: null,        // int (0-4095)
+  pwmDuty: null,          // int (0-1023)
+  sdEnabled: null,        // bool | null
+  extEnabled: null,       // bool | null
+  oledEnabled: null,      // bool | null
+  buzzerEnabled: null,    // bool | null
+  autoSave: {
+    dirHandle: null,
+    pending: [],
+    currentDate: null,
+    lineCount: 0,
+    enabled: false,
+    flushing: false,   // re-entrancy lock so overlapping flushes don't corrupt the file
+  },
+};
+
+// ========== DOM Elements ==========
+const $ = id => document.getElementById(id);
+
+// ========== Charts (Canvas, no external deps) ==========
+let histogramChart, rateChart;
+
+function getNumBins() {
+  const binWidth = parseInt($('binWidth').value);
+  return Math.ceil((ADC_MAX + 1) / binWidth);
+}
+
+function makeChart(canvas, type, opts) {
+  const chart = {
+    canvas,
+    ctx: canvas.getContext('2d'),
+    type,             // 'bar' | 'line'
+    opts: opts || {},
+    data: { labels: [], datasets: [{ data: [] }] },
+    update() { drawChart(chart); },
+  };
+  return chart;
+}
+
+function niceNum(v) {
+  if (!(v > 0)) return 1;
+  const exp = Math.floor(Math.log10(v));
+  const f = v / Math.pow(10, exp);
+  const nf = f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10;
+  return nf * Math.pow(10, exp);
+}
+
+function formatYTick(v) {
+  if (v >= 1000) return (v / 1000).toFixed(v >= 10000 ? 0 : 1) + 'k';
+  if (v >= 10)   return Math.round(v).toString();
+  if (v === 0)   return '0';
+  return v.toFixed(2);
+}
+
+function drawChart(chart) {
+  const c = chart.canvas;
+  const ctx = chart.ctx;
+  const dpr = window.devicePixelRatio || 1;
+  const rect = c.getBoundingClientRect();
+  const w = Math.max(1, rect.width | 0);
+  const h = Math.max(1, rect.height | 0);
+  if (c.width !== w * dpr || c.height !== h * dpr) {
+    c.width = w * dpr;
+    c.height = h * dpr;
+  }
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, w, h);
+
+  const padL = 48, padR = 10, padT = 8, padB = 36;
+  const plotW = w - padL - padR;
+  const plotH = h - padT - padB;
+  if (plotW <= 0 || plotH <= 0) return;
+
+  const data = chart.data.datasets[0].data || [];
+  const labels = chart.data.labels || [];
+  const n = data.length;
+
+  let maxY = 0;
+  for (let i = 0; i < n; i++) { const v = data[i]; if (v > maxY) maxY = v; }
+  const niceMax = maxY > 0 ? niceNum(maxY) : 1;
+
+  ctx.font = '11px -apple-system, "Segoe UI", Roboto, sans-serif';
+  ctx.lineWidth = 1;
+
+  // Y grid + labels
+  ctx.fillStyle = '#888';
+  ctx.strokeStyle = '#eee';
+  ctx.textAlign = 'right';
+  ctx.textBaseline = 'middle';
+  const yTicks = 5;
+  for (let i = 0; i <= yTicks; i++) {
+    const y = padT + plotH - (plotH * i / yTicks);
+    ctx.beginPath();
+    ctx.moveTo(padL, y);
+    ctx.lineTo(padL + plotW, y);
+    ctx.stroke();
+    ctx.fillText(formatYTick(niceMax * i / yTicks), padL - 4, y);
+  }
+
+  // Axes
+  ctx.strokeStyle = '#bbb';
+  ctx.beginPath();
+  ctx.moveTo(padL, padT);
+  ctx.lineTo(padL, padT + plotH);
+  ctx.lineTo(padL + plotW, padT + plotH);
+  ctx.stroke();
+
+  if (n > 0) {
+    if (chart.type === 'bar') {
+      ctx.fillStyle = 'rgba(0, 184, 169, 0.8)';
+      const bw = plotW / n;
+      const drawW = Math.max(1, bw - (bw > 3 ? 0.5 : 0));
+      for (let i = 0; i < n; i++) {
+        const v = data[i];
+        if (!v) continue;
+        const bh = (v / niceMax) * plotH;
+        ctx.fillRect(padL + i * bw, padT + plotH - bh, drawW, bh);
+      }
+      ctx.fillStyle = '#666';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      const step = Math.max(1, Math.ceil(n / 8));
+      for (let i = 0; i < n; i += step) {
+        ctx.fillText(String(labels[i] ?? ''), padL + (i + 0.5) * bw, padT + plotH + 4);
+      }
+    } else if (chart.type === 'line') {
+      const step = n > 1 ? plotW / (n - 1) : 0;
+      const yFor = v => padT + plotH - (v / niceMax) * plotH;
+
+      // filled area
+      ctx.fillStyle = 'rgba(0, 184, 169, 0.12)';
+      ctx.beginPath();
+      ctx.moveTo(padL, padT + plotH);
+      for (let i = 0; i < n; i++) ctx.lineTo(padL + i * step, yFor(data[i]));
+      ctx.lineTo(padL + (n - 1) * step, padT + plotH);
+      ctx.closePath();
+      ctx.fill();
+
+      // line
+      ctx.strokeStyle = '#00b8a9';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      for (let i = 0; i < n; i++) {
+        const x = padL + i * step;
+        const y = yFor(data[i]);
+        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+
+      // points (only if not too dense)
+      if (n <= 120) {
+        ctx.fillStyle = '#00b8a9';
+        for (let i = 0; i < n; i++) {
+          ctx.beginPath();
+          ctx.arc(padL + i * step, yFor(data[i]), 2, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      ctx.fillStyle = '#666';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      const lstep = Math.max(1, Math.ceil(n / 6));
+      for (let i = 0; i < n; i += lstep) {
+        ctx.fillText(String(labels[i] ?? ''), padL + i * step, padT + plotH + 4);
+      }
+    }
+  }
+
+  // Axis titles
+  ctx.fillStyle = '#666';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'bottom';
+  if (chart.opts.xTitle) ctx.fillText(chart.opts.xTitle, padL + plotW / 2, h - 2);
+  if (chart.opts.yTitle) {
+    ctx.save();
+    ctx.translate(12, padT + plotH / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(chart.opts.yTitle, 0, 0);
+    ctx.restore();
+  }
+}
+
+function initCharts() {
+  const binWidth = parseInt($('binWidth').value);
+  const numBins = getNumBins();
+  const labels = [];
+  for (let i = 0; i < numBins; i++) labels.push(i * binWidth);
+
+  histogramChart = makeChart($('histogramChart'), 'bar', {
+    xTitle: 'ADC Value (0-4095)',
+    yTitle: 'Count',
+  });
+  histogramChart.data.labels = labels;
+  histogramChart.data.datasets[0].data = new Array(numBins).fill(0);
+
+  rateChart = makeChart($('rateChart'), 'line', {
+    xTitle: 'Time',
+    yTitle: 'Rate (cps)',
+  });
+
+  histogramChart.update();
+  rateChart.update();
+
+  window.addEventListener('resize', () => {
+    histogramChart.update();
+    rateChart.update();
+  });
+
+  if (typeof ResizeObserver !== 'undefined') {
+    const ro = new ResizeObserver(() => {
+      histogramChart.update();
+      rateChart.update();
+    });
+    ro.observe(histogramChart.canvas.parentElement);
+    ro.observe(rateChart.canvas.parentElement);
+  }
+}
+
+function rebuildHistogram() {
+  const binWidth = parseInt($('binWidth').value);
+  const numBins = getNumBins();
+  const counts = new Array(numBins).fill(0);
+  const labels = [];
+  for (let i = 0; i < numBins; i++) labels.push(i * binWidth);
+  state.events.forEach(ev => {
+    const bin = Math.min(Math.floor(ev.adc / binWidth), numBins - 1);
+    counts[bin]++;
+  });
+  histogramChart.data.labels = labels;
+  histogramChart.data.datasets[0].data = counts;
+  histogramChart.update('none');
+}
+
+// ========== USB Serial Connection ==========
+const usbTextEncoder = new TextEncoder();
+
+async function connectUSB() {
+  if (state.isConnected) return;
+  try {
+    const port = await navigator.serial.requestPort();
+    const baudRate = parseInt($('baudRate').value);
+    await port.open({ baudRate });
+    state.port = port;
+    state.connectionType = 'usb';
+    state.isConnected = true;
+    state.sessionStart = new Date();
+
+    state.writer = port.writable.getWriter();
+
+    updateConnectionUI(true);
+    state.readLoopPromise = readLoopUSB(port);
+
+    refreshDeviceState();
+  } catch (e) {
+    console.error('USB connection failed:', e);
+  }
+}
+
+async function readLoopUSB(port) {
+  const reader = port.readable.getReader();
+  state.reader = reader;
+  const decoder = new TextDecoder();
+
+  let buffer = '';
+  try {
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop();
+      for (const line of lines) {
+        processLine(line.replace(/\r$/, '').trim());
+      }
+    }
+  } catch (e) {
+    if (state.isConnected) {
+      console.error('USB read error:', e);
+      disconnect();
+    }
+  } finally {
+    try { reader.releaseLock(); } catch (_) {}
+  }
+}
+
+// ========== BLE Connection ==========
+let bleBuffer = '';
+
+async function connectBLE() {
+  if (state.isConnected) return;
+  try {
+    const targetName = ($('bleName').value || 'CosmicRay').trim() || 'CosmicRay';
+    const device = await navigator.bluetooth.requestDevice({
+      filters: [{ name: targetName }],
+      optionalServices: [BLE_SERVICE_UUID]
+    });
+
+    const server = await device.gatt.connect();
+    const service = await server.getPrimaryService(BLE_SERVICE_UUID);
+
+    const txChar = await service.getCharacteristic(BLE_TX_UUID);
+    await txChar.startNotifications();
+    txChar.addEventListener('characteristicvaluechanged', handleBLEData);
+
+    const rxChar = await service.getCharacteristic(BLE_RX_UUID);
+
+    state.bleDevice = device;
+    state.bleServer = server;
+    state.bleRxChar = rxChar;
+    state.connectionType = 'ble';
+    state.isConnected = true;
+    state.sessionStart = new Date();
+    bleBuffer = '';
+
+    device.addEventListener('gattserverdisconnected', onBLEDisconnected);
+
+    updateConnectionUI(true);
+    refreshDeviceState();
+  } catch (e) {
+    console.error('BLE connection failed:', e);
+  }
+}
+
+function handleBLEData(event) {
+  const value = event.target.value;
+  const decoder = new TextDecoder();
+  const chunk = decoder.decode(value);
+  bleBuffer += chunk;
+  const lines = bleBuffer.split('\n');
+  bleBuffer = lines.pop();
+  for (const line of lines) {
+    processLine(line.replace(/\r$/, '').trim());
+  }
+}
+
+function onBLEDisconnected() {
+  state.isConnected = false;
+  state.connectionType = null;
+  state.bleDevice = null;
+  state.bleServer = null;
+  state.bleRxChar = null;
+  bleBuffer = '';
+  updateConnectionUI(false);
+}
+
+// ========== Disconnect (common) ==========
+async function disconnect() {
+  state.isConnected = false;
+
+  // Persist any events still queued for auto-save before tearing down.
+  try { await flushAutoSave(); } catch (_) {}
+
+  if (state.connectionType === 'usb') {
+    try {
+      if (state.reader) {
+        try { await state.reader.cancel(); } catch (_) {}
+        state.reader = null;
+      }
+      if (state.readLoopPromise) {
+        try { await state.readLoopPromise; } catch (_) {}
+        state.readLoopPromise = null;
+      }
+      if (state.writer) {
+        try { await state.writer.close(); } catch (_) {}
+        try { state.writer.releaseLock(); } catch (_) {}
+        state.writer = null;
+      }
+      if (state.port) {
+        try { await state.port.close(); } catch (_) {}
+        state.port = null;
+      }
+    } catch (e) {
+      console.error('USB disconnect error:', e);
+    }
+  } else if (state.connectionType === 'ble') {
+    try {
+      if (state.bleServer && state.bleServer.connected) {
+        state.bleServer.disconnect();
+      }
+    } catch (e) {
+      console.error('BLE disconnect error:', e);
+    }
+    state.bleDevice = null;
+    state.bleServer = null;
+    state.bleRxChar = null;
+    bleBuffer = '';
+  }
+
+  state.connectionType = null;
+  updateConnectionUI(false);
+}
+
+// ========== Send Command (routes to active transport) ==========
+async function sendCommand(cmd) {
+  if (!state.isConnected) return;
+
+  if (state.connectionType === 'usb') {
+    if (!state.writer) return;
+    try {
+      await state.writer.write(usbTextEncoder.encode(cmd + '\n'));
+    } catch (e) {
+      console.error('USB send error:', e);
+    }
+  } else if (state.connectionType === 'ble') {
+    if (!state.bleRxChar) return;
+    try {
+      const encoder = new TextEncoder();
+      const data = encoder.encode(cmd + '\n');
+      // BLE Notify / Write MTU is typically 20 B; chunk to stay safe.
+      for (let i = 0; i < data.length; i += 20) {
+        const chunk = data.slice(i, i + 20);
+        await state.bleRxChar.writeValue(chunk);
+      }
+    } catch (e) {
+      console.error('BLE send error:', e);
+    }
+  }
+}
+
+// Fire GET_THRESH + GET_MODE after a short delay to let the device finish booting.
+function refreshDeviceState() {
+  setTimeout(() => sendCommand('GET_THRESH'), 800);
+  setTimeout(() => sendCommand('GET_MODE'),   1400);
+  setTimeout(() => sendCommand('GET_SD'),     1600);
+  setTimeout(() => sendCommand('GET_EXT'),    1800);
+  setTimeout(() => sendCommand('GET_OLED'),   2000);
+  setTimeout(() => sendCommand('GET_BUZZER'), 2200);
+  setTimeout(() => sendCommand('GET_BLENAME'),2400);
+  setTimeout(() => sendCommand('GET_AUTO_MARGIN'), 2600);
+}
+
+function updateFeatureButtons(containerId, val) {
+  const container = $(containerId);
+  if (!container) return;
+  container.querySelectorAll('button').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.val === val);
+  });
+}
+
+function updateFeatureInfo() {
+  const fmt = v => (v === null ? '?' : (v ? 'On' : 'Off'));
+  const info = $('featInfo');
+  if (!info) return;
+  if (!state.isConnected) {
+    info.textContent = 'Not connected';
+    return;
+  }
+  info.textContent = `SD: ${fmt(state.sdEnabled)}  EXT: ${fmt(state.extEnabled)}  OLED: ${fmt(state.oledEnabled)}  Buzzer: ${fmt(state.buzzerEnabled)}`;
+}
+
+// ========== Data Processing ==========
+let uiDirty = false;     // table/env/ext/histogram/rawDisplay
+let statsDirty = false;  // stats cards
+
+function processLine(line) {
+  if (!line) return;
+
+  state.rawLines.push(line);
+  if (state.rawLines.length > 100) state.rawLines.shift();
+  uiDirty = true;
+
+  // Threshold response: "THRESH:<sig> DUTY:<duty>" (space-separated)
+  if (line.startsWith('THRESH:')) {
+    const m = line.match(/^THRESH:\s*(\d+)\s+DUTY:\s*(\d+)/i);
+    if (m) {
+      const sig = parseInt(m[1]);
+      const duty = parseInt(m[2]);
+      state.threshold = sig;
+      state.pwmDuty = duty;
+      $('threshSignal').value = sig;
+      $('threshInfo').textContent = `Signal threshold: ${sig} / 4095   (PWM Duty: ${duty} / 1023)`;
+      if (state.isConnected) $('btnAutoThresh').disabled = false;
+    }
+    return;
+  }
+
+  // Mode response / boot-time mode line: "MODE:DIGITAL" etc.
+  if (line.startsWith('MODE:')) {
+    const modeStr = line.substring(5).trim().toUpperCase();
+    if (VALID_MODES.includes(modeStr)) {
+      state.mode = modeStr;
+      updateModeBadge(modeStr);
+      updateModeButtons();
+      $('modeInfo').textContent = `Current mode: ${modeStr}`;
+    }
+    return;
+  }
+
+  // Auto-calibrate margin response: "AUTO_MARGIN:<n>"
+  if (line.startsWith('AUTO_MARGIN:')) {
+    const n = parseInt(line.substring(12).trim());
+    if (!isNaN(n)) {
+      state.autoMargin = n;
+      $('autoMargin').value = n;
+    }
+    return;
+  }
+
+  // BLE name response: "BLENAME:<name>"
+  if (line.startsWith('BLENAME:')) {
+    const name = line.substring(8).trim();
+    if (name) {
+      state.bleName = name;
+      $('bleName').value = name;
+      try { localStorage.setItem('bleName', name); } catch (_) {}
+      $('bleNameInfo').textContent = `Device BLE name: ${name}`;
+    }
+    return;
+  }
+
+  // Feature toggle responses: "SD:ON" / "SD:OFF" / "EXT:..." / "OLED:..." / "BUZZER:..."
+  for (const [prefix, key, btnId] of [
+    ['SD:',     'sdEnabled',     'featSD'],
+    ['EXT:',    'extEnabled',    'featEXT'],
+    ['OLED:',   'oledEnabled',   'featOLED'],
+    ['BUZZER:', 'buzzerEnabled', 'featBUZZER'],
+  ]) {
+    if (line.startsWith(prefix)) {
+      const val = line.substring(prefix.length).trim().toUpperCase();
+      if (val === 'ON' || val === 'OFF') {
+        state[key] = (val === 'ON');
+        updateFeatureButtons(btnId, val);
+        updateFeatureInfo();
+        return;
+      }
+    }
+  }
+
+  // Boot header / informational lines
+  if (line.startsWith('###') || line.startsWith('#')) {
+    // "### Signal threshold: 120 (Duty 30)"
+    const m = line.match(/Signal threshold:\s*(\d+)\s*\(Duty\s*(\d+)\)/i);
+    if (m) {
+      const sig = parseInt(m[1]);
+      const duty = parseInt(m[2]);
+      state.threshold = sig;
+      state.pwmDuty = duty;
+      $('threshSignal').value = sig;
+      $('threshInfo').textContent = `Signal threshold: ${sig} / 4095   (PWM Duty: ${duty} / 1023)`;
+    }
+    return;
+  }
+
+  // System messages (don't treat as data, but let them live in raw log).
+  if (/^(Booting|BLE:|SD:|BME280:|OLED)/i.test(line)) return;
+
+  // Logging paused (web side): keep showing raw lines and control responses,
+  // but stop recording incoming data events. The device keeps measuring, so the
+  // event count will show a gap once logging resumes.
+  if (state.paused) return;
+
+  // Event line: 13 whitespace-separated tokens.
+  const parts = line.split(/\s+/);
+  if (parts.length < EVENT_TOKEN_COUNT) return;
+
+  const count       = parseInt(parts[0]);
+  const timestampUs = parseInt(parts[1]);   // device Time, microseconds (v2 firmware)
+  const adc         = parseInt(parts[2]);
+  const deadtimeUs  = parseInt(parts[3]);   // device cumulative Deadtime, microseconds (v2)
+  const tempC       = parseFloat(parts[4]);
+  const humPct      = parseFloat(parts[5]);
+  const pressHpa    = parseFloat(parts[6]);
+  const dig = [parseInt(parts[7]),  parseInt(parts[8]),  parseInt(parts[9])];
+  const ana = [parseInt(parts[10]), parseInt(parts[11]), parseInt(parts[12])];
+
+  if (isNaN(count) || isNaN(adc) || isNaN(timestampUs)) return;
+
+  const event = {
+    count,
+    timestamp_us: timestampUs,
+    pc_timestamp: Date.now(),
+    adc,
+    deadtime_us: deadtimeUs,
+    temp_c: tempC,
+    hum_pct: humPct,
+    press_hpa: pressHpa,
+    dig,
+    ana,
+  };
+
+  state.events.push(event);
+
+  if (state.events.length > MAX_EVENTS) {
+    const drop = state.events.length - MAX_EVENTS;
+    state.events.splice(0, drop);
+    lastTableLength = Math.max(0, lastTableLength - drop);
+    showMemWarning();
+  }
+
+  if (state.autoSave.enabled) {
+    state.autoSave.pending.push(event);
+  }
+
+  // Incremental stats
+  const s = state.stats;
+  if (!isNaN(tempC))  { s.sumTemp  += tempC;  s.sumTemp2 += tempC * tempC;
+                        if (tempC  < s.minTemp)  s.minTemp  = tempC;
+                        if (tempC  > s.maxTemp)  s.maxTemp  = tempC; }
+  if (!isNaN(humPct)) { s.sumHum   += humPct;
+                        if (humPct < s.minHum)   s.minHum   = humPct;
+                        if (humPct > s.maxHum)   s.maxHum   = humPct; }
+  if (!isNaN(pressHpa)) { s.sumPress += pressHpa;
+                          if (pressHpa < s.minPress) s.minPress = pressHpa;
+                          if (pressHpa > s.maxPress) s.maxPress = pressHpa; }
+  s.sumAdc  += adc;
+  if (adc > s.maxAdc) s.maxAdc = adc;
+  for (let i = 0; i < 3; i++) {
+    if (dig[i] === 1) s.digHits[i]++;
+    if (!isNaN(ana[i])) s.sumAna[i] += ana[i];
+  }
+
+  // Update histogram bin
+  const binWidth = parseInt($('binWidth').value);
+  const numBins = getNumBins();
+  const bin = Math.min(Math.floor(adc / binWidth), numBins - 1);
+  if (histogramChart.data.datasets[0].data.length === numBins) {
+    histogramChart.data.datasets[0].data[bin]++;
+  } else {
+    rebuildHistogram();
+  }
+
+  if (!exporting) {
+    $('btnExportDat').disabled = false;
+    $('btnExportCsv').disabled = false;
+  }
+
+  statsDirty = true;
+}
+
+// ========== UI Updates ==========
+function updateUIBatch() {
+  if (!uiDirty) return;
+  uiDirty = false;
+  updateTable();
+  updateEnvCards();
+  updateExtGrid();
+  updateRawDisplay();
+  $('noDataMsg').style.display = state.events.length > 0 ? 'none' : '';
+}
+
+function updateStatsBatch() {
+  if (!statsDirty) return;
+  statsDirty = false;
+  updateStats();
+}
+
+let lastTableLength = 0;
+
+function updateTable() {
+  const tbody = $('dataTableBody');
+  const events = state.events;
+  const maxRows = 100;
+
+  for (let i = lastTableLength; i < events.length; i++) {
+    const ev = events[i];
+    const ts = new Date(ev.pc_timestamp).toISOString().replace('T', ' ').substring(0, 23);
+    const row = tbody.insertRow(0);
+    const fmt = (v, d = 1) => (isNaN(v) ? '--' : v.toFixed(d));
+    row.innerHTML = `<td>${ev.count}</td>
+      <td>${ts}</td>
+      <td>${ev.timestamp_us}</td>
+      <td>${ev.adc}</td>
+      <td>${ev.deadtime_us}</td>
+      <td>${fmt(ev.temp_c, 1)}</td>
+      <td>${fmt(ev.hum_pct, 1)}</td>
+      <td>${fmt(ev.press_hpa, 1)}</td>
+      <td>${ev.dig[0]}</td><td>${ev.dig[1]}</td><td>${ev.dig[2]}</td>
+      <td>${ev.ana[0]}</td><td>${ev.ana[1]}</td><td>${ev.ana[2]}</td>`;
+  }
+  lastTableLength = events.length;
+
+  while (tbody.rows.length > maxRows) {
+    tbody.deleteRow(tbody.rows.length - 1);
+  }
+}
+
+function updateStats() {
+  const events = state.events;
+  const n = events.length;
+  $('statTotalEvents').textContent = n;
+  $('ds_total').textContent = n;
+
+  if (n === 0) {
+    $('statRate').textContent = '0.00';
+    $('statAdc').textContent = '--';
+    $('statDeadtime').textContent = '--';
+    $('statElapsed').textContent = '00:00:00';
+    return;
+  }
+
+  const elapsedUs = events[n - 1].timestamp_us;    // device Time is microseconds (v2)
+  const elapsedStr = formatTime(elapsedUs / 1000); // formatTime expects ms
+  $('statElapsed').textContent = elapsedStr;
+  $('elapsedTime').textContent = 'Elapsed: ' + elapsedStr;
+  $('ds_elapsed').textContent = elapsedStr + ` (${(elapsedUs / 1e6).toFixed(1)} s)`;
+
+  const elapsedSec = elapsedUs / 1e6;
+  const rate = elapsedSec > 0 ? (n / elapsedSec) : 0;
+  $('statRate').textContent = rate.toFixed(3);
+  $('ds_rate').textContent = rate.toFixed(4) + ' cps';
+
+  const rateStd = elapsedSec > 0 ? (Math.sqrt(n) / elapsedSec) : 0;
+  $('ds_rateStd').textContent = rateStd.toFixed(4) + ' cps';
+
+  const s = state.stats;
+  const avgTemp  = s.sumTemp  / n;
+  const tempStd  = Math.sqrt(Math.max(0, s.sumTemp2 / n - avgTemp * avgTemp));
+  const avgHum   = s.sumHum   / n;
+  const avgPress = s.sumPress / n;
+  const avgAdc   = s.sumAdc   / n;
+  // Deadtime is the running cumulative total (µs); the latest event holds the total so far.
+  const totalDeadSec = events[n - 1].deadtime_us / 1e6;
+
+  $('statAdc').textContent = avgAdc.toFixed(0);
+  $('statDeadtime').textContent = totalDeadSec.toFixed(3);
+
+  $('ds_temp').textContent      = avgTemp.toFixed(2) + ' \u00b0C';
+  $('ds_tempStd').textContent   = tempStd.toFixed(2) + ' \u00b0C';
+  $('ds_tempRange').textContent = `${s.maxTemp.toFixed(1)} / ${s.minTemp.toFixed(1)} \u00b0C`;
+  $('ds_hum').textContent       = avgHum.toFixed(2)  + ' %';
+  $('ds_humRange').textContent  = `${s.maxHum.toFixed(1)} / ${s.minHum.toFixed(1)} %`;
+  $('ds_press').textContent     = avgPress.toFixed(2) + ' hPa';
+  $('ds_pressRange').textContent = `${s.maxPress.toFixed(1)} / ${s.minPress.toFixed(1)} hPa`;
+  $('ds_deadtime').textContent  = totalDeadSec.toFixed(3) + ' s';
+  $('ds_adcMean').textContent   = avgAdc.toFixed(1);
+  $('ds_adcMax').textContent    = s.maxAdc;
+
+  const digPct = s.digHits.map(h => ((h / n) * 100).toFixed(1) + '%').join(' / ');
+  $('ds_digRate').textContent = digPct;
+  const anaAvg = s.sumAna.map(a => (a / n).toFixed(0)).join(' / ');
+  $('ds_anaMean').textContent = anaAvg;
+}
+
+function updateEnvCards() {
+  const n = state.events.length;
+  if (n === 0) {
+    $('envTemp').textContent  = '--';
+    $('envHum').textContent   = '--';
+    $('envPress').textContent = '--';
+    return;
+  }
+  const last = state.events[n - 1];
+  $('envTemp').textContent  = isNaN(last.temp_c)    ? '--' : last.temp_c.toFixed(1);
+  $('envHum').textContent   = isNaN(last.hum_pct)   ? '--' : last.hum_pct.toFixed(1);
+  $('envPress').textContent = isNaN(last.press_hpa) ? '--' : last.press_hpa.toFixed(1);
+}
+
+function updateExtGrid() {
+  const grid = $('extGrid');
+  const n = state.events.length;
+  const last = n > 0 ? state.events[n - 1] : null;
+  let html = '';
+  for (let i = 0; i < 3; i++) {
+    const d = last ? last.dig[i] : 0;
+    const a = last ? last.ana[i] : '--';
+    html += `
+      <div class="ext-cell">
+        <div class="ext-label">External Detector ${i + 1}</div>
+        <div class="ext-row">
+          <span><span class="ext-dot ${d === 1 ? 'on' : ''}"></span>Dig ${last ? d : '--'}</span>
+          <span>Ana ${a}</span>
+        </div>
+      </div>`;
+  }
+  grid.innerHTML = html;
+}
+
+function updateRawDisplay() {
+  const el = $('rawDataDisplay');
+  el.textContent = state.rawLines.join('\n');
+  el.scrollTop = el.scrollHeight;
+}
+
+// ========== Auto-Save ==========
+async function selectSaveFolder() {
+  if (!('showDirectoryPicker' in window)) {
+    alert('File System Access API is not supported. Please use Chrome or Edge.');
+    return;
+  }
+  try {
+    const dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+    const as = state.autoSave;
+    as.dirHandle = dirHandle;
+    as.enabled = true;
+    as.currentDate = null;
+    as.lineCount = 0;
+    updateAutoSaveUI();
+  } catch (e) {
+    if (e.name !== 'AbortError') console.error('Folder select error:', e);
+  }
+}
+
+async function appendToFile(dirHandle, filename, content) {
+  const fileHandle = await dirHandle.getFileHandle(filename, { create: true });
+  const file = await fileHandle.getFile();
+  const writable = await fileHandle.createWritable({ keepExistingData: true });
+  await writable.seek(file.size);
+  await writable.write(content);
+  await writable.close();
+}
+
+const DAT_HEADER = '# Event\tPC_Timestamp\tTime[us]\tADC[0-4095]\tDeadtime[us]\tTemp[C]\tHum[%]\tPress[hPa]\tDig1\tDig2\tDig3\tAna1\tAna2\tAna3\n';
+const CSV_HEADER = 'Event,PC_Timestamp,Time_us,ADC,Deadtime_us,Temp_C,Hum_pct,Press_hPa,Dig1,Dig2,Dig3,Ana1,Ana2,Ana3\n';
+
+function getFilePrefix() {
+  const name = (state.bleName || 'CosmicRay').trim();
+  const safe = name.replace(/[^A-Za-z0-9_\-]/g, '_');
+  return safe || 'CosmicRay';
+}
+
+function eventToDatLine(ev) {
+  const pcTs = new Date(ev.pc_timestamp).toISOString().replace('T', '-').replace(/:/g, '-').substring(0, 26);
+  const f = (v, d = 1) => (isNaN(v) ? '' : v.toFixed(d));
+  return `${ev.count}\t${pcTs}\t${ev.timestamp_us}\t${ev.adc}\t${ev.deadtime_us}\t${f(ev.temp_c, 1)}\t${f(ev.hum_pct, 1)}\t${f(ev.press_hpa, 2)}\t${ev.dig[0]}\t${ev.dig[1]}\t${ev.dig[2]}\t${ev.ana[0]}\t${ev.ana[1]}\t${ev.ana[2]}\n`;
+}
+
+function eventToCsvLine(ev) {
+  const f = (v, d = 1) => (isNaN(v) ? '' : v.toFixed(d));
+  return `${ev.count},${new Date(ev.pc_timestamp).toISOString()},${ev.timestamp_us},${ev.adc},${ev.deadtime_us},${f(ev.temp_c, 1)},${f(ev.hum_pct, 1)},${f(ev.press_hpa, 2)},${ev.dig[0]},${ev.dig[1]},${ev.dig[2]},${ev.ana[0]},${ev.ana[1]},${ev.ana[2]}\n`;
+}
+
+async function flushAutoSave() {
+  const as = state.autoSave;
+  if (!as.enabled || !as.dirHandle) return;
+  // Re-entrancy guard: the 1 s interval can fire again before a slow write
+  // finishes; two writers seeking/appending to the same file corrupt it.
+  if (as.flushing) return;
+  as.flushing = true;
+
+  try {
+    const today = new Date().toISOString().substring(0, 10);
+    const prefix = getFilePrefix();
+    const format = $('autoSaveFormat').value;
+
+    if (today !== as.currentDate) {
+      as.currentDate = today;
+      const comment = $('fileComment').value;
+      let headerDat = '';
+      if (comment) headerDat += '# ' + comment.replace(/\n/g, '\n# ') + '\n';
+      headerDat += DAT_HEADER;
+      try {
+        if (format === 'dat' || format === 'both') await appendToFile(as.dirHandle, `${prefix}_${today}.dat`, headerDat);
+        if (format === 'csv' || format === 'both') await appendToFile(as.dirHandle, `${prefix}_${today}.csv`, CSV_HEADER);
+      } catch (e) {
+        console.error('Auto-save header write error:', e);
+      }
+    }
+
+    if (as.pending.length === 0) return;
+
+    const batch = as.pending.splice(0);
+    let datLines = '';
+    let csvLines = '';
+    for (const ev of batch) {
+      datLines += eventToDatLine(ev);
+      csvLines += eventToCsvLine(ev);
+    }
+
+    try {
+      if (format === 'dat' || format === 'both') await appendToFile(as.dirHandle, `${prefix}_${today}.dat`, datLines);
+      if (format === 'csv' || format === 'both') await appendToFile(as.dirHandle, `${prefix}_${today}.csv`, csvLines);
+      as.lineCount += batch.length;
+      updateAutoSaveUI();
+    } catch (e) {
+      console.error('Auto-save write error:', e);
+      // Re-queue the batch so a transient failure doesn't lose events
+      // (concat avoids spread-on-huge-array limits).
+      as.pending = batch.concat(as.pending);
+      $('autoSaveStatus').className = 'autosave-status error';
+      $('autoSaveStatus').textContent = 'Write error: ' + e.message;
+    }
+  } finally {
+    as.flushing = false;
+  }
+}
+
+function updateAutoSaveUI() {
+  const as = state.autoSave;
+  const el = $('autoSaveStatus');
+  if (!as.enabled || !as.dirHandle) {
+    el.className = 'autosave-status idle';
+    el.textContent = 'Not configured';
+    return;
+  }
+  const prefix = getFilePrefix();
+  const format = $('autoSaveFormat').value;
+  const ext = format === 'both' ? '.dat / .csv' : '.' + format;
+  el.className = 'autosave-status active';
+  el.textContent = `Saving: ${prefix}_${as.currentDate || '...'}${ext}\nWritten: ${as.lineCount} events`;
+}
+
+function updateModeBadge(mode) {
+  const badge = $('modeBadge');
+  const m = (mode || '').toUpperCase();
+  if (m === 'DIGITAL') {
+    badge.className = 'mode-badge digital';
+    badge.innerHTML = '&#x1f3af; Mode: Digital';
+  } else if (m === 'DUAL') {
+    badge.className = 'mode-badge dual';
+    badge.innerHTML = '&#x1f500; Mode: Dual';
+  } else if (m === 'ANALOG') {
+    badge.className = 'mode-badge analog';
+    badge.innerHTML = '&#x1f4c8; Mode: Analog';
+  } else {
+    badge.className = 'mode-badge unknown';
+    badge.innerHTML = '&#x1f4e1; Mode: --';
+  }
+}
+
+function updateModeButtons() {
+  const buttons = $('modeSelect').querySelectorAll('button');
+  buttons.forEach(btn => {
+    btn.classList.remove('active', 'dual', 'analog');
+    if (!state.isConnected) {
+      btn.disabled = true;
+      return;
+    }
+    btn.disabled = false;
+    if (btn.dataset.mode === state.mode) {
+      btn.classList.add('active');
+      if (state.mode === 'DUAL')   btn.classList.add('dual');
+      if (state.mode === 'ANALOG') btn.classList.add('analog');
+    }
+  });
+}
+
+function setLoggingPaused(paused) {
+  state.paused = !!paused && state.isConnected;
+  const btn = $('btnPauseLog');
+  if (btn) {
+    btn.innerHTML = state.paused ? '&#x25b6;&#xfe0f; Resume Logging' : '&#x23f8;&#xfe0f; Stop Logging';
+    btn.classList.toggle('btn-primary', state.paused);
+    btn.classList.toggle('btn-warning', !state.paused);
+  }
+  const info = $('logPausedInfo');
+  if (info) info.style.display = state.paused ? '' : 'none';
+  const text = $('statusText');
+  if (state.isConnected && text) {
+    const label = state.connectionType === 'ble' ? 'Connected (BLE)' : 'Connected (USB)';
+    text.textContent = state.paused ? label + ' — Logging paused' : label;
+  }
+}
+
+function toggleLogging() {
+  if (!state.isConnected) return;
+  setLoggingPaused(!state.paused);
+}
+
+function updateConnectionUI(connected) {
+  const dot = $('statusDot');
+  const text = $('statusText');
+  if (connected) {
+    dot.className = 'status-dot connected';
+    const label = state.connectionType === 'ble' ? 'Connected (BLE)' : 'Connected (USB)';
+    text.textContent = label;
+    $('connectButtons').style.display = 'none';
+    $('baudRateGroup').style.display = 'none';
+    $('connectionInfo').style.display = 'block';
+    $('btnSetThresh').disabled = false;
+    $('btnGetThresh').disabled = false;
+    $('btnAutoThresh').disabled = false;
+    $('btnSetBleName').disabled = false;
+    $('threshInfo').textContent = 'Connected. Fetching thresholds...';
+    $('modeInfo').textContent   = 'Connected. Fetching mode...';
+    ['featSD', 'featEXT', 'featOLED', 'featBUZZER'].forEach(id => {
+      $(id).querySelectorAll('button').forEach(btn => { btn.disabled = false; });
+    });
+    $('featInfo').textContent = 'Connected. Fetching toggles...';
+    setLoggingPaused(false);
+  } else {
+    dot.className = 'status-dot disconnected';
+    text.textContent = 'Not connected';
+    setLoggingPaused(false);
+    $('connectButtons').style.display = '';
+    $('baudRateGroup').style.display = '';
+    $('connectionInfo').style.display = 'none';
+    $('btnSetThresh').disabled = true;
+    $('btnGetThresh').disabled = true;
+    $('btnAutoThresh').disabled = true;
+    $('btnSetBleName').disabled = true;
+    $('threshInfo').textContent = 'Not connected';
+    $('modeInfo').textContent   = 'Not connected';
+    state.mode = null;
+    state.threshold = null;
+    state.pwmDuty = null;
+    state.sdEnabled = null;
+    state.extEnabled = null;
+    state.oledEnabled = null;
+    state.buzzerEnabled = null;
+    ['featSD', 'featEXT', 'featOLED', 'featBUZZER'].forEach(id => {
+      $(id).querySelectorAll('button').forEach(btn => {
+        btn.disabled = true;
+        btn.classList.remove('active');
+      });
+    });
+    $('featInfo').textContent = 'Not connected';
+    updateModeBadge(null);
+  }
+  updateModeButtons();
+}
+
+// ========== Chart Refresh Control ==========
+let chartRefreshMode = '3000';  // '1000' | '3000' | '10000' | 'manual'
+let chartRefreshTimer = null;
+
+function refreshCharts() {
+  histogramChart.update('none');
+  updateRateChart();
+}
+
+function applyChartRefreshMode(mode) {
+  chartRefreshMode = mode;
+  if (chartRefreshTimer) { clearInterval(chartRefreshTimer); chartRefreshTimer = null; }
+
+  $('refreshSelect').querySelectorAll('button').forEach(b => {
+    b.classList.toggle('active', b.dataset.interval === mode);
+  });
+
+  if (mode === 'manual') {
+    $('btnRefreshNow').disabled = false;
+  } else {
+    $('btnRefreshNow').disabled = true;
+    const ms = parseInt(mode);
+    chartRefreshTimer = setInterval(refreshCharts, ms);
+  }
+}
+
+// ========== Rate Calculation ==========
+function updateRateChart() {
+  if (state.events.length === 0) return;
+
+  const now = Date.now();
+  const windowMs = 10000;
+  let recentCount = 0;
+  for (let i = state.events.length - 1; i >= 0; i--) {
+    if ((now - state.events[i].pc_timestamp) >= windowMs) break;
+    recentCount++;
+  }
+  const rate = recentCount / (windowMs / 1000);
+  const timeLabel = new Date().toLocaleTimeString('en-US');
+
+  state.rateHistory.push({ time: timeLabel, rate });
+
+  if (state.rateHistory.length > MAX_RATE_HISTORY) state.rateHistory.shift();
+
+  rateChart.data.labels = state.rateHistory.map(r => r.time);
+  rateChart.data.datasets[0].data = state.rateHistory.map(r => r.rate);
+  rateChart.update('none');
+  $('rateDataCount').textContent = state.rateHistory.length;
+}
+
+// ========== Memory cap warning ==========
+let memWarned = false;
+function showMemWarning() {
+  if (memWarned) return;
+  memWarned = true;
+  const el = $('memWarning');
+  if (!el) return;
+  el.style.display = '';
+  el.textContent =
+    `メモリ上限 (${MAX_EVENTS.toLocaleString()} 件) に達したため、古いデータをメモリから破棄しています。` +
+    `全件を残すにはフォルダ自動保存 (Select Save Folder) を使うか、こまめに Download してから Clear してください。`;
+}
+
+// ========== File Export (non-blocking, streaming) ==========
+const EXPORT_CHUNK = 20000;   // events per write / UI-yield while exporting
+let exporting = false;
+
+function exportDat() { exportData('dat'); }
+function exportCsv() { exportData('csv'); }
+
+const yieldToUI = () => new Promise(r => setTimeout(r, 0));
+
+function setExportBusy(busy) {
+  const noData = state.events.length === 0;
+  $('btnExportDat').disabled = busy || noData;
+  $('btnExportCsv').disabled = busy || noData;
+}
+
+function updateExportStatus(done, total, finished) {
+  const el = $('exportStatus');
+  if (!el) return;
+  el.style.display = '';
+  el.style.color = '#007a6e';
+  if (finished) {
+    el.textContent = `Saved ${total.toLocaleString()} events.`;
+    setTimeout(() => { if (!exporting) el.style.display = 'none'; }, 4000);
+  } else {
+    el.textContent = `Exporting… ${done.toLocaleString()} / ${total.toLocaleString()}`;
+  }
+}
+
+async function exportData(format) {
+  if (exporting || state.events.length === 0) return;
+  exporting = true;
+  setExportBusy(true);
+
+  const isDat   = format === 'dat';
+  const prefix  = getFilePrefix();
+  const dateStr = formatDateForFile(state.sessionStart || new Date());
+  const filename = `${prefix}_${dateStr}.${isDat ? 'dat' : 'csv'}`;
+  const lineOf  = isDat ? eventToDatLine : eventToCsvLine;
+  const mime    = isDat ? 'text/plain;charset=utf-8' : 'text/csv;charset=utf-8';
+
+  let header;
+  if (isDat) {
+    const comment = $('fileComment').value;
+    header = '';
+    if (comment) header += '# ' + comment.replace(/\n/g, '\n# ') + '\n';
+    if (state.mode)              header += `# Trigger mode: ${state.mode}\n`;
+    if (state.threshold != null) header += `# Signal threshold: ${state.threshold} / 4095\n`;
+    header += DAT_HEADER;
+  } else {
+    header = CSV_HEADER;
+  }
+
+  // Snapshot so events arriving (or being dropped at the cap) mid-export don't shift indices.
+  const events = state.events.slice();
+  const total = events.length;
+
+  try {
+    let writable = null;
+    // showSaveFilePicker must be the FIRST await after the click so the user
+    // activation is still valid (the sync setup above does not consume it).
+    if (window.showSaveFilePicker) {
+      try {
+        const handle = await showSaveFilePicker({
+          suggestedName: filename,
+          types: [{
+            description: isDat ? 'Data file' : 'CSV file',
+            accept: isDat ? { 'text/plain': ['.dat'] } : { 'text/csv': ['.csv'] },
+          }],
+        });
+        writable = await handle.createWritable();
+      } catch (e) {
+        if (e && e.name === 'AbortError') return;   // user cancelled; finally restores UI
+        console.warn('showSaveFilePicker unavailable, falling back to download:', e);
+        writable = null;
+      }
+    }
+
+    if (writable) {
+      // Stream straight to disk: no giant string, no Blob, no size limit.
+      await writable.write(header);
+      for (let i = 0; i < total; i += EXPORT_CHUNK) {
+        const end = Math.min(i + EXPORT_CHUNK, total);
+        const sub = [];
+        for (let j = i; j < end; j++) sub.push(lineOf(events[j]));
+        await writable.write(sub.join(''));
+        updateExportStatus(end, total);
+        await yieldToUI();
+      }
+      await writable.close();
+    } else {
+      // Fallback: build chunk strings into an array (O(n)) then one Blob — no O(n²) concat.
+      const parts = [header];
+      for (let i = 0; i < total; i += EXPORT_CHUNK) {
+        const end = Math.min(i + EXPORT_CHUNK, total);
+        const sub = [];
+        for (let j = i; j < end; j++) sub.push(lineOf(events[j]));
+        parts.push(sub.join(''));
+        updateExportStatus(end, total);
+        await yieldToUI();
+      }
+      downloadBlob(filename, new Blob(parts, { type: mime }));
+    }
+    updateExportStatus(total, total, true);
+  } catch (e) {
+    console.error('Export error:', e);
+    const el = $('exportStatus');
+    if (el) { el.style.display = ''; el.style.color = '#c0392b'; el.textContent = 'Export error: ' + (e && e.message ? e.message : e); }
+  } finally {
+    exporting = false;
+    setExportBusy(false);
+  }
+}
+
+function downloadBlob(filename, blob) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function downloadFile(filename, content) {
+  downloadBlob(filename, new Blob([content], { type: 'text/plain;charset=utf-8' }));
+}
+
+// ========== Utilities ==========
+function formatTime(ms) {
+  const totalSec = Math.floor(ms / 1000);
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const s = totalSec % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
+function formatDateForFile(date) {
+  const d = date || new Date();
+  return d.getFullYear() + '-' +
+    String(d.getMonth() + 1).padStart(2, '0') + '-' +
+    String(d.getDate()).padStart(2, '0') + '_' +
+    String(d.getHours()).padStart(2, '0') + '-' +
+    String(d.getMinutes()).padStart(2, '0') + '-' +
+    String(d.getSeconds()).padStart(2, '0');
+}
+
+// ========== Tabs ==========
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    const target = tab.dataset.tab;
+    document.querySelectorAll('[id^="tab-"]').forEach(el => el.style.display = 'none');
+    document.getElementById('tab-' + target).style.display = '';
+  });
+});
+
+// ========== Event Listeners ==========
+$('btnConnectUSB').addEventListener('click', connectUSB);
+$('btnConnectBLE').addEventListener('click', connectBLE);
+$('btnDisconnect').addEventListener('click', disconnect);
+$('btnPauseLog').addEventListener('click', toggleLogging);
+
+$('btnSetThresh').addEventListener('click', () => {
+  const sig = parseInt($('threshSignal').value);
+  if (isNaN(sig) || sig < 0 || sig > ADC_MAX) {
+    alert(`Signal threshold must be an integer in 0\u2013${ADC_MAX}.`);
+    return;
+  }
+  sendCommand(`SET_THRESH:${sig}`);
+});
+
+$('btnGetThresh').addEventListener('click', () => sendCommand('GET_THRESH'));
+
+$('btnSetBleName').addEventListener('click', () => {
+  const name = ($('bleName').value || '').trim();
+  if (!/^[\x20-\x7E]{1,24}$/.test(name)) {
+    alert('BLE name must be 1-24 printable ASCII characters.');
+    return;
+  }
+  if (!confirm(`Rename BLE device to "${name}" and reboot?`)) return;
+  try { localStorage.setItem('bleName', name); } catch (_) {}
+  sendCommand(`SET_BLENAME:${name}`);
+  $('bleNameInfo').textContent = `Saving "${name}" and rebooting...`;
+});
+
+$('btnAutoThresh').addEventListener('click', () => {
+  const m = parseInt($('autoMargin').value);
+  if (isNaN(m) || m < 0 || m > ADC_MAX) {
+    alert(`Margin must be an integer in 0\u2013${ADC_MAX}.`);
+    return;
+  }
+  $('threshInfo').textContent = `Auto-calibrating threshold (margin=${m})...`;
+  $('btnAutoThresh').disabled = true;
+  sendCommand(`AUTO_THRESH:${m}`);
+  setTimeout(() => { $('btnAutoThresh').disabled = !state.isConnected; }, 3000);
+});
+
+// Mode selector
+$('modeSelect').querySelectorAll('button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    if (!state.isConnected || btn.disabled) return;
+    const m = btn.dataset.mode;
+    if (!VALID_MODES.includes(m)) return;
+    $('modeInfo').textContent = `Switching to ${m}...`;
+    sendCommand(`SET_MODE:${m}`);
+  });
+});
+
+// Feature toggles (SD / EXT / OLED / BUZZER)
+['SD', 'EXT', 'OLED', 'BUZZER'].forEach(feat => {
+  $(`feat${feat}`).querySelectorAll('button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (!state.isConnected || btn.disabled) return;
+      sendCommand(`SET_${feat}:${btn.dataset.val}`);
+    });
+  });
+});
+
+$('btnSelectFolder').addEventListener('click', selectSaveFolder);
+$('btnExportDat').addEventListener('click', exportDat);
+$('btnExportCsv').addEventListener('click', exportCsv);
+
+$('btnClearData').addEventListener('click', () => {
+  if (state.events.length > 0 && !confirm('Clear all data and reset detector count?')) return;
+  if (state.isConnected) sendCommand('RESET');
+  state.events = [];
+  state.rateHistory = [];
+  state.rawLines = [];
+  state.stats = {
+    sumTemp: 0, sumTemp2: 0, minTemp: Infinity, maxTemp: -Infinity,
+    sumHum: 0,  minHum:  Infinity, maxHum:  -Infinity,
+    sumPress: 0, minPress: Infinity, maxPress: -Infinity,
+    sumAdc: 0, maxAdc: 0,
+    digHits: [0, 0, 0],
+    sumAna:  [0, 0, 0],
+  };
+  lastTableLength = 0;
+  uiDirty = false;
+  statsDirty = false;
+  $('dataTableBody').innerHTML = '';
+  $('rawDataDisplay').textContent = 'Waiting for connection...';
+  $('noDataMsg').style.display = '';
+  $('btnExportDat').disabled = true;
+  $('btnExportCsv').disabled = true;
+  memWarned = false;
+  $('memWarning').style.display = 'none';
+  $('exportStatus').style.display = 'none';
+  rebuildHistogram();
+  rateChart.data.labels = [];
+  rateChart.data.datasets[0].data = [];
+  rateChart.update('none');
+  updateStats();
+  updateEnvCards();
+  updateExtGrid();
+});
+
+$('binWidth').addEventListener('change', () => {
+  rebuildHistogram();
+  uiDirty = true;
+});
+
+// Chart refresh selector
+$('refreshSelect').querySelectorAll('button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    applyChartRefreshMode(btn.dataset.interval);
+  });
+});
+
+$('btnRefreshNow').addEventListener('click', refreshCharts);
+
+// ========== Initialization ==========
+document.addEventListener('DOMContentLoaded', () => {
+  const warnings = [];
+  if (!('serial' in navigator)) warnings.push('Web Serial API is not available (USB connection disabled).');
+  if (!('bluetooth' in navigator)) warnings.push('Web Bluetooth API is not available (Bluetooth connection disabled).');
+
+  if (warnings.length > 0) {
+    $('apiWarning').style.display = '';
+    $('apiWarning').textContent = warnings.join(' ') + ' Please use Chrome or Edge.';
+  }
+
+  if (!('serial' in navigator)) $('btnConnectUSB').disabled = true;
+  if (!('bluetooth' in navigator)) $('btnConnectBLE').disabled = true;
+
+  try {
+    const savedBleName = localStorage.getItem('bleName');
+    if (savedBleName) {
+      $('bleName').value = savedBleName;
+      state.bleName = savedBleName;
+    }
+  } catch (_) {}
+
+  initCharts();
+  updateExtGrid();
+
+  setInterval(updateUIBatch,    UI_UPDATE_INTERVAL);
+  setInterval(updateStatsBatch, STATS_UPDATE_INTERVAL);
+  applyChartRefreshMode(chartRefreshMode);
+  setInterval(flushAutoSave, 1000);
+});
+</script>
+</body>
+</html>

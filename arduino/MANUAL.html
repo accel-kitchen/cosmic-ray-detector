@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>Cosmic Ray Detector v2 - ユーザーマニュアル</title>
+<style>
+  :root {
+    --fg: #1a1a1a;
+    --bg: #fafafa;
+    --accent: #1565c0;
+    --accent-light: #e3f2fd;
+    --warn: #b26a00;
+    --warn-bg: #fff4e0;
+    --danger: #c62828;
+    --danger-bg: #fdecea;
+    --ok: #2e7d32;
+    --ok-bg: #e8f5e9;
+    --code-bg: #272822;
+    --code-fg: #f8f8f2;
+    --border: #d0d0d0;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Helvetica Neue", "Hiragino Sans", "Yu Gothic", Meiryo, sans-serif;
+    color: var(--fg);
+    background: var(--bg);
+    line-height: 1.7;
+  }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+  header {
+    background: linear-gradient(135deg, #1565c0, #0d47a1);
+    color: white;
+    padding: 2.5rem 1.5rem;
+    text-align: center;
+  }
+  header h1 { margin: 0 0 .3rem; font-size: 2rem; }
+  header p { margin: 0; opacity: 0.9; font-size: 1rem; }
+
+  nav.toc {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem 1.5rem;
+    margin-bottom: 2rem;
+  }
+  nav.toc h2 { margin: 0 0 .5rem; font-size: 1.1rem; color: var(--accent); }
+  nav.toc ol { margin: 0; padding-left: 1.3rem; }
+  nav.toc a { color: var(--fg); text-decoration: none; }
+  nav.toc a:hover { color: var(--accent); text-decoration: underline; }
+
+  h2 {
+    color: var(--accent);
+    border-bottom: 3px solid var(--accent);
+    padding-bottom: .3rem;
+    margin-top: 2.5rem;
+  }
+  h3 { margin-top: 1.8rem; color: #222; }
+
+  code {
+    background: #eee;
+    padding: .1em .4em;
+    border-radius: 3px;
+    font-family: "SF Mono", Consolas, Menlo, monospace;
+    font-size: 0.93em;
+  }
+  pre {
+    background: var(--code-bg);
+    color: var(--code-fg);
+    padding: 1rem 1.2rem;
+    border-radius: 6px;
+    overflow-x: auto;
+    font-size: 0.9em;
+    line-height: 1.5;
+  }
+  pre code { background: none; color: inherit; padding: 0; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+    background: white;
+    font-size: 0.94em;
+  }
+  th, td {
+    border: 1px solid var(--border);
+    padding: .5rem .8rem;
+    text-align: left;
+    vertical-align: top;
+  }
+  th { background: var(--accent-light); color: var(--accent); font-weight: 600; }
+  tr:nth-child(even) td { background: #fafafa; }
+
+  .callout {
+    padding: 1rem 1.2rem;
+    margin: 1rem 0;
+    border-left: 4px solid;
+    border-radius: 4px;
+  }
+  .callout.info { border-color: var(--accent); background: var(--accent-light); }
+  .callout.warn { border-color: var(--warn); background: var(--warn-bg); }
+  .callout.danger { border-color: var(--danger); background: var(--danger-bg); }
+  .callout.ok { border-color: var(--ok); background: var(--ok-bg); }
+  .callout strong { display: block; margin-bottom: .3rem; }
+
+  .pin-dir-in  { color: #1565c0; font-weight: 600; }
+  .pin-dir-out { color: #c62828; font-weight: 600; }
+  .pin-dir-bi  { color: #6a1b9a; font-weight: 600; }
+
+  .cmd-card {
+    background: white;
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--accent);
+    border-radius: 4px;
+    padding: .8rem 1rem;
+    margin: .7rem 0;
+  }
+  .cmd-card .syntax { font-family: Consolas, Menlo, monospace; font-weight: bold; color: var(--accent); }
+
+  .badge {
+    display: inline-block;
+    padding: .15em .6em;
+    font-size: 0.8em;
+    border-radius: 999px;
+    background: var(--accent);
+    color: white;
+    margin-right: .4em;
+  }
+  .badge.new { background: var(--ok); }
+  .badge.changed { background: var(--warn); }
+
+  footer { text-align: center; color: #888; margin-top: 3rem; font-size: 0.9em; }
+
+  ul.checklist { list-style: none; padding-left: 0; }
+  ul.checklist li { padding: .3em 0 .3em 1.8em; position: relative; }
+  ul.checklist li::before {
+    content: "☐";
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+    font-size: 1.2em;
+    top: .1em;
+  }
+
+  details { background: white; border: 1px solid var(--border); border-radius: 6px; padding: .8rem 1rem; margin: .8rem 0; }
+  details summary { cursor: pointer; font-weight: 600; color: var(--accent); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Cosmic Ray Detector v2</h1>
+  <p>ESP32-S3-Nano ファームウェア ユーザーマニュアル</p>
+</header>
+
+<div class="wrap">
+
+<nav class="toc">
+  <h2>目次</h2>
+  <ol>
+    <li><a href="#overview">装置の概要</a></li>
+    <li><a href="#whatsnew">v1 からの主な変更点</a></li>
+    <li><a href="#hardware">ハードウェア仕様・ピン割り当て</a></li>
+    <li><a href="#setup">開発環境のセットアップ</a></li>
+    <li><a href="#flash">ファームウェアの書き込み</a></li>
+    <li><a href="#operation">起動と基本操作</a></li>
+    <li><a href="#logformat">ログ出力フォーマット</a></li>
+    <li><a href="#commands">コマンドリファレンス</a></li>
+    <li><a href="#ble">BLE 接続方法</a></li>
+    <li><a href="#troubleshoot">トラブルシューティング</a></li>
+    <li><a href="#glossary">用語集</a></li>
+  </ol>
+</nav>
+
+<h2 id="overview">1. 装置の概要</h2>
+<p>
+本装置は <strong>SiPM (Silicon Photomultiplier) を用いた宇宙線検出器</strong>の v2 基板用ファームウェアです。
+SiPM で受けたパルスをアンプ・ピークホールド回路で増幅し、外部コンパレータで閾値判定したものをマイコンが
+記録します。さらに <strong>外部 3 系統の検出器</strong>（デジタル + アナログ）を接続して同時計測、
+コインシデンス判定、音声ジャックへの出力、ブザー鳴動に対応しています。
+</p>
+<div class="callout info">
+  <strong>対応ボード</strong>
+  Arduino Nano ESP32 (ESP32-S3)。ボード定義は Arduino IDE の「ボードマネージャ」から <code>esp32</code>
+  by Espressif Systems を入れると使えます。
+</div>
+
+<h2 id="whatsnew">2. v1 からの主な変更点</h2>
+<table>
+  <thead>
+    <tr><th>項目</th><th>v1 (旧)</th><th>v2 (新)</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>トリガー方式</td>
+      <td>ADC を polling し閾値比較</td>
+      <td><strong>外部コンパレータ + 割り込み</strong>。閾値は D2 の PWM Duty で設定</td>
+    </tr>
+    <tr>
+      <td>ピークホールド</td>
+      <td>信号レベルが下がるまで待機</td>
+      <td><strong>D8 から短いパルスを出して強制リセット</strong></td>
+    </tr>
+    <tr>
+      <td>温度センサ</td>
+      <td>NTC サーミスタ (A3, ADC)</td>
+      <td><strong>BME280</strong> (I²C, U4)</td>
+    </tr>
+    <tr>
+      <td>コインシデンス</td>
+      <td>Master/Slave 2 台構成</td>
+      <td><strong>3 台の外部検出器を同時入力</strong> (DIG_IN1-3)</td>
+    </tr>
+    <tr>
+      <td>出力インターフェース</td>
+      <td>なし (LED のみ)</td>
+      <td><strong>ブザー</strong>、音声ジャック (COIN_OUT, ANA_OUT)</td>
+    </tr>
+    <tr>
+      <td>ログ</td>
+      <td>Mode 欄 (Master/Slave)</td>
+      <td><strong>Dig1-3 / Ana1-3 欄</strong>を末尾に追加</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2 id="hardware">3. ハードウェア仕様・ピン割り当て</h2>
+
+<h3>3.1 Nano ESP32 ピンマップ</h3>
+<table>
+  <thead>
+    <tr>
+      <th>Nano Pin</th><th>Arduino ラベル</th><th>ネット名</th><th>方向</th><th>用途</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td>1</td><td>D1 / TX</td><td>(Buzzer)</td><td class="pin-dir-out">OUT</td><td>ブザー駆動 (tone)</td></tr>
+    <tr><td>2</td><td>D0 / RX</td><td>Trigger</td><td class="pin-dir-in">IN (INT)</td><td>コンパレータ出力 → 割込</td></tr>
+    <tr><td>5</td><td>D2</td><td>PWM</td><td class="pin-dir-out">OUT</td><td>コンパレータ閾値 (Duty)</td></tr>
+    <tr><td>7</td><td>D4</td><td>DIG_IN3</td><td class="pin-dir-in">IN</td><td>外部検出器 3 (デジタル)</td></tr>
+    <tr><td>8</td><td>D5</td><td>DIG_IN2</td><td class="pin-dir-in">IN</td><td>外部検出器 2 (デジタル)</td></tr>
+    <tr><td>9</td><td>D6</td><td>DIG_IN1</td><td class="pin-dir-in">IN</td><td>外部検出器 1 (デジタル)</td></tr>
+    <tr><td>10</td><td>D7</td><td>COIN_OUT</td><td class="pin-dir-out">OUT</td><td>音声ジャック デジタル出力</td></tr>
+    <tr><td>11</td><td>D8</td><td>TriggerReset</td><td class="pin-dir-out">OUT</td><td>ピークホールドリセットパルス</td></tr>
+    <tr><td>12-16</td><td>D9-D13</td><td>SPI 系</td><td>—</td><td>CS1/CS2/MOSI/MISO/SCLK (未使用)</td></tr>
+    <tr><td>19</td><td>A0</td><td>ANA_OUT</td><td class="pin-dir-in">IN (ADC)</td><td>自検出器 SiPM ピークホールド値</td></tr>
+    <tr><td>20</td><td>A1</td><td>ANA_IN1</td><td class="pin-dir-in">IN (ADC)</td><td>外部検出器 1 (アナログ)</td></tr>
+    <tr><td>21</td><td>A2</td><td>ANA_IN2</td><td class="pin-dir-in">IN (ADC)</td><td>外部検出器 2 (アナログ)</td></tr>
+    <tr><td>23</td><td>A4</td><td>SDA</td><td class="pin-dir-bi">I²C</td><td>OLED + BME280</td></tr>
+    <tr><td>24</td><td>A5</td><td>SCL</td><td class="pin-dir-bi">I²C</td><td>OLED + BME280</td></tr>
+    <tr><td>25</td><td>A6</td><td>ANA_IN3</td><td class="pin-dir-in">IN (ADC)</td><td>外部検出器 3 (アナログ)</td></tr>
+  </tbody>
+</table>
+
+<div class="callout warn">
+  <strong>注意: ANA_OUT はマイコンから見ると入力です</strong>
+  ネット名「ANA_OUT」は<strong>アナログ前段 (ピークホールド) からの出力</strong>の意味で、音声ジャックと
+  マイコン A0 の両方に同じ信号が繋がっています。マイコンはこの電圧を ADC で読み取るだけで、
+  出力はしません。
+</div>
+
+<h3>3.2 信号の流れ (簡易図)</h3>
+<pre>
+  SiPM → アンプ → ピークホールド ─┬─ A0 (ADC 読取)
+                                    └─ 音声ジャック (ANA_OUT)
+
+  ピークホールド ─ コンパレータ ─ D0 (割込入力: Trigger)
+                      ↑
+                      PWM Duty (D2) で閾値設定
+
+  D8 (TriggerReset) ─ パルス → ピークホールドをクリア
+
+  外部検出器1-3 ─ DIG_IN1-3 (D6/D5/D4) / ANA_IN1-3 (A1/A2/A6)
+
+  コインシデンス成立 → D7 (COIN_OUT) パルス & D1 (ブザー) 鳴動
+</pre>
+
+<h2 id="setup">4. 開発環境のセットアップ</h2>
+
+<h3>4.1 必要なもの</h3>
+<ul class="checklist">
+  <li>Arduino IDE 2.x (または PlatformIO)</li>
+  <li>ESP32 Arduino Core (ボードマネージャから)</li>
+  <li>USB Type-C ケーブル (Nano ESP32 用)</li>
+</ul>
+
+<h3>4.2 必要ライブラリ</h3>
+<p>Arduino IDE の「ライブラリマネージャ」で以下を検索してインストールしてください。</p>
+<table>
+  <thead><tr><th>ライブラリ名</th><th>用途</th></tr></thead>
+  <tbody>
+    <tr><td>Adafruit SSD1306</td><td>OLED ディスプレイ</td></tr>
+    <tr><td>Adafruit GFX Library</td><td>グラフィックス基盤</td></tr>
+    <tr><td><span class="badge new">v2 新規</span>Adafruit BME280 Library</td><td>温度・気圧・湿度センサ</td></tr>
+    <tr><td><span class="badge new">v2 新規</span>Adafruit Unified Sensor</td><td>BME280 の依存</td></tr>
+  </tbody>
+</table>
+<div class="callout info">
+  BLE と Preferences は ESP32 Arduino Core に含まれるので追加インストール不要です。
+</div>
+
+<h3>4.3 ボード設定</h3>
+<ol>
+  <li>Arduino IDE → <code>ツール</code> → <code>ボード</code> → <strong>Arduino Nano ESP32</strong> を選択</li>
+  <li><code>USB CDC On Boot</code> を <strong>Enabled</strong> に設定 (USB シリアルが使えるようになる)</li>
+  <li>ポートは Nano ESP32 を USB 接続後、<code>COMxx</code> (Win) / <code>/dev/cu.usbmodem...</code> (Mac) を選択</li>
+</ol>
+
+<h2 id="flash">5. ファームウェアの書き込み</h2>
+<ol>
+  <li>本ディレクトリ内の <code>COSMICRAY_DETECTOR_ESP32-S3-Nano-v2.ino</code> を Arduino IDE で開く</li>
+  <li>左上の ✓ (検証) ボタンでコンパイル</li>
+  <li>→ (アップロード) ボタンで書き込み</li>
+  <li>書き込み完了後、シリアルモニタ (<strong>9600 baud</strong>) を開くと "Booting v2..." と表示される</li>
+</ol>
+<div class="callout warn">
+  <strong>初回書き込み時の注意</strong>
+  Nano ESP32 がブートローダモードにならない場合、ボード上の <code>BOOT</code> ボタンを押しながら
+  <code>RESET</code> を一瞬押してください。その後 IDE からアップロードが可能になります。
+</div>
+
+<h2 id="operation">6. 起動と基本操作</h2>
+
+<h3>6.1 起動時のシーケンス</h3>
+<ol>
+  <li>電源 ON → シリアルで "Booting v2..." 出力</li>
+  <li>Preferences から閾値を読込 (初回は自動校正)</li>
+  <li>BLE 広告開始: デバイス名 <strong>"CosmicRay"</strong></li>
+  <li>OLED にオープニング画面 (2 秒)</li>
+  <li>BME280 を探索 (0x76 → 0x77)</li>
+  <li>D0 に割込登録 → 計測開始</li>
+</ol>
+
+<h3>6.2 OLED 表示</h3>
+<pre>
+Accel Kitchen v2
+Cnt:123  T:00:05:42
+Rate: 0.41+/-0.04
+Thr:30 Duty:7
+Temp:24.3C
+</pre>
+<ul>
+  <li><strong>Cnt:</strong> 累積イベント数</li>
+  <li><strong>T:</strong> 経過時間 (HH:MM:SS)</li>
+  <li><strong>Rate:</strong> 平均レート ± 統計誤差 [cps]</li>
+  <li><strong>Thr / Duty:</strong> 現在の閾値 (0-1023) と対応する PWM Duty (0-255)</li>
+  <li><strong>Temp:</strong> BME280 の温度 [°C]</li>
+</ul>
+
+<h2 id="logformat">7. ログ出力フォーマット</h2>
+<p>トリガーイベントが発生するごとに、シリアル + BLE の両方に 1 行ログが出力されます。</p>
+<pre>
+### Event Time[ms] ADC[0-1023] SiPM[mV] Deadtime[ms] Temp[C] Dig1 Dig2 Dig3 Ana1 Ana2 Ana3
+42 18732 485 732.15 1203 24.3 1 0 1 612 28 701
+</pre>
+
+<table>
+  <thead><tr><th>カラム</th><th>意味</th><th>範囲</th></tr></thead>
+  <tbody>
+    <tr><td>Event</td><td>累積イベント番号</td><td>1, 2, 3, ...</td></tr>
+    <tr><td>Time[ms]</td><td>起動からの経過時間</td><td>ms</td></tr>
+    <tr><td>ADC</td><td>自検出器ピークホールド値</td><td>0-1023</td></tr>
+    <tr><td>SiPM[mV]</td><td>ADC から 11 次多項式で換算した電圧</td><td>mV</td></tr>
+    <tr><td>Deadtime[ms]</td><td>累積デッドタイム</td><td>ms</td></tr>
+    <tr><td>Temp[C]</td><td>BME280 温度 (2 秒毎に更新)</td><td>°C</td></tr>
+    <tr><td><span class="badge new">新</span>Dig1-3</td><td>外部検出器 1-3 のデジタル値</td><td>0 / 1</td></tr>
+    <tr><td><span class="badge new">新</span>Ana1-3</td><td>外部検出器 1-3 のアナログ値</td><td>0-1023</td></tr>
+  </tbody>
+</table>
+
+<div class="callout ok">
+  <strong>スペース区切り</strong>
+  空白 1 文字区切りなので、<code>awk</code>、Python の <code>str.split()</code>、pandas の
+  <code>read_csv(sep=' ')</code> 等で簡単にパース可能です。
+</div>
+
+<h2 id="commands">8. コマンドリファレンス</h2>
+<p>シリアル (9600 bps) または BLE RX 特性への書き込みでコマンドを送ります。<strong>改行 (LF または CR) で確定</strong>します。</p>
+
+<div class="cmd-card">
+  <div class="syntax">GET_THRESH</div>
+  <p>現在の閾値と PWM Duty を <code>THRESH:&lt;sig&gt; DUTY:&lt;duty&gt;</code> の形式で返します。</p>
+</div>
+
+<div class="cmd-card">
+  <div class="syntax">SET_THRESH:&lt;signal&gt;</div>
+  <p>閾値を 0-1023 の範囲で設定し、即座に PWM Duty に反映・Preferences に保存します。</p>
+  <p>例: <code>SET_THRESH:100</code> → Duty ≒ 25</p>
+  <div class="callout warn" style="margin: .5rem 0;">
+    <strong>v1 から仕様変更</strong>: カンマ区切りの 2 引数 (<code>SET_THRESH:sig,rst</code>) は廃止。
+    RESET_THRESHOLD はハードウェアコンパレータが担当するため不要です。
+  </div>
+</div>
+
+<div class="cmd-card">
+  <div class="syntax">AUTO_THRESH</div>
+  <p>A0 (ANA_OUT) のノイズフロアを 100 サンプル測定し、<strong>最小値 + 40</strong> を閾値として自動設定します。
+  ダーク環境で一度実行してください。</p>
+</div>
+
+<div class="cmd-card">
+  <div class="syntax">SET_SD:ON|OFF / SET_EXT:ON|OFF / SET_OLED:ON|OFF / SET_BUZZER:ON|OFF</div>
+  <p>各機能をランタイムで ON/OFF し、Preferences に保存します (次回起動時も維持)。
+  <code>SET_BUZZER:OFF</code> で<strong>検出時のビープ音</strong>を消せます。デフォルトは全て ON。</p>
+  <p>状態取得は <code>GET_SD</code> / <code>GET_EXT</code> / <code>GET_OLED</code> / <code>GET_BUZZER</code>。
+  応答は <code>SD:ON</code> / <code>BUZZER:OFF</code> のような形式で返ります。</p>
+</div>
+
+<h2 id="ble">9. BLE 接続方法</h2>
+
+<h3>9.1 プロトコル: Nordic UART Service (NUS)</h3>
+<table>
+  <thead><tr><th>UUID</th><th>用途</th></tr></thead>
+  <tbody>
+    <tr><td><code>6E400001-B5A3-F393-E0A9-E50E24DCCA9E</code></td><td>Service</td></tr>
+    <tr><td><code>6E400002-...</code></td><td>RX (スマホ→デバイス、Write)</td></tr>
+    <tr><td><code>6E400003-...</code></td><td>TX (デバイス→スマホ、Notify)</td></tr>
+  </tbody>
+</table>
+
+<h3>9.2 接続手順</h3>
+<ol>
+  <li>スマホに汎用 BLE ターミナルアプリをインストール
+    <ul>
+      <li>iOS: <em>Bluefruit Connect</em> (Adafruit)</li>
+      <li>Android: <em>Serial Bluetooth Terminal</em> または <em>nRF Connect</em></li>
+    </ul>
+  </li>
+  <li>アプリで <strong>"CosmicRay"</strong> を検索して接続</li>
+  <li>UART / Nordic UART モードを選択</li>
+  <li>イベントログが自動で流れてくる。入力欄からコマンド送信可能</li>
+</ol>
+
+<div class="callout info">
+  <strong>送信の仕組み</strong>
+  BLE Notify は 20 バイトごとにチャンク分割して送ります (BLE スタックの制約)。受信側では自動的に
+  結合されるので気にする必要はありません。
+</div>
+
+<h2 id="troubleshoot">10. トラブルシューティング</h2>
+
+<details>
+  <summary>シリアルに何も出ない / "Booting" が表示されない</summary>
+  <ul>
+    <li>ボード種別が <strong>Arduino Nano ESP32</strong> になっているか確認</li>
+    <li><code>USB CDC On Boot</code> が <strong>Enabled</strong> か確認</li>
+    <li>ボーレートを <strong>9600</strong> に合わせる</li>
+    <li>BOOT + RESET で強制ブートローダに入れて再書込</li>
+  </ul>
+</details>
+
+<details>
+  <summary>OLED が真っ黒のまま</summary>
+  <ul>
+    <li>I²C 配線 (SDA=A4, SCL=A5) と電源 (3.3V / GND) を確認</li>
+    <li>OLED アドレスが 0x3C か (一部は 0x3D)</li>
+    <li>コード中の <code>display.begin(SSD1306_SWITCHCAPVCC, 0x3C)</code> を書き換え</li>
+  </ul>
+</details>
+
+<details>
+  <summary>BME280: not found とシリアルに出る</summary>
+  <ul>
+    <li>BME280 の I²C アドレスは <strong>0x76 または 0x77</strong>。モジュールの SDO 端子次第</li>
+    <li>プルアップ抵抗が I²C バスに入っているか (通常 OLED 側に実装済み)</li>
+    <li>BME280 ではなく <strong>BMP280</strong> (温度+気圧のみ) の場合は別ライブラリが必要</li>
+  </ul>
+</details>
+
+<details>
+  <summary>イベントが 1 回も記録されない</summary>
+  <ul>
+    <li>閾値が高すぎる: <code>AUTO_THRESH</code> で再校正</li>
+    <li>コンパレータ出力 (D0) が来ているか、オシロで確認</li>
+    <li>D0 (ESP32-S3 GPIO44) の割込が動作しているか:
+      テストで <code>attachInterrupt</code> 直後に <code>triggerFlag = true</code> を
+      強制セットして単発イベントが出るか確認</li>
+  </ul>
+</details>
+
+<details>
+  <summary>Dig1-3 が常に 0 (または 1)</summary>
+  <ul>
+    <li>外部検出器側の出力レベル (3.3V / 5V) とスレッショルド互換性を確認</li>
+    <li>プルアップ/プルダウンの要否を基板回路図で確認。必要ならコード中
+      <code>pinMode(DIG_IN_PINS[i], INPUT_PULLUP);</code> または
+      <code>INPUT_PULLDOWN</code> に変更</li>
+  </ul>
+</details>
+
+<details>
+  <summary>レート (Rate) が異常に高い</summary>
+  <ul>
+    <li>閾値 Duty が低すぎて常時トリガーしている可能性</li>
+    <li>ピークホールドリセットパルス (D8) が効いていない: 配線確認</li>
+    <li>D0 にノイズが乗っている: グラウンド配線を見直し、PWM D2 の周波数を上げる</li>
+  </ul>
+</details>
+
+<h2 id="glossary">11. 用語集</h2>
+<dl>
+  <dt><strong>SiPM</strong></dt>
+  <dd>Silicon Photomultiplier。半導体光電子増倍管。微弱な光 (宇宙線のチェレンコフ/シンチレーション光) を検出する素子。</dd>
+
+  <dt><strong>ピークホールド</strong></dt>
+  <dd>パルス信号のピーク電圧を一時的に保持するアナログ回路。マイコンが落ち着いて ADC で読むための前段。</dd>
+
+  <dt><strong>コインシデンス</strong></dt>
+  <dd>複数の検出器で同時 (∼μs オーダー) にトリガーが出る現象。宇宙線のような貫通粒子の確度を上げるのに使う。</dd>
+
+  <dt><strong>Duty</strong></dt>
+  <dd>PWM 信号で HIGH になっている時間の比率。0-255 (8 bit) で表現。Duty × (電源電圧 / 255) ≈ 平均電圧で、コンパレータの閾値生成に使う。</dd>
+
+  <dt><strong>デッドタイム</strong></dt>
+  <dd>1 イベントの処理中は次のトリガーを取りこぼす時間帯。レート計算の際に<strong>観測時間から差し引く</strong>必要がある。</dd>
+
+  <dt><strong>BLE / NUS</strong></dt>
+  <dd>Bluetooth Low Energy / Nordic UART Service。スマホから無線でシリアル通信するためのプロファイル。</dd>
+</dl>
+
+<footer>
+  <p>Accel Kitchen — Cosmic Ray Detector v2 Firmware Manual</p>
+  <p>このマニュアルは <code>COSMICRAY_DETECTOR_ESP32-S3-Nano-v2.ino</code> に対応しています。</p>
+</footer>
+
+</div>
+</body>
+</html>
