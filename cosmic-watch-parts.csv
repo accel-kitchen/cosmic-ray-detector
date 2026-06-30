@@ -1,0 +1,27 @@
+Designator,MPN,Qty,Link
+R1,RC0805FR-0710KL,1,
+R2,RC0805FR-07221KL,1,
+R3,RC0805FR-07249RL,1,
+"R4,R8,R15",RC0805FR-071KL,3,
+"R5,R16,R20",RC0805FR-0710KL,3,
+R6.R7,RC0805FR-07100KL,2,
+"R9,R17",RC0805JR-070RL,2,
+"R11,R12,R13",RC0805FR-0749R9L,3,
+R24,RC0805FR-0724K9L,1,https://www.digikey.jp/products/ja?keywords=RMCF0805FT24K9CT-ND
+"D1,D2",MBR0540,2,https://www.digikey.jp/products/ja?keywords=MBR0540CT-ND
+L1,LQH32CN470K53L,1,https://www.digikey.jp/products/ja?keywords=490-4063-1-ND
+L2,"	BK2125LM252-T",1,https://www.digikey.jp/products/ja?keywords=587-1919-1-ND
+C1,C0805C220J5GACTU,1,https://www.digikey.com/short/qbhv0f2h
+C2,C0805C474K5RACTU,1,https://www.digikey.com/short/0454475p
+"C3,C18",CL21B105KBFNNNE,2,
+C4,CL21A106KAYNNNE,1,
+"C5,C15",C0805C104K5RACTU,2,https://www.digikey.com/short/5z278t50
+C6,CL21C103JBFNNNE,1,change from 20nF to 10nF
+C7,CL21C100JBANNNC,1,
+"C8,C9,C10,C11",CL21C103JBFNNNE,4,
+C14,RC0805JR-070RL,1,
+U1,LT3461AES6#TRMPBF,1,https://www.digikey.jp/product-detail/ja/linear-technology-analog-devices/LT3461AES6-TRMPBF/LT3461AES6-TRMPBFCT-ND/889451
+U2,LT1807CS8#PBF,1,https://www.digikey.jp/product-detail/ja/linear-technology-analog-devices/LT1807CS8-PBF/LT1807CS8-PBF-ND/891215
+,,,
+3.5 mm jack,SJ-43515RS-SMT-TR,1,https://www.digikey.jp/products/ja?keywords=CP-43515RSSJCT-ND
+SiPM1,"	MICROFC-60035-SMT-TR1",1,https://www.digikey.jp/product-detail/ja/on-semiconductor/MICROFC-60035-SMT-TR1/MICROFC-60035-SMT-TR1OS-ND/9744774

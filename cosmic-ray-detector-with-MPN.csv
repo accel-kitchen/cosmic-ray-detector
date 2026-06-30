@@ -1,0 +1,33 @@
+Designator,Qty,Value,Footprint,DNP,MPN,URL
+C1,1,22p,Capacitor_SMD:C_0805_2012Metric,,C0805C220J5GACTU,
+C2,1,0.47u,Capacitor_SMD:C_0805_2012Metric,,C0805C474K5RACTU,
+"C3, C18",2,1u,Capacitor_SMD:C_0805_2012Metric,,CL21B105KBFNNNE,
+C4,1,10u,Capacitor_SMD:C_0805_2012Metric,,CL21A106KAYNNNE,
+C5,1,100n,Capacitor_SMD:C_0805_2012Metric,,C0805C104K5RACTU,
+C6,1,20n,Capacitor_SMD:C_0805_2012Metric,,C0805C223K5RACTU,
+C7,1,10p,Capacitor_SMD:C_0805_2012Metric,,CL21C100JBANNNC,https://www.digikey.be/en/products/detail/samsung-electro-mechanics/cl21c100jbannnc/3886767
+"C8, C9, C10",3,10uF,Capacitor_SMD:C_0805_2012Metric,,CL21A106KAYNNNE,
+C11,1,10pF,Capacitor_SMD:C_0805_2012Metric,,CL21C100JBANNNC,https://www.digikey.be/en/products/detail/samsung-electro-mechanics/cl21c100jbannnc/3886767
+C15,1,0.1u,Capacitor_SMD:C_0805_2012Metric,,C0805C104K5RACTU,
+"D1, D2",2,D,Diode_SMD:D_SOD-123,,MBR0540,
+J1,1,15-91-0060,SamacSys_Parts:15910060,,0015910060,
+J2,1,15-91-0060,SamacSys_Parts:TE_534998-3,,5-534998-3,https://www.digikey.jp/en/products/detail/jst-sales-america-inc/S6B-XH-A-1/9961925
+"J3, J5, J6, J7",4,SJ-43515RS-SMT,cosmic-ray-detector:SJ-43515RS-SMT-TR,,CP-43515RS-SMT-TR,https://www.digikey.be/en/products/detail/same-sky-formerly-cui-devices/sj-43515rs-smt-tr/669722
+J4,1,S6B-XH-A-1,CONN_S6B-XH-A-1_JST,,S6B-XH-A-1(LF)(SN),
+L1,1,47u,Inductor_SMD:L_1210_3225Metric,,LQH32CN470K53L,
+L2,1,2500,Inductor_SMD:L_0805_2012Metric,,BK2125LM252-T,https://www.digikey.jp/en/products/detail/taiyo-yuden/bk2125lm252-t/957820
+OLED1,1,PPTC041LGBN-RC,SamacSys_Parts:PPTC041LGBN-RC,,S5440-ND,https://www.digikey.jp/en/products/detail/sullins-connector-solutions/pptc041lgbn-rc/775898
+"R1, R16, R20, R21, R22, R23",6,10k,Resistor_SMD:R_0805_2012Metric,,RC0805FR-0710KL,
+R2,1,221k,Resistor_SMD:R_0805_2012Metric,,RC0805FR-07221KL,
+R3,1,249,Resistor_SMD:R_0805_2012Metric,,RC0805FR-07249RL,
+"R4, R5, R8, R14, R15, R18, R19",7,1k,Resistor_SMD:R_0805_2012Metric,,RC0805FR-071KL,
+"R6, R7",2,100k,Resistor_SMD:R_0805_2012Metric,,RC0805FR-07100KL,
+R10,1,3296W-1-104LF,Potentiometer_THT:Potentiometer_Bourns_3296W_Vertical,,3296W-1-104LF,
+"R11, R12, R13",3,49.9,Resistor_SMD:R_0805_2012Metric,,RC0805FR-0749R9L,
+R17,1,Short,Resistor_SMD:R_0805_2012Metric,,RC0805JR-070RL,
+R24,1,24.9k,Resistor_SMD:R_0805_2012Metric,,RC0805FR-0724K9L,
+RESET1,1,TL1105SF250Q,SamacSys_Parts:TL1105SF250Q,,TL1105SF250Q,
+SiPM1,1,MICROFC-60035-SMT-TR1,cosmic-ray-detector:XDCR_MICROFC-60035-SMT-TR1,,MICROFC-60035-SMT-TR1,https://www.digikey.jp/ja/products/detail/onsemi/MICROFC-60035-SMT-TR1/9744774
+TMP36,1,TMP36GT9Z,SamacSys_Parts:TO-92,,TMP36GT9Z,
+U1,1,LT3461,Package_TO_SOT_SMD:TSOT-23-6,,LT3461AES6#TRMPBF,
+U2,1,LT1807,SamacSys_Parts:SOIC127P599X175-8N,,LT1807CS8#PBF,

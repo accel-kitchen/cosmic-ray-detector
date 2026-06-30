@@ -1,3 +1,5 @@
 (fp_lib_table
-  (lib (name "cosmic-ray-detector")(type "KiCad")(uri "${KIPRJMOD}/lib/cosmic-ray-detector.pretty")(options "")(descr "")(disabled))
+  (version 7)
+  (lib (name "cosmic-ray-detector")(type "KiCad")(uri "${KIPRJMOD}/lib/cosmic-ray-detector.pretty")(options "")(descr ""))
+  (lib (name "SamacSys_Parts")(type "KiCad")(uri "${KIPRJMOD}/lib/SamacSys_Parts.pretty")(options "")(descr ""))
 )

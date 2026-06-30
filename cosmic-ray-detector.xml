@@ -1,0 +1,1816 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<export version="E">
+  <design>
+    <source>G:\Document\Research\software\pcb\cosmic-ray-detector\cosmic-ray-detector-v2\cosmic-ray-detector.kicad_sch</source>
+    <date>2025-09-13T13:37:38+0900</date>
+    <tool>Eeschema 9.0.4</tool>
+    <sheet number="1" name="/" tstamps="/">
+      <title_block>
+        <title>Cosmicray Detector Circuit</title>
+        <company/>
+        <rev/>
+        <date/>
+        <source>cosmic-ray-detector.kicad_sch</source>
+        <comment number="1" value=""/>
+        <comment number="2" value=""/>
+        <comment number="3" value=""/>
+        <comment number="4" value=""/>
+        <comment number="5" value=""/>
+        <comment number="6" value=""/>
+        <comment number="7" value=""/>
+        <comment number="8" value=""/>
+        <comment number="9" value=""/>
+      </title_block>
+    </sheet>
+  </design>
+  <components>
+    <comp ref="C1">
+      <value>22p</value>
+      <footprint>Capacitor_SMD:C_0805_2012Metric</footprint>
+      <datasheet>~</datasheet>
+      <fields>
+        <field name="Footprint">Capacitor_SMD:C_0805_2012Metric</field>
+        <field name="Datasheet">~</field>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="Sheetname" value="Root"/>
+      <property name="Sheetfile" value="cosmic-ray-detector.kicad_sch"/>
+      <property name="ki_keywords" value="cap capacitor"/>
+      <property name="ki_fp_filters" value="C_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>1d4c8518-94c4-430b-9e85-b46cef0137a9</tstamps>
+    </comp>
+    <comp ref="C2">
+      <value>0.47u</value>
+      <footprint>Capacitor_SMD:C_0805_2012Metric</footprint>
+      <datasheet>~</datasheet>
+      <fields>
+        <field name="Footprint">Capacitor_SMD:C_0805_2012Metric</field>
+        <field name="Datasheet">~</field>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="Sheetname" value="Root"/>
+      <property name="Sheetfile" value="cosmic-ray-detector.kicad_sch"/>
+      <property name="ki_keywords" value="cap capacitor"/>
+      <property name="ki_fp_filters" value="C_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>78562d5f-4ac4-4d8c-a58f-e4d0434fd910</tstamps>
+    </comp>
+    <comp ref="C3">
+      <value>1u</value>
+      <footprint>Capacitor_SMD:C_0805_2012Metric</footprint>
+      <datasheet>~</datasheet>
+      <fields>
+        <field name="Footprint">Capacitor_SMD:C_0805_2012Metric</field>
+        <field name="Datasheet">~</field>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="Sheetname" value="Root"/>
+      <property name="Sheetfile" value="cosmic-ray-detector.kicad_sch"/>
+      <property name="ki_keywords" value="cap capacitor"/>
+      <property name="ki_fp_filters" value="C_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>10c47cd5-fdea-4466-8796-0f4cfbeae572</tstamps>
+    </comp>
+    <comp ref="C4">
+      <value>10u</value>
+      <footprint>Capacitor_SMD:C_0805_2012Metric</footprint>
+      <datasheet>~</datasheet>
+      <fields>
+        <field name="Footprint">Capacitor_SMD:C_0805_2012Metric</field>
+        <field name="Datasheet">~</field>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="Sheetname" value="Root"/>
+      <property name="Sheetfile" value="cosmic-ray-detector.kicad_sch"/>
+      <property name="ki_keywords" value="cap capacitor"/>
+      <property name="ki_fp_filters" value="C_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>5a76f4e5-3848-485a-a29d-fa7c3052034e</tstamps>
+    </comp>
+    <comp ref="C5">
+      <value>100n</value>
+      <footprint>Capacitor_SMD:C_0805_2012Metric</footprint>
+      <datasheet>~</datasheet>
+      <fields>
+        <field name="Footprint">Capacitor_SMD:C_0805_2012Metric</field>
+        <field name="Datasheet">~</field>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="Sheetname" value="Root"/>
+      <property name="Sheetfile" value="cosmic-ray-detector.kicad_sch"/>
+      <property name="ki_keywords" value="cap capacitor"/>
+      <property name="ki_fp_filters" value="C_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>7007e8c1-c689-451e-95d9-f52056ee432e</tstamps>
+    </comp>
+    <comp ref="C6">
+      <value>20n</value>
+      <footprint>Capacitor_SMD:C_0805_2012Metric</footprint>
+      <datasheet>~</datasheet>
+      <fields>
+        <field name="Footprint">Capacitor_SMD:C_0805_2012Metric</field>
+        <field name="Datasheet">~</field>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="Sheetname" value="Root"/>
+      <property name="Sheetfile" value="cosmic-ray-detector.kicad_sch"/>
+      <property name="ki_keywords" value="cap capacitor"/>
+      <property name="ki_fp_filters" value="C_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>ebfab1a5-58a8-442b-a518-cf58d44ca8a6</tstamps>
+    </comp>
+    <comp ref="C7">
+      <value>10p</value>
+      <footprint>Capacitor_SMD:C_0805_2012Metric</footprint>
+      <datasheet>~</datasheet>
+      <fields>
+        <field name="Footprint">Capacitor_SMD:C_0805_2012Metric</field>
+        <field name="Datasheet">~</field>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="Sheetname" value="Root"/>
+      <property name="Sheetfile" value="cosmic-ray-detector.kicad_sch"/>
+      <property name="ki_keywords" value="cap capacitor"/>
+      <property name="ki_fp_filters" value="C_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>b11a4822-b2e3-4b53-9051-820359282b12</tstamps>
+    </comp>
+    <comp ref="C8">
+      <value>10uF</value>
+      <footprint>Capacitor_SMD:C_0805_2012Metric</footprint>
+      <datasheet>~</datasheet>
+      <fields>
+        <field name="Footprint">Capacitor_SMD:C_0805_2012Metric</field>
+        <field name="Datasheet">~</field>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="Sheetname" value="Root"/>
+      <property name="Sheetfile" value="cosmic-ray-detector.kicad_sch"/>
+      <property name="ki_keywords" value="cap capacitor"/>
+      <property name="ki_fp_filters" value="C_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>00000000-0000-0000-0000-00005de3f6be</tstamps>
+    </comp>
+    <comp ref="C9">
+      <value>10uF</value>
+      <footprint>Capacitor_SMD:C_0805_2012Metric</footprint>
+      <datasheet>~</datasheet>
+      <fields>
+        <field name="Footprint">Capacitor_SMD:C_0805_2012Metric</field>
+        <field name="Datasheet">~</field>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="Sheetname" value="Root"/>
+      <property name="Sheetfile" value="cosmic-ray-detector.kicad_sch"/>
+      <property name="ki_keywords" value="cap capacitor"/>
+      <property name="ki_fp_filters" value="C_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>00000000-0000-0000-0000-00005de3fe80</tstamps>
+    </comp>
+    <comp ref="C10">
+      <value>10uF</value>
+      <footprint>Capacitor_SMD:C_0805_2012Metric</footprint>
+      <datasheet>~</datasheet>
+      <fields>
+        <field name="Footprint">Capacitor_SMD:C_0805_2012Metric</field>
+        <field name="Datasheet">~</field>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="Sheetname" value="Root"/>
+      <property name="Sheetfile" value="cosmic-ray-detector.kicad_sch"/>
+      <property name="ki_keywords" value="cap capacitor"/>
+      <property name="ki_fp_filters" value="C_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>00000000-0000-0000-0000-00005de40606</tstamps>
+    </comp>
+    <comp ref="C11">
+      <value>10pF</value>
+      <footprint>Capacitor_SMD:C_0805_2012Metric</footprint>
+      <datasheet>~</datasheet>
+      <fields>
+        <field name="Footprint">Capacitor_SMD:C_0805_2012Metric</field>
+        <field name="Datasheet">~</field>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="Sheetname" value="Root"/>
+      <property name="Sheetfile" value="cosmic-ray-detector.kicad_sch"/>
+      <property name="ki_keywords" value="cap capacitor"/>
+      <property name="ki_fp_filters" value="C_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>00000000-0000-0000-0000-00005de3d927</tstamps>
+    </comp>
+    <comp ref="C14">
+      <value>short</value>
+      <footprint>Capacitor_SMD:C_0805_2012Metric</footprint>
+      <datasheet>~</datasheet>
+      <fields>
+        <field name="Footprint">Capacitor_SMD:C_0805_2012Metric</field>
+        <field name="Datasheet">~</field>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="Sheetname" value="Root"/>
+      <property name="Sheetfile" value="cosmic-ray-detector.kicad_sch"/>
+      <property name="ki_keywords" value="cap capacitor"/>
+      <property name="ki_fp_filters" value="C_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>8f1a0589-7b1d-4027-8af9-ff1cb570f14b</tstamps>
+    </comp>
+    <comp ref="C15">
+      <value>0.1u</value>
+      <footprint>Capacitor_SMD:C_0805_2012Metric</footprint>
+      <datasheet>~</datasheet>
+      <fields>
+        <field name="Footprint">Capacitor_SMD:C_0805_2012Metric</field>
+        <field name="Datasheet">~</field>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="Sheetname" value="Root"/>
+      <property name="Sheetfile" value="cosmic-ray-detector.kicad_sch"/>
+      <property name="ki_keywords" value="cap capacitor"/>
+      <property name="ki_fp_filters" value="C_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>5fd10cfb-c6d1-4056-bd8b-c001a701474b</tstamps>
+    </comp>
+    <comp ref="C18">
+      <value>1u</value>
+      <footprint>Capacitor_SMD:C_0805_2012Metric</footprint>
+      <datasheet>~</datasheet>
+      <fields>
+        <field name="Footprint">Capacitor_SMD:C_0805_2012Metric</field>
+        <field name="Datasheet">~</field>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="Sheetname" value="Root"/>
+      <property name="Sheetfile" value="cosmic-ray-detector.kicad_sch"/>
+      <property name="ki_keywords" value="cap capacitor"/>
+      <property name="ki_fp_filters" value="C_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>1ebb1bf9-80e7-42f7-954d-b00e029590be</tstamps>
+    </comp>
+    <comp ref="D1">
+      <value>D</value>
+      <footprint>Diode_SMD:D_SOD-123</footprint>
+      <datasheet>~</datasheet>
+      <fields>
+        <field name="Footprint">Diode_SMD:D_SOD-123</field>
+        <field name="Datasheet">~</field>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Device" part="D" description="Diode"/>
+      <property name="Sheetname" value="Root"/>
+      <property name="Sheetfile" value="cosmic-ray-detector.kicad_sch"/>
+      <property name="ki_keywords" value="diode"/>
+      <property name="ki_fp_filters" value="TO-???* *_Diode_* *SingleDiode* D_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>e2bc6fce-658e-4ea6-95d1-e9e374b6fddd</tstamps>
+    </comp>
+    <comp ref="D2">
+      <value>D</value>
+      <footprint>Diode_SMD:D_SOD-123</footprint>
+      <datasheet>~</datasheet>
+      <fields>
+        <field name="Footprint">Diode_SMD:D_SOD-123</field>
+        <field name="Datasheet">~</field>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Device" part="D" description="Diode"/>
+      <property name="Sheetname" value="Root"/>
+      <property name="Sheetfile" value="cosmic-ray-detector.kicad_sch"/>
+      <property name="ki_keywords" value="diode"/>
+      <property name="ki_fp_filters" value="TO-???* *_Diode_* *SingleDiode* D_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>7f6f6b9b-222f-4116-9bf0-a4b931ac4597</tstamps>
+    </comp>
+    <comp ref="GND1">
+      <value>TestPoint</value>
+      <footprint>TestPoint:TestPoint_THTPad_3.0x3.0mm_Drill1.5mm</footprint>
+      <datasheet>~</datasheet>
+      <fields>
+        <field name="Footprint">TestPoint:TestPoint_THTPad_3.0x3.0mm_Drill1.5mm</field>
+        <field name="Datasheet">~</field>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Connector" part="TestPoint" description="test point"/>
+      <property name="Sheetname" value="Root"/>
+      <property name="Sheetfile" value="cosmic-ray-detector.kicad_sch"/>
+      <property name="ki_keywords" value="test point tp"/>
+      <property name="ki_fp_filters" value="Pin* Test*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>410ee8c4-ded3-4c3a-9432-1127237e36a3</tstamps>
+    </comp>
+    <comp ref="J1">
+      <value>15-91-0060</value>
+      <footprint>SamacSys_Parts:15910060</footprint>
+      <datasheet>https://www.molex.com/molex/products/datasheet.jsp?part=active/0015910060_PCB_HEADERS.xml</datasheet>
+      <description>Headers &amp; Wire Housings 6P SMT HEADER</description>
+      <fields>
+        <field name="Height">8.91</field>
+        <field name="Mouser Part Number">538-15-91-0060</field>
+        <field name="Mouser Price/Stock">https://www.mouser.co.uk/ProductDetail/Molex/15-91-0060?qs=Nb99Pa9xYq%2FsP6xX9IrWlg%3D%3D</field>
+        <field name="Manufacturer_Name">Molex</field>
+        <field name="Manufacturer_Part_Number">15-91-0060</field>
+        <field name="Footprint">SamacSys_Parts:15910060</field>
+        <field name="Datasheet">https://www.molex.com/molex/products/datasheet.jsp?part=active/0015910060_PCB_HEADERS.xml</field>
+        <field name="Description">Headers &amp; Wire Housings 6P SMT HEADER</field>
+      </fields>
+      <libsource lib="SamacSys_Parts" part="15-91-0060" description="Headers &amp; Wire Housings 6P SMT HEADER"/>
+      <property name="Height" value="8.91"/>
+      <property name="Mouser Part Number" value="538-15-91-0060"/>
+      <property name="Mouser Price/Stock" value="https://www.mouser.co.uk/ProductDetail/Molex/15-91-0060?qs=Nb99Pa9xYq%2FsP6xX9IrWlg%3D%3D"/>
+      <property name="Manufacturer_Name" value="Molex"/>
+      <property name="Manufacturer_Part_Number" value="15-91-0060"/>
+      <property name="Sheetname" value="Root"/>
+      <property name="Sheetfile" value="cosmic-ray-detector.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>74b37c56-3dae-4e08-bf45-b46e6c2c6da9</tstamps>
+    </comp>
+    <comp ref="J2">
+      <value>15-91-0060</value>
+      <footprint>SamacSys_Parts:TE_534998-3</footprint>
+      <datasheet>https://www.molex.com/molex/products/datasheet.jsp?part=active/0015910060_PCB_HEADERS.xml</datasheet>
+      <description>Headers &amp; Wire Housings 6P SMT HEADER</description>
+      <fields>
+        <field name="Height">8.91</field>
+        <field name="Mouser Part Number">538-15-91-0060</field>
+        <field name="Mouser Price/Stock">https://www.mouser.co.uk/ProductDetail/Molex/15-91-0060?qs=Nb99Pa9xYq%2FsP6xX9IrWlg%3D%3D</field>
+        <field name="Manufacturer_Name">Molex</field>
+        <field name="Manufacturer_Part_Number">15-91-0060</field>
+        <field name="Footprint">SamacSys_Parts:TE_534998-3</field>
+        <field name="Datasheet">https://www.molex.com/molex/products/datasheet.jsp?part=active/0015910060_PCB_HEADERS.xml</field>
+        <field name="Description">Headers &amp; Wire Housings 6P SMT HEADER</field>
+      </fields>
+      <libsource lib="SamacSys_Parts" part="15-91-0060" description="Headers &amp; Wire Housings 6P SMT HEADER"/>
+      <property name="Height" value="8.91"/>
+      <property name="Mouser Part Number" value="538-15-91-0060"/>
+      <property name="Mouser Price/Stock" value="https://www.mouser.co.uk/ProductDetail/Molex/15-91-0060?qs=Nb99Pa9xYq%2FsP6xX9IrWlg%3D%3D"/>
+      <property name="Manufacturer_Name" value="Molex"/>
+      <property name="Manufacturer_Part_Number" value="15-91-0060"/>
+      <property name="Sheetname" value="Root"/>
+      <property name="Sheetfile" value="cosmic-ray-detector.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>9d61523a-43b8-4e75-9f41-638feb6ad202</tstamps>
+    </comp>
+    <comp ref="J3">
+      <value>SJ-43515RS-SMT</value>
+      <footprint>cosmic-ray-detector:SJ-43515RS-SMT-TR</footprint>
+      <fields>
+        <field name="DESCRIPTION">4 conductor 3.5 mm Surface Mount Audio Jack w/ Ring Switch</field>
+        <field name="AVAILABILITY">Unavailable</field>
+        <field name="MP">SJ-43515RS-SMT</field>
+        <field name="PRICE">None</field>
+        <field name="MF">CUI</field>
+        <field name="PACKAGE">None</field>
+        <field name="Footprint">cosmic-ray-detector:SJ-43515RS-SMT-TR</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="SJ-43515RS-SMT" part="SJ-43515RS-SMT" description="4 conductor 3.5 mm Surface Mount Audio Jack w/ Ring Switch"/>
+      <property name="DESCRIPTION" value="4 conductor 3.5 mm Surface Mount Audio Jack w/ Ring Switch"/>
+      <property name="AVAILABILITY" value="Unavailable"/>
+      <property name="MP" value="SJ-43515RS-SMT"/>
+      <property name="PRICE" value="None"/>
+      <property name="MF" value="CUI"/>
+      <property name="PACKAGE" value="None"/>
+      <property name="Sheetname" value="Root"/>
+      <property name="Sheetfile" value="cosmic-ray-detector.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>e8a1b194-7f89-42d3-963b-b9c7bf2799c9</tstamps>
+    </comp>
+    <comp ref="J4">
+      <value>S6B-XH-A-1</value>
+      <footprint>CONN_S6B-XH-A-1_JST</footprint>
+      <datasheet>S6B-XH-A-1</datasheet>
+      <fields>
+        <field name="Footprint">CONN_S6B-XH-A-1_JST</field>
+        <field name="Datasheet">S6B-XH-A-1</field>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="cosmic-ray-detector" part="S6B-XH-A-1" description=""/>
+      <property name="Sheetname" value="Root"/>
+      <property name="Sheetfile" value="cosmic-ray-detector.kicad_sch"/>
+      <property name="ki_keywords" value="S6B-XH-A-1"/>
+      <property name="ki_fp_filters" value="CONN_S6B-XH-A-1_JST"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>82c46c94-b147-4121-8ecc-fb6d64cd58d6</tstamps>
+    </comp>
+    <comp ref="J5">
+      <value>SJ-43515RS-SMT</value>
+      <footprint>cosmic-ray-detector:SJ-43515RS-SMT-TR</footprint>
+      <fields>
+        <field name="DESCRIPTION">4 conductor 3.5 mm Surface Mount Audio Jack w/ Ring Switch</field>
+        <field name="AVAILABILITY">Unavailable</field>
+        <field name="MP">SJ-43515RS-SMT</field>
+        <field name="PRICE">None</field>
+        <field name="MF">CUI</field>
+        <field name="PACKAGE">None</field>
+        <field name="Footprint">cosmic-ray-detector:SJ-43515RS-SMT-TR</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="SJ-43515RS-SMT" part="SJ-43515RS-SMT" description="4 conductor 3.5 mm Surface Mount Audio Jack w/ Ring Switch"/>
+      <property name="DESCRIPTION" value="4 conductor 3.5 mm Surface Mount Audio Jack w/ Ring Switch"/>
+      <property name="AVAILABILITY" value="Unavailable"/>
+      <property name="MP" value="SJ-43515RS-SMT"/>
+      <property name="PRICE" value="None"/>
+      <property name="MF" value="CUI"/>
+      <property name="PACKAGE" value="None"/>
+      <property name="Sheetname" value="Root"/>
+      <property name="Sheetfile" value="cosmic-ray-detector.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>8a66196f-ce5c-4f6f-a676-b5ee8495340c</tstamps>
+    </comp>
+    <comp ref="J6">
+      <value>SJ-43515RS-SMT</value>
+      <footprint>cosmic-ray-detector:SJ-43515RS-SMT-TR</footprint>
+      <fields>
+        <field name="DESCRIPTION">4 conductor 3.5 mm Surface Mount Audio Jack w/ Ring Switch</field>
+        <field name="AVAILABILITY">Unavailable</field>
+        <field name="MP">SJ-43515RS-SMT</field>
+        <field name="PRICE">None</field>
+        <field name="MF">CUI</field>
+        <field name="PACKAGE">None</field>
+        <field name="Footprint">cosmic-ray-detector:SJ-43515RS-SMT-TR</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="SJ-43515RS-SMT" part="SJ-43515RS-SMT" description="4 conductor 3.5 mm Surface Mount Audio Jack w/ Ring Switch"/>
+      <property name="DESCRIPTION" value="4 conductor 3.5 mm Surface Mount Audio Jack w/ Ring Switch"/>
+      <property name="AVAILABILITY" value="Unavailable"/>
+      <property name="MP" value="SJ-43515RS-SMT"/>
+      <property name="PRICE" value="None"/>
+      <property name="MF" value="CUI"/>
+      <property name="PACKAGE" value="None"/>
+      <property name="Sheetname" value="Root"/>
+      <property name="Sheetfile" value="cosmic-ray-detector.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>69c031ab-c885-4af3-981a-37a1ec825793</tstamps>
+    </comp>
+    <comp ref="J7">
+      <value>SJ-43515RS-SMT</value>
+      <footprint>cosmic-ray-detector:SJ-43515RS-SMT-TR</footprint>
+      <fields>
+        <field name="DESCRIPTION">4 conductor 3.5 mm Surface Mount Audio Jack w/ Ring Switch</field>
+        <field name="AVAILABILITY">Unavailable</field>
+        <field name="MP">SJ-43515RS-SMT</field>
+        <field name="PRICE">None</field>
+        <field name="MF">CUI</field>
+        <field name="PACKAGE">None</field>
+        <field name="Footprint">cosmic-ray-detector:SJ-43515RS-SMT-TR</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="SJ-43515RS-SMT" part="SJ-43515RS-SMT" description="4 conductor 3.5 mm Surface Mount Audio Jack w/ Ring Switch"/>
+      <property name="DESCRIPTION" value="4 conductor 3.5 mm Surface Mount Audio Jack w/ Ring Switch"/>
+      <property name="AVAILABILITY" value="Unavailable"/>
+      <property name="MP" value="SJ-43515RS-SMT"/>
+      <property name="PRICE" value="None"/>
+      <property name="MF" value="CUI"/>
+      <property name="PACKAGE" value="None"/>
+      <property name="Sheetname" value="Root"/>
+      <property name="Sheetfile" value="cosmic-ray-detector.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>5f57b525-5d5f-4ead-abdd-eacbaa9c5a2a</tstamps>
+    </comp>
+    <comp ref="L1">
+      <value>47u</value>
+      <footprint>Inductor_SMD:L_1210_3225Metric</footprint>
+      <datasheet>~</datasheet>
+      <fields>
+        <field name="Footprint">Inductor_SMD:L_1210_3225Metric</field>
+        <field name="Datasheet">~</field>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Device" part="L" description="Inductor"/>
+      <property name="Sheetname" value="Root"/>
+      <property name="Sheetfile" value="cosmic-ray-detector.kicad_sch"/>
+      <property name="ki_keywords" value="inductor choke coil reactor magnetic"/>
+      <property name="ki_fp_filters" value="Choke_* *Coil* Inductor_* L_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>c7a139b8-2a13-4108-8998-39ff8e11a1d4</tstamps>
+    </comp>
+    <comp ref="L2">
+      <value>2500</value>
+      <footprint>Inductor_SMD:L_0805_2012Metric</footprint>
+      <datasheet>~</datasheet>
+      <fields>
+        <field name="Footprint">Inductor_SMD:L_0805_2012Metric</field>
+        <field name="Datasheet">~</field>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Device" part="L" description="Inductor"/>
+      <property name="Sheetname" value="Root"/>
+      <property name="Sheetfile" value="cosmic-ray-detector.kicad_sch"/>
+      <property name="ki_keywords" value="inductor choke coil reactor magnetic"/>
+      <property name="ki_fp_filters" value="Choke_* *Coil* Inductor_* L_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>d82f583b-1be7-484a-a72a-ea19cb40023a</tstamps>
+    </comp>
+    <comp ref="LED1">
+      <value>LED</value>
+      <footprint>LED_THT:LED_D3.0mm</footprint>
+      <datasheet>~</datasheet>
+      <fields>
+        <field name="Footprint">LED_THT:LED_D3.0mm</field>
+        <field name="Datasheet">~</field>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Device" part="LED" description="Light emitting diode"/>
+      <property name="Sheetname" value="Root"/>
+      <property name="Sheetfile" value="cosmic-ray-detector.kicad_sch"/>
+      <property name="ki_keywords" value="LED diode"/>
+      <property name="ki_fp_filters" value="LED* LED_SMD:* LED_THT:*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>ade2caa1-3b71-46f7-8324-cf8397df5451</tstamps>
+    </comp>
+    <comp ref="OLED1">
+      <value>PPTC041LGBN-RC</value>
+      <footprint>SamacSys_Parts:PPTC041LGBN-RC</footprint>
+      <fields>
+        <field name="Footprint">SamacSys_Parts:PPTC041LGBN-RC</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="2022-07-15_09-18-04" part="PPTC041LGBN-RC" description=""/>
+      <property name="Sheetname" value="Root"/>
+      <property name="Sheetfile" value="cosmic-ray-detector.kicad_sch"/>
+      <property name="ki_fp_filters" value="CONN_PPTC041LGBN-RC_SUL"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>ce74951f-d6f2-473f-ae0b-6d65932ee943</tstamps>
+    </comp>
+    <comp ref="R1">
+      <value>10k</value>
+      <footprint>Resistor_SMD:R_0805_2012Metric</footprint>
+      <datasheet>~</datasheet>
+      <fields>
+        <field name="Footprint">Resistor_SMD:R_0805_2012Metric</field>
+        <field name="Datasheet">~</field>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Device" part="R" description="Resistor"/>
+      <property name="Sheetname" value="Root"/>
+      <property name="Sheetfile" value="cosmic-ray-detector.kicad_sch"/>
+      <property name="ki_keywords" value="R res resistor"/>
+      <property name="ki_fp_filters" value="R_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>82066167-da8a-4c0c-9191-f74693e8079f</tstamps>
+    </comp>
+    <comp ref="R2">
+      <value>221k</value>
+      <footprint>Resistor_SMD:R_0805_2012Metric</footprint>
+      <datasheet>~</datasheet>
+      <fields>
+        <field name="Footprint">Resistor_SMD:R_0805_2012Metric</field>
+        <field name="Datasheet">~</field>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Device" part="R" description="Resistor"/>
+      <property name="Sheetname" value="Root"/>
+      <property name="Sheetfile" value="cosmic-ray-detector.kicad_sch"/>
+      <property name="ki_keywords" value="R res resistor"/>
+      <property name="ki_fp_filters" value="R_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>35dd2d0e-b32c-47f5-88b8-fa07463f45aa</tstamps>
+    </comp>
+    <comp ref="R3">
+      <value>249</value>
+      <footprint>Resistor_SMD:R_0805_2012Metric</footprint>
+      <datasheet>~</datasheet>
+      <fields>
+        <field name="Footprint">Resistor_SMD:R_0805_2012Metric</field>
+        <field name="Datasheet">~</field>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Device" part="R" description="Resistor"/>
+      <property name="Sheetname" value="Root"/>
+      <property name="Sheetfile" value="cosmic-ray-detector.kicad_sch"/>
+      <property name="ki_keywords" value="R res resistor"/>
+      <property name="ki_fp_filters" value="R_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>ab6d00d2-0276-48c0-87a6-3b70cbfd2140</tstamps>
+    </comp>
+    <comp ref="R4">
+      <value>1k</value>
+      <footprint>Resistor_SMD:R_0805_2012Metric</footprint>
+      <datasheet>~</datasheet>
+      <fields>
+        <field name="Footprint">Resistor_SMD:R_0805_2012Metric</field>
+        <field name="Datasheet">~</field>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Device" part="R" description="Resistor"/>
+      <property name="Sheetname" value="Root"/>
+      <property name="Sheetfile" value="cosmic-ray-detector.kicad_sch"/>
+      <property name="ki_keywords" value="R res resistor"/>
+      <property name="ki_fp_filters" value="R_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>58d196b5-4f9e-431d-b5e4-c4dba54b0299</tstamps>
+    </comp>
+    <comp ref="R5">
+      <value>1k</value>
+      <footprint>Resistor_SMD:R_0805_2012Metric</footprint>
+      <datasheet>~</datasheet>
+      <fields>
+        <field name="Footprint">Resistor_SMD:R_0805_2012Metric</field>
+        <field name="Datasheet">~</field>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Device" part="R" description="Resistor"/>
+      <property name="Sheetname" value="Root"/>
+      <property name="Sheetfile" value="cosmic-ray-detector.kicad_sch"/>
+      <property name="ki_keywords" value="R res resistor"/>
+      <property name="ki_fp_filters" value="R_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>c2c8ee65-605b-4505-a933-ff67e89f0c80</tstamps>
+    </comp>
+    <comp ref="R6">
+      <value>100k</value>
+      <footprint>Resistor_SMD:R_0805_2012Metric</footprint>
+      <datasheet>~</datasheet>
+      <fields>
+        <field name="Footprint">Resistor_SMD:R_0805_2012Metric</field>
+        <field name="Datasheet">~</field>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Device" part="R" description="Resistor"/>
+      <property name="Sheetname" value="Root"/>
+      <property name="Sheetfile" value="cosmic-ray-detector.kicad_sch"/>
+      <property name="ki_keywords" value="R res resistor"/>
+      <property name="ki_fp_filters" value="R_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>2b7ef247-798e-4fae-92c6-ec565633a0e7</tstamps>
+    </comp>
+    <comp ref="R7">
+      <value>100k</value>
+      <footprint>Resistor_SMD:R_0805_2012Metric</footprint>
+      <datasheet>~</datasheet>
+      <fields>
+        <field name="Footprint">Resistor_SMD:R_0805_2012Metric</field>
+        <field name="Datasheet">~</field>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Device" part="R" description="Resistor"/>
+      <property name="Sheetname" value="Root"/>
+      <property name="Sheetfile" value="cosmic-ray-detector.kicad_sch"/>
+      <property name="ki_keywords" value="R res resistor"/>
+      <property name="ki_fp_filters" value="R_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>94c47b0e-5ce6-47ab-9b81-2de3db05f7ae</tstamps>
+    </comp>
+    <comp ref="R8">
+      <value>1k</value>
+      <footprint>Resistor_SMD:R_0805_2012Metric</footprint>
+      <datasheet>~</datasheet>
+      <fields>
+        <field name="Footprint">Resistor_SMD:R_0805_2012Metric</field>
+        <field name="Datasheet">~</field>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Device" part="R" description="Resistor"/>
+      <property name="Sheetname" value="Root"/>
+      <property name="Sheetfile" value="cosmic-ray-detector.kicad_sch"/>
+      <property name="ki_keywords" value="R res resistor"/>
+      <property name="ki_fp_filters" value="R_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>a9c909d5-d7ab-4fba-8883-50301bae4c20</tstamps>
+    </comp>
+    <comp ref="R10">
+      <value>3296W-1-104LF</value>
+      <footprint>Potentiometer_THT:Potentiometer_Bourns_3296W_Vertical</footprint>
+      <datasheet>3296W-1-104LF</datasheet>
+      <fields>
+        <field name="Footprint">Potentiometer_THT:Potentiometer_Bourns_3296W_Vertical</field>
+        <field name="Datasheet">3296W-1-104LF</field>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="cosmic-ray-detector" part="3296W-1-104LF" description=""/>
+      <property name="Sheetname" value="Root"/>
+      <property name="Sheetfile" value="cosmic-ray-detector.kicad_sch"/>
+      <property name="ki_keywords" value="3296W-1-104LF"/>
+      <property name="ki_fp_filters" value="POT_3296W"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>7de7d685-bbe8-4dd1-9971-52b28151724f</tstamps>
+    </comp>
+    <comp ref="R11">
+      <value>49.9</value>
+      <footprint>Resistor_SMD:R_0805_2012Metric</footprint>
+      <datasheet>~</datasheet>
+      <fields>
+        <field name="Footprint">Resistor_SMD:R_0805_2012Metric</field>
+        <field name="Datasheet">~</field>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Device" part="R" description="Resistor"/>
+      <property name="Sheetname" value="Root"/>
+      <property name="Sheetfile" value="cosmic-ray-detector.kicad_sch"/>
+      <property name="ki_keywords" value="R res resistor"/>
+      <property name="ki_fp_filters" value="R_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>00000000-0000-0000-0000-00005de3d488</tstamps>
+    </comp>
+    <comp ref="R12">
+      <value>49.9</value>
+      <footprint>Resistor_SMD:R_0805_2012Metric</footprint>
+      <datasheet>~</datasheet>
+      <fields>
+        <field name="Footprint">Resistor_SMD:R_0805_2012Metric</field>
+        <field name="Datasheet">~</field>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Device" part="R" description="Resistor"/>
+      <property name="Sheetname" value="Root"/>
+      <property name="Sheetfile" value="cosmic-ray-detector.kicad_sch"/>
+      <property name="ki_keywords" value="R res resistor"/>
+      <property name="ki_fp_filters" value="R_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>00000000-0000-0000-0000-00005de43780</tstamps>
+    </comp>
+    <comp ref="R13">
+      <value>49.9</value>
+      <footprint>Resistor_SMD:R_0805_2012Metric</footprint>
+      <datasheet>~</datasheet>
+      <fields>
+        <field name="Footprint">Resistor_SMD:R_0805_2012Metric</field>
+        <field name="Datasheet">~</field>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Device" part="R" description="Resistor"/>
+      <property name="Sheetname" value="Root"/>
+      <property name="Sheetfile" value="cosmic-ray-detector.kicad_sch"/>
+      <property name="ki_keywords" value="R res resistor"/>
+      <property name="ki_fp_filters" value="R_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>00000000-0000-0000-0000-00005de3b25d</tstamps>
+    </comp>
+    <comp ref="R14">
+      <value>1k</value>
+      <footprint>Resistor_SMD:R_0805_2012Metric</footprint>
+      <datasheet>~</datasheet>
+      <fields>
+        <field name="Footprint">Resistor_SMD:R_0805_2012Metric</field>
+        <field name="Datasheet">~</field>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Device" part="R" description="Resistor"/>
+      <property name="Sheetname" value="Root"/>
+      <property name="Sheetfile" value="cosmic-ray-detector.kicad_sch"/>
+      <property name="ki_keywords" value="R res resistor"/>
+      <property name="ki_fp_filters" value="R_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>d7d95efc-d5fd-47a7-a1b0-60c4abaf3751</tstamps>
+    </comp>
+    <comp ref="R15">
+      <value>1k</value>
+      <footprint>Resistor_SMD:R_0805_2012Metric</footprint>
+      <datasheet>~</datasheet>
+      <fields>
+        <field name="Footprint">Resistor_SMD:R_0805_2012Metric</field>
+        <field name="Datasheet">~</field>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Device" part="R" description="Resistor"/>
+      <property name="Sheetname" value="Root"/>
+      <property name="Sheetfile" value="cosmic-ray-detector.kicad_sch"/>
+      <property name="ki_keywords" value="R res resistor"/>
+      <property name="ki_fp_filters" value="R_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>293a4209-9f55-4391-bfcb-d6190c3add06</tstamps>
+    </comp>
+    <comp ref="R16">
+      <value>10k</value>
+      <footprint>Resistor_SMD:R_0805_2012Metric</footprint>
+      <datasheet>~</datasheet>
+      <fields>
+        <field name="Footprint">Resistor_SMD:R_0805_2012Metric</field>
+        <field name="Datasheet">~</field>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Device" part="R" description="Resistor"/>
+      <property name="Sheetname" value="Root"/>
+      <property name="Sheetfile" value="cosmic-ray-detector.kicad_sch"/>
+      <property name="ki_keywords" value="R res resistor"/>
+      <property name="ki_fp_filters" value="R_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>3e7e9d33-dcb4-46fd-ad53-1687ecb7f445</tstamps>
+    </comp>
+    <comp ref="R17">
+      <value>Short</value>
+      <footprint>Resistor_SMD:R_0805_2012Metric</footprint>
+      <datasheet>~</datasheet>
+      <fields>
+        <field name="Footprint">Resistor_SMD:R_0805_2012Metric</field>
+        <field name="Datasheet">~</field>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Device" part="R" description="Resistor"/>
+      <property name="Sheetname" value="Root"/>
+      <property name="Sheetfile" value="cosmic-ray-detector.kicad_sch"/>
+      <property name="ki_keywords" value="R res resistor"/>
+      <property name="ki_fp_filters" value="R_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>a2c91bdd-7006-4dcb-aa96-076e7908c805</tstamps>
+    </comp>
+    <comp ref="R18">
+      <value>1k</value>
+      <footprint>Resistor_SMD:R_0805_2012Metric</footprint>
+      <datasheet>~</datasheet>
+      <fields>
+        <field name="Footprint">Resistor_SMD:R_0805_2012Metric</field>
+        <field name="Datasheet">~</field>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Device" part="R" description="Resistor"/>
+      <property name="Sheetname" value="Root"/>
+      <property name="Sheetfile" value="cosmic-ray-detector.kicad_sch"/>
+      <property name="ki_keywords" value="R res resistor"/>
+      <property name="ki_fp_filters" value="R_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>0d706c42-f02b-4d9d-9466-ba34eb71591b</tstamps>
+    </comp>
+    <comp ref="R19">
+      <value>1k</value>
+      <footprint>Resistor_SMD:R_0805_2012Metric</footprint>
+      <datasheet>~</datasheet>
+      <fields>
+        <field name="Footprint">Resistor_SMD:R_0805_2012Metric</field>
+        <field name="Datasheet">~</field>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Device" part="R" description="Resistor"/>
+      <property name="Sheetname" value="Root"/>
+      <property name="Sheetfile" value="cosmic-ray-detector.kicad_sch"/>
+      <property name="ki_keywords" value="R res resistor"/>
+      <property name="ki_fp_filters" value="R_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>08694607-0bc3-4feb-8f1b-d78f927e7b1b</tstamps>
+    </comp>
+    <comp ref="R20">
+      <value>10k</value>
+      <footprint>Resistor_SMD:R_0805_2012Metric</footprint>
+      <datasheet>~</datasheet>
+      <fields>
+        <field name="Footprint">Resistor_SMD:R_0805_2012Metric</field>
+        <field name="Datasheet">~</field>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Device" part="R" description="Resistor"/>
+      <property name="Sheetname" value="Root"/>
+      <property name="Sheetfile" value="cosmic-ray-detector.kicad_sch"/>
+      <property name="ki_keywords" value="R res resistor"/>
+      <property name="ki_fp_filters" value="R_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>abb8b2c0-4352-4537-8d6f-70465752da8d</tstamps>
+    </comp>
+    <comp ref="R21">
+      <value>10k</value>
+      <footprint>Resistor_SMD:R_0805_2012Metric</footprint>
+      <datasheet>~</datasheet>
+      <fields>
+        <field name="Footprint">Resistor_SMD:R_0805_2012Metric</field>
+        <field name="Datasheet">~</field>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Device" part="R" description="Resistor"/>
+      <property name="Sheetname" value="Root"/>
+      <property name="Sheetfile" value="cosmic-ray-detector.kicad_sch"/>
+      <property name="ki_keywords" value="R res resistor"/>
+      <property name="ki_fp_filters" value="R_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>6902f569-282f-4a8b-8ec1-bf70f1a13727</tstamps>
+    </comp>
+    <comp ref="R22">
+      <value>10k</value>
+      <footprint>Resistor_SMD:R_0805_2012Metric</footprint>
+      <datasheet>~</datasheet>
+      <fields>
+        <field name="Footprint">Resistor_SMD:R_0805_2012Metric</field>
+        <field name="Datasheet">~</field>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Device" part="R" description="Resistor"/>
+      <property name="Sheetname" value="Root"/>
+      <property name="Sheetfile" value="cosmic-ray-detector.kicad_sch"/>
+      <property name="ki_keywords" value="R res resistor"/>
+      <property name="ki_fp_filters" value="R_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>7fa0032e-be45-49c3-83b5-f615e4b92f6a</tstamps>
+    </comp>
+    <comp ref="R23">
+      <value>10k</value>
+      <footprint>Resistor_SMD:R_0805_2012Metric</footprint>
+      <datasheet>~</datasheet>
+      <fields>
+        <field name="Footprint">Resistor_SMD:R_0805_2012Metric</field>
+        <field name="Datasheet">~</field>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Device" part="R" description="Resistor"/>
+      <property name="Sheetname" value="Root"/>
+      <property name="Sheetfile" value="cosmic-ray-detector.kicad_sch"/>
+      <property name="ki_keywords" value="R res resistor"/>
+      <property name="ki_fp_filters" value="R_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>e01fd8cc-747c-443b-b94d-ed1ea0493ed2</tstamps>
+    </comp>
+    <comp ref="R24">
+      <value>24.9k</value>
+      <footprint>Resistor_SMD:R_0805_2012Metric</footprint>
+      <datasheet>~</datasheet>
+      <fields>
+        <field name="Footprint">Resistor_SMD:R_0805_2012Metric</field>
+        <field name="Datasheet">~</field>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Device" part="R" description="Resistor"/>
+      <property name="Sheetname" value="Root"/>
+      <property name="Sheetfile" value="cosmic-ray-detector.kicad_sch"/>
+      <property name="ki_keywords" value="R res resistor"/>
+      <property name="ki_fp_filters" value="R_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>6460d497-d26f-418e-a86c-9b06cb7e6d4f</tstamps>
+    </comp>
+    <comp ref="RESET1">
+      <value>TL1105SF250Q</value>
+      <footprint>SamacSys_Parts:TL1105SF250Q</footprint>
+      <datasheet>http://spec_sheets.e-switch.com/specs/P021300.pdf</datasheet>
+      <description>E-SWITCH - TL1105SF250Q - SWITCH, TACTILE SPST, 50mA, THROUGH HOLE</description>
+      <fields>
+        <field name="Height"/>
+        <field name="Mouser Part Number">612-TL1105S-250</field>
+        <field name="Mouser Price/Stock">https://www.mouser.co.uk/ProductDetail/E-Switch/TL1105SF250Q?qs=HKd%2Fp3M7KlVYgsqML94pog%3D%3D</field>
+        <field name="Manufacturer_Name">E-Switch</field>
+        <field name="Manufacturer_Part_Number">TL1105SF250Q</field>
+        <field name="Footprint">SamacSys_Parts:TL1105SF250Q</field>
+        <field name="Datasheet">http://spec_sheets.e-switch.com/specs/P021300.pdf</field>
+        <field name="Description">E-SWITCH - TL1105SF250Q - SWITCH, TACTILE SPST, 50mA, THROUGH HOLE</field>
+      </fields>
+      <libsource lib="SamacSys_Parts" part="TL1105SF250Q" description="E-SWITCH - TL1105SF250Q - SWITCH, TACTILE SPST, 50mA, THROUGH HOLE"/>
+      <property name="Height" value=""/>
+      <property name="Mouser Part Number" value="612-TL1105S-250"/>
+      <property name="Mouser Price/Stock" value="https://www.mouser.co.uk/ProductDetail/E-Switch/TL1105SF250Q?qs=HKd%2Fp3M7KlVYgsqML94pog%3D%3D"/>
+      <property name="Manufacturer_Name" value="E-Switch"/>
+      <property name="Manufacturer_Part_Number" value="TL1105SF250Q"/>
+      <property name="Sheetname" value="Root"/>
+      <property name="Sheetfile" value="cosmic-ray-detector.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>61cb99ed-09c1-49e6-a54b-7d128708ba2b</tstamps>
+    </comp>
+    <comp ref="SiPM1">
+      <value>MICROFC-60035-SMT-TR1</value>
+      <footprint>cosmic-ray-detector:XDCR_MICROFC-60035-SMT-TR1</footprint>
+      <datasheet>SMD-4 ON Semiconductor</datasheet>
+      <fields>
+        <field name="フィールド4">MICROFC-60035-SMT-TR1</field>
+        <field name="フィールド5">https://www.digikey.jp/product-detail/en/on-semiconductor/MICROFC-60035-SMT-TR1/MICROFC-60035-SMT-TR1OS-ND/9744774?utm_source=snapeda&amp;utm_medium=aggregator&amp;utm_campaign=symbol</field>
+        <field name="フィールド6">ON Semiconductor</field>
+        <field name="フィールド7">MICROFC-60035-SMT-TR1OS-ND</field>
+        <field name="フィールド8">SENSOR PHOTODIODE 420NM 4SMD</field>
+        <field name="Footprint">cosmic-ray-detector:XDCR_MICROFC-60035-SMT-TR1</field>
+        <field name="Datasheet">SMD-4 ON Semiconductor</field>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="cosmic-ray-detector-rescue" part="MICROFC-60035-SMT-TR1-MICROFC-60035-SMT-TR1" description=""/>
+      <property name="フィールド4" value="MICROFC-60035-SMT-TR1"/>
+      <property name="フィールド5" value="https://www.digikey.jp/product-detail/en/on-semiconductor/MICROFC-60035-SMT-TR1/MICROFC-60035-SMT-TR1OS-ND/9744774?utm_source=snapeda&amp;utm_medium=aggregator&amp;utm_campaign=symbol"/>
+      <property name="フィールド6" value="ON Semiconductor"/>
+      <property name="フィールド7" value="MICROFC-60035-SMT-TR1OS-ND"/>
+      <property name="フィールド8" value="SENSOR PHOTODIODE 420NM 4SMD"/>
+      <property name="Sheetname" value="Root"/>
+      <property name="Sheetfile" value="cosmic-ray-detector.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>00000000-0000-0000-0000-00005e2c76c3</tstamps>
+    </comp>
+    <comp ref="TMP36">
+      <value>TMP36GT9Z</value>
+      <footprint>SamacSys_Parts:TO-92</footprint>
+      <datasheet>https://datasheet.datasheetarchive.com/originals/distributors/SFDatasheet-4/sf-00085637.pdf</datasheet>
+      <description>TMP36GT9Z, Temperature Sensor +/-3C Serial-2 Wire 2.7  5.5 V 3-Pin TO-92</description>
+      <fields>
+        <field name="Height"/>
+        <field name="Mouser Part Number">584-TMP36GT9Z</field>
+        <field name="Mouser Price/Stock">https://www.mouser.co.uk/ProductDetail/Analog-Devices/TMP36GT9Z?qs=WIvQP4zGanhT97N47MSoHw%3D%3D</field>
+        <field name="Manufacturer_Name">Analog Devices</field>
+        <field name="Manufacturer_Part_Number">TMP36GT9Z</field>
+        <field name="Footprint">SamacSys_Parts:TO-92</field>
+        <field name="Datasheet">https://datasheet.datasheetarchive.com/originals/distributors/SFDatasheet-4/sf-00085637.pdf</field>
+        <field name="Description">TMP36GT9Z, Temperature Sensor +/-3C Serial-2 Wire 2.7  5.5 V 3-Pin TO-92</field>
+      </fields>
+      <libsource lib="SamacSys_Parts" part="TMP36GT9Z" description="TMP36GT9Z, Temperature Sensor +/-3C Serial-2 Wire 2.7  5.5 V 3-Pin TO-92"/>
+      <property name="Height" value=""/>
+      <property name="Mouser Part Number" value="584-TMP36GT9Z"/>
+      <property name="Mouser Price/Stock" value="https://www.mouser.co.uk/ProductDetail/Analog-Devices/TMP36GT9Z?qs=WIvQP4zGanhT97N47MSoHw%3D%3D"/>
+      <property name="Manufacturer_Name" value="Analog Devices"/>
+      <property name="Manufacturer_Part_Number" value="TMP36GT9Z"/>
+      <property name="Sheetname" value="Root"/>
+      <property name="Sheetfile" value="cosmic-ray-detector.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>71dcb96d-eaeb-43e1-9d8f-06f4b8eddd2b</tstamps>
+    </comp>
+    <comp ref="TP1">
+      <value>TestPoint</value>
+      <footprint>TestPoint:TestPoint_THTPad_3.0x3.0mm_Drill1.5mm</footprint>
+      <datasheet>~</datasheet>
+      <fields>
+        <field name="Footprint">TestPoint:TestPoint_THTPad_3.0x3.0mm_Drill1.5mm</field>
+        <field name="Datasheet">~</field>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Connector" part="TestPoint" description="test point"/>
+      <property name="Sheetname" value="Root"/>
+      <property name="Sheetfile" value="cosmic-ray-detector.kicad_sch"/>
+      <property name="ki_keywords" value="test point tp"/>
+      <property name="ki_fp_filters" value="Pin* Test*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>55076c17-cf46-4904-811b-2c35a4e91ef0</tstamps>
+    </comp>
+    <comp ref="TP2">
+      <value>TestPoint</value>
+      <footprint>TestPoint:TestPoint_THTPad_3.0x3.0mm_Drill1.5mm</footprint>
+      <datasheet>~</datasheet>
+      <fields>
+        <field name="Footprint">TestPoint:TestPoint_THTPad_3.0x3.0mm_Drill1.5mm</field>
+        <field name="Datasheet">~</field>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Connector" part="TestPoint" description="test point"/>
+      <property name="Sheetname" value="Root"/>
+      <property name="Sheetfile" value="cosmic-ray-detector.kicad_sch"/>
+      <property name="ki_keywords" value="test point tp"/>
+      <property name="ki_fp_filters" value="Pin* Test*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>1e3e7f2c-e132-49d3-a694-6bf747db05db</tstamps>
+    </comp>
+    <comp ref="TP3">
+      <value>TestPoint</value>
+      <footprint>TestPoint:TestPoint_THTPad_3.0x3.0mm_Drill1.5mm</footprint>
+      <datasheet>~</datasheet>
+      <fields>
+        <field name="Footprint">TestPoint:TestPoint_THTPad_3.0x3.0mm_Drill1.5mm</field>
+        <field name="Datasheet">~</field>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Connector" part="TestPoint" description="test point"/>
+      <property name="Sheetname" value="Root"/>
+      <property name="Sheetfile" value="cosmic-ray-detector.kicad_sch"/>
+      <property name="ki_keywords" value="test point tp"/>
+      <property name="ki_fp_filters" value="Pin* Test*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>0fdbd50b-629d-45d3-9b62-8ee4cfbec00a</tstamps>
+    </comp>
+    <comp ref="U1">
+      <value>LT3461</value>
+      <footprint>Package_TO_SOT_SMD:TSOT-23-6</footprint>
+      <fields>
+        <field name="VENDOR">Linear Technology</field>
+        <field name="MANUFACTURER_PART_NUMBER">lt3461es6#trpbf</field>
+        <field name="Footprint">Package_TO_SOT_SMD:TSOT-23-6</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="LT3461ES6TRPBF" part="LT3461ES6TRPBF" description=""/>
+      <property name="VENDOR" value="Linear Technology"/>
+      <property name="MANUFACTURER_PART_NUMBER" value="lt3461es6#trpbf"/>
+      <property name="Sheetname" value="Root"/>
+      <property name="Sheetfile" value="cosmic-ray-detector.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>02fd411b-0f70-497d-b3ca-c75bcf7aa1c4</tstamps>
+    </comp>
+    <comp ref="U2">
+      <value>LT1807</value>
+      <footprint>SamacSys_Parts:SOIC127P599X175-8N</footprint>
+      <datasheet>https://datasheet.datasheetarchive.com/originals/dk/DKDS41/DSANUWW0025806.pdf</datasheet>
+      <description>Linear Technology LT1807IS8#PBF, Dual Precision Op Amp, 250MHz Rail-Rail, 3, 5 V, 8-Pin</description>
+      <fields>
+        <field name="Height">1.752</field>
+        <field name="Mouser Part Number">584-LT1807IS8#PBF</field>
+        <field name="Mouser Price/Stock">https://www.mouser.co.uk/ProductDetail/Analog-Devices-Linear-Technology/LT1807IS8PBF?qs=ytflclh7QUUTprHUFbCGwA%3D%3D</field>
+        <field name="Manufacturer_Name">Analog Devices</field>
+        <field name="Manufacturer_Part_Number">LT1807IS8#PBF</field>
+        <field name="Footprint">SamacSys_Parts:SOIC127P599X175-8N</field>
+        <field name="Datasheet">https://datasheet.datasheetarchive.com/originals/dk/DKDS41/DSANUWW0025806.pdf</field>
+        <field name="Description">Linear Technology LT1807IS8#PBF, Dual Precision Op Amp, 250MHz Rail-Rail, 3, 5 V, 8-Pin</field>
+      </fields>
+      <libsource lib="SamacSys_Parts" part="LT1807IS8#PBF" description="Linear Technology LT1807IS8#PBF, Dual Precision Op Amp, 250MHz Rail-Rail, 3, 5 V, 8-Pin"/>
+      <property name="Height" value="1.752"/>
+      <property name="Mouser Part Number" value="584-LT1807IS8#PBF"/>
+      <property name="Mouser Price/Stock" value="https://www.mouser.co.uk/ProductDetail/Analog-Devices-Linear-Technology/LT1807IS8PBF?qs=ytflclh7QUUTprHUFbCGwA%3D%3D"/>
+      <property name="Manufacturer_Name" value="Analog Devices"/>
+      <property name="Manufacturer_Part_Number" value="LT1807IS8#PBF"/>
+      <property name="Sheetname" value="Root"/>
+      <property name="Sheetfile" value="cosmic-ray-detector.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>49dc7225-782f-492f-8c35-aca2931733df</tstamps>
+    </comp>
+    <comp ref="U3">
+      <value>Arduino_Nano_v3.x</value>
+      <footprint>Module:Arduino_Nano</footprint>
+      <datasheet>http://www.mouser.com/pdfdocs/Gravitech_Arduino_Nano3_0.pdf</datasheet>
+      <fields>
+        <field name="Footprint">Module:Arduino_Nano</field>
+        <field name="Datasheet">http://www.mouser.com/pdfdocs/Gravitech_Arduino_Nano3_0.pdf</field>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="MCU_Module" part="Arduino_Nano_v3.x" description="Arduino Nano v3.x"/>
+      <property name="Sheetname" value="Root"/>
+      <property name="Sheetfile" value="cosmic-ray-detector.kicad_sch"/>
+      <property name="ki_keywords" value="Arduino nano microcontroller module USB"/>
+      <property name="ki_fp_filters" value="Arduino*Nano*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>4ba4e15b-aed9-4d8f-a456-be607f93a51b</tstamps>
+    </comp>
+  </components>
+  <libparts>
+    <libpart lib="2022-07-15_09-18-04" part="PPTC041LGBN-RC">
+      <footprints>
+        <fp>CONN_PPTC041LGBN-RC_SUL</fp>
+      </footprints>
+      <fields>
+        <field name="Reference">J</field>
+        <field name="Value">PPTC041LGBN-RC</field>
+        <field name="Footprint">CONN_PPTC041LGBN-RC_SUL</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <pins>
+        <pin num="1" name="1" type="unspecified"/>
+        <pin num="2" name="2" type="unspecified"/>
+        <pin num="3" name="3" type="unspecified"/>
+        <pin num="4" name="4" type="unspecified"/>
+      </pins>
+    </libpart>
+    <libpart lib="Connector" part="TestPoint">
+      <description>test point</description>
+      <docs>~</docs>
+      <footprints>
+        <fp>Pin*</fp>
+        <fp>Test*</fp>
+      </footprints>
+      <fields>
+        <field name="Reference">TP</field>
+        <field name="Value">TestPoint</field>
+        <field name="Footprint"/>
+        <field name="Datasheet">~</field>
+        <field name="Description">test point</field>
+      </fields>
+      <pins>
+        <pin num="1" name="1" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="Device" part="C">
+      <description>Unpolarized capacitor</description>
+      <docs>~</docs>
+      <footprints>
+        <fp>C_*</fp>
+      </footprints>
+      <fields>
+        <field name="Reference">C</field>
+        <field name="Value">C</field>
+        <field name="Footprint"/>
+        <field name="Datasheet">~</field>
+        <field name="Description">Unpolarized capacitor</field>
+      </fields>
+      <pins>
+        <pin num="1" name="" type="passive"/>
+        <pin num="2" name="" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="Device" part="D">
+      <description>Diode</description>
+      <docs>~</docs>
+      <footprints>
+        <fp>TO-???*</fp>
+        <fp>*_Diode_*</fp>
+        <fp>*SingleDiode*</fp>
+        <fp>D_*</fp>
+      </footprints>
+      <fields>
+        <field name="Reference">D</field>
+        <field name="Value">D</field>
+        <field name="Footprint"/>
+        <field name="Datasheet">~</field>
+        <field name="Description">Diode</field>
+      </fields>
+      <pins>
+        <pin num="1" name="K" type="passive"/>
+        <pin num="2" name="A" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="Device" part="L">
+      <description>Inductor</description>
+      <docs>~</docs>
+      <footprints>
+        <fp>Choke_*</fp>
+        <fp>*Coil*</fp>
+        <fp>Inductor_*</fp>
+        <fp>L_*</fp>
+      </footprints>
+      <fields>
+        <field name="Reference">L</field>
+        <field name="Value">L</field>
+        <field name="Footprint"/>
+        <field name="Datasheet">~</field>
+        <field name="Description">Inductor</field>
+      </fields>
+      <pins>
+        <pin num="1" name="1" type="passive"/>
+        <pin num="2" name="2" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="Device" part="LED">
+      <description>Light emitting diode</description>
+      <docs>~</docs>
+      <footprints>
+        <fp>LED*</fp>
+        <fp>LED_SMD:*</fp>
+        <fp>LED_THT:*</fp>
+      </footprints>
+      <fields>
+        <field name="Reference">D</field>
+        <field name="Value">LED</field>
+        <field name="Footprint"/>
+        <field name="Datasheet">~</field>
+        <field name="Description">Light emitting diode</field>
+      </fields>
+      <pins>
+        <pin num="1" name="K" type="passive"/>
+        <pin num="2" name="A" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="Device" part="R">
+      <description>Resistor</description>
+      <docs>~</docs>
+      <footprints>
+        <fp>R_*</fp>
+      </footprints>
+      <fields>
+        <field name="Reference">R</field>
+        <field name="Value">R</field>
+        <field name="Footprint"/>
+        <field name="Datasheet">~</field>
+        <field name="Description">Resistor</field>
+      </fields>
+      <pins>
+        <pin num="1" name="" type="passive"/>
+        <pin num="2" name="" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="LT3461ES6TRPBF" part="LT3461ES6TRPBF">
+      <fields>
+        <field name="Reference">U?</field>
+        <field name="Value">LT3461</field>
+        <field name="Footprint">TSOT-23_S6</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+        <field name="VENDOR">Linear Technology</field>
+        <field name="MANUFACTURER_PART_NUMBER">lt3461es6#trpbf</field>
+      </fields>
+      <pins>
+        <pin num="1" name="SW" type="passive"/>
+        <pin num="2" name="GND" type="power_in"/>
+        <pin num="3" name="FB" type="passive"/>
+        <pin num="4" name="*SHDN" type="passive"/>
+        <pin num="5" name="VOUT" type="output"/>
+        <pin num="6" name="VIN" type="input"/>
+      </pins>
+    </libpart>
+    <libpart lib="MCU_Module" part="Arduino_Nano_v3.x">
+      <description>Arduino Nano v3.x</description>
+      <docs>http://www.mouser.com/pdfdocs/Gravitech_Arduino_Nano3_0.pdf</docs>
+      <footprints>
+        <fp>Arduino*Nano*</fp>
+      </footprints>
+      <fields>
+        <field name="Reference">A</field>
+        <field name="Value">Arduino_Nano_v3.x</field>
+        <field name="Footprint">Module:Arduino_Nano</field>
+        <field name="Datasheet">http://www.mouser.com/pdfdocs/Gravitech_Arduino_Nano3_0.pdf</field>
+        <field name="Description">Arduino Nano v3.x</field>
+      </fields>
+      <pins>
+        <pin num="1" name="D1/TX" type="bidirectional"/>
+        <pin num="2" name="D0/RX" type="bidirectional"/>
+        <pin num="3" name="~{RESET}" type="input"/>
+        <pin num="4" name="GND" type="power_in"/>
+        <pin num="5" name="D2" type="bidirectional"/>
+        <pin num="6" name="D3" type="bidirectional"/>
+        <pin num="7" name="D4" type="bidirectional"/>
+        <pin num="8" name="D5" type="bidirectional"/>
+        <pin num="9" name="D6" type="bidirectional"/>
+        <pin num="10" name="D7" type="bidirectional"/>
+        <pin num="11" name="D8" type="bidirectional"/>
+        <pin num="12" name="D9" type="bidirectional"/>
+        <pin num="13" name="D10" type="bidirectional"/>
+        <pin num="14" name="D11" type="bidirectional"/>
+        <pin num="15" name="D12" type="bidirectional"/>
+        <pin num="16" name="D13" type="bidirectional"/>
+        <pin num="17" name="3V3" type="power_out"/>
+        <pin num="18" name="AREF" type="input"/>
+        <pin num="19" name="A0" type="bidirectional"/>
+        <pin num="20" name="A1" type="bidirectional"/>
+        <pin num="21" name="A2" type="bidirectional"/>
+        <pin num="22" name="A3" type="bidirectional"/>
+        <pin num="23" name="A4" type="bidirectional"/>
+        <pin num="24" name="A5" type="bidirectional"/>
+        <pin num="25" name="A6" type="bidirectional"/>
+        <pin num="26" name="A7" type="bidirectional"/>
+        <pin num="27" name="+5V" type="power_out"/>
+        <pin num="28" name="~{RESET}" type="input"/>
+        <pin num="29" name="GND" type="power_in"/>
+        <pin num="30" name="VIN" type="power_in"/>
+      </pins>
+    </libpart>
+    <libpart lib="SJ-43515RS-SMT" part="SJ-43515RS-SMT">
+      <description>4 conductor 3.5 mm Surface Mount Audio Jack w/ Ring Switch</description>
+      <fields>
+        <field name="Reference">J</field>
+        <field name="Value">SJ-43515RS-SMT</field>
+        <field name="Footprint">CUI_SJ-43515RS-SMT</field>
+        <field name="Datasheet"/>
+        <field name="Description">4 conductor 3.5 mm Surface Mount Audio Jack w/ Ring Switch</field>
+        <field name="AVAILABILITY">Unavailable</field>
+        <field name="MP">SJ-43515RS-SMT</field>
+        <field name="PRICE">None</field>
+        <field name="MF">CUI</field>
+        <field name="PACKAGE">None</field>
+      </fields>
+      <pins>
+        <pin num="1" name="" type="passive"/>
+        <pin num="2" name="" type="passive"/>
+        <pin num="3" name="" type="passive"/>
+        <pin num="4" name="" type="passive"/>
+        <pin num="6" name="" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="SamacSys_Parts" part="15-91-0060">
+      <description>Headers &amp; Wire Housings 6P SMT HEADER</description>
+      <docs>https://www.molex.com/molex/products/datasheet.jsp?part=active/0015910060_PCB_HEADERS.xml</docs>
+      <fields>
+        <field name="Reference">J</field>
+        <field name="Value">15-91-0060</field>
+        <field name="Footprint">15910060</field>
+        <field name="Datasheet">https://www.molex.com/molex/products/datasheet.jsp?part=active/0015910060_PCB_HEADERS.xml</field>
+        <field name="Description">Headers &amp; Wire Housings 6P SMT HEADER</field>
+        <field name="Height">8.91</field>
+        <field name="Mouser Part Number">538-15-91-0060</field>
+        <field name="Mouser Price/Stock">https://www.mouser.co.uk/ProductDetail/Molex/15-91-0060?qs=Nb99Pa9xYq%2FsP6xX9IrWlg%3D%3D</field>
+        <field name="Manufacturer_Name">Molex</field>
+        <field name="Manufacturer_Part_Number">15-91-0060</field>
+      </fields>
+      <pins>
+        <pin num="1" name="1" type="passive"/>
+        <pin num="2" name="2" type="passive"/>
+        <pin num="3" name="3" type="passive"/>
+        <pin num="4" name="4" type="passive"/>
+        <pin num="5" name="5" type="passive"/>
+        <pin num="6" name="6" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="SamacSys_Parts" part="LT1807IS8#PBF">
+      <description>Linear Technology LT1807IS8#PBF, Dual Precision Op Amp, 250MHz Rail-Rail, 3, 5 V, 8-Pin</description>
+      <docs>https://datasheet.datasheetarchive.com/originals/dk/DKDS41/DSANUWW0025806.pdf</docs>
+      <fields>
+        <field name="Reference">IC</field>
+        <field name="Value">LT1807IS8#PBF</field>
+        <field name="Footprint">SOIC127P599X175-8N</field>
+        <field name="Datasheet">https://datasheet.datasheetarchive.com/originals/dk/DKDS41/DSANUWW0025806.pdf</field>
+        <field name="Description">Linear Technology LT1807IS8#PBF, Dual Precision Op Amp, 250MHz Rail-Rail, 3, 5 V, 8-Pin</field>
+        <field name="Height">1.752</field>
+        <field name="Mouser Part Number">584-LT1807IS8#PBF</field>
+        <field name="Mouser Price/Stock">https://www.mouser.co.uk/ProductDetail/Analog-Devices-Linear-Technology/LT1807IS8PBF?qs=ytflclh7QUUTprHUFbCGwA%3D%3D</field>
+        <field name="Manufacturer_Name">Analog Devices</field>
+        <field name="Manufacturer_Part_Number">LT1807IS8#PBF</field>
+      </fields>
+      <pins>
+        <pin num="1" name="OUT_A" type="passive"/>
+        <pin num="2" name="-IN_A" type="passive"/>
+        <pin num="3" name="+IN_A" type="passive"/>
+        <pin num="4" name="V-" type="passive"/>
+        <pin num="5" name="+IN_B" type="passive"/>
+        <pin num="6" name="-IN_B" type="passive"/>
+        <pin num="7" name="OUT_B" type="passive"/>
+        <pin num="8" name="V+" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="SamacSys_Parts" part="TL1105SF250Q">
+      <description>E-SWITCH - TL1105SF250Q - SWITCH, TACTILE SPST, 50mA, THROUGH HOLE</description>
+      <docs>http://spec_sheets.e-switch.com/specs/P021300.pdf</docs>
+      <fields>
+        <field name="Reference">S</field>
+        <field name="Value">TL1105SF250Q</field>
+        <field name="Footprint">TL1105SF250Q</field>
+        <field name="Datasheet">http://spec_sheets.e-switch.com/specs/P021300.pdf</field>
+        <field name="Description">E-SWITCH - TL1105SF250Q - SWITCH, TACTILE SPST, 50mA, THROUGH HOLE</field>
+        <field name="Height"/>
+        <field name="Mouser Part Number">612-TL1105S-250</field>
+        <field name="Mouser Price/Stock">https://www.mouser.co.uk/ProductDetail/E-Switch/TL1105SF250Q?qs=HKd%2Fp3M7KlVYgsqML94pog%3D%3D</field>
+        <field name="Manufacturer_Name">E-Switch</field>
+        <field name="Manufacturer_Part_Number">TL1105SF250Q</field>
+      </fields>
+      <pins>
+        <pin num="1" name="COM" type="passive"/>
+        <pin num="2" name="NO" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="SamacSys_Parts" part="TMP36GT9Z">
+      <description>TMP36GT9Z, Temperature Sensor +/-3C Serial-2 Wire 2.7  5.5 V 3-Pin TO-92</description>
+      <docs>https://datasheet.datasheetarchive.com/originals/distributors/SFDatasheet-4/sf-00085637.pdf</docs>
+      <fields>
+        <field name="Reference">RT</field>
+        <field name="Value">TMP36GT9Z</field>
+        <field name="Footprint">TO-92</field>
+        <field name="Datasheet">https://datasheet.datasheetarchive.com/originals/distributors/SFDatasheet-4/sf-00085637.pdf</field>
+        <field name="Description">TMP36GT9Z, Temperature Sensor +/-3C Serial-2 Wire 2.7  5.5 V 3-Pin TO-92</field>
+        <field name="Height"/>
+        <field name="Mouser Part Number">584-TMP36GT9Z</field>
+        <field name="Mouser Price/Stock">https://www.mouser.co.uk/ProductDetail/Analog-Devices/TMP36GT9Z?qs=WIvQP4zGanhT97N47MSoHw%3D%3D</field>
+        <field name="Manufacturer_Name">Analog Devices</field>
+        <field name="Manufacturer_Part_Number">TMP36GT9Z</field>
+      </fields>
+      <pins>
+        <pin num="1" name="VS+" type="power_in"/>
+        <pin num="2" name="VOUT" type="output"/>
+        <pin num="3" name="GND" type="power_in"/>
+      </pins>
+    </libpart>
+    <libpart lib="cosmic-ray-detector" part="3296W-1-104LF">
+      <docs>3296W-1-104LF</docs>
+      <footprints>
+        <fp>POT_3296W</fp>
+      </footprints>
+      <fields>
+        <field name="Reference">R</field>
+        <field name="Value">3296W-1-104LF</field>
+        <field name="Footprint">POT_3296W</field>
+        <field name="Datasheet">3296W-1-104LF</field>
+        <field name="Description"/>
+      </fields>
+      <pins>
+        <pin num="1" name="1" type="unspecified"/>
+        <pin num="2" name="2" type="unspecified"/>
+        <pin num="3" name="3" type="unspecified"/>
+      </pins>
+    </libpart>
+    <libpart lib="cosmic-ray-detector" part="S6B-XH-A-1">
+      <docs>S6B-XH-A-1</docs>
+      <footprints>
+        <fp>CONN_S6B-XH-A-1_JST</fp>
+      </footprints>
+      <fields>
+        <field name="Reference">J</field>
+        <field name="Value">S6B-XH-A-1</field>
+        <field name="Footprint">CONN_S6B-XH-A-1_JST</field>
+        <field name="Datasheet">S6B-XH-A-1</field>
+        <field name="Description"/>
+      </fields>
+      <pins>
+        <pin num="1" name="1" type="unspecified"/>
+        <pin num="2" name="2" type="unspecified"/>
+        <pin num="3" name="3" type="unspecified"/>
+        <pin num="4" name="4" type="unspecified"/>
+        <pin num="5" name="5" type="unspecified"/>
+        <pin num="6" name="6" type="unspecified"/>
+      </pins>
+    </libpart>
+    <libpart lib="cosmic-ray-detector-rescue" part="MICROFC-60035-SMT-TR1-MICROFC-60035-SMT-TR1">
+      <docs>SMD-4 ON Semiconductor</docs>
+      <fields>
+        <field name="Reference">U</field>
+        <field name="Value">MICROFC-60035-SMT-TR1-MICROFC-60035-SMT-TR1</field>
+        <field name="Footprint">XDCR_MICROFC-60035-SMT-TR1</field>
+        <field name="Datasheet">SMD-4 ON Semiconductor</field>
+        <field name="Description"/>
+        <field name="Field4">MICROFC-60035-SMT-TR1</field>
+        <field name="Field5">https://www.digikey.jp/product-detail/en/on-semiconductor/MICROFC-60035-SMT-TR1/MICROFC-60035-SMT-TR1OS-ND/9744774?utm_source=snapeda&amp;utm_medium=aggregator&amp;utm_campaign=symbol</field>
+        <field name="Field6">ON Semiconductor</field>
+        <field name="Field7">MICROFC-60035-SMT-TR1OS-ND</field>
+        <field name="Field8">SENSOR PHOTODIODE 420NM 4SMD</field>
+      </fields>
+      <pins>
+        <pin num="1" name="P-ANODE" type="passive"/>
+        <pin num="2" name="F-FAST_OUTPUT" type="passive"/>
+        <pin num="3" name="N-CATHODE" type="passive"/>
+        <pin num="5" name="EP" type="power_in"/>
+      </pins>
+    </libpart>
+  </libparts>
+  <libraries>
+    <library logical="Connector">
+      <uri>C:\Program Files\KiCad\9.0\share\kicad\symbols\/Connector.kicad_sym</uri>
+    </library>
+    <library logical="Device">
+      <uri>C:\Program Files\KiCad\9.0\share\kicad\symbols\/Device.kicad_sym</uri>
+    </library>
+    <library logical="MCU_Module">
+      <uri>C:\Program Files\KiCad\9.0\share\kicad\symbols\/MCU_Module.kicad_sym</uri>
+    </library>
+    <library logical="cosmic-ray-detector">
+      <uri>G:\Document\Research\software\pcb\cosmic-ray-detector\cosmic-ray-detector-v2/cosmic-ray-detector.kicad_sym</uri>
+    </library>
+  </libraries>
+  <nets>
+    <net code="1" name="3V" class="POWER,Default">
+      <node ref="C15" pin="1" pintype="passive"/>
+      <node ref="R17" pin="2" pintype="passive"/>
+      <node ref="TMP36" pin="1" pinfunction="VS+" pintype="power_in"/>
+      <node ref="U3" pin="17" pinfunction="3V3" pintype="power_out"/>
+    </net>
+    <net code="2" name="5V" class="POWER,Default">
+      <node ref="C3" pin="1" pintype="passive"/>
+      <node ref="C4" pin="1" pintype="passive"/>
+      <node ref="C5" pin="1" pintype="passive"/>
+      <node ref="J3" pin="2" pintype="passive"/>
+      <node ref="J4" pin="2" pinfunction="2" pintype="unspecified"/>
+      <node ref="J5" pin="2" pintype="passive"/>
+      <node ref="J6" pin="2" pintype="passive"/>
+      <node ref="J7" pin="2" pintype="passive"/>
+      <node ref="L1" pin="2" pinfunction="2" pintype="passive"/>
+      <node ref="OLED1" pin="4" pinfunction="4" pintype="unspecified"/>
+      <node ref="U1" pin="4" pinfunction="*SHDN" pintype="passive"/>
+      <node ref="U1" pin="6" pinfunction="VIN" pintype="input"/>
+      <node ref="U2" pin="8" pinfunction="V+" pintype="passive"/>
+      <node ref="U3" pin="27" pinfunction="+5V" pintype="power_out"/>
+    </net>
+    <net code="3" name="ANA_IN1" class="Default">
+      <node ref="J5" pin="4" pintype="passive"/>
+      <node ref="U3" pin="20" pinfunction="A1" pintype="bidirectional"/>
+    </net>
+    <net code="4" name="ANA_IN2" class="Default">
+      <node ref="J6" pin="4" pintype="passive"/>
+      <node ref="U3" pin="21" pinfunction="A2" pintype="bidirectional"/>
+    </net>
+    <net code="5" name="ANA_IN3" class="Default">
+      <node ref="J7" pin="4" pintype="passive"/>
+      <node ref="U3" pin="25" pinfunction="A6" pintype="bidirectional"/>
+    </net>
+    <net code="6" name="ANA_OUT" class="Default">
+      <node ref="C14" pin="1" pintype="passive"/>
+      <node ref="J3" pin="4" pintype="passive"/>
+      <node ref="R24" pin="1" pintype="passive"/>
+      <node ref="TP3" pin="1" pinfunction="1" pintype="passive"/>
+      <node ref="U3" pin="19" pinfunction="A0" pintype="bidirectional"/>
+    </net>
+    <net code="7" name="CS" class="Default">
+      <node ref="J4" pin="4" pinfunction="4" pintype="unspecified"/>
+      <node ref="U3" pin="13" pinfunction="D10" pintype="bidirectional"/>
+    </net>
+    <net code="8" name="DIG_IN1" class="Default">
+      <node ref="R14" pin="1" pintype="passive"/>
+      <node ref="R23" pin="1" pintype="passive"/>
+      <node ref="U3" pin="9" pinfunction="D6" pintype="bidirectional"/>
+    </net>
+    <net code="9" name="DIG_IN2" class="Default">
+      <node ref="R18" pin="1" pintype="passive"/>
+      <node ref="R22" pin="1" pintype="passive"/>
+      <node ref="U3" pin="8" pinfunction="D5" pintype="bidirectional"/>
+    </net>
+    <net code="10" name="DIG_IN3" class="Default">
+      <node ref="R19" pin="1" pintype="passive"/>
+      <node ref="R21" pin="1" pintype="passive"/>
+      <node ref="U3" pin="7" pinfunction="D4" pintype="bidirectional"/>
+    </net>
+    <net code="11" name="GND" class="Default">
+      <node ref="C10" pin="2" pintype="passive"/>
+      <node ref="C11" pin="2" pintype="passive"/>
+      <node ref="C15" pin="2" pintype="passive"/>
+      <node ref="C18" pin="2" pintype="passive"/>
+      <node ref="C2" pin="2" pintype="passive"/>
+      <node ref="C3" pin="2" pintype="passive"/>
+      <node ref="C4" pin="2" pintype="passive"/>
+      <node ref="C5" pin="2" pintype="passive"/>
+      <node ref="C6" pin="2" pintype="passive"/>
+      <node ref="C8" pin="2" pintype="passive"/>
+      <node ref="C9" pin="2" pintype="passive"/>
+      <node ref="GND1" pin="1" pinfunction="1" pintype="passive"/>
+      <node ref="J1" pin="3" pinfunction="3" pintype="passive"/>
+      <node ref="J1" pin="4" pinfunction="4" pintype="passive"/>
+      <node ref="J2" pin="3" pinfunction="3" pintype="passive"/>
+      <node ref="J2" pin="4" pinfunction="4" pintype="passive"/>
+      <node ref="J3" pin="1" pintype="passive"/>
+      <node ref="J4" pin="1" pinfunction="1" pintype="unspecified"/>
+      <node ref="J5" pin="1" pintype="passive"/>
+      <node ref="J6" pin="1" pintype="passive"/>
+      <node ref="J7" pin="1" pintype="passive"/>
+      <node ref="LED1" pin="1" pinfunction="K" pintype="passive"/>
+      <node ref="OLED1" pin="3" pinfunction="3" pintype="unspecified"/>
+      <node ref="R1" pin="2" pintype="passive"/>
+      <node ref="R12" pin="2" pintype="passive"/>
+      <node ref="R16" pin="2" pintype="passive"/>
+      <node ref="R20" pin="2" pintype="passive"/>
+      <node ref="R21" pin="2" pintype="passive"/>
+      <node ref="R22" pin="2" pintype="passive"/>
+      <node ref="R23" pin="2" pintype="passive"/>
+      <node ref="R24" pin="2" pintype="passive"/>
+      <node ref="R3" pin="2" pintype="passive"/>
+      <node ref="R6" pin="2" pintype="passive"/>
+      <node ref="RESET1" pin="2" pinfunction="NO" pintype="passive"/>
+      <node ref="TMP36" pin="3" pinfunction="GND" pintype="power_in"/>
+      <node ref="U1" pin="2" pinfunction="GND" pintype="power_in"/>
+      <node ref="U2" pin="4" pinfunction="V-" pintype="passive"/>
+      <node ref="U3" pin="29" pinfunction="GND" pintype="power_in"/>
+      <node ref="U3" pin="4" pinfunction="GND" pintype="power_in"/>
+    </net>
+    <net code="12" name="MISO" class="Default">
+      <node ref="J4" pin="6" pinfunction="6" pintype="unspecified"/>
+      <node ref="U3" pin="15" pinfunction="D12" pintype="bidirectional"/>
+    </net>
+    <net code="13" name="MOSI" class="Default">
+      <node ref="J4" pin="5" pinfunction="5" pintype="unspecified"/>
+      <node ref="U3" pin="14" pinfunction="D11" pintype="bidirectional"/>
+    </net>
+    <net code="14" name="Net-(C11-Pad1)" class="Default">
+      <node ref="C11" pin="1" pintype="passive"/>
+      <node ref="R11" pin="2" pintype="passive"/>
+      <node ref="R13" pin="1" pintype="passive"/>
+    </net>
+    <net code="15" name="Net-(C18-Pad1)" class="Default">
+      <node ref="C18" pin="1" pintype="passive"/>
+      <node ref="J2" pin="1" pinfunction="1" pintype="passive"/>
+      <node ref="J2" pin="2" pinfunction="2" pintype="passive"/>
+      <node ref="L2" pin="1" pinfunction="1" pintype="passive"/>
+    </net>
+    <net code="16" name="Net-(D1-A)" class="Default">
+      <node ref="D1" pin="2" pinfunction="A" pintype="passive"/>
+      <node ref="D2" pin="1" pinfunction="K" pintype="passive"/>
+      <node ref="U2" pin="7" pinfunction="OUT_B" pintype="passive"/>
+    </net>
+    <net code="17" name="Net-(D1-K)" class="Default">
+      <node ref="C14" pin="2" pintype="passive"/>
+      <node ref="C6" pin="1" pintype="passive"/>
+      <node ref="D1" pin="1" pinfunction="K" pintype="passive"/>
+      <node ref="R7" pin="2" pintype="passive"/>
+    </net>
+    <net code="18" name="Net-(D2-A)" class="Default">
+      <node ref="D2" pin="2" pinfunction="A" pintype="passive"/>
+      <node ref="R6" pin="1" pintype="passive"/>
+      <node ref="R7" pin="1" pintype="passive"/>
+      <node ref="U2" pin="6" pinfunction="-IN_B" pintype="passive"/>
+    </net>
+    <net code="19" name="Net-(J1-Pad1)" class="Default">
+      <node ref="J1" pin="1" pinfunction="1" pintype="passive"/>
+      <node ref="J1" pin="2" pinfunction="2" pintype="passive"/>
+      <node ref="R13" pin="2" pintype="passive"/>
+    </net>
+    <net code="20" name="Net-(J2-Pad5)" class="Default">
+      <node ref="J2" pin="5" pinfunction="5" pintype="passive"/>
+      <node ref="J2" pin="6" pinfunction="6" pintype="passive"/>
+      <node ref="R4" pin="1" pintype="passive"/>
+    </net>
+    <net code="21" name="Net-(J3-Pad3)" class="Default">
+      <node ref="J3" pin="3" pintype="passive"/>
+      <node ref="J3" pin="6" pintype="passive"/>
+      <node ref="R15" pin="1" pintype="passive"/>
+      <node ref="R16" pin="1" pintype="passive"/>
+    </net>
+    <net code="22" name="Net-(J5-Pad3)" class="Default">
+      <node ref="J5" pin="3" pintype="passive"/>
+      <node ref="J5" pin="6" pintype="passive"/>
+      <node ref="R14" pin="2" pintype="passive"/>
+    </net>
+    <net code="23" name="Net-(J6-Pad3)" class="Default">
+      <node ref="J6" pin="3" pintype="passive"/>
+      <node ref="J6" pin="6" pintype="passive"/>
+      <node ref="R18" pin="2" pintype="passive"/>
+    </net>
+    <net code="24" name="Net-(J7-Pad3)" class="Default">
+      <node ref="J7" pin="3" pintype="passive"/>
+      <node ref="J7" pin="6" pintype="passive"/>
+      <node ref="R19" pin="2" pintype="passive"/>
+    </net>
+    <net code="25" name="Net-(LED1-A)" class="Default">
+      <node ref="LED1" pin="2" pinfunction="A" pintype="passive"/>
+      <node ref="R8" pin="1" pintype="passive"/>
+    </net>
+    <net code="26" name="Net-(R10-Pad2)" class="Default">
+      <node ref="R10" pin="2" pinfunction="2" pintype="unspecified"/>
+      <node ref="R5" pin="2" pintype="passive"/>
+    </net>
+    <net code="27" name="Net-(RESET1-COM)" class="Default">
+      <node ref="RESET1" pin="1" pinfunction="COM" pintype="passive"/>
+      <node ref="U3" pin="28" pinfunction="~{RESET}" pintype="input"/>
+    </net>
+    <net code="28" name="Net-(SiPM1-N-CATHODE)" class="Default">
+      <node ref="C10" pin="1" pintype="passive"/>
+      <node ref="C8" pin="1" pintype="passive"/>
+      <node ref="C9" pin="1" pintype="passive"/>
+      <node ref="R11" pin="1" pintype="passive"/>
+      <node ref="SiPM1" pin="3" pinfunction="N-CATHODE" pintype="passive"/>
+    </net>
+    <net code="29" name="Net-(SiPM1-P-ANODE)" class="Default">
+      <node ref="J1" pin="5" pinfunction="5" pintype="passive"/>
+      <node ref="J1" pin="6" pinfunction="6" pintype="passive"/>
+      <node ref="R12" pin="1" pintype="passive"/>
+      <node ref="SiPM1" pin="1" pinfunction="P-ANODE" pintype="passive"/>
+    </net>
+    <net code="30" name="Net-(TMP36-VOUT)" class="Default">
+      <node ref="TMP36" pin="2" pinfunction="VOUT" pintype="output"/>
+      <node ref="U3" pin="22" pinfunction="A3" pintype="bidirectional"/>
+    </net>
+    <net code="31" name="Net-(U1-FB)" class="Default">
+      <node ref="C1" pin="1" pintype="passive"/>
+      <node ref="R1" pin="1" pintype="passive"/>
+      <node ref="R2" pin="2" pintype="passive"/>
+      <node ref="U1" pin="3" pinfunction="FB" pintype="passive"/>
+    </net>
+    <net code="32" name="Net-(U1-SW)" class="Default">
+      <node ref="L1" pin="1" pinfunction="1" pintype="passive"/>
+      <node ref="U1" pin="1" pinfunction="SW" pintype="passive"/>
+    </net>
+    <net code="33" name="Net-(U1-VOUT)" class="Default">
+      <node ref="C1" pin="2" pintype="passive"/>
+      <node ref="C2" pin="1" pintype="passive"/>
+      <node ref="L2" pin="2" pinfunction="2" pintype="passive"/>
+      <node ref="R2" pin="1" pintype="passive"/>
+      <node ref="U1" pin="5" pinfunction="VOUT" pintype="output"/>
+    </net>
+    <net code="34" name="Net-(U2-+IN_A)" class="Default">
+      <node ref="R4" pin="2" pintype="passive"/>
+      <node ref="TP1" pin="1" pinfunction="1" pintype="passive"/>
+      <node ref="U2" pin="3" pinfunction="+IN_A" pintype="passive"/>
+    </net>
+    <net code="35" name="Net-(U2-+IN_B)" class="Default">
+      <node ref="C7" pin="2" pintype="passive"/>
+      <node ref="R20" pin="1" pintype="passive"/>
+      <node ref="R5" pin="1" pintype="passive"/>
+      <node ref="TP2" pin="1" pinfunction="1" pintype="passive"/>
+      <node ref="U2" pin="1" pinfunction="OUT_A" pintype="passive"/>
+      <node ref="U2" pin="5" pinfunction="+IN_B" pintype="passive"/>
+    </net>
+    <net code="36" name="Net-(U2--IN_A)" class="Default">
+      <node ref="C7" pin="1" pintype="passive"/>
+      <node ref="R10" pin="1" pinfunction="1" pintype="unspecified"/>
+      <node ref="R3" pin="1" pintype="passive"/>
+      <node ref="U2" pin="2" pinfunction="-IN_A" pintype="passive"/>
+    </net>
+    <net code="37" name="Net-(U3-A4)" class="Default">
+      <node ref="OLED1" pin="1" pinfunction="1" pintype="unspecified"/>
+      <node ref="U3" pin="23" pinfunction="A4" pintype="bidirectional"/>
+    </net>
+    <net code="38" name="Net-(U3-A5)" class="Default">
+      <node ref="OLED1" pin="2" pinfunction="2" pintype="unspecified"/>
+      <node ref="U3" pin="24" pinfunction="A5" pintype="bidirectional"/>
+    </net>
+    <net code="39" name="Net-(U3-AREF)" class="Default">
+      <node ref="R17" pin="1" pintype="passive"/>
+      <node ref="U3" pin="18" pinfunction="AREF" pintype="input"/>
+    </net>
+    <net code="40" name="Net-(U3-D3)" class="Default">
+      <node ref="R8" pin="2" pintype="passive"/>
+      <node ref="U3" pin="6" pinfunction="D3" pintype="bidirectional"/>
+    </net>
+    <net code="41" name="Net-(U3-D7)" class="Default">
+      <node ref="R15" pin="2" pintype="passive"/>
+      <node ref="U3" pin="10" pinfunction="D7" pintype="bidirectional"/>
+    </net>
+    <net code="42" name="SCLK" class="Default">
+      <node ref="J4" pin="3" pinfunction="3" pintype="unspecified"/>
+      <node ref="U3" pin="16" pinfunction="D13" pintype="bidirectional"/>
+    </net>
+    <net code="43" name="unconnected-(R10-Pad3)" class="Default">
+      <node ref="R10" pin="3" pinfunction="3" pintype="unspecified"/>
+    </net>
+    <net code="44" name="unconnected-(SiPM1-EP-Pad5)" class="Default">
+      <node ref="SiPM1" pin="5" pinfunction="EP" pintype="power_in"/>
+    </net>
+    <net code="45" name="unconnected-(SiPM1-F-FAST_OUTPUT-Pad2)" class="Default">
+      <node ref="SiPM1" pin="2" pinfunction="F-FAST_OUTPUT" pintype="passive"/>
+    </net>
+    <net code="46" name="unconnected-(U3-A7-Pad26)" class="Default">
+      <node ref="U3" pin="26" pinfunction="A7" pintype="bidirectional"/>
+    </net>
+    <net code="47" name="unconnected-(U3-D0/RX-Pad2)" class="Default">
+      <node ref="U3" pin="2" pinfunction="D0/RX" pintype="bidirectional"/>
+    </net>
+    <net code="48" name="unconnected-(U3-D1/TX-Pad1)" class="Default">
+      <node ref="U3" pin="1" pinfunction="D1/TX" pintype="bidirectional"/>
+    </net>
+    <net code="49" name="unconnected-(U3-D2-Pad5)" class="Default">
+      <node ref="U3" pin="5" pinfunction="D2" pintype="bidirectional"/>
+    </net>
+    <net code="50" name="unconnected-(U3-D8-Pad11)" class="Default">
+      <node ref="U3" pin="11" pinfunction="D8" pintype="bidirectional"/>
+    </net>
+    <net code="51" name="unconnected-(U3-D9-Pad12)" class="Default">
+      <node ref="U3" pin="12" pinfunction="D9" pintype="bidirectional"/>
+    </net>
+    <net code="52" name="unconnected-(U3-VIN-Pad30)" class="Default">
+      <node ref="U3" pin="30" pinfunction="VIN" pintype="power_in"/>
+    </net>
+    <net code="53" name="unconnected-(U3-~{RESET}-Pad3)" class="Default">
+      <node ref="U3" pin="3" pinfunction="~{RESET}" pintype="input"/>
+    </net>
+  </nets>
+</export>
