@@ -1,0 +1,1379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CosmicRay Recorder</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f0f2f5;
+      color: #333;
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: 280px;
+      min-width: 280px;
+      background: #fff;
+      border-right: 1px solid #e0e0e0;
+      padding: 20px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .sidebar-section { }
+    .sidebar-section h3 {
+      font-size: 14px;
+      font-weight: 600;
+      color: #555;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .sidebar-section h3 .icon { font-size: 16px; }
+    .sidebar-section p {
+      font-size: 12px;
+      color: #888;
+      line-height: 1.6;
+      margin-bottom: 8px;
+    }
+    .sidebar-section ul {
+      font-size: 12px;
+      color: #888;
+      line-height: 1.8;
+      padding-left: 18px;
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s, opacity 0.2s;
+      width: 100%;
+    }
+    .btn:hover { opacity: 0.85; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-primary { background: #00b8a9; color: #fff; }
+    .btn-danger { background: #e74c3c; color: #fff; }
+    .btn-secondary { background: #eee; color: #333; }
+    .btn-outline {
+      background: transparent;
+      border: 1px solid #ddd;
+      color: #555;
+    }
+    .btn-sm { padding: 6px 12px; font-size: 12px; }
+    .btn-group { display: flex; gap: 8px; }
+    .btn-group .btn { flex: 1; }
+
+    /* Input */
+    .input-group { margin-bottom: 10px; }
+    .input-group label {
+      display: block;
+      font-size: 12px;
+      color: #666;
+      margin-bottom: 4px;
+    }
+    .input-group input, .input-group select {
+      width: 100%;
+      padding: 6px 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+    .input-row {
+      display: flex;
+      gap: 8px;
+    }
+    .input-row .input-group { flex: 1; }
+
+    /* Main content */
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* Header */
+    .header {
+      background: #fff;
+      border-bottom: 1px solid #e0e0e0;
+      padding: 12px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .header h1 {
+      font-size: 18px;
+      font-weight: 600;
+      color: #333;
+    }
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      font-size: 13px;
+      color: #666;
+    }
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+    .status-dot.connected { background: #2ecc71; }
+    .status-dot.disconnected { background: #e74c3c; }
+
+    /* Content area */
+    .content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px 24px;
+    }
+
+    /* Section header */
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    .section-header h2 {
+      font-size: 16px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Cards */
+    .card {
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .card h3 {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: #444;
+    }
+
+    /* Charts row */
+    .charts-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+    .chart-container {
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      padding: 20px;
+    }
+    .chart-container h3 {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: #444;
+    }
+    .chart-wrapper {
+      position: relative;
+      height: 250px;
+    }
+
+    /* Stats row */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .stat-card {
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      padding: 16px;
+      text-align: center;
+    }
+    .stat-card .stat-value {
+      font-size: 24px;
+      font-weight: 700;
+      color: #00b8a9;
+    }
+    .stat-card .stat-label {
+      font-size: 12px;
+      color: #888;
+      margin-top: 4px;
+    }
+
+    /* Data table */
+    .table-wrapper {
+      overflow-x: auto;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    thead th {
+      background: #f8f9fa;
+      padding: 8px 12px;
+      text-align: left;
+      font-weight: 600;
+      color: #555;
+      border-bottom: 2px solid #e0e0e0;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+    tbody td {
+      padding: 6px 12px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    tbody tr:hover { background: #f8f9fa; }
+    .no-data {
+      text-align: center;
+      padding: 40px;
+      color: #aaa;
+      font-size: 14px;
+    }
+
+    /* Raw data terminal */
+    .raw-data {
+      background: #1a1a2e;
+      border-radius: 8px;
+      padding: 16px;
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: 12px;
+      color: #4ade80;
+      max-height: 200px;
+      overflow-y: auto;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      gap: 0;
+      margin-bottom: 16px;
+      border-bottom: 2px solid #e0e0e0;
+    }
+    .tab {
+      padding: 8px 20px;
+      font-size: 13px;
+      font-weight: 500;
+      color: #888;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+      transition: color 0.2s, border-color 0.2s;
+    }
+    .tab:hover { color: #555; }
+    .tab.active {
+      color: #00b8a9;
+      border-bottom-color: #00b8a9;
+    }
+
+    /* File format row */
+    .file-format-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .file-format-row input[type="checkbox"] { margin: 0; }
+    .file-format-row label { font-size: 12px; color: #666; }
+
+    /* Threshold display */
+    .thresh-current {
+      font-size: 12px;
+      color: #888;
+      margin-top: 6px;
+      padding: 6px 8px;
+      background: #f8f9fa;
+      border-radius: 4px;
+    }
+
+    /* Alert */
+    .alert {
+      padding: 12px 16px;
+      border-radius: 6px;
+      font-size: 13px;
+      margin-bottom: 12px;
+    }
+    .alert-warning {
+      background: #fff3cd;
+      color: #856404;
+      border: 1px solid #ffc107;
+    }
+
+    /* Mode Badge */
+    .mode-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      border: 1px solid transparent;
+    }
+    .mode-badge.unknown { background: #f5f5f5; color: #9e9e9e; border-color: #e0e0e0; }
+    .mode-badge.master  { background: #e8f4fd; color: #1a7abf; border-color: #90c8f0; }
+    .mode-badge.slave   { background: #fff3e0; color: #e65100; border-color: #ffb74d; }
+
+    /* Auto-Save status */
+    .autosave-status {
+      font-size: 11px;
+      margin-top: 8px;
+      padding: 6px 8px;
+      border-radius: 4px;
+      line-height: 1.6;
+    }
+    .autosave-status.idle    { background: #f5f5f5; color: #999; }
+    .autosave-status.active  { background: #e6f9f7; color: #007a6e; border: 1px solid #b2e8e3; }
+    .autosave-status.error   { background: #fdecea; color: #c0392b; border: 1px solid #f5b7b1; }
+
+    /* Footer */
+    .footer {
+      background: #fff;
+      border-top: 1px solid #e0e0e0;
+      padding: 12px 24px;
+      font-size: 11px;
+      color: #999;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      flex-shrink: 0;
+    }
+    .footer a { color: #00b8a9; text-decoration: none; }
+    .footer a:hover { text-decoration: underline; }
+
+    /* Logo */
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid #eee;
+    }
+    .logo-icon {
+      width: 32px;
+      height: 32px;
+      background: #00b8a9;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-weight: bold;
+      font-size: 16px;
+    }
+    .logo-text h2 { font-size: 15px; font-weight: 600; }
+    .logo-text p { font-size: 11px; color: #999; }
+  </style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<aside class="sidebar">
+  <div class="logo">
+    <div class="logo-text">
+      <h2>CosmicRay Recorder</h2>
+      <p>Radiation Detector Data Acquisition App</p>
+    </div>
+  </div>
+
+  <!-- Notes -->
+  <div class="sidebar-section">
+    <h3><span class="icon">&#x1f4cb;</span> Notes &amp; Tips</h3>
+    <ul>
+      <li>Works on Chrome / Edge (Web Serial API)</li>
+      <li>Connect Arduino via USB</li>
+      <li>Baud rate: 9600 bps</li>
+      <li>Use Auto-Save to write data continuously to a local folder.</li>
+    </ul>
+  </div>
+
+  <!-- Auto-Save -->
+  <div class="sidebar-section">
+    <h3><span class="icon">&#x1f4be;</span> Auto-Save</h3>
+    <p>Select a folder to automatically save data as it arrives. Requires Chrome / Edge.</p>
+    <div class="input-group">
+      <label>Save Format</label>
+      <select id="autoSaveFormat">
+        <option value="dat">.dat only</option>
+        <option value="csv">.csv only</option>
+        <option value="both">Both (.dat &amp; .csv)</option>
+      </select>
+    </div>
+    <button class="btn btn-primary" id="btnSelectFolder">&#x1f4c2; Select Save Folder</button>
+    <div class="autosave-status idle" id="autoSaveStatus">Not configured</div>
+  </div>
+
+  <!-- File Settings -->
+  <div class="sidebar-section">
+    <h3><span class="icon">&#x1f4c1;</span> File Settings</h3>
+    <p>Add a comment (written into the file header on download)</p>
+    <div class="input-group">
+      <textarea id="fileComment" rows="2" style="width:100%;padding:6px 10px;border:1px solid #ddd;border-radius:4px;font-size:12px;resize:vertical;" placeholder="Measurement notes..."></textarea>
+    </div>
+    <div class="input-group">
+      <label>File name prefix</label>
+      <input type="text" id="filePrefix" value="CosmicRay" placeholder="CosmicRay">
+    </div>
+    <button class="btn btn-primary" id="btnExportDat" disabled>&#x1f4e5; Download (.dat)</button>
+    <div style="height:6px"></div>
+    <button class="btn btn-outline" id="btnExportCsv" disabled>&#x1f4e5; Download (.csv)</button>
+    <div style="height:6px"></div>
+    <button class="btn btn-secondary" id="btnClearData">&#x1f5d1; Clear Data</button>
+  </div>
+
+  <!-- Connection -->
+  <div class="sidebar-section">
+    <h3><span class="icon">&#x1f50c;</span> Connect to CosmicRay</h3>
+    <div class="input-group">
+      <label>Baud Rate</label>
+      <select id="baudRate">
+        <option value="9600" selected>9600</option>
+        <option value="115200">115200</option>
+      </select>
+    </div>
+    <button class="btn btn-primary" id="btnConnect">&#x1f50c; Connect</button>
+    <div id="connectionInfo" style="display:none;margin-top:8px;">
+      <button class="btn btn-danger" id="btnDisconnect">&#x26a0; Disconnect</button>
+    </div>
+  </div>
+
+  <!-- Threshold Control -->
+  <div class="sidebar-section">
+    <h3><span class="icon">&#x2699;</span> Threshold Control</h3>
+    <div class="input-row">
+      <div class="input-group">
+        <label>Signal Threshold</label>
+        <input type="number" id="threshSignal" min="0" max="1023" value="30">
+      </div>
+      <div class="input-group">
+        <label>Reset Threshold</label>
+        <input type="number" id="threshReset" min="0" max="1023" value="20">
+      </div>
+    </div>
+    <div class="btn-group">
+      <button class="btn btn-primary btn-sm" id="btnSetThresh" disabled>Set</button>
+      <button class="btn btn-outline btn-sm" id="btnGetThresh" disabled>Get</button>
+    </div>
+    <div style="height:6px"></div>
+    <button class="btn btn-secondary" id="btnAutoThresh" disabled>&#x1f50d; Auto Calibrate (1s)</button>
+    <div class="thresh-current" id="threshInfo">Not connected</div>
+  </div>
+
+  <!-- Mode Control -->
+  <div class="sidebar-section">
+    <h3><span class="icon">&#x1f504;</span> Mode Control</h3>
+    <div class="input-group">
+      <label>Detector Mode</label>
+      <select id="modeSelect">
+        <option value="0">&#x1f539; Master (Single)</option>
+        <option value="1">&#x26a1; Slave (Coincidence)</option>
+      </select>
+    </div>
+    <div class="btn-group">
+      <button class="btn btn-primary btn-sm" id="btnSetMode" disabled>Set</button>
+      <button class="btn btn-outline btn-sm" id="btnGetMode" disabled>Get</button>
+    </div>
+    <div class="thresh-current" id="modeInfo">Not connected</div>
+  </div>
+</aside>
+
+<!-- Main -->
+<div class="main">
+  <!-- Header -->
+  <header class="header">
+    <h1>&#x1f4ca; Data Analysis</h1>
+    <div class="header-right">
+      <span id="elapsedTime">Elapsed: --:--:--</span>
+      <span id="modeBadge" class="mode-badge unknown">&#x1f4e1; Mode: --</span>
+      <span><span class="status-dot disconnected" id="statusDot"></span> <span id="statusText">Not connected</span></span>
+    </div>
+  </header>
+
+  <!-- Content -->
+  <div class="content">
+    <div id="serialWarning" class="alert alert-warning" style="display:none;">
+      Web Serial API is not supported. Please use Chrome or Edge.
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <div class="tab active" data-tab="analysis">Analysis</div>
+      <div class="tab" data-tab="stats">Statistics</div>
+    </div>
+
+    <!-- Analysis Tab -->
+    <div id="tab-analysis">
+      <!-- Charts -->
+      <div class="charts-row">
+        <div class="chart-container">
+          <h3>&#x1f4ca; ADC Energy Histogram</h3>
+          <div class="chart-wrapper">
+            <canvas id="histogramChart"></canvas>
+          </div>
+          <div style="margin-top:8px;">
+            <label style="font-size:12px;color:#888;">ADC Bin Width:
+              <select id="binWidth" style="padding:2px 6px;font-size:12px;border:1px solid #ddd;border-radius:3px;">
+                <option value="16" selected>16</option>
+                <option value="32">32</option>
+                <option value="64">64</option>
+              </select>
+            </label>
+          </div>
+        </div>
+        <div class="chart-container">
+          <h3>&#x1f4c8; Count Rate Over Time</h3>
+          <div class="chart-wrapper">
+            <canvas id="rateChart"></canvas>
+          </div>
+          <div style="margin-top:8px;">
+            <label style="font-size:12px;color:#888;">Data points: <span id="rateDataCount">0</span></label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stats Row -->
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-value" id="statTotalEvents">0</div>
+          <div class="stat-label">Total Events</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="statRate">0.00</div>
+          <div class="stat-label">Avg. Rate (cps)</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="statTemp">--</div>
+          <div class="stat-label">Avg. Temp (°C)</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="statDeadtime">--</div>
+          <div class="stat-label">Avg. Deadtime (ms)</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="statElapsed">00:00:00</div>
+          <div class="stat-label">Elapsed Time</div>
+        </div>
+      </div>
+
+      <!-- Measurement Data Table -->
+      <div class="card">
+        <h3>&#x1f4cb; Measurement Data</h3>
+        <p style="font-size:12px;color:#888;margin-bottom:12px;">Displayed newest first</p>
+        <div class="table-wrapper" id="tableWrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>PC Timestamp</th>
+                <th>Time [ms]</th>
+                <th>ADC [0-1023]</th>
+                <th>SiPM [mV]</th>
+                <th>Deadtime [ms]</th>
+                <th>Temp [°C]</th>
+                <th>Mode</th>
+              </tr>
+            </thead>
+            <tbody id="dataTableBody">
+            </tbody>
+          </table>
+          <div class="no-data" id="noDataMsg">Waiting for data...</div>
+        </div>
+      </div>
+
+      <!-- Raw Data -->
+      <div class="card">
+        <h3>&#x1f4df; Raw Data</h3>
+        <p style="font-size:12px;color:#888;margin-bottom:8px;">Raw data received from CosmicRay (latest 100 lines)</p>
+        <div class="raw-data" id="rawDataDisplay">Waiting for connection...</div>
+      </div>
+    </div>
+
+    <!-- Stats Tab -->
+    <div id="tab-stats" style="display:none;">
+      <div class="card">
+        <h3>Detailed Statistics</h3>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr><th>Item</th><th>Value</th></tr>
+            </thead>
+            <tbody id="statsTableBody">
+              <tr><td>Total Events</td><td id="ds_total">0</td></tr>
+              <tr><td>Measurement Time</td><td id="ds_elapsed">--</td></tr>
+              <tr><td>Avg. Count Rate (cps)</td><td id="ds_rate">--</td></tr>
+              <tr><td>Count Rate Std Dev</td><td id="ds_rateStd">--</td></tr>
+              <tr><td>Avg. Temperature (°C)</td><td id="ds_temp">--</td></tr>
+              <tr><td>Temp. Std Dev</td><td id="ds_tempStd">--</td></tr>
+              <tr><td>Max Temperature (°C)</td><td id="ds_tempMax">--</td></tr>
+              <tr><td>Min Temperature (°C)</td><td id="ds_tempMin">--</td></tr>
+              <tr><td>Avg. Deadtime (ms)</td><td id="ds_deadtime">--</td></tr>
+              <tr><td>Avg. ADC Value</td><td id="ds_adcMean">--</td></tr>
+              <tr><td>Max ADC Value</td><td id="ds_adcMax">--</td></tr>
+              <tr><td>Avg. SiPM (mV)</td><td id="ds_sipmMean">--</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <span>
+      &copy; 2020&ndash;2026 <a href="https://accel-kitchen.com/" target="_blank" rel="noopener">加速キッチン合同会社 (Accel Kitchen LLC)</a>
+      &nbsp;&mdash;&nbsp; <a href="mailto:info@accel-kitchen.com">info@accel-kitchen.com</a>
+    </span>
+    <span>CosmicRay Recorder</span>
+  </footer>
+</div>
+
+<script>
+// ========== State ==========
+const state = {
+  port: null,
+  reader: null,
+  writer: null,
+  isConnected: false,
+  events: [],
+  rateHistory: [],
+  sessionStart: null,
+  rawLines: [],
+  // インクリメンタル統計用
+  stats: {
+    sumTemp: 0, sumTemp2: 0, minTemp: Infinity, maxTemp: -Infinity,
+    sumDead: 0, sumAdc: 0, maxAdc: 0, sumSipm: 0
+  },
+  mode: null,  // null=不明, 0=Master(単体), 1=Slave(コインシデンス)
+  // 自動保存用
+  autoSave: {
+    dirHandle: null,   // FileSystemDirectoryHandle
+    pending: [],       // 書き込み待ちのデータ行
+    currentDate: null, // 現在の日付文字列 (YYYY-MM-DD)
+    lineCount: 0,      // 書き込み済みイベント数
+    enabled: false,
+  },
+};
+
+// ========== DOM Elements ==========
+const $ = id => document.getElementById(id);
+
+// ========== Charts ==========
+let histogramChart, rateChart;
+
+function initCharts() {
+  const histCtx = $('histogramChart').getContext('2d');
+  const binWidth = parseInt($('binWidth').value);
+  const numBins = Math.ceil(1024 / binWidth);
+  const labels = [];
+  for (let i = 0; i < numBins; i++) {
+    labels.push(i * binWidth);
+  }
+
+  histogramChart = new Chart(histCtx, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Count',
+        data: new Array(numBins).fill(0),
+        backgroundColor: 'rgba(0, 184, 169, 0.7)',
+        borderColor: 'rgba(0, 184, 169, 1)',
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { title: { display: true, text: 'ADC Value' } },
+        y: { title: { display: true, text: 'Count' }, beginAtZero: true }
+      }
+    }
+  });
+
+  const rateCtx = $('rateChart').getContext('2d');
+  rateChart = new Chart(rateCtx, {
+    type: 'line',
+    data: {
+      labels: [],
+      datasets: [{
+        label: 'Count Rate (cps)',
+        data: [],
+        borderColor: '#00b8a9',
+        backgroundColor: 'rgba(0, 184, 169, 0.1)',
+        fill: true,
+        tension: 0.3,
+        pointRadius: 2
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { title: { display: true, text: 'Time' } },
+        y: { title: { display: true, text: 'Rate (cps)' }, beginAtZero: true }
+      }
+    }
+  });
+}
+
+function rebuildHistogram() {
+  const binWidth = parseInt($('binWidth').value);
+  const numBins = Math.ceil(1024 / binWidth);
+  const counts = new Array(numBins).fill(0);
+  const labels = [];
+  for (let i = 0; i < numBins; i++) labels.push(i * binWidth);
+  state.events.forEach(ev => {
+    const bin = Math.min(Math.floor(ev.adc / binWidth), numBins - 1);
+    counts[bin]++;
+  });
+  histogramChart.data.labels = labels;
+  histogramChart.data.datasets[0].data = counts;
+  histogramChart.update();
+}
+
+// ========== Serial ==========
+async function connect() {
+  try {
+    const port = await navigator.serial.requestPort();
+    const baudRate = parseInt($('baudRate').value);
+    await port.open({ baudRate });
+    state.port = port;
+    state.isConnected = true;
+    state.sessionStart = new Date();
+
+    // Writer
+    const encoder = new TextEncoderStream();
+    encoder.readable.pipeTo(port.writable);
+    state.writer = encoder.writable.getWriter();
+
+    updateConnectionUI(true);
+    readLoop(port);
+
+    // Auto-get thresholds
+    setTimeout(() => sendCommand('GET_THRESH'), 1500);
+    // Auto-get mode (offset to avoid response collision with GET_THRESH)
+    setTimeout(() => sendCommand('GET_MODE'), 1700);
+  } catch (e) {
+    console.error('Connection failed:', e);
+  }
+}
+
+async function disconnect() {
+  state.isConnected = false;
+  try {
+    if (state.reader) {
+      await state.reader.cancel();
+      state.reader = null;
+    }
+    if (state.writer) {
+      await state.writer.close();
+      state.writer = null;
+    }
+    if (state.port) {
+      await state.port.close();
+      state.port = null;
+    }
+  } catch (e) {
+    console.error('Disconnect error:', e);
+  }
+  updateConnectionUI(false);
+}
+
+async function readLoop(port) {
+  const decoder = new TextDecoderStream();
+  port.readable.pipeTo(decoder.writable);
+  const reader = decoder.readable.getReader();
+  state.reader = reader;
+
+  let buffer = '';
+  try {
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += value;
+      const lines = buffer.split('\n');
+      buffer = lines.pop();
+      for (const line of lines) {
+        processLine(line.trim());
+      }
+    }
+  } catch (e) {
+    if (state.isConnected) {
+      console.error('Read error:', e);
+      disconnect();
+    }
+  }
+}
+
+async function sendCommand(cmd) {
+  if (!state.writer) return;
+  try {
+    await state.writer.write(cmd + '\n');
+  } catch (e) {
+    console.error('Send error:', e);
+  }
+}
+
+// ========== Data Processing ==========
+let chartUpdatePending = false;
+let rawDisplayPending = false;
+
+function processLine(line) {
+  if (!line) return;
+
+  // Add to raw display (throttled)
+  state.rawLines.push(line);
+  if (state.rawLines.length > 100) state.rawLines.shift();
+  if (!rawDisplayPending) {
+    rawDisplayPending = true;
+    requestAnimationFrame(() => {
+      updateRawDisplay();
+      rawDisplayPending = false;
+    });
+  }
+
+  // Threshold response
+  if (line.startsWith('THRESH:')) {
+    const parts = line.substring(7).split(',');
+    if (parts.length === 2) {
+      const sig = parseInt(parts[0]);
+      const rst = parseInt(parts[1]);
+      $('threshSignal').value = sig;
+      $('threshReset').value = rst;
+      $('threshInfo').textContent = `Current thresholds: Signal=${sig}, Reset=${rst}`;
+      if (state.isConnected) $('btnAutoThresh').disabled = false;
+    }
+    return;
+  }
+
+  // Mode response
+  if (line.startsWith('MODE:')) {
+    const m = parseInt(line.substring(5));
+    if (m === 0 || m === 1) {
+      $('modeSelect').value = String(m);
+      $('modeInfo').textContent = `Current mode: ${m === 0 ? 'Master (Single)' : 'Slave (Coincidence)'}`;
+      state.mode = m;
+      updateModeBadge(m);
+    }
+    return;
+  }
+
+  // Skip header lines
+  if (line.startsWith('###') || line.startsWith('#')) {
+    // Extract threshold info from headers
+    if (line.includes('Signal threshold:')) {
+      const val = parseInt(line.split(':').pop().trim());
+      if (!isNaN(val)) $('threshSignal').value = val;
+    }
+    if (line.includes('Reset threshold:')) {
+      const val = parseInt(line.split(':').pop().trim());
+      if (!isNaN(val)) $('threshReset').value = val;
+    }
+    return;
+  }
+
+  // Parse data line
+  const parts = line.split(/\s+/);
+  if (parts.length < 6) return;
+
+  const event = {
+    count: parseInt(parts[0]),
+    timestamp_ms: parseInt(parts[1]),
+    pc_timestamp: Date.now(),
+    adc: parseInt(parts[2]),
+    sipm_mv: parseFloat(parts[3]),
+    deadtime_ms: parseInt(parts[4]),
+    temp_c: parseFloat(parts[5]),
+    // データ行にモードは含まれない（6項目=互換性維持）ため、受信時点で判明している
+    // モード（state.mode: MODE:応答で更新）でタグ付けする。これにより各イベント行・
+    // エクスポートに、そのイベント取得時のMaster/Slaveが正しく記録される。
+    mode_flag: parts.length >= 7 ? parseInt(parts[6]) : state.mode
+  };
+
+  if (isNaN(event.count) || isNaN(event.adc)) return;
+
+  // バッジは原則 MODE: 応答（接続時のGET_MODE / SET_MODEのエコー）で駆動する。
+  // 現行ファームは6項目データ行のため mode_flag===state.mode となり下のブロックは何もしない。
+  // 将来ファームがデータ行に実モード(7項目目)を載せた場合のみ、ここでバッジを同期する。
+  if (event.mode_flag !== null && !isNaN(event.mode_flag) && event.mode_flag !== state.mode) {
+    state.mode = event.mode_flag;
+    updateModeBadge(state.mode);
+  }
+
+  state.events.push(event);
+
+  // 自動保存バッファに追加
+  if (state.autoSave.enabled) {
+    state.autoSave.pending.push(event);
+  }
+
+  // インクリメンタル統計更新
+  const s = state.stats;
+  s.sumTemp += event.temp_c;
+  s.sumTemp2 += event.temp_c * event.temp_c;
+  if (event.temp_c < s.minTemp) s.minTemp = event.temp_c;
+  if (event.temp_c > s.maxTemp) s.maxTemp = event.temp_c;
+  s.sumDead += event.deadtime_ms;
+  s.sumAdc += event.adc;
+  if (event.adc > s.maxAdc) s.maxAdc = event.adc;
+  s.sumSipm += event.sipm_mv;
+
+  // Update histogram bin
+  const binWidth = parseInt($('binWidth').value);
+  const numBins = Math.ceil(1024 / binWidth);
+  const bin = Math.min(Math.floor(event.adc / binWidth), numBins - 1);
+  if (histogramChart.data.datasets[0].data.length === numBins) {
+    histogramChart.data.datasets[0].data[bin]++;
+  } else {
+    rebuildHistogram();
+  }
+
+  // Enable export buttons
+  $('btnExportDat').disabled = false;
+  $('btnExportCsv').disabled = false;
+
+  // Schedule chart/UI update (throttle)
+  if (!chartUpdatePending) {
+    chartUpdatePending = true;
+    requestAnimationFrame(() => {
+      updateUI();
+      chartUpdatePending = false;
+    });
+  }
+}
+
+// ========== UI Updates ==========
+function updateUI() {
+  updateTable();
+  updateStats();
+  histogramChart.update();
+  $('noDataMsg').style.display = state.events.length > 0 ? 'none' : '';
+}
+
+let lastTableLength = 0;
+
+function updateTable() {
+  const tbody = $('dataTableBody');
+  const events = state.events;
+  const maxRows = 100;
+
+  // 新しいイベントのみ追加
+  for (let i = lastTableLength; i < events.length; i++) {
+    const ev = events[i];
+    const ts = new Date(ev.pc_timestamp).toISOString().replace('T', ' ').substring(0, 23);
+    const row = tbody.insertRow(0);
+    const modeLabel = ev.mode_flag === 1 ? '⚡ Slave' : '🔵 Master';
+    row.innerHTML = `<td>${ev.count}</td>
+      <td>${ts}</td>
+      <td>${ev.timestamp_ms}</td>
+      <td>${ev.adc}</td>
+      <td>${ev.sipm_mv.toFixed(2)}</td>
+      <td>${ev.deadtime_ms}</td>
+      <td>${ev.temp_c.toFixed(1)}</td>
+      <td>${modeLabel}</td>`;
+  }
+  lastTableLength = events.length;
+
+  // 100行を超えたら末尾を削除
+  while (tbody.rows.length > maxRows) {
+    tbody.deleteRow(tbody.rows.length - 1);
+  }
+}
+
+function updateStats() {
+  const events = state.events;
+  const n = events.length;
+  $('statTotalEvents').textContent = n;
+  $('ds_total').textContent = n;
+
+  if (n === 0) return;
+
+  // Elapsed time
+  const elapsedMs = events[n - 1].timestamp_ms;
+  const elapsedStr = formatTime(elapsedMs);
+  $('statElapsed').textContent = elapsedStr;
+  $('elapsedTime').textContent = 'Elapsed: ' + elapsedStr;
+  $('ds_elapsed').textContent = elapsedStr + ` (${(elapsedMs / 1000).toFixed(1)}s)`;
+
+  // Average rate
+  const elapsedSec = elapsedMs / 1000;
+  const rate = elapsedSec > 0 ? (n / elapsedSec) : 0;
+  $('statRate').textContent = rate.toFixed(3);
+  $('ds_rate').textContent = rate.toFixed(4) + ' cps';
+
+  // Rate std
+  const rateStd = elapsedSec > 0 ? (Math.sqrt(n) / elapsedSec) : 0;
+  $('ds_rateStd').textContent = rateStd.toFixed(4) + ' cps';
+
+  // インクリメンタル統計から計算（ループ不要）
+  const s = state.stats;
+  const avgTemp = s.sumTemp / n;
+  const tempStd = Math.sqrt(s.sumTemp2 / n - avgTemp * avgTemp);
+  const avgDead = s.sumDead / n;
+  const avgAdc = s.sumAdc / n;
+  const avgSipm = s.sumSipm / n;
+
+  $('statTemp').textContent = avgTemp.toFixed(1);
+  $('statDeadtime').textContent = avgDead.toFixed(0);
+  $('ds_temp').textContent = avgTemp.toFixed(2) + ' °C';
+  $('ds_tempStd').textContent = tempStd.toFixed(2) + ' °C';
+  $('ds_tempMax').textContent = s.maxTemp.toFixed(1) + ' °C';
+  $('ds_tempMin').textContent = s.minTemp.toFixed(1) + ' °C';
+  $('ds_deadtime').textContent = avgDead.toFixed(1) + ' ms';
+  $('ds_adcMean').textContent = avgAdc.toFixed(1);
+  $('ds_adcMax').textContent = s.maxAdc;
+  $('ds_sipmMean').textContent = avgSipm.toFixed(2) + ' mV';
+}
+
+function updateRawDisplay() {
+  const el = $('rawDataDisplay');
+  el.textContent = state.rawLines.join('\n');
+  el.scrollTop = el.scrollHeight;
+}
+
+// ========== Auto-Save ==========
+async function selectSaveFolder() {
+  if (!('showDirectoryPicker' in window)) {
+    alert('File System Access API is not supported. Please use Chrome or Edge.');
+    return;
+  }
+  try {
+    const dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+    const as = state.autoSave;
+    as.dirHandle = dirHandle;
+    as.enabled = true;
+    as.currentDate = null;  // 次回 flush 時にヘッダーを書かせる
+    as.lineCount = 0;
+    updateAutoSaveUI();
+  } catch (e) {
+    if (e.name !== 'AbortError') console.error('Folder select error:', e);
+  }
+}
+
+// ファイル末尾に追記する
+async function appendToFile(dirHandle, filename, content) {
+  const fileHandle = await dirHandle.getFileHandle(filename, { create: true });
+  const file = await fileHandle.getFile();
+  const writable = await fileHandle.createWritable({ keepExistingData: true });
+  await writable.seek(file.size);
+  await writable.write(content);
+  await writable.close();
+}
+
+// バッファをまとめてファイルに書き込む（1秒インターバルで呼ばれる）
+async function flushAutoSave() {
+  const as = state.autoSave;
+  if (!as.enabled || !as.dirHandle) return;
+
+  const today = new Date().toISOString().substring(0, 10);  // YYYY-MM-DD
+  const prefix = $('filePrefix').value || 'CosmicRay';
+  const format = $('autoSaveFormat').value;
+
+  // 日付が変わった（または初回）の場合はヘッダー行を書く
+  if (today !== as.currentDate) {
+    as.currentDate = today;
+    const comment = $('fileComment').value;
+    let headerDat = '';
+    if (comment) headerDat += '# ' + comment.replace(/\n/g, '\n# ') + '\n';
+    headerDat += '# Event\tPC_Timestamp\tTime[ms]\tADC[0-1023]\tSiPM[mV]\tDeadtime[ms]\tTemp[C]\tMode[0:Master,1:Slave]\n';
+    const headerCsv = 'Event,PC_Timestamp,Time_ms,ADC,SiPM_mV,Deadtime_ms,Temp_C,Mode\n';
+    try {
+      if (format === 'dat' || format === 'both') await appendToFile(as.dirHandle, `${prefix}_${today}.dat`, headerDat);
+      if (format === 'csv' || format === 'both') await appendToFile(as.dirHandle, `${prefix}_${today}.csv`, headerCsv);
+    } catch (e) {
+      console.error('Auto-save header write error:', e);
+    }
+  }
+
+  if (as.pending.length === 0) return;
+
+  const batch = as.pending.splice(0);  // バッファを取り出しクリア
+  let datLines = '';
+  let csvLines = '';
+  for (const ev of batch) {
+    const pcTs = new Date(ev.pc_timestamp).toISOString().replace('T', '-').replace(/:/g, '-').substring(0, 26);
+    datLines += `${ev.count}\t${pcTs}\t${ev.timestamp_ms}\t${ev.adc}\t${ev.sipm_mv.toFixed(6)}\t${ev.deadtime_ms}\t${ev.temp_c.toFixed(1)}\t${ev.mode_flag ?? 0}\n`;
+    csvLines += `${ev.count},${new Date(ev.pc_timestamp).toISOString()},${ev.timestamp_ms},${ev.adc},${ev.sipm_mv.toFixed(6)},${ev.deadtime_ms},${ev.temp_c.toFixed(1)},${ev.mode_flag ?? 0}\n`;
+  }
+
+  try {
+    if (format === 'dat' || format === 'both') await appendToFile(as.dirHandle, `${prefix}_${today}.dat`, datLines);
+    if (format === 'csv' || format === 'both') await appendToFile(as.dirHandle, `${prefix}_${today}.csv`, csvLines);
+    as.lineCount += batch.length;
+    updateAutoSaveUI();
+  } catch (e) {
+    console.error('Auto-save write error:', e);
+    $('autoSaveStatus').className = 'autosave-status error';
+    $('autoSaveStatus').textContent = 'Write error: ' + e.message;
+  }
+}
+
+function updateAutoSaveUI() {
+  const as = state.autoSave;
+  const el = $('autoSaveStatus');
+  if (!as.enabled || !as.dirHandle) {
+    el.className = 'autosave-status idle';
+    el.textContent = 'Not configured';
+    return;
+  }
+  const prefix = $('filePrefix').value || 'CosmicRay';
+  const format = $('autoSaveFormat').value;
+  const ext = format === 'both' ? '.dat / .csv' : '.' + format;
+  el.className = 'autosave-status active';
+  el.textContent = `Saving: ${prefix}_${as.currentDate || '...'}${ext}\nWritten: ${as.lineCount} events`;
+}
+
+function updateModeBadge(mode) {
+  const badge = $('modeBadge');
+  if (mode === 0) {
+    badge.className = 'mode-badge master';
+    badge.innerHTML = '&#x1f539; Single (Master)';
+  } else if (mode === 1) {
+    badge.className = 'mode-badge slave';
+    badge.innerHTML = '&#x26a1; Coincidence (Slave)';
+  } else {
+    badge.className = 'mode-badge unknown';
+    badge.innerHTML = '&#x1f4e1; Mode: --';
+  }
+}
+
+function updateConnectionUI(connected) {
+  const dot = $('statusDot');
+  const text = $('statusText');
+  if (connected) {
+    dot.className = 'status-dot connected';
+    text.textContent = 'Connected';
+    $('btnConnect').style.display = 'none';
+    $('connectionInfo').style.display = 'block';
+    $('btnSetThresh').disabled = false;
+    $('btnGetThresh').disabled = false;
+    $('btnAutoThresh').disabled = false;
+    $('threshInfo').textContent = 'Connected... Fetching thresholds';
+    $('btnSetMode').disabled = false;
+    $('btnGetMode').disabled = false;
+    $('modeInfo').textContent = 'Connected... Fetching mode';
+  } else {
+    dot.className = 'status-dot disconnected';
+    text.textContent = 'Not connected';
+    $('btnConnect').style.display = '';
+    $('connectionInfo').style.display = 'none';
+    $('btnSetThresh').disabled = true;
+    $('btnGetThresh').disabled = true;
+    $('btnAutoThresh').disabled = true;
+    $('threshInfo').textContent = 'Not connected';
+    $('btnSetMode').disabled = true;
+    $('btnGetMode').disabled = true;
+    $('modeInfo').textContent = 'Not connected';
+    state.mode = null;
+    updateModeBadge(null);
+  }
+}
+
+// ========== Rate Calculation ==========
+function updateRateChart() {
+  if (state.events.length === 0) return;
+
+  const now = Date.now();
+  const windowMs = 10000;
+  let recentCount = 0;
+  for (let i = state.events.length - 1; i >= 0; i--) {
+    if ((now - state.events[i].pc_timestamp) >= windowMs) break;
+    recentCount++;
+  }
+  const rate = recentCount / (windowMs / 1000);
+  const timeLabel = new Date().toLocaleTimeString('en-US');
+
+  state.rateHistory.push({ time: timeLabel, rate });
+
+  // Keep last 500 points
+  if (state.rateHistory.length > 500) state.rateHistory.shift();
+
+  rateChart.data.labels = state.rateHistory.map(r => r.time);
+  rateChart.data.datasets[0].data = state.rateHistory.map(r => r.rate);
+  rateChart.update();
+  $('rateDataCount').textContent = state.rateHistory.length;
+}
+
+// ========== File Export ==========
+function exportDat() {
+  const comment = $('fileComment').value;
+  const prefix = $('filePrefix').value || 'CosmicRay';
+  const dateStr = formatDateForFile(state.sessionStart || new Date());
+
+  let content = '';
+  if (comment) content += '# ' + comment.replace(/\n/g, '\n# ') + '\n';
+  content += '# Event\tPC_Timestamp\tTime[ms]\tADC[0-1023]\tSiPM[mV]\tDeadtime[ms]\tTemp[C]\tMode[0:Master,1:Slave]\n';
+
+  for (const ev of state.events) {
+    const pcTs = new Date(ev.pc_timestamp).toISOString().replace('T', '-').replace(/:/g, '-').substring(0, 26);
+    content += `${ev.count}\t${pcTs}\t${ev.timestamp_ms}\t${ev.adc}\t${ev.sipm_mv.toFixed(6)}\t${ev.deadtime_ms}\t${ev.temp_c.toFixed(1)}\t${ev.mode_flag ?? 0}\n`;
+  }
+
+  downloadFile(`${prefix}_${dateStr}.dat`, content);
+}
+
+function exportCsv() {
+  const prefix = $('filePrefix').value || 'CosmicRay';
+  const dateStr = formatDateForFile(state.sessionStart || new Date());
+
+  let content = 'Event,PC_Timestamp,Time_ms,ADC,SiPM_mV,Deadtime_ms,Temp_C,Mode\n';
+  for (const ev of state.events) {
+    content += `${ev.count},${new Date(ev.pc_timestamp).toISOString()},${ev.timestamp_ms},${ev.adc},${ev.sipm_mv.toFixed(6)},${ev.deadtime_ms},${ev.temp_c.toFixed(1)},${ev.mode_flag ?? 0}\n`;
+  }
+
+  downloadFile(`${prefix}_${dateStr}.csv`, content);
+}
+
+function downloadFile(filename, content) {
+  const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ========== Utilities ==========
+function formatTime(ms) {
+  const totalSec = Math.floor(ms / 1000);
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const s = totalSec % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
+function formatDateForFile(date) {
+  const d = date || new Date();
+  return d.getFullYear() + '-' +
+    String(d.getMonth() + 1).padStart(2, '0') + '-' +
+    String(d.getDate()).padStart(2, '0') + '_' +
+    String(d.getHours()).padStart(2, '0') + '-' +
+    String(d.getMinutes()).padStart(2, '0') + '-' +
+    String(d.getSeconds()).padStart(2, '0');
+}
+
+// ========== Tabs ==========
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    const target = tab.dataset.tab;
+    document.querySelectorAll('[id^="tab-"]').forEach(el => el.style.display = 'none');
+    document.getElementById('tab-' + target).style.display = '';
+  });
+});
+
+// ========== Event Listeners ==========
+$('btnConnect').addEventListener('click', connect);
+$('btnDisconnect').addEventListener('click', disconnect);
+
+$('btnSetThresh').addEventListener('click', () => {
+  const sig = parseInt($('threshSignal').value);
+  const rst = parseInt($('threshReset').value);
+  if (isNaN(sig) || isNaN(rst) || sig <= rst || sig > 1023 || rst < 0) {
+    alert('Signal threshold must be greater than Reset threshold and in range 0–1023.');
+    return;
+  }
+  sendCommand(`SET_THRESH:${sig},${rst}`);
+});
+
+$('btnGetThresh').addEventListener('click', () => {
+  sendCommand('GET_THRESH');
+});
+
+$('btnAutoThresh').addEventListener('click', () => {
+  $('threshInfo').textContent = 'Calibrating... (measuring background for 1s)';
+  $('btnAutoThresh').disabled = true;
+  sendCommand('AUTO_THRESH');
+  // Re-enable after 3s as fallback
+  setTimeout(() => { $('btnAutoThresh').disabled = !state.isConnected; }, 3000);
+});
+
+$('btnSetMode').addEventListener('click', () => {
+  sendCommand(`SET_MODE:${$('modeSelect').value}`);
+});
+
+$('btnGetMode').addEventListener('click', () => {
+  sendCommand('GET_MODE');
+});
+
+$('btnSelectFolder').addEventListener('click', selectSaveFolder);
+$('btnExportDat').addEventListener('click', exportDat);
+$('btnExportCsv').addEventListener('click', exportCsv);
+
+$('btnClearData').addEventListener('click', () => {
+  if (state.events.length > 0 && !confirm('Clear all data?')) return;
+  state.events = [];
+  state.rateHistory = [];
+  state.rawLines = [];
+  state.stats = {
+    sumTemp: 0, sumTemp2: 0, minTemp: Infinity, maxTemp: -Infinity,
+    sumDead: 0, sumAdc: 0, maxAdc: 0, sumSipm: 0
+  };
+  lastTableLength = 0;
+  $('dataTableBody').innerHTML = '';
+  $('rawDataDisplay').textContent = 'Waiting for connection...';
+  $('noDataMsg').style.display = '';
+  $('btnExportDat').disabled = true;
+  $('btnExportCsv').disabled = true;
+  rebuildHistogram();
+  rateChart.data.labels = [];
+  rateChart.data.datasets[0].data = [];
+  rateChart.update();
+  updateStats();
+});
+
+$('binWidth').addEventListener('change', rebuildHistogram);
+
+// ========== Initialization ==========
+document.addEventListener('DOMContentLoaded', () => {
+  if (!('serial' in navigator)) {
+    $('serialWarning').style.display = '';
+  }
+  initCharts();
+
+  // Update rate chart every 10 seconds
+  setInterval(updateRateChart, 10000);
+
+  // Auto-save flush every 1 second
+  setInterval(flushAutoSave, 1000);
+});
+</script>
+</body>
+</html>
