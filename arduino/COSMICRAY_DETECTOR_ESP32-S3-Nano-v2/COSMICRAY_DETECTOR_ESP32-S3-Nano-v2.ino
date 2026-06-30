@@ -67,19 +67,17 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 Adafruit_BME280 bme;
 bool bmeReady = false;
 
-// 縺励″縺・､ (0-4095 繧ｹ繧ｱ繝ｼ繝ｫ, 12bit ADC / 10bit PWM Duty 縺ｸ螟画鋤)
+// 縺励″縺・､ (0-4095 繧ｹ繧ｱ繝ｼ繝ｫ, 12bit ADC / 8bit PWM Duty 縺ｸ螟画鋤)
 int SIGNAL_THRESHOLD = 120;
 
 // ADC / PWM 蛻・ｧ｣閭ｽ
 static constexpr int ADC_BITS = 12;
 static constexpr int ADC_MAX  = (1 << ADC_BITS) - 1;   // 4095
-static constexpr int PWM_BITS = 10;
-static constexpr int PWM_MAX  = (1 << PWM_BITS) - 1;   // 1023
+static constexpr int PWM_BITS = 8;
+static constexpr int PWM_MAX  = (1 << PWM_BITS) - 1;   // 255
 static constexpr uint32_t PWM_FREQ_HZ = 40000;
 static constexpr int LEGACY_ADC_BITS = 10;
 static constexpr int LEGACY_ADC_MAX  = (1 << LEGACY_ADC_BITS) - 1;  // 1023
-static constexpr int DEFAULT_SIG_OFFSET_10BIT = 160;
-static constexpr int CAL_NOISE_MARGIN_10BIT = 16;
 // Display refresh interval.
 static constexpr unsigned long DISPLAY_INTERVAL_MS = 2000;
 
@@ -94,8 +92,10 @@ static constexpr unsigned int COIN_OUT_PULSE_US = 100;
 // 相手ボードが自身の ISR を処理して COIN_OUT HIGH を立てるまでのマージン。
 static constexpr unsigned int COIN_SYNC_DELAY_US = 50;
 // 繝悶じ繝ｼ繝医・繝ｳ (Hz) 縺ｨ魑ｴ蜍墓凾髢・(ms)
-static constexpr unsigned int BUZZER_FREQ_HZ = 2000;
-static constexpr unsigned long BUZZER_MS = 10;
+// ブザー: 宇宙線イベント毎に波高(ADC)で音程を変える ("ピっ")
+static constexpr unsigned int BEEP_FREQ_MIN_HZ = 250;   // 波高=しきい値時の周波数
+static constexpr unsigned int BEEP_FREQ_MAX_HZ = 1025;  // 波高=ADC最大時
+static constexpr unsigned long BEEP_MS = 15;            // 鳴動時間
 static constexpr unsigned long LED_BLINK_MS = 20;
 
 enum TriggerMode : uint8_t {
@@ -115,6 +115,15 @@ BLEServer* pServer = nullptr;
 BLECharacteristic* pTxCharacteristic = nullptr;
 bool bleDeviceConnected = false;
 bool bleOldDeviceConnected = false;
+
+// BLE advertising name (editable at runtime via SET_BLENAME).
+// Max 24 printable ASCII chars + null. Applied on next boot.
+static constexpr size_t BLE_NAME_MAX = 24;
+char bleName[BLE_NAME_MAX + 1] = "CosmicRay";
+
+// Auto-calibration margin (counts above the sampled ADC max).
+static constexpr int AUTO_MARGIN_DEFAULT = 50;
+int autoMargin = AUTO_MARGIN_DEFAULT;
 
 // ==========================================
 //   Preferences (EEPROM莉｣譖ｿ)
@@ -138,17 +147,19 @@ float humidityPct = NAN;
 float pressureHPa = NAN;
 int adc = 0;
 int pwmDuty = 0;
-TriggerMode triggerMode = TRIGGER_MODE_DIGITAL_ONLY;
+TriggerMode triggerMode = TRIGGER_MODE_ANALOG_ONLY;
 bool analogArmed = true;
 bool sdEnabled   = true;
 bool extEnabled  = true;
 bool oledEnabled = true;
+bool buzzerEnabled = true;
 unsigned long lastTempReadMs = 0;
 unsigned long ledOffMs = 0;
 unsigned long coinOffUs = 0;
 
 // ISR 繝輔Λ繧ｰ
 volatile bool triggerFlag = false;
+static bool triggerIsrAttached = false;  // tracks whether the TRIGGER_IN ISR is currently attached
 
 // BLE繧ｳ繝槭Φ繝峨ヰ繝・ヵ繧｡
 static char bleCmdBuffer[32];
@@ -175,6 +186,8 @@ void printTriggerMode();
 void printSdStatus();
 void printExtStatus();
 void printOledStatus();
+void printBleName();
+void printAutoMargin();
 void applySdEnable();
 void applyOledEnable();
 void calibrateThreshold(int samples, int sigOffset);
@@ -384,10 +397,40 @@ void executeCommand(const char* cmd) {
     printThresholds();
   } else if (strcmp(cmd, "AUTO_THRESH") == 0) {
     dualPrintln("### Auto-calibrating threshold...");
-    calibrateThreshold(100, scaleAdcValue(DEFAULT_SIG_OFFSET_10BIT, LEGACY_ADC_BITS, ADC_BITS));
+    calibrateThreshold(100, autoMargin);
     saveThresholds();
     applyThresholdPwm();
     printThresholds();
+  } else if (strncmp(cmd, "AUTO_THRESH:", 12) == 0) {
+    int m;
+    if (sscanf(cmd + 12, "%d", &m) == 1) {
+      if (m < 0) m = 0;
+      if (m > ADC_MAX) m = ADC_MAX;
+      autoMargin = m;
+      saveThresholds();
+    }
+    dualPrintln("### Auto-calibrating threshold...");
+    calibrateThreshold(100, autoMargin);
+    saveThresholds();
+    applyThresholdPwm();
+    printThresholds();
+    printAutoMargin();
+  } else if (strcmp(cmd, "RESET") == 0) {
+    count = 0;
+    start_time_us = micros64();
+    total_deadtime_us = 0ULL;
+    dualPrintln("RESET:OK");
+  } else if (strcmp(cmd, "GET_AUTO_MARGIN") == 0) {
+    printAutoMargin();
+  } else if (strncmp(cmd, "SET_AUTO_MARGIN:", 16) == 0) {
+    int m;
+    if (sscanf(cmd + 16, "%d", &m) == 1) {
+      if (m < 0) m = 0;
+      if (m > ADC_MAX) m = ADC_MAX;
+      autoMargin = m;
+      saveThresholds();
+    }
+    printAutoMargin();
   } else if (strncmp(cmd, "SET_MODE:", 9) == 0) {
     if (strcmp(cmd + 9, "DIGITAL") == 0) {
       triggerMode = TRIGGER_MODE_DIGITAL_ONLY;
@@ -434,6 +477,38 @@ void executeCommand(const char* cmd) {
     printOledStatus();
   } else if (strcmp(cmd, "GET_OLED") == 0) {
     printOledStatus();
+  } else if (strncmp(cmd, "SET_BUZZER:", 11) == 0) {
+    if (strcmp(cmd + 11, "ON") == 0) {
+      buzzerEnabled = true;
+    } else if (strcmp(cmd + 11, "OFF") == 0) {
+      buzzerEnabled = false;
+    }
+    saveThresholds();
+    printBuzzerStatus();
+  } else if (strcmp(cmd, "GET_BUZZER") == 0) {
+    printBuzzerStatus();
+  } else if (strcmp(cmd, "GET_BLENAME") == 0) {
+    printBleName();
+  } else if (strncmp(cmd, "SET_BLENAME:", 12) == 0) {
+    const char* newName = cmd + 12;
+    size_t len = strlen(newName);
+    bool valid = (len > 0 && len <= BLE_NAME_MAX);
+    for (size_t i = 0; valid && i < len; i++) {
+      char c = newName[i];
+      if (c < 0x20 || c > 0x7E) valid = false;
+    }
+    if (valid) {
+      strncpy(bleName, newName, BLE_NAME_MAX);
+      bleName[BLE_NAME_MAX] = '\0';
+      saveThresholds();
+      printBleName();
+      dualPrintln("### BLE name saved. Restarting in 1s...");
+      delay(1000);
+      ESP.restart();
+    } else {
+      dualPrintln("### BLE name invalid (1-24 printable ASCII chars).");
+      printBleName();
+    }
   }
 }
 
@@ -464,19 +539,24 @@ void loadThresholds() {
   bool hasStoredThreshold = prefs.isKey("sig_thresh");
   SIGNAL_THRESHOLD = prefs.getInt("sig_thresh", 120);
   int storedAdcBits = prefs.getInt("sig_bits", hasStoredThreshold ? LEGACY_ADC_BITS : ADC_BITS);
-  triggerMode = (TriggerMode)prefs.getUChar("trig_mode", (uint8_t)TRIGGER_MODE_DIGITAL_ONLY);
+  triggerMode = TRIGGER_MODE_ANALOG_ONLY;  // always boot in Analog mode (ignore saved mode)
   sdEnabled   = prefs.getUChar("sd_en",   1) != 0;
   extEnabled  = prefs.getUChar("ext_en",  1) != 0;
   oledEnabled = prefs.getUChar("oled_en", 1) != 0;
+  buzzerEnabled = prefs.getUChar("buzz_en", 1) != 0;
+  String storedBleName = prefs.getString("ble_name", "CosmicRay");
+  strncpy(bleName, storedBleName.c_str(), BLE_NAME_MAX);
+  bleName[BLE_NAME_MAX] = '\0';
+  if (bleName[0] == '\0') {
+    strncpy(bleName, "CosmicRay", BLE_NAME_MAX);
+  }
+  autoMargin = prefs.getInt("auto_margin", AUTO_MARGIN_DEFAULT);
+  if (autoMargin < 0) autoMargin = 0;
+  if (autoMargin > ADC_MAX) autoMargin = ADC_MAX;
   prefs.end();
 
   if (hasStoredThreshold && storedAdcBits > 0 && storedAdcBits != ADC_BITS) {
     SIGNAL_THRESHOLD = scaleAdcValue(SIGNAL_THRESHOLD, storedAdcBits, ADC_BITS);
-  }
-
-  if (SIGNAL_THRESHOLD == 120) {
-    calibrateThreshold(10, scaleAdcValue(DEFAULT_SIG_OFFSET_10BIT, LEGACY_ADC_BITS, ADC_BITS));
-    saveThresholds();
   }
 }
 
@@ -488,6 +568,9 @@ void saveThresholds() {
   prefs.putUChar("sd_en",   sdEnabled   ? 1 : 0);
   prefs.putUChar("ext_en",  extEnabled  ? 1 : 0);
   prefs.putUChar("oled_en", oledEnabled ? 1 : 0);
+  prefs.putUChar("buzz_en", buzzerEnabled ? 1 : 0);
+  prefs.putString("ble_name", bleName);
+  prefs.putInt("auto_margin", autoMargin);
   prefs.end();
 }
 
@@ -519,6 +602,22 @@ void printOledStatus() {
   dualPrintln(oledEnabled ? "OLED:ON" : "OLED:OFF");
 }
 
+void printBuzzerStatus() {
+  dualPrintln(buzzerEnabled ? "BUZZER:ON" : "BUZZER:OFF");
+}
+
+void printBleName() {
+  char buf[48];
+  snprintf(buf, sizeof(buf), "BLENAME:%s", bleName);
+  dualPrintln(buf);
+}
+
+void printAutoMargin() {
+  char buf[32];
+  snprintf(buf, sizeof(buf), "AUTO_MARGIN:%d", autoMargin);
+  dualPrintln(buf);
+}
+
 void applySdEnable() {
   if (!sdEnabled) {
     if (sdLogFile) {
@@ -541,13 +640,11 @@ void applyOledEnable() {
 // ==========================================
 // Threshold calibration and sensor helpers
 // ==========================================
-void calibrateThreshold(int samples, int sigOffset) {
-  long sumValue = 0;
+void calibrateThreshold(int samples, int margin) {
   int minValue = ADC_MAX;
   int maxValue = 0;
   for (int i = 0; i < samples; i++) {
     int currentValue = analogRead(SELF_SIG_IN);
-    sumValue += currentValue;
     if (currentValue < minValue) {
       minValue = currentValue;
     }
@@ -556,22 +653,20 @@ void calibrateThreshold(int samples, int sigOffset) {
     }
     delay(10);
   }
-  const int averageValue = (samples > 0) ? (int)(sumValue / samples) : 0;
-  const int noiseMargin = scaleAdcValue(CAL_NOISE_MARGIN_10BIT, LEGACY_ADC_BITS, ADC_BITS);
 
-  SIGNAL_THRESHOLD = max(averageValue + sigOffset, maxValue + noiseMargin);
+  SIGNAL_THRESHOLD = maxValue + margin;
   if (SIGNAL_THRESHOLD < 0) SIGNAL_THRESHOLD = 0;
   if (SIGNAL_THRESHOLD > ADC_MAX) SIGNAL_THRESHOLD = ADC_MAX;
 
   char buf[96];
   snprintf(buf, sizeof(buf),
-           "### Auto-threshold calib: min=%d avg=%d max=%d -> thr=%d",
-           minValue, averageValue, maxValue, SIGNAL_THRESHOLD);
+           "### Auto-threshold calib: min=%d max=%d margin=%d -> thr=%d",
+           minValue, maxValue, margin, SIGNAL_THRESHOLD);
   dualPrintln(buf);
 }
 
 void applyThresholdPwm() {
-  pwmDuty = (SIGNAL_THRESHOLD * PWM_MAX) / ADC_MAX;
+  pwmDuty = (SIGNAL_THRESHOLD * PWM_MAX * 2) / ADC_MAX;
   if (pwmDuty < 0) pwmDuty = 0;
   if (pwmDuty > PWM_MAX) pwmDuty = PWM_MAX;
   analogWrite(PWM_THRESH, pwmDuty);
@@ -580,9 +675,13 @@ void applyThresholdPwm() {
 void applyTriggerMode() {
   triggerFlag = false;
   if (triggerMode == TRIGGER_MODE_ANALOG_ONLY) {
-    detachInterrupt(digitalPinToInterrupt(TRIGGER_IN));
+    if (triggerIsrAttached) {
+      detachInterrupt(digitalPinToInterrupt(TRIGGER_IN));
+      triggerIsrAttached = false;
+    }
   } else {
     attachInterrupt(digitalPinToInterrupt(TRIGGER_IN), onTriggerISR, RISING);
+    triggerIsrAttached = true;
   }
 }
 
@@ -617,7 +716,7 @@ void IRAM_ATTR onTriggerISR() {
 // BLE initialization
 // ==========================================
 void initBLE() {
-  BLEDevice::init("CosmicRay");
+  BLEDevice::init(bleName);
   pServer = BLEDevice::createServer();
   pServer->setCallbacks(new MyServerCallbacks());
 
@@ -641,7 +740,9 @@ void initBLE() {
   pAdvertising->setMinPreferred(0x06);
   BLEDevice::startAdvertising();
 
-  Serial.println(F("BLE: Advertising as 'CosmicRay'"));
+  char buf[64];
+  snprintf(buf, sizeof(buf), "BLE: Advertising as '%s'", bleName);
+  Serial.println(buf);
 }
 
 // ==========================================
@@ -688,6 +789,9 @@ void setup() {
   }
 
   loadThresholds();
+  Serial.println(F("### Auto-calibrating threshold on boot..."));
+  calibrateThreshold(100, autoMargin);
+  saveThresholds();
   applyThresholdPwm();
 
   initBLE();
@@ -819,9 +923,16 @@ void handleTriggerEvent(bool fromDigitalTrigger) {
     }
   }
 
-  bool coincidence = (dig[0] == HIGH) || (dig[1] == HIGH) || (dig[2] == HIGH);
-  if (coincidence) {
-    tone(BUZZER_PIN, BUZZER_FREQ_HZ, BUZZER_MS);
+  // 宇宙線イベント毎に、波高(ADC)に応じた音程で短くビープ。
+  // adc は必ず SIGNAL_THRESHOLD 以上なので、しきい値〜ADC_MAX を周波数レンジに線形対応させる。
+  int span = ADC_MAX - SIGNAL_THRESHOLD;
+  unsigned int beepFreq = BEEP_FREQ_MAX_HZ;            // span<=0 の退避値
+  if (span > 0) {
+    long f = map(adc, SIGNAL_THRESHOLD, ADC_MAX, BEEP_FREQ_MIN_HZ, BEEP_FREQ_MAX_HZ);
+    beepFreq = (unsigned int)constrain(f, (long)BEEP_FREQ_MIN_HZ, (long)BEEP_FREQ_MAX_HZ);
+  }
+  if (buzzerEnabled) {
+    tone(BUZZER_PIN, beepFreq, BEEP_MS);
   }
 
   digitalWrite(TRIG_RESET, HIGH);
@@ -921,7 +1032,8 @@ void OpeningScreen() {
   display.println(SIGNAL_THRESHOLD);
   display.print(F("PWM Duty: "));
   display.println(pwmDuty);
-  display.println(F("BLE: CosmicRay"));
+  display.print(F("BLE: "));
+  display.println(bleName);
   display.display();
   display.clearDisplay();
 }
