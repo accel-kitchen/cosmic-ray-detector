@@ -1,0 +1,1466 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CosmicRay Waveform Probe</title>
+<script src="https://cdn.plot.ly/plotly-basic-2.35.2.min.js" charset="utf-8"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: #f4f6f8;
+  color: #333;
+  min-height: 100vh;
+}
+.header {
+  background: linear-gradient(135deg, #00838F, #00BCD4);
+  color: #fff;
+  padding: 16px 24px;
+  font-size: 1.3rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.header span { font-size: 0.85rem; font-weight: 400; opacity: 0.85; }
+.header .conn-badge {
+  margin-left: auto;
+  font-size: 0.8rem;
+  font-weight: 600;
+  background: rgba(255,255,255,0.2);
+  padding: 5px 14px;
+  border-radius: 14px;
+}
+.header .conn-badge.on { background: #8BC34A; color: #1b3a00; }
+.tabs {
+  background: #fff;
+  border-bottom: 1px solid #e0e0e0;
+  display: flex;
+  padding: 0 24px;
+}
+.tab-btn {
+  padding: 14px 24px;
+  border: none;
+  background: none;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #666;
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  transition: all 0.2s;
+}
+.tab-btn:hover { color: #00838F; }
+.tab-btn.active { color: #00BCD4; border-bottom-color: #00BCD4; }
+.container { max-width: 1240px; margin: 0 auto; padding: 20px; }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+.card {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  padding: 20px 24px;
+  margin-bottom: 20px;
+}
+.card-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin-bottom: 16px;
+  color: #00838F;
+}
+.hint { font-size: 0.78rem; font-weight: 400; color: #999; margin-left: 8px; }
+.note {
+  font-size: 0.82rem; color: #666; line-height: 1.6;
+  background: #f0fafa; border-left: 3px solid #00BCD4;
+  padding: 10px 14px; border-radius: 0 6px 6px 0; margin-bottom: 16px;
+}
+.controls { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end; }
+.control-group label {
+  display: block; font-size: 0.8rem; font-weight: 600; color: #666;
+  text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;
+}
+.control-group input[type="number"], .control-group select {
+  border: 1px solid #ccc; border-radius: 6px; padding: 8px 12px;
+  font-size: 0.95rem; width: 130px; outline: none; transition: border-color 0.2s;
+  background: #fff;
+}
+.control-group input[type="number"] { width: 105px; }
+.control-group input:focus, .control-group select:focus { border-color: #00BCD4; }
+.control-group label.check {
+  display: flex; align-items: center; gap: 6px; font-size: 0.85rem;
+  font-weight: 500; color: #444; text-transform: none; letter-spacing: 0;
+  margin-bottom: 0; cursor: pointer;
+}
+.control-group label.check input { width: auto; cursor: pointer; }
+.check-row { display: flex; flex-direction: column; gap: 8px; padding-top: 2px; }
+.file-label {
+  display: inline-block; background: #00BCD4; color: #fff; padding: 9px 20px;
+  border-radius: 6px; font-size: 0.9rem; font-weight: 600; cursor: pointer;
+  transition: background 0.2s;
+}
+.file-label:hover { background: #00ACC1; }
+.file-label input { display: none; }
+.file-name { font-size: 0.85rem; color: #888; margin-top: 4px; }
+.stats-row { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; }
+.stat-box {
+  flex: 1; min-width: 130px; background: #fff; border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 14px 18px;
+  border-top: 3px solid #00BCD4; text-align: center;
+}
+.stat-value { font-size: 1.5rem; font-weight: 700; color: #00838F; }
+.stat-label { font-size: 0.72rem; color: #888; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 4px; }
+.chart-wrap { position: relative; height: 380px; }
+.chart-wrap > div { width: 100%; height: 100%; }
+.btn {
+  background: #00BCD4; color: #fff; border: none; border-radius: 6px;
+  padding: 10px 24px; font-size: 0.92rem; font-weight: 600; cursor: pointer;
+  transition: background 0.2s;
+}
+.btn:hover { background: #00ACC1; }
+.btn:disabled { background: #bbb; cursor: not-allowed; }
+.btn.sec { background: #78909C; }
+.btn.sec:hover { background: #607D8B; }
+.btn.warn { background: #EF6C60; }
+.btn.warn:hover { background: #E53935; }
+.action-bar { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+.data-table { width: 100%; border-collapse: collapse; }
+.data-table th {
+  background: #f0fafa; color: #00838F; font-size: 0.78rem; text-transform: uppercase;
+  letter-spacing: 0.5px; padding: 10px 8px; border-bottom: 2px solid #00BCD4; text-align: center;
+}
+.data-table td { padding: 8px; text-align: center; border-bottom: 1px solid #eee; font-size: 0.92rem; }
+.data-table td.best { background: #e0f7fa; font-weight: 700; }
+.log {
+  background: #263238; color: #B2CCD6; font-family: 'Consolas', 'Menlo', monospace;
+  font-size: 0.75rem; line-height: 1.5; padding: 12px; border-radius: 6px;
+  height: 200px; overflow-y: auto; white-space: pre-wrap; word-break: break-all;
+}
+.recbox {
+  background: #f0fafa; border: 1px solid #B2EBF2; border-radius: 8px;
+  padding: 16px 20px; font-size: 0.92rem; line-height: 1.75; color: #37474F;
+}
+.recbox code {
+  background: #263238; color: #B2FF59; padding: 2px 7px;
+  border-radius: 4px; font-family: 'Consolas', monospace; font-size: 0.88rem;
+}
+.recbox .verdict { font-size: 1.02rem; font-weight: 700; color: #00838F; display: block; margin-bottom: 8px; }
+.canvas-wrap { width: 100%; overflow-x: auto; }
+canvas { display: block; max-width: 100%; }
+.kv { font-size: 0.82rem; color: #555; line-height: 1.7; font-family: 'Consolas', monospace; }
+.charts-row { display: flex; gap: 20px; flex-wrap: wrap; }
+.charts-row .card { flex: 1; min-width: 420px; }
+@media (max-width: 900px) {
+  .charts-row .card { min-width: 100%; }
+  .stats-row .stat-box { min-width: 45%; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  Waveform Probe
+  <span>V1 検出器のパルス波形と最適サンプリング遅延</span>
+  <span class="conn-badge" id="connBadge">未接続</span>
+</div>
+
+<div class="tabs">
+  <button class="tab-btn active" data-tab="tab1" onclick="switchTab('tab1')">Capture</button>
+  <button class="tab-btn" data-tab="tab2" onclick="switchTab('tab2')">Waveform</button>
+  <button class="tab-btn" data-tab="tab3" onclick="switchTab('tab3')">Sampling Strategy</button>
+</div>
+
+<div class="container">
+
+<!-- ==================== TAB 1: Capture ==================== -->
+<div id="tab1" class="tab-content active">
+
+  <div class="card">
+    <div class="card-title">接続 / ファイル</div>
+    <div class="note">
+      <b>COSMICRAY_WAVEFORM_ESP32-S3-Nano</b> を書き込んだボードに Web Serial で繋ぐ（Chrome / Edge）。<br>
+      ファームは 1 イベント 1 行の <code>WF,...</code> を流す。ここで受けたものをそのまま
+      <code>.wfm</code> として保存でき、保存したファイルは同じ画面で読み直せる。
+    </div>
+    <div class="action-bar">
+      <button class="btn" id="btnConnect">USB接続</button>
+      <button class="btn warn" id="btnDisconnect" disabled>切断</button>
+      <div class="control-group">
+        <label>Baud</label>
+        <input type="number" id="baudRate" value="115200">
+      </div>
+      <label class="file-label">.wfm 読込<input type="file" id="fileInput" accept=".wfm,.txt,.dat,.csv"></label>
+      <button class="btn sec" id="btnSave">.wfm 保存</button>
+      <button class="btn sec" id="btnClear">データ消去</button>
+    </div>
+    <div class="file-name" id="fileName">ファイル未読込</div>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-box"><div class="stat-value" id="sEvents">0</div><div class="stat-label">Events</div></div>
+    <div class="stat-box"><div class="stat-value" id="sRate">-</div><div class="stat-label">Rate [/s]</div></div>
+    <div class="stat-box"><div class="stat-value" id="sOvf">0</div><div class="stat-label">DMA Overflow</div></div>
+    <div class="stat-box"><div class="stat-value" id="sDrop">0</div><div class="stat-label">Dropped</div></div>
+    <div class="stat-box"><div class="stat-value" id="sBad">0</div><div class="stat-label">壊れた行</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">デバイス制御</div>
+    <div class="controls" style="margin-bottom:16px;">
+      <div class="control-group">
+        <label>取得モード</label>
+        <select id="cfgMode">
+          <option value="DMA">DMA (12µs等間隔・プリトリガ有)</option>
+          <option value="POLL">POLL (analogRead・実機再現)</option>
+        </select>
+      </div>
+      <div class="control-group"><label>Signal Thresh</label><input type="number" id="cfgThresh" placeholder="auto"></div>
+      <div class="control-group"><label>Pre 点数</label><input type="number" id="cfgPre" value="64" min="0" max="128"></div>
+      <div class="control-group"><label>Post 点数</label><input type="number" id="cfgPost" value="256" min="1" max="384"></div>
+      <div class="control-group"><label>Fs [Hz]</label><input type="number" id="cfgFs" value="83333" min="611" max="83333"></div>
+      <div class="control-group"><label>Max rate [/s]</label><input type="number" id="cfgMaxRate" value="50" min="0"></div>
+      <div class="control-group"><label>&nbsp;</label><button class="btn sec" id="btnApplyCfg">設定を送る</button></div>
+    </div>
+    <div class="action-bar">
+      <button class="btn" id="btnStart">START</button>
+      <button class="btn warn" id="btnStop">STOP</button>
+      <button class="btn sec" id="btnAuto">AUTO_THRESH</button>
+      <button class="btn sec" id="btnBench">BENCH</button>
+      <button class="btn sec" id="btnGetCfg">GET_CFG</button>
+    </div>
+    <div class="note" style="margin-top:16px;margin-bottom:8px;">
+      上のボタンに無いコマンドはここから直接送れる。V2 プローブの
+      <code>SET_TRIG:COMP|LEVEL</code> / <code>SET_HOLDRESET:&lt;us&gt;</code> /
+      <code>SET_PWM:&lt;0-255&gt;</code> / <code>HOLDRESET_NOW</code> など。
+      Enter でも送信。↑↓ で履歴。
+    </div>
+    <div class="action-bar">
+      <input type="text" id="cmdInput" placeholder="SET_HOLDRESET:800"
+             style="flex:1;min-width:260px;border:1px solid #ccc;border-radius:6px;
+                    padding:9px 12px;font-size:.92rem;font-family:Consolas,monospace;outline:none;">
+      <button class="btn sec" id="btnSendCmd">送信</button>
+    </div>
+  </div>
+
+  <div class="charts-row">
+    <div class="card">
+      <div class="card-title">ヘッダ / BENCH</div>
+      <div class="kv" id="hdrBox">まだ受信していません。</div>
+    </div>
+    <div class="card">
+      <div class="card-title">シリアルログ<span class="hint">直近200行（WF行は除く）</span></div>
+      <div class="log" id="logBox"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== TAB 2: Waveform ==================== -->
+<div id="tab2" class="tab-content">
+  <div class="card">
+    <div class="card-title">表示設定</div>
+    <div class="note">
+      <b>整列</b>を「トリガ点」にすると<i>実機ファームから見た</i>波形になる（ファームが待ち始める瞬間が t=0）。
+      「しきい値交差」はサンプル間を線形補間して真の立ち上がり時刻に揃えるので、
+      サンプリング周期由来のボケが減り<i>回路が出している本来の形</i>に近づく。
+      2 つを見比べると、ピークを逃す原因がトリガ検出の遅れなのかパルス自体の速さなのかが分かる。
+    </div>
+    <div class="controls">
+      <div class="control-group">
+        <label>整列</label>
+        <select id="wAlign">
+          <option value="trig">トリガ点 (t=0)</option>
+          <option value="cross">しきい値交差（線形補間）</option>
+          <option value="peak">各イベントのピーク位置</option>
+        </select>
+      </div>
+      <div class="control-group">
+        <label>正規化</label>
+        <select id="wNorm">
+          <option value="none">なし（ADC 生値）</option>
+          <option value="peak">各イベントのピークで割る</option>
+        </select>
+      </div>
+      <div class="control-group"><label>Bin幅 [µs]</label><input type="number" id="wBin" value="2" min="0.1" step="0.1"></div>
+      <div class="control-group"><label>T開始 [µs]</label><input type="number" id="wT0" placeholder="auto"></div>
+      <div class="control-group"><label>T終了 [µs]</label><input type="number" id="wT1" placeholder="auto"></div>
+      <div class="control-group"><label>Peak下限</label><input type="number" id="wAmpMin" placeholder="auto"></div>
+      <div class="control-group"><label>Peak上限</label><input type="number" id="wAmpMax" placeholder="auto"></div>
+      <div class="control-group check-row">
+        <label class="check"><input type="checkbox" id="wBaseSub" checked> ベースライン減算</label>
+        <label class="check"><input type="checkbox" id="wLogY"> Y軸 log</label>
+      </div>
+      <div class="control-group"><label>&nbsp;</label><button class="btn" id="btnRedraw">再描画</button></div>
+    </div>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-box"><div class="stat-value" id="wN">0</div><div class="stat-label">使用イベント</div></div>
+    <div class="stat-box"><div class="stat-value" id="wTPeak">-</div><div class="stat-label">t_peak [µs]</div></div>
+    <div class="stat-box"><div class="stat-value" id="wRise">-</div><div class="stat-label">立上り 10-90% [µs]</div></div>
+    <div class="stat-box"><div class="stat-value" id="wFwhm">-</div><div class="stat-label">FWHM [µs]</div></div>
+    <div class="stat-box"><div class="stat-value" id="wTau">-</div><div class="stat-label">減衰 τ [µs]</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Persistence<span class="hint">全イベントの重ね書き（濃いほど密度が高い）＋ 平均波形（黄）</span></div>
+    <div class="canvas-wrap"><canvas id="persCanvas" width="1180" height="420"></canvas></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">平均波形 ± 標準誤差</div>
+    <div class="chart-wrap"><div id="avgDiv"></div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">サンプル間隔の実測分布<span class="hint">POLL では analogRead の実所要時間そのもの</span></div>
+    <div class="chart-wrap" style="height:300px;"><div id="dtDiv"></div></div>
+  </div>
+</div>
+
+<!-- ==================== TAB 3: Sampling strategy ==================== -->
+<div id="tab3" class="tab-content">
+  <div class="card">
+    <div class="card-title">「どれぐらい待てばピークが採れるか」</div>
+    <div class="note">
+      取得した実波形の上で、ファームのサンプリング方式をそのまま再現する。時間原点は必ず
+      <b>トリガ点</b>（＝ファームがしきい値超えを検出した瞬間）。<br>
+      指標は <b>r = 採れた値 ÷ そのイベントで捕捉できた最大値</b>。
+      <code>mean(r)</code> が 1 に近いほど、そのサンプラで採れる上限に近づいており、
+      <code>sd(r)</code> が小さいほどスペクトルが広がらない。エネルギー分解能に効くのは後者。<br>
+      <b>注意:</b> 分母は「真のアナログ波高」ではなく「このサンプラが捕まえられた最大値」。
+      パルスがサンプル間隔より速いと分母も一緒に潰れて r が 1 に張り付くので、
+      下の結論欄にある <b>FWHM とサンプル間隔の比較</b>（パルスを分解できているか）と
+      必ずセットで読むこと。
+    </div>
+    <div class="controls">
+      <div class="control-group"><label>遅延 走査上限 [µs]</label><input type="number" id="sDMax" value="300" min="10"></div>
+      <div class="control-group"><label>遅延 刻み [µs]</label><input type="number" id="sDStep" value="2" min="0.1" step="0.1"></div>
+      <div class="control-group"><label>1読み時間 [µs]<span class="hint">BENCH</span></label><input type="number" id="sTread" value="30" min="0.1" step="0.1"></div>
+      <div class="control-group"><label>SINGLE 遅延 [µs]</label><input type="number" id="sSingleD" value="30" min="0" step="0.1"></div>
+      <div class="control-group"><label>PEAK 窓 W [µs]</label><input type="number" id="sPeakW" value="120" min="1"></div>
+      <div class="control-group"><label>PEAK 点数 N</label><input type="number" id="sPeakN" value="8" min="1"></div>
+      <div class="control-group"><label>&nbsp;</label><button class="btn" id="btnSim">再計算</button></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">遅延 d で 1 点だけ読んだときの採取率</div>
+    <div class="chart-wrap"><div id="delayDiv"></div></div>
+  </div>
+
+  <div class="charts-row">
+    <div class="card">
+      <div class="card-title">方式の比較</div>
+      <table class="data-table" id="stratTable">
+        <thead><tr><th>方式</th><th>mean(r)</th><th>sd(r)</th><th>相対分解能</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div class="card">
+      <div class="card-title">得られる ADC スペクトル<span class="hint">真のピークと比べてどれだけ崩れるか</span></div>
+      <div class="chart-wrap" style="height:330px;"><div id="specDiv"></div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">結論と推奨値</div>
+    <div class="recbox" id="recBox">まだデータがありません。</div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">エクスポート</div>
+    <div class="action-bar">
+      <button class="btn sec" id="btnExpAvg">平均波形 CSV</button>
+      <button class="btn sec" id="btnExpPeaks">イベント別 (peak, t_peak) CSV</button>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<script>
+'use strict';
+
+// ============================================================================
+//  データモデル
+// ============================================================================
+// events[i] = {
+//   evt, tMs, kind:'U'|'T', npre, periodNs,
+//   t: Float32Array [µs, トリガ点基準],  v: Float32Array [ADC 生値],
+//   base, peak, tPeak, tCross
+// }
+const D = {
+  header: {},
+  bench: {},
+  events: [],
+  rawLines: [],      // 保存用（受信したストリームそのまま）
+  badLines: 0,
+  stat: { evt: 0, rate: 0, ovf: 0, drop: 0 },
+};
+
+const MAX_EVENTS = 20000;   // これを超えたら古いものから捨てる
+
+const state = { port: null, reader: null, writer: null, connected: false };
+
+const $ = id => document.getElementById(id);
+const num = (el, dflt) => { const v = parseFloat($(el).value); return isFinite(v) ? v : dflt; };
+
+function switchTab(id) {
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === id));
+  $(id).classList.add('active');
+  if (id === 'tab2') renderWaveform();
+  if (id === 'tab3') runSimulation();
+}
+
+function log(msg) {
+  const box = $('logBox');
+  box.textContent += msg + '\n';
+  const lines = box.textContent.split('\n');
+  if (lines.length > 200) box.textContent = lines.slice(-200).join('\n');
+  box.scrollTop = box.scrollHeight;
+}
+
+// ============================================================================
+//  行のパース
+// ============================================================================
+// ファーム側の取り決め（スケッチ 1.4 節）:
+//   #WF key=value ...                                     ヘッダ
+//   #WFSTAT evt=.. rate=.. ovf=.. drop=..                  統計
+//   BENCH:<name>,<n>,<min_ns>,<mean_ns>,<max_ns>,<sd_ns>   ベンチ
+//   WF,<evt>,<t_ms>,U,<npre>,<ntot>,<period_ns>,v0,v1,...  等間隔(DMA)
+//   WF,<evt>,<t_ms>,T,<npre>,<ntot>,0,dt0,v0,dt1,v1,...    各点に時刻(POLL)
+//
+// 行が途中で切れた場合に備え、宣言された ntot と実際の項目数が合わない行は捨てる。
+function processLine(line) {
+  if (!line) return;
+
+  if (line.startsWith('WF,')) {
+    D.rawLines.push(line);
+    parseEventLine(line);
+    return;
+  }
+
+  D.rawLines.push(line);
+
+  if (line.startsWith('#WF ')) {
+    D.header = {};
+    line.slice(4).trim().split(/\s+/).forEach(kv => {
+      const i = kv.indexOf('=');
+      if (i > 0) D.header[kv.slice(0, i)] = kv.slice(i + 1);
+    });
+    applyHeaderToUI();
+    log(line);
+    return;
+  }
+
+  if (line.startsWith('#WFSTAT')) {
+    line.slice(7).trim().split(/\s+/).forEach(kv => {
+      const i = kv.indexOf('=');
+      if (i > 0) D.stat[kv.slice(0, i)] = parseFloat(kv.slice(i + 1));
+    });
+    updateCaptureStats();
+    return;
+  }
+
+  if (line.startsWith('BENCH:')) {
+    const p = line.slice(6).split(',');
+    if (p.length >= 6) {
+      D.bench[p[0]] = { n: +p[1], min: +p[2], mean: +p[3], max: +p[4], sd: +p[5] };
+      if (p[0] === 'analogRead') {
+        // BENCH の実測値をシミュレーションの既定値へ流し込む
+        const us = (+p[3]) / 1000;
+        $('sTread').value = us.toFixed(2);
+        $('sSingleD').value = us.toFixed(2);
+      }
+      renderHeaderBox();
+    }
+    log(line);
+    return;
+  }
+
+  log(line);
+}
+
+function parseEventLine(line) {
+  const p = line.split(',');
+  if (p.length < 7) { D.badLines++; return; }
+
+  const evt      = +p[1];
+  const tMs      = +p[2];
+  const kind     = p[3];
+  const npre     = +p[4];
+  const ntot     = +p[5];
+  const periodNs = +p[6];
+
+  if (!(ntot > 0) || !(npre >= 0) || npre >= ntot) { D.badLines++; return; }
+
+  const t = new Float32Array(ntot);
+  const v = new Float32Array(ntot);
+
+  if (kind === 'U') {
+    // 等間隔。値だけが並ぶ。t_i = (i - npre) * period
+    if (p.length !== 7 + ntot) { D.badLines++; return; }
+    const dtUs = periodNs / 1000;
+    for (let i = 0; i < ntot; i++) {
+      t[i] = (i - npre) * dtUs;
+      v[i] = +p[7 + i];
+    }
+  } else if (kind === 'T') {
+    // 各点に時刻。dt は 0.1µs 単位の符号付き整数。
+    if (p.length !== 7 + 2 * ntot) { D.badLines++; return; }
+    for (let i = 0; i < ntot; i++) {
+      t[i] = (+p[7 + 2 * i]) / 10;
+      v[i] = +p[8 + 2 * i];
+    }
+  } else { D.badLines++; return; }
+
+  // 補間には単調増加が要る。ファームは順に記録しているので普通は満たされる。
+  for (let i = 1; i < ntot; i++) {
+    if (!(t[i] > t[i - 1]) || !isFinite(v[i])) { D.badLines++; return; }
+  }
+
+  const ev = { evt, tMs, kind, npre, periodNs, t, v };
+  deriveEvent(ev);
+  D.events.push(ev);
+  if (D.events.length > MAX_EVENTS) D.events.shift();
+}
+
+// イベントごとの派生量。取り込み時に 1 回だけ計算する。
+function deriveEvent(ev) {
+  const { t, v, npre } = ev;
+  const n = t.length;
+
+  // ベースライン: トリガ前サンプルの平均。無ければトレースの最小値で代用する。
+  let base = 0;
+  if (npre > 0) {
+    let s = 0;
+    for (let i = 0; i < npre; i++) s += v[i];
+    base = s / npre;
+  } else {
+    base = v[0];
+    for (let i = 1; i < n; i++) if (v[i] < base) base = v[i];
+  }
+  ev.base = base;
+
+  let peak = -Infinity, tPeak = 0;
+  for (let i = 0; i < n; i++) {
+    const a = v[i] - base;
+    if (a > peak) { peak = a; tPeak = t[i]; }
+  }
+  ev.peak = peak;
+  ev.tPeak = tPeak;
+
+  // しきい値交差時刻。トリガ点の 1 つ前とトリガ点のあいだを線形補間する。
+  // サンプリング周期より速い立ち上がりだと補間は原理的に不正確だが、
+  // それでも「トリガ点そのまま」よりは揃う。
+  ev.tCross = 0;
+  if (npre > 0) {
+    const v0 = v[npre - 1], v1 = v[npre];
+    const thr = (D.header.thr !== undefined) ? +D.header.thr : (base + peak * 0.5);
+    if (v1 > v0) {
+      const f = (thr - v0) / (v1 - v0);
+      if (f >= 0 && f <= 1) ev.tCross = t[npre - 1] + f * (t[npre] - t[npre - 1]);
+    }
+  }
+}
+
+// 時刻 tq における値（ベースライン減算済み）。範囲外は NaN。
+function interpAt(ev, tq) {
+  const t = ev.t, v = ev.v, n = t.length;
+  if (!(tq >= t[0]) || !(tq <= t[n - 1])) return NaN;
+  let lo = 0, hi = n - 1;
+  while (hi - lo > 1) {
+    const mid = (lo + hi) >> 1;
+    if (t[mid] <= tq) lo = mid; else hi = mid;
+  }
+  const dt = t[hi] - t[lo];
+  const a = v[lo] - ev.base;
+  if (!(dt > 0)) return a;
+  return a + ((tq - t[lo]) / dt) * ((v[hi] - ev.base) - a);
+}
+
+// ============================================================================
+//  Web Serial
+// ============================================================================
+async function connectSerial() {
+  if (!('serial' in navigator)) { alert('このブラウザは Web Serial に対応していません（Chrome / Edge を使ってください）。'); return; }
+  try {
+    const port = await navigator.serial.requestPort();
+    await port.open({ baudRate: parseInt($('baudRate').value) || 115200 });
+    state.port = port;
+    state.connected = true;
+
+    const encoder = new TextEncoderStream();
+    encoder.readable.pipeTo(port.writable);
+    state.writer = encoder.writable.getWriter();
+
+    setConnUI(true);
+    readLoop(port);
+    setTimeout(() => sendCommand('GET_CFG'), 700);
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+async function readLoop(port) {
+  const decoder = new TextDecoderStream();
+  port.readable.pipeTo(decoder.writable);
+  const reader = decoder.readable.getReader();
+  state.reader = reader;
+  let buffer = '';
+  try {
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += value;
+      const lines = buffer.split('\n');
+      buffer = lines.pop();
+      for (const l of lines) processLine(l.trim());
+      scheduleLiveUpdate();
+    }
+  } catch (e) {
+    if (state.connected) { console.error(e); disconnect(); }
+  }
+}
+
+async function disconnect() {
+  state.connected = false;
+  try {
+    if (state.reader) { await state.reader.cancel(); state.reader = null; }
+    if (state.writer) { await state.writer.close(); state.writer = null; }
+    if (state.port)   { await state.port.close();   state.port = null; }
+  } catch (e) { console.error(e); }
+  setConnUI(false);
+}
+
+async function sendCommand(cmd) {
+  if (!state.writer) return;
+  try { await state.writer.write(cmd + '\n'); log('> ' + cmd); }
+  catch (e) { console.error(e); }
+}
+
+function setConnUI(on) {
+  $('btnConnect').disabled = on;
+  $('btnDisconnect').disabled = !on;
+  const b = $('connBadge');
+  b.textContent = on ? 'USB接続中' : '未接続';
+  b.classList.toggle('on', on);
+}
+
+// 受信中は毎行描き直すと重いので、統計だけ 500ms ごとに更新する。
+let liveTimer = null;
+function scheduleLiveUpdate() {
+  if (liveTimer) return;
+  liveTimer = setTimeout(() => {
+    liveTimer = null;
+    updateCaptureStats();
+    if ($('tab2').classList.contains('active')) renderWaveform();
+  }, 500);
+}
+
+function updateCaptureStats() {
+  $('sEvents').textContent = D.events.length;
+  $('sRate').textContent   = (D.stat.rate !== undefined) ? (+D.stat.rate).toFixed(1) : '-';
+  $('sOvf').textContent    = D.stat.ovf || 0;
+  $('sDrop').textContent   = D.stat.drop || 0;
+  $('sBad').textContent    = D.badLines;
+}
+
+function applyHeaderToUI() {
+  if (D.header.mode)    $('cfgMode').value    = D.header.mode;
+  if (D.header.thr)     $('cfgThresh').value  = D.header.thr;
+  if (D.header.pre)     $('cfgPre').value     = D.header.pre;
+  if (D.header.post)    $('cfgPost').value    = D.header.post;
+  if (D.header.fs_hz)   $('cfgFs').value      = D.header.fs_hz;
+  if (D.header.maxrate) $('cfgMaxRate').value = D.header.maxrate;
+  if (D.header.adc_read_ns && +D.header.adc_read_ns > 0) {
+    const us = (+D.header.adc_read_ns) / 1000;
+    $('sTread').value = us.toFixed(2);
+    if (!$('sSingleD').dataset.touched) $('sSingleD').value = us.toFixed(2);
+  }
+  renderHeaderBox();
+}
+
+function renderHeaderBox() {
+  const h = D.header;
+  let s = '';
+  if (Object.keys(h).length) {
+    s += `mode=${h.mode}  fs=${h.fs_hz}Hz  period=${h.period_ns}ns\n`;
+    s += `pre=${h.pre}  post=${h.post}  maxrate=${h.maxrate}/s\n`;
+    s += `thr=${h.thr}  rst=${h.rst}  base=${h.base}  bits=${h.bits}\n`;
+    s += `board=${h.board}  cpu=${h.cpu_mhz}MHz\n`;
+  }
+  for (const k in D.bench) {
+    const b = D.bench[k];
+    s += `BENCH ${k}: mean=${(b.mean/1000).toFixed(2)}µs  min=${(b.min/1000).toFixed(2)}  max=${(b.max/1000).toFixed(2)}  sd=${(b.sd/1000).toFixed(2)}\n`;
+  }
+  $('hdrBox').textContent = s || 'まだ受信していません。';
+}
+
+// ============================================================================
+//  Tab2: 波形
+// ============================================================================
+// 整列とフィルタを適用したイベント集合と、そのシフト量を返す。
+function selectEvents() {
+  const align   = $('wAlign').value;
+  const ampMin  = parseFloat($('wAmpMin').value);
+  const ampMax  = parseFloat($('wAmpMax').value);
+  const out = [];
+  for (const ev of D.events) {
+    if (isFinite(ampMin) && ev.peak < ampMin) continue;
+    if (isFinite(ampMax) && ev.peak > ampMax) continue;
+    let shift = 0;
+    if (align === 'cross') shift = ev.tCross;
+    else if (align === 'peak') shift = ev.tPeak;
+    out.push({ ev, shift });
+  }
+  return out;
+}
+
+function renderWaveform() {
+  const sel = selectEvents();
+  $('wN').textContent = sel.length;
+  if (!sel.length) { clearWaveform(); return; }
+
+  const baseSub = $('wBaseSub').checked;
+  const norm    = $('wNorm').value === 'peak';
+  const binW    = Math.max(0.05, num('wBin', 2));
+
+  // 時間レンジ
+  let t0 = parseFloat($('wT0').value), t1 = parseFloat($('wT1').value);
+  if (!isFinite(t0) || !isFinite(t1)) {
+    let lo = Infinity, hi = -Infinity;
+    for (const s of sel) {
+      const a = s.ev.t[0] - s.shift, b = s.ev.t[s.ev.t.length - 1] - s.shift;
+      if (a < lo) lo = a;
+      if (b > hi) hi = b;
+    }
+    if (!isFinite(t0)) t0 = lo;
+    if (!isFinite(t1)) t1 = hi;
+  }
+  if (!(t1 > t0)) { clearWaveform(); return; }
+
+  const nBins = Math.min(4000, Math.max(4, Math.ceil((t1 - t0) / binW)));
+  const cnt = new Float64Array(nBins);
+  const sum = new Float64Array(nBins);
+  const sq  = new Float64Array(nBins);
+
+  // 値レンジ（persistence 用）
+  let vLo = Infinity, vHi = -Infinity;
+
+  // 1 パス目: 平均のビン統計と値レンジ。
+  // 点列そのものは溜めない（2 万イベント x 320 点 = 640 万点で数百 MB になる）。
+  // persistence は同じ変換をもう一度回して密度配列へ直接積む。
+  for (const s of sel) {
+    const ev = s.ev;
+    const scale = norm ? (ev.peak > 0 ? 1 / ev.peak : 0) : 1;
+    const off   = baseSub ? ev.base : 0;
+    for (let i = 0; i < ev.t.length; i++) {
+      const tt = ev.t[i] - s.shift;
+      if (tt < t0 || tt >= t1) continue;
+      const y = (ev.v[i] - off) * scale;
+      const b = Math.floor((tt - t0) / (t1 - t0) * nBins);
+      if (b < 0 || b >= nBins) continue;
+      cnt[b] += 1; sum[b] += y; sq[b] += y * y;
+      if (y < vLo) vLo = y;
+      if (y > vHi) vHi = y;
+    }
+  }
+  if (!isFinite(vLo) || !isFinite(vHi) || vHi <= vLo) { clearWaveform(); return; }
+
+  const bt = new Float64Array(nBins), bm = new Float64Array(nBins), bs = new Float64Array(nBins);
+  const keep = [];
+  for (let b = 0; b < nBins; b++) {
+    if (cnt[b] < 1) continue;
+    const m = sum[b] / cnt[b];
+    const varr = Math.max(0, sq[b] / cnt[b] - m * m);
+    bt[b] = t0 + (b + 0.5) * (t1 - t0) / nBins;
+    bm[b] = m;
+    bs[b] = Math.sqrt(varr / cnt[b]);   // 標準誤差
+    keep.push(b);
+  }
+
+  drawPersistence(sel, { baseSub, norm }, t0, t1, vLo, vHi,
+                  keep.map(b => bt[b]), keep.map(b => bm[b]));
+  drawAverage(keep.map(b => bt[b]), keep.map(b => bm[b]), keep.map(b => bs[b]));
+  computeShapeStats(keep.map(b => bt[b]), keep.map(b => bm[b]));
+  drawDtHistogram(sel);
+}
+
+function clearWaveform() {
+  const c = $('persCanvas').getContext('2d');
+  c.clearRect(0, 0, $('persCanvas').width, $('persCanvas').height);
+  Plotly.purge('avgDiv'); Plotly.purge('dtDiv');
+  ['wTPeak', 'wRise', 'wFwhm', 'wTau'].forEach(id => $(id).textContent = '-');
+}
+
+// --- persistence（自前 canvas）---
+// Plotly に数千本の trace を渡すと固まるので、2D ヒストグラムを自分で積んで
+// ImageData として一度に描く。オシロの残光表示と同じ考え方。
+function drawPersistence(sel, opts, t0, t1, vLo, vHi, mt, mv) {
+  const cv = $('persCanvas');
+  const ctx = cv.getContext('2d');
+  const W = cv.width, H = cv.height;
+  const padL = 62, padR = 14, padT = 12, padB = 34;
+  const pw = W - padL - padR, ph = H - padT - padB;
+
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#0d2b32';
+  ctx.fillRect(padL, padT, pw, ph);
+
+  const vPad = (vHi - vLo) * 0.05;
+  const yLo = vLo - vPad, yHi = vHi + vPad;
+  const xOf = t => padL + (t - t0) / (t1 - t0) * pw;
+  const yOf = v => padT + (1 - (v - yLo) / (yHi - yLo)) * ph;
+
+  // 密度を積む（描画解像度そのままのビンなので、点列を溜める必要がない）
+  const acc = new Uint32Array(pw * ph);
+  let maxC = 0;
+  for (const s of sel) {
+    const ev = s.ev;
+    const scale = opts.norm ? (ev.peak > 0 ? 1 / ev.peak : 0) : 1;
+    const off   = opts.baseSub ? ev.base : 0;
+    for (let i = 0; i < ev.t.length; i++) {
+      const tt = ev.t[i] - s.shift;
+      if (tt < t0 || tt >= t1) continue;
+      const y = (ev.v[i] - off) * scale;
+      const px = Math.floor((tt - t0) / (t1 - t0) * pw);
+      const py = Math.floor((1 - (y - yLo) / (yHi - yLo)) * ph);
+      if (px < 0 || px >= pw || py < 0 || py >= ph) continue;
+      const c = ++acc[py * pw + px];
+      if (c > maxC) maxC = c;
+    }
+  }
+
+  if (maxC > 0) {
+    const img = ctx.createImageData(pw, ph);
+    const dat = img.data;
+    const lmax = Math.log(maxC + 1);
+    for (let i = 0; i < acc.length; i++) {
+      const c = acc[i];
+      const o = i * 4;
+      dat[o + 3] = 255;
+      if (c === 0) { dat[o] = 13; dat[o + 1] = 43; dat[o + 2] = 50; continue; }
+      // 対数スケール。宇宙線の裾のような 1 カウントの領域も潰さずに見せるため。
+      const f = Math.log(c + 1) / lmax;
+      // 濃紺(13,43,50) -> ティール(13,188,212) -> 明るい黄(255,245,120)
+      let r, g, b;
+      if (f < 0.5) {
+        const u = f / 0.5;
+        r = 13;
+        g = 43 + u * (188 - 43);
+        b = 50 + u * (212 - 50);
+      } else {
+        const u = (f - 0.5) / 0.5;
+        r = 13 + u * (255 - 13);
+        g = 188 + u * (245 - 188);
+        b = 212 - u * (212 - 120);
+      }
+      dat[o] = r; dat[o + 1] = g; dat[o + 2] = b;
+    }
+    ctx.putImageData(img, padL, padT);
+  }
+
+  // 平均波形を重ねる
+  ctx.strokeStyle = '#FFD54F';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  for (let i = 0; i < mt.length; i++) {
+    const x = xOf(mt[i]), y = yOf(mv[i]);
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+
+  // t=0 の線
+  if (t0 <= 0 && 0 <= t1) {
+    ctx.strokeStyle = 'rgba(255,255,255,0.45)';
+    ctx.setLineDash([4, 4]);
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(xOf(0), padT); ctx.lineTo(xOf(0), padT + ph); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // 軸
+  ctx.strokeStyle = '#90A4AE';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(padL, padT, pw, ph);
+  ctx.fillStyle = '#546E7A';
+  ctx.font = '11px -apple-system, Segoe UI, sans-serif';
+  ctx.textAlign = 'center';
+  for (let k = 0; k <= 6; k++) {
+    const t = t0 + (t1 - t0) * k / 6;
+    ctx.fillText(t.toFixed(t1 - t0 < 20 ? 1 : 0), xOf(t), padT + ph + 15);
+  }
+  ctx.fillText('time from alignment point [µs]', padL + pw / 2, H - 4);
+  ctx.textAlign = 'right';
+  for (let k = 0; k <= 5; k++) {
+    const v = yLo + (yHi - yLo) * k / 5;
+    ctx.fillText(v.toFixed(Math.abs(yHi - yLo) < 5 ? 2 : 0), padL - 6, yOf(v) + 4);
+  }
+}
+
+function drawAverage(t, m, sem) {
+  const up = m.map((y, i) => y + sem[i]);
+  const dn = m.map((y, i) => y - sem[i]);
+  const band = {
+    x: t.concat(t.slice().reverse()),
+    y: up.concat(dn.slice().reverse()),
+    fill: 'toself', fillcolor: 'rgba(0,188,212,0.25)',
+    line: { color: 'transparent' }, hoverinfo: 'skip',
+    name: '± SEM', type: 'scatter'
+  };
+  const line = {
+    x: t, y: m, mode: 'lines', type: 'scatter',
+    line: { color: '#00838F', width: 2 }, name: 'mean'
+  };
+  Plotly.react('avgDiv', [band, line], {
+    margin: { l: 62, r: 20, t: 10, b: 46 },
+    xaxis: { title: 'time [µs]', gridcolor: '#eee', zerolinecolor: '#bbb' },
+    yaxis: { title: 'ADC', gridcolor: '#eee', type: $('wLogY').checked ? 'log' : 'linear' },
+    showlegend: false, plot_bgcolor: '#fff', paper_bgcolor: '#fff'
+  }, { responsive: true, displayModeBar: false });
+}
+
+// 平均波形からパルスの特徴量を出す（DOM に依存しない本体）。
+function shapeStatsOf(t, m) {
+  const out = { tPeak: NaN, rise: NaN, fwhm: NaN, tau: NaN };
+  if (t.length < 4) return out;
+
+  let pk = -Infinity, pi = 0;
+  for (let i = 0; i < m.length; i++) if (m[i] > pk) { pk = m[i]; pi = i; }
+  if (!(pk > 0)) return out;
+  out.tPeak = t[pi];
+
+  const cross = (frac, from, to) => {
+    const lvl = pk * frac;
+    const step = to > from ? 1 : -1;
+    for (let i = from; i !== to; i += step) {
+      const a = m[i], b = m[i + step];
+      if ((a < lvl && b >= lvl) || (a > lvl && b <= lvl)) {
+        const f = (lvl - a) / (b - a);
+        return t[i] + f * (t[i + step] - t[i]);
+      }
+    }
+    return NaN;
+  };
+
+  const t10 = cross(0.1, pi, 0), t90 = cross(0.9, pi, 0);
+  if (isFinite(t10) && isFinite(t90)) out.rise = t90 - t10;
+
+  const hl = cross(0.5, pi, 0), hr = cross(0.5, pi, m.length - 1);
+  if (isFinite(hr)) {
+    // 左半値が拾えないのは、ピークが記録範囲の先頭（トリガ点）に張り付いている場合。
+    // その場合でも右半値までの幅は半値半幅として意味があるので 2 倍して使う。
+    out.fwhm = isFinite(hl) ? (hr - hl) : (hr - t[pi]) * 2;
+  }
+
+  // 減衰 τ: ピーク後、90%〜10% の区間で ln(m) を直線フィット
+  let sx = 0, sy = 0, sxx = 0, sxy = 0, n = 0;
+  for (let i = pi + 1; i < m.length; i++) {
+    if (m[i] <= pk * 0.1 || m[i] >= pk * 0.9 || m[i] <= 0) continue;
+    const x = t[i], y = Math.log(m[i]);
+    sx += x; sy += y; sxx += x * x; sxy += x * y; n++;
+  }
+  if (n >= 3) {
+    const slope = (n * sxy - sx * sy) / (n * sxx - sx * sx);
+    if (slope < 0) out.tau = -1 / slope;
+  }
+  return out;
+}
+
+function computeShapeStats(t, m) {
+  const s = shapeStatsOf(t, m);
+  const fmt = v => (isFinite(v) ? v.toFixed(1) : '-');
+  $('wTPeak').textContent = fmt(s.tPeak);
+  $('wRise').textContent  = fmt(s.rise);
+  $('wFwhm').textContent  = fmt(s.fwhm);
+  $('wTau').textContent   = fmt(s.tau);
+}
+
+// サンプル間隔の中央値。「そのサンプラでパルスが分解できているか」の基準になる。
+function medianSampleInterval(evs) {
+  const dts = [];
+  const lim = Math.min(evs.length, 200);
+  for (let k = 0; k < lim; k++) {
+    const t = evs[k].t;
+    for (let i = 1; i < t.length; i++) dts.push(t[i] - t[i - 1]);
+  }
+  if (!dts.length) return NaN;
+  dts.sort((a, b) => a - b);
+  return dts[Math.floor(dts.length / 2)];
+}
+
+// トリガ点整列・各イベントのピークで正規化した集団平均。
+// イベントごとにサンプリング位相が違うので、多数重ねると 1 サンプル間隔より
+// 細かい構造まで見える（等価時間サンプリング）。パルス幅の判定にはこれを使う。
+function ensembleAvg(evs, binW) {
+  const map = new Map();
+  for (const ev of evs) {
+    if (!(ev.peak > 0)) continue;
+    for (let i = 0; i < ev.t.length; i++) {
+      const b = Math.round(ev.t[i] / binW);
+      const y = (ev.v[i] - ev.base) / ev.peak;
+      let e = map.get(b);
+      if (!e) { e = [0, 0]; map.set(b, e); }
+      e[0]++; e[1] += y;
+    }
+  }
+  const keys = [...map.keys()].sort((a, b) => a - b);
+  const t = [], m = [];
+  for (const k of keys) {
+    const e = map.get(k);
+    if (e[0] < 3) continue;           // 統計が薄いビンは形を歪めるので落とす
+    t.push(k * binW);
+    m.push(e[1] / e[0]);
+  }
+  return { t, m };
+}
+
+// サンプル間隔の実測分布。POLL なら analogRead の実所要時間そのもの。
+function drawDtHistogram(sel) {
+  const dts = [];
+  const lim = Math.min(sel.length, 400);
+  for (let k = 0; k < lim; k++) {
+    const t = sel[k].ev.t;
+    for (let i = 1; i < t.length; i++) dts.push(t[i] - t[i - 1]);
+  }
+  if (!dts.length) { Plotly.purge('dtDiv'); return; }
+  dts.sort((a, b) => a - b);
+  const lo = dts[0], hi = dts[Math.floor(dts.length * 0.99)];
+  const nb = 60, w = Math.max(1e-3, (hi - lo) / nb);
+  const h = new Array(nb).fill(0), xs = [];
+  for (let i = 0; i < nb; i++) xs.push(lo + (i + 0.5) * w);
+  for (const d of dts) { const b = Math.floor((d - lo) / w); if (b >= 0 && b < nb) h[b]++; }
+  const med = dts[Math.floor(dts.length / 2)];
+  Plotly.react('dtDiv', [{ x: xs, y: h, type: 'bar', marker: { color: '#4DD0E1' } }], {
+    margin: { l: 62, r: 20, t: 10, b: 46 },
+    xaxis: { title: `Δt [µs]   (中央値 ${med.toFixed(2)} µs)`, gridcolor: '#eee' },
+    yaxis: { title: 'count', gridcolor: '#eee' },
+    bargap: 0.02, showlegend: false, plot_bgcolor: '#fff', paper_bgcolor: '#fff'
+  }, { responsive: true, displayModeBar: false });
+}
+
+// ============================================================================
+//  Tab3: サンプリング方式のシミュレーション
+// ============================================================================
+// 時間原点は常にトリガ点（ファームがしきい値超えを検出した瞬間）。
+// r = 採れた値 / そのイベントの真のピーク。
+
+function simSingle(ev, d) { return interpAt(ev, d); }
+
+// ファームの SAMPLE_PEAK 相当:
+//   int peak = trig;                       ← トリガ点の値を初期値に持つ
+//   for (i < N) { if (経過 >= W) break; peak = max(peak, analogRead()); }
+// 実機では読み出しの位相がイベントごとにランダムなので、それも再現する。
+function simPeak(ev, W, N, Tread, phase) {
+  let best = interpAt(ev, 0);
+  if (!isFinite(best)) best = -Infinity;
+  for (let k = 0; k < N; k++) {
+    const d = phase + k * Tread;
+    if (d >= W) break;
+    const x = interpAt(ev, d);
+    if (isFinite(x) && x > best) best = x;
+  }
+  return isFinite(best) ? best : NaN;
+}
+
+function statsOf(arr) {
+  let n = 0, s = 0, sq = 0;
+  for (const x of arr) { if (!isFinite(x)) continue; n++; s += x; sq += x * x; }
+  if (!n) return { n: 0, mean: NaN, sd: NaN };
+  const m = s / n;
+  return { n, mean: m, sd: Math.sqrt(Math.max(0, sq / n - m * m)) };
+}
+
+function runSimulation() {
+  const evs = D.events.filter(e => e.peak > 0);
+  if (!evs.length) { $('recBox').textContent = 'まだデータがありません。'; return; }
+
+  const dMax   = num('sDMax', 300);
+  const dStep  = Math.max(0.05, num('sDStep', 2));
+  const Tread  = Math.max(0.05, num('sTread', 30));
+  const singleD = num('sSingleD', Tread);
+  const W = num('sPeakW', 120);
+  const N = Math.max(1, Math.round(num('sPeakN', 8)));
+
+  // --- 遅延スキャン ---
+  // 全イベント x 全遅延ステップだと数千万回の補間になるので、
+  // スキャンだけは最大 5000 イベントに間引く（平均値の推定にはこれで十分）。
+  const SCAN_MAX = 5000;
+  const scanEvs = evs.length > SCAN_MAX
+    ? evs.filter((_, i) => i % Math.ceil(evs.length / SCAN_MAX) === 0)
+    : evs;
+
+  const ds = [], rMean = [], rHi = [], rLo = [], rRel = [];
+  let bestD = 0, bestMean = -Infinity, bestRelD = 0, bestRel = Infinity;
+  for (let d = 0; d <= dMax; d += dStep) {
+    const rs = [];
+    for (const ev of scanEvs) {
+      const x = simSingle(ev, d);
+      if (isFinite(x)) rs.push(x / ev.peak);
+    }
+    if (rs.length < Math.max(5, scanEvs.length * 0.5)) continue;  // 端で統計が落ちる領域は出さない
+    const st = statsOf(rs);
+    ds.push(d); rMean.push(st.mean);
+    rHi.push(st.mean + st.sd); rLo.push(st.mean - st.sd);
+    const rel = st.mean > 0 ? st.sd / st.mean : NaN;
+    rRel.push(rel);
+    if (st.mean > bestMean) { bestMean = st.mean; bestD = d; }
+    if (isFinite(rel) && rel < bestRel) { bestRel = rel; bestRelD = d; }
+  }
+
+  Plotly.react('delayDiv', [
+    { x: ds.concat(ds.slice().reverse()), y: rHi.concat(rLo.slice().reverse()),
+      fill: 'toself', fillcolor: 'rgba(0,188,212,0.22)', line: { color: 'transparent' },
+      hoverinfo: 'skip', type: 'scatter', showlegend: false },
+    { x: ds, y: rMean, mode: 'lines', type: 'scatter', name: 'mean(r)',
+      line: { color: '#00838F', width: 2.5 } },
+    { x: ds, y: rRel, mode: 'lines', type: 'scatter', name: 'sd(r)/mean(r)', yaxis: 'y2',
+      line: { color: '#EF6C60', width: 2, dash: 'dot' } },
+  ], {
+    margin: { l: 62, r: 62, t: 10, b: 46 },
+    xaxis: { title: 'トリガからの遅延 d [µs]', gridcolor: '#eee' },
+    yaxis: { title: 'mean(r) = 採れた値 / 真のピーク', gridcolor: '#eee', rangemode: 'tozero' },
+    yaxis2: { title: '相対ばらつき', overlaying: 'y', side: 'right', showgrid: false, rangemode: 'tozero' },
+    legend: { orientation: 'h', y: 1.12 }, plot_bgcolor: '#fff', paper_bgcolor: '#fff'
+  }, { responsive: true, displayModeBar: false });
+
+  // --- 方式の比較 ---
+  const rand = mulberry32(12345);   // 位相は乱数だが結果を再現できるよう固定シード
+  const strategies = [];
+
+  // 基準は「このサンプリングで捕捉できた最大値」であって、真のアナログ波高ではない。
+  // パルスがサンプル間隔より速いと基準そのものが崩れるので、
+  // 下の undersampled 判定と必ずセットで読むこと。
+  const rTrue = evs.map(() => 1);
+  strategies.push({ name: '捕捉できた最大値（このサンプラの上限）', vals: evs.map(e => e.peak), rs: rTrue });
+
+  const vSingle = evs.map(e => simSingle(e, singleD));
+  strategies.push({
+    name: `SAMPLE_SINGLE (d=${singleD.toFixed(1)}µs)`,
+    vals: vSingle, rs: vSingle.map((x, i) => x / evs[i].peak)
+  });
+
+  const vPeak = evs.map(e => simPeak(e, W, N, Tread, rand() * Tread));
+  strategies.push({
+    name: `SAMPLE_PEAK (W=${W}µs, N=${N}, ${Tread.toFixed(1)}µs/読)`,
+    vals: vPeak, rs: vPeak.map((x, i) => x / evs[i].peak)
+  });
+
+  const vBest = evs.map(e => simSingle(e, bestD));
+  strategies.push({
+    name: `最良の単発遅延 (d=${bestD.toFixed(1)}µs)`,
+    vals: vBest, rs: vBest.map((x, i) => x / evs[i].peak)
+  });
+
+  const tb = $('stratTable').querySelector('tbody');
+  tb.innerHTML = '';
+  let bestRelIdx = -1, bestRelVal = Infinity;
+  const sts = strategies.map(s => statsOf(s.rs));
+  sts.forEach((st, i) => {
+    if (i === 0) return;
+    const rel = st.mean > 0 ? st.sd / st.mean : Infinity;
+    if (rel < bestRelVal) { bestRelVal = rel; bestRelIdx = i; }
+  });
+  strategies.forEach((s, i) => {
+    const st = sts[i];
+    const rel = st.mean > 0 ? st.sd / st.mean : NaN;
+    const tr = document.createElement('tr');
+    const cls = (i === bestRelIdx) ? ' class="best"' : '';
+    tr.innerHTML = `<td${cls}>${s.name}</td><td${cls}>${st.mean.toFixed(3)}</td>` +
+                   `<td${cls}>${st.sd.toFixed(3)}</td><td${cls}>${isFinite(rel) ? (rel * 100).toFixed(1) + '%' : '-'}</td>`;
+    tb.appendChild(tr);
+  });
+
+  // --- スペクトル ---
+  drawSpectra(strategies);
+
+  // --- パルスが分解できているかの独立判定 ---
+  // r = 採れた値 / 捕捉できた最大値 は、パルスがサンプル間隔より速いと
+  // 分母も一緒に潰れるため 1 に張り付き、「よく採れている」と誤読させる。
+  // そこで集団平均から求めた実際のパルス幅とサンプル間隔を直接比べる。
+  const dtMed = medianSampleInterval(evs);
+  const ens = ensembleAvg(evs, Math.max(dtMed / 4, 0.05));
+  const sh = shapeStatsOf(ens.t, ens.m);
+  const undersampled = !isFinite(sh.fwhm) || !(sh.fwhm > 2 * dtMed);
+
+  // --- 結論 ---
+  writeRecommendation(evs, {
+    bestD, bestMean, bestRelD, bestRel, Tread, W, N, sts, strategies, bestRelIdx,
+    dtMed, fwhm: sh.fwhm, tPeakEns: sh.tPeak, undersampled
+  });
+}
+
+function drawSpectra(strategies) {
+  let hi = 0;
+  for (const s of strategies) for (const v of s.vals) if (isFinite(v) && v > hi) hi = v;
+  if (!(hi > 0)) { Plotly.purge('specDiv'); return; }
+  const nb = 80, w = hi / nb;
+  const traces = strategies.map((s, i) => {
+    const h = new Array(nb).fill(0), xs = [];
+    for (let k = 0; k < nb; k++) xs.push((k + 0.5) * w);
+    for (const v of s.vals) { if (!isFinite(v)) continue; const b = Math.floor(v / w); if (b >= 0 && b < nb) h[b]++; }
+    const colors = ['#263238', '#EF6C60', '#00BCD4', '#8BC34A'];
+    return { x: xs, y: h, mode: 'lines', type: 'scatter', name: s.name,
+             line: { color: colors[i % colors.length], width: i === 0 ? 2.5 : 1.8,
+                     dash: i === 0 ? 'solid' : 'solid' } };
+  });
+  Plotly.react('specDiv', traces, {
+    margin: { l: 56, r: 16, t: 10, b: 42 },
+    xaxis: { title: 'ADC (baseline 減算後)', gridcolor: '#eee' },
+    yaxis: { title: 'count', gridcolor: '#eee' },
+    legend: { orientation: 'h', y: -0.28, font: { size: 10 } },
+    plot_bgcolor: '#fff', paper_bgcolor: '#fff'
+  }, { responsive: true, displayModeBar: false });
+}
+
+function writeRecommendation(evs, r) {
+  // 平均波形の特徴量（タブ2の計算とは独立に、トリガ点整列で出す）
+  const tPeaks = evs.map(e => e.tPeak).sort((a, b) => a - b);
+  const medTPeak = tPeaks[Math.floor(tPeaks.length / 2)];
+
+  const singleSt = r.sts[1], peakSt = r.sts[2];
+  const relOf = st => (st.mean > 0 ? st.sd / st.mean : NaN);
+
+  let html = '';
+  const feasible = !r.undersampled && r.bestMean > 0.7;
+
+  html += `<span class="verdict">${
+    r.undersampled
+      ? 'パルスがサンプリング周期に対して速すぎる。遅延の調整では解決しない。'
+      : (feasible
+          ? '遅延を選べばピークをほぼ採れる。'
+          : 'トリガ検出の時点で既にピークを過ぎており、遅延をどう選んでも波高を採りきれない。')
+  }</span>`;
+
+  html += `イベント数 <b>${evs.length}</b>。ピーク到達時刻の中央値は
+    トリガ点から <code>${medTPeak.toFixed(1)} µs</code>。<br>`;
+
+  html += `集団平均から求めたパルス幅 FWHM =
+    <code>${isFinite(r.fwhm) ? r.fwhm.toFixed(1) + ' µs' : '測定不能'}</code>、
+    サンプル間隔の中央値 = <code>${r.dtMed.toFixed(2)} µs</code>
+    → <b>${r.undersampled ? 'パルスを分解できていない' : 'パルスを分解できている'}</b>
+    （FWHM がサンプル間隔の 2 倍を超えているかで判定）。<br><br>`;
+
+  html += `単発サンプルの最良遅延は <code>d = ${r.bestD.toFixed(1)} µs</code>
+    （そこで真のピークの <b>${(r.bestMean * 100).toFixed(1)}%</b> が採れる）。
+    ばらつきが最小になるのは <code>d = ${r.bestRelD.toFixed(1)} µs</code>
+    （相対ばらつき <b>${(r.bestRel * 100).toFixed(1)}%</b>）。<br><br>`;
+
+  html += `現行ファームの設定との比較:<br>`;
+  html += `&nbsp;&nbsp;• <code>SAMPLE_SINGLE</code> : mean(r)=${singleSt.mean.toFixed(3)},
+    相対ばらつき ${(relOf(singleSt) * 100).toFixed(1)}%<br>`;
+  html += `&nbsp;&nbsp;• <code>SAMPLE_PEAK(W=${r.W}, N=${r.N})</code> : mean(r)=${peakSt.mean.toFixed(3)},
+    相対ばらつき ${(relOf(peakSt) * 100).toFixed(1)}%<br><br>`;
+
+  if (r.undersampled) {
+    html += `<b>読み方:</b> パルス幅がサンプル間隔（${r.dtMed.toFixed(2)} µs）と同程度以下しかない。
+      1 発ごとに ADC が波形のどこを踏むかは運任せで、波高の情報はサンプリングの時点で失われている。
+      <b>この状態では上の表は当てにならない</b>——
+      比較の基準にしている「捕捉できた最大値」自体が崩れているため、
+      どの方式も見かけ上 r≈1 になってしまう。<br>
+      ファームのパラメータ調整では解決しない領域なので、
+      <b>ハードウェア側のピークホールド（V2 基板が持っているもの）か、
+      パルスを引き伸ばす整形段が必要</b>という結論になる。
+      現行ファームは <code>SAMPLE_PEAK</code> のまま据え置くのが妥当
+      （窓内の最大値を採るぶん、単発サンプルよりは取りこぼしが減る）。<br>
+      まず <code>SET_MODE:DMA</code> かつ <code>SET_FS:83333</code> で
+      取り直して同じ結論が出るか確認すること。POLL モードで見ているだけなら、
+      DMA（12 µs）に上げると分解できる可能性がある。`;
+  } else if (!feasible) {
+    html += `<b>読み方:</b> パルス自体は分解できているが、トリガを検出した時点で
+      すでにピークを過ぎている。最良の遅延でも真の波高の
+      ${(r.bestMean * 100).toFixed(0)}% しか採れない。
+      トリガ検出そのものが遅い（ポーリング周期が長い）のが原因なので、
+      <code>SET_MODE:DMA</code> で取り直して比較すること。
+      DMA でも同じなら、ハードウェアのピークホールドが必要という結論になる。`;
+  } else if (r.bestRelIdx === 2) {
+    html += `<b>推奨:</b> <code>SAMPLE_PEAK</code> を維持し、
+      <code>PEAK_WINDOW_US</code> は最良遅延を確実に含む
+      <code>${Math.ceil((r.bestD + r.Tread * 2) / 10) * 10}</code> 程度、
+      <code>PEAK_SAMPLES</code> はその窓を埋めるのに要る
+      <code>${Math.max(2, Math.ceil((r.bestD + r.Tread * 2) / r.Tread))}</code> 点に設定する
+      （<code>COSMICRAY_DETECTOR_ESP32-S3-Nano.ino</code> の <code>PEAK_WINDOW_US</code> /
+      <code>PEAK_SAMPLES</code>）。`;
+  } else {
+    html += `<b>推奨:</b> 単発サンプルのほうが安定している。
+      <code>SAMPLE_SINGLE</code> 相当に固定遅延 <code>${r.bestRelD.toFixed(1)} µs</code>
+      を入れる形が最も分解能がよい。現行の <code>SAMPLE_PEAK</code> は
+      窓内の最大値を採るためノイズの正側だけを拾い、系統的に上振れしている可能性がある。`;
+  }
+
+  html += `<br><br><span style="color:#888;font-size:0.85rem;">
+    ※ この判定は取得したイベント集合に対するもの。振幅スライス（Waveform タブ）を変えて、
+    大振幅と小振幅で結論が変わらないか必ず確認すること。変わるならアンプが飽和している。</span>`;
+
+  $('recBox').innerHTML = html;
+}
+
+// 再現性のある擬似乱数（読み出し位相の再現に使う）
+function mulberry32(a) {
+  return function () {
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+// ============================================================================
+//  ファイル入出力
+// ============================================================================
+function loadText(text, name) {
+  D.events = [];
+  D.rawLines = [];
+  D.badLines = 0;
+  D.header = {};
+  D.bench = {};
+  for (const line of text.split(/\r?\n/)) processLine(line.trim());
+  $('fileName').textContent = `${name} — ${D.events.length} events` +
+    (D.badLines ? ` / 壊れた行 ${D.badLines}` : '');
+  updateCaptureStats();
+  renderWaveform();
+  runSimulation();
+}
+
+function download(filename, text) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([text], { type: 'text/plain' }));
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function stamp() {
+  const d = new Date(), p = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`;
+}
+
+// ============================================================================
+//  イベント配線
+// ============================================================================
+$('btnConnect').addEventListener('click', connectSerial);
+$('btnDisconnect').addEventListener('click', disconnect);
+$('btnStart').addEventListener('click', () => sendCommand('START'));
+$('btnStop').addEventListener('click', () => sendCommand('STOP'));
+$('btnAuto').addEventListener('click', () => sendCommand('AUTO_THRESH'));
+$('btnBench').addEventListener('click', () => sendCommand('BENCH'));
+$('btnGetCfg').addEventListener('click', () => sendCommand('GET_CFG'));
+
+// --- 任意コマンド送信 ---
+// プローブ側のコマンドは機種ごとに増えるので、UI をいちいち足すより
+// 素で打てるほうが早い。応答はログに出る（未知コマンドはファームが黙殺する）。
+const cmdHistory = [];
+let cmdHistIdx = -1;
+function sendRawCommand() {
+  const el = $('cmdInput');
+  const cmd = el.value.trim();
+  if (!cmd) return;
+  if (!state.connected) { log('! 未接続です'); return; }
+  sendCommand(cmd);
+  if (cmdHistory[cmdHistory.length - 1] !== cmd) cmdHistory.push(cmd);
+  if (cmdHistory.length > 50) cmdHistory.shift();
+  cmdHistIdx = cmdHistory.length;
+  el.value = '';
+}
+$('btnSendCmd').addEventListener('click', sendRawCommand);
+$('cmdInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') { e.preventDefault(); sendRawCommand(); return; }
+  if (e.key === 'ArrowUp') {
+    if (!cmdHistory.length) return;
+    e.preventDefault();
+    cmdHistIdx = Math.max(0, cmdHistIdx - 1);
+    $('cmdInput').value = cmdHistory[cmdHistIdx] || '';
+  } else if (e.key === 'ArrowDown') {
+    if (!cmdHistory.length) return;
+    e.preventDefault();
+    cmdHistIdx = Math.min(cmdHistory.length, cmdHistIdx + 1);
+    $('cmdInput').value = cmdHistory[cmdHistIdx] || '';
+  }
+});
+
+$('btnApplyCfg').addEventListener('click', async () => {
+  // モード切替は ADC の再初期化を伴うので最初に送り、少し待ってから残りを送る。
+  await sendCommand('SET_MODE:' + $('cfgMode').value);
+  const t = $('cfgThresh').value;
+  if (t !== '') await sendCommand('SET_THRESH:' + parseInt(t));
+  await sendCommand('SET_PRE:' + parseInt($('cfgPre').value));
+  await sendCommand('SET_POST:' + parseInt($('cfgPost').value));
+  await sendCommand('SET_FS:' + parseInt($('cfgFs').value));
+  await sendCommand('SET_MAXRATE:' + parseInt($('cfgMaxRate').value));
+  await sendCommand('GET_CFG');
+});
+
+$('fileInput').addEventListener('change', e => {
+  const f = e.target.files[0];
+  if (!f) return;
+  const rd = new FileReader();
+  rd.onload = ev => loadText(ev.target.result, f.name);
+  rd.readAsText(f);
+});
+
+$('btnSave').addEventListener('click', () => {
+  if (!D.rawLines.length) { alert('保存するデータがありません。'); return; }
+  download(`waveform_${stamp()}.wfm`, D.rawLines.join('\n') + '\n');
+});
+
+$('btnClear').addEventListener('click', () => {
+  D.events = []; D.rawLines = []; D.badLines = 0;
+  $('fileName').textContent = 'ファイル未読込';
+  updateCaptureStats();
+  clearWaveform();
+  $('recBox').textContent = 'まだデータがありません。';
+});
+
+$('btnRedraw').addEventListener('click', renderWaveform);
+['wAlign', 'wNorm', 'wBaseSub', 'wLogY'].forEach(id =>
+  $(id).addEventListener('change', renderWaveform));
+
+$('btnSim').addEventListener('click', runSimulation);
+$('sSingleD').addEventListener('input', () => { $('sSingleD').dataset.touched = '1'; });
+
+$('btnExpAvg').addEventListener('click', () => {
+  const sel = selectEvents();
+  if (!sel.length) { alert('データがありません。'); return; }
+  // 画面と同じ条件で平均を取り直して出す
+  const rows = ['t_us,mean,sem,n'];
+  const binW = Math.max(0.05, num('wBin', 2));
+  const map = new Map();
+  for (const s of sel) {
+    for (let i = 0; i < s.ev.t.length; i++) {
+      const tt = s.ev.t[i] - s.shift;
+      const y = s.ev.v[i] - ($('wBaseSub').checked ? s.ev.base : 0);
+      const b = Math.round(tt / binW);
+      let e = map.get(b);
+      if (!e) { e = [0, 0, 0]; map.set(b, e); }
+      e[0]++; e[1] += y; e[2] += y * y;
+    }
+  }
+  [...map.keys()].sort((a, b) => a - b).forEach(b => {
+    const [n, s, sq] = map.get(b);
+    const m = s / n, sem = Math.sqrt(Math.max(0, sq / n - m * m) / n);
+    rows.push(`${(b * binW).toFixed(3)},${m.toFixed(3)},${sem.toFixed(4)},${n}`);
+  });
+  download(`avg_waveform_${stamp()}.csv`, rows.join('\n') + '\n');
+});
+
+$('btnExpPeaks').addEventListener('click', () => {
+  if (!D.events.length) { alert('データがありません。'); return; }
+  const rows = ['event,t_ms,peak_adc,t_peak_us,baseline,t_cross_us'];
+  for (const e of D.events) {
+    rows.push(`${e.evt},${e.tMs},${e.peak.toFixed(2)},${e.tPeak.toFixed(2)},${e.base.toFixed(2)},${e.tCross.toFixed(2)}`);
+  }
+  download(`event_peaks_${stamp()}.csv`, rows.join('\n') + '\n');
+});
+
+window.addEventListener('resize', () => {
+  ['avgDiv', 'dtDiv', 'delayDiv', 'specDiv'].forEach(id => {
+    const el = $(id);
+    if (el && el.data) Plotly.Plots.resize(el);
+  });
+});
+
+updateCaptureStats();
+</script>
+</body>
+</html>

@@ -490,6 +490,30 @@
     }
     .logo-text h2 { font-size: 15px; font-weight: 600; }
     .logo-text p { font-size: 11px; color: #999; }
+
+    /* Language switch (top-right flags) */
+    .lang-switch {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .lang-switch button {
+      display: inline-flex;
+      padding: 0;
+      border: 1px solid #ddd;
+      border-radius: 3px;
+      background: none;
+      cursor: pointer;
+      line-height: 0;
+      opacity: 0.45;
+      transition: opacity 0.15s, box-shadow 0.15s;
+    }
+    .lang-switch button:hover { opacity: 0.8; }
+    .lang-switch button.active {
+      opacity: 1;
+      box-shadow: 0 0 0 2px #00b8a9;
+    }
+    .lang-switch svg { display: block; border-radius: 2px; }
   </style>
 </head>
 <body>
@@ -499,103 +523,103 @@
   <div class="logo">
     <div class="logo-text">
       <h2>CosmicRay Recorder v2</h2>
-      <p>Radiation Detector Data Acquisition App</p>
+      <p data-i18n="app.subtitle">Radiation Detector Data Acquisition App</p>
     </div>
   </div>
 
   <!-- Notes -->
   <div class="sidebar-section">
-    <h3><span class="icon">&#x1f4cb;</span> Notes &amp; Tips</h3>
+    <h3><span class="icon">&#x1f4cb;</span> <span data-i18n="notes.title">Notes &amp; Tips</span></h3>
     <ul>
-      <li>Works on Chrome / Edge</li>
-      <li>USB: Web Serial API (9600 bps)</li>
-      <li>BLE: Web Bluetooth API</li>
-      <li>BLE requires HTTPS or localhost</li>
-      <li>ADC range is 0&ndash;4095 (12-bit)</li>
+      <li data-i18n="notes.chrome">Works on Chrome / Edge</li>
+      <li data-i18n="notes.usb">USB: Web Serial API (9600 bps)</li>
+      <li data-i18n="notes.ble">BLE: Web Bluetooth API</li>
+      <li data-i18n="notes.https">BLE requires HTTPS or localhost</li>
+      <li data-i18n="notes.adc">ADC range is 0&ndash;4095 (12-bit)</li>
     </ul>
   </div>
 
   <!-- Auto-Save -->
   <div class="sidebar-section">
-    <h3><span class="icon">&#x1f4be;</span> Auto-Save</h3>
-    <p>Select a folder to automatically save data as it arrives. Requires Chrome / Edge.</p>
+    <h3><span class="icon">&#x1f4be;</span> <span data-i18n="autosave.title">Auto-Save</span></h3>
+    <p data-i18n="autosave.desc">Select a folder to automatically save data as it arrives. Requires Chrome / Edge.</p>
     <div class="input-group">
-      <label>Save Format</label>
+      <label data-i18n="autosave.format">Save Format</label>
       <select id="autoSaveFormat">
-        <option value="dat">.dat only</option>
-        <option value="csv">.csv only</option>
-        <option value="both">Both (.dat &amp; .csv)</option>
+        <option value="dat" data-i18n="autosave.datOnly">.dat only</option>
+        <option value="csv" data-i18n="autosave.csvOnly">.csv only</option>
+        <option value="both" data-i18n="autosave.both">Both (.dat &amp; .csv)</option>
       </select>
     </div>
-    <button class="btn btn-primary" id="btnSelectFolder">&#x1f4c2; Select Save Folder</button>
+    <button class="btn btn-primary" id="btnSelectFolder">&#x1f4c2; <span data-i18n="autosave.selectFolder">Select Save Folder</span></button>
     <div class="autosave-status idle" id="autoSaveStatus">Not configured</div>
   </div>
 
   <!-- File Settings -->
   <div class="sidebar-section">
-    <h3><span class="icon">&#x1f4c1;</span> File Settings</h3>
-    <p>Add a comment (written into the file header on download)</p>
+    <h3><span class="icon">&#x1f4c1;</span> <span data-i18n="file.title">File Settings</span></h3>
+    <p data-i18n="file.commentDesc">Add a comment (written into the file header on download)</p>
     <div class="input-group">
-      <textarea id="fileComment" rows="2" style="resize:vertical;" placeholder="Measurement notes..."></textarea>
+      <textarea id="fileComment" rows="2" style="resize:vertical;" placeholder="Measurement notes..." data-i18n-placeholder="file.commentPlaceholder"></textarea>
     </div>
-    <button class="btn btn-primary" id="btnExportDat" disabled>&#x1f4e5; Download (.dat)</button>
+    <button class="btn btn-primary" id="btnExportDat" disabled>&#x1f4e5; <span data-i18n="file.downloadDat">Download (.dat)</span></button>
     <div style="height:6px"></div>
-    <button class="btn btn-outline" id="btnExportCsv" disabled>&#x1f4e5; Download (.csv)</button>
+    <button class="btn btn-outline" id="btnExportCsv" disabled>&#x1f4e5; <span data-i18n="file.downloadCsv">Download (.csv)</span></button>
     <div id="exportStatus" style="display:none; font-size:12px; color:#007a6e; margin-top:8px;"></div>
     <div class="alert alert-warning" id="memWarning" style="display:none; margin-top:10px;"></div>
     <div style="height:6px"></div>
-    <button class="btn btn-secondary" id="btnClearData">&#x1f5d1; Clear Data</button>
+    <button class="btn btn-secondary" id="btnClearData">&#x1f5d1; <span data-i18n="file.clearData">Clear Data</span></button>
   </div>
 
   <!-- Connection -->
   <div class="sidebar-section">
-    <h3><span class="icon">&#x1f50c;</span> Connect to CosmicRay</h3>
+    <h3><span class="icon">&#x1f50c;</span> <span data-i18n="conn.title">Connect to CosmicRay</span></h3>
     <div class="input-group" id="baudRateGroup">
-      <label>Baud Rate (USB)</label>
+      <label data-i18n="conn.baud">Baud Rate (USB)</label>
       <select id="baudRate">
         <option value="9600" selected>9600</option>
         <option value="115200">115200</option>
       </select>
     </div>
     <div class="input-group">
-      <label>Bluetooth Device Name</label>
+      <label data-i18n="conn.bleName">Bluetooth Device Name</label>
       <input type="text" id="bleName" value="CosmicRay" maxlength="24" placeholder="CosmicRay">
     </div>
     <div id="connectButtons">
-      <button class="btn btn-primary" id="btnConnectUSB">&#x1f50c; Connect USB</button>
+      <button class="btn btn-primary" id="btnConnectUSB">&#x1f50c; <span data-i18n="conn.connectUsb">Connect USB</span></button>
       <div style="height:6px"></div>
-      <button class="btn btn-ble" id="btnConnectBLE">&#x1f4f6; Connect Bluetooth</button>
+      <button class="btn btn-ble" id="btnConnectBLE">&#x1f4f6; <span data-i18n="conn.connectBle">Connect Bluetooth</span></button>
     </div>
     <div id="connectionInfo" style="display:none;margin-top:8px;">
       <button class="btn btn-warning" id="btnPauseLog">&#x23f8;&#xfe0f; Stop Logging</button>
       <div style="height:6px"></div>
-      <button class="btn btn-danger" id="btnDisconnect">&#x26a0; Disconnect</button>
-      <div id="logPausedInfo" class="thresh-current" style="margin-top:6px;display:none;">&#x23f8;&#xfe0f; Logging paused &mdash; incoming events are ignored (device keeps measuring).</div>
+      <button class="btn btn-danger" id="btnDisconnect">&#x26a0; <span data-i18n="conn.disconnect">Disconnect</span></button>
+      <div id="logPausedInfo" class="thresh-current" style="margin-top:6px;display:none;">&#x23f8;&#xfe0f; <span data-i18n="conn.pausedInfo">Logging paused &mdash; incoming events are ignored (device keeps measuring).</span></div>
     </div>
     <div style="margin-top:10px;">
-      <button class="btn btn-outline btn-sm" id="btnSetBleName" disabled>&#x1f4dd; Rename &amp; Reboot</button>
+      <button class="btn btn-outline btn-sm" id="btnSetBleName" disabled>&#x1f4dd; <span data-i18n="conn.renameReboot">Rename &amp; Reboot</span></button>
       <div class="thresh-current" id="bleNameInfo" style="margin-top:6px;">1&ndash;24 printable ASCII. Device reboots on save.</div>
     </div>
   </div>
 
   <!-- Chart Refresh -->
   <div class="sidebar-section">
-    <h3><span class="icon">&#x1f504;</span> Chart Refresh</h3>
-    <p>Histogram &amp; rate chart update interval.</p>
+    <h3><span class="icon">&#x1f504;</span> <span data-i18n="refresh.title">Chart Refresh</span></h3>
+    <p data-i18n="refresh.desc">Histogram &amp; rate chart update interval.</p>
     <div class="mode-select four" id="refreshSelect">
       <button type="button" data-interval="1000">1s</button>
       <button type="button" data-interval="3000" class="active">3s</button>
       <button type="button" data-interval="10000">10s</button>
-      <button type="button" data-interval="manual">Manual</button>
+      <button type="button" data-interval="manual" data-i18n="refresh.manual">Manual</button>
     </div>
     <div style="height:6px"></div>
-    <button class="btn btn-outline btn-sm" id="btnRefreshNow" disabled>&#x1f504; Refresh Now</button>
+    <button class="btn btn-outline btn-sm" id="btnRefreshNow" disabled>&#x1f504; <span data-i18n="refresh.now">Refresh Now</span></button>
   </div>
 
   <!-- Trigger Mode -->
   <div class="sidebar-section">
-    <h3><span class="icon">&#x1f500;</span> Trigger Mode</h3>
-    <p>Digital: ISR on D0 edge. Dual: ISR + ADC re-check. Analog: A0 polling only.</p>
+    <h3><span class="icon">&#x1f500;</span> <span data-i18n="trigger.title">Trigger Mode</span></h3>
+    <p data-i18n="trigger.desc">Digital: ISR on D0 edge. Dual: ISR + ADC re-check. Analog: A0 polling only.</p>
     <div class="mode-select" id="modeSelect">
       <button type="button" data-mode="DIGITAL" disabled>Digital</button>
       <button type="button" data-mode="DUAL"    disabled>Dual</button>
@@ -606,35 +630,35 @@
 
   <!-- Feature Toggles -->
   <div class="sidebar-section">
-    <h3><span class="icon">&#x1f39b;&#xfe0f;</span> Feature Toggles</h3>
-    <p>Runtime on/off for deadtime / power optimization.</p>
+    <h3><span class="icon">&#x1f39b;&#xfe0f;</span> <span data-i18n="feat.title">Feature Toggles</span></h3>
+    <p data-i18n="feat.desc">Runtime on/off for deadtime / power optimization.</p>
 
     <div class="feature-row">
-      <label>SD Logging</label>
+      <label data-i18n="feat.sd">SD Logging</label>
       <div class="mode-select two" id="featSD" data-feature="SD">
-        <button type="button" data-val="ON"  disabled>On</button>
-        <button type="button" data-val="OFF" disabled>Off</button>
+        <button type="button" data-val="ON"  disabled data-i18n="common.on">On</button>
+        <button type="button" data-val="OFF" disabled data-i18n="common.off">Off</button>
       </div>
     </div>
     <div class="feature-row">
-      <label>External Channels</label>
+      <label data-i18n="feat.ext">External Channels</label>
       <div class="mode-select two" id="featEXT" data-feature="EXT">
-        <button type="button" data-val="ON"  disabled>On</button>
-        <button type="button" data-val="OFF" disabled>Off</button>
+        <button type="button" data-val="ON"  disabled data-i18n="common.on">On</button>
+        <button type="button" data-val="OFF" disabled data-i18n="common.off">Off</button>
       </div>
     </div>
     <div class="feature-row">
-      <label>OLED Display</label>
+      <label data-i18n="feat.oled">OLED Display</label>
       <div class="mode-select two" id="featOLED" data-feature="OLED">
-        <button type="button" data-val="ON"  disabled>On</button>
-        <button type="button" data-val="OFF" disabled>Off</button>
+        <button type="button" data-val="ON"  disabled data-i18n="common.on">On</button>
+        <button type="button" data-val="OFF" disabled data-i18n="common.off">Off</button>
       </div>
     </div>
     <div class="feature-row">
-      <label>Buzzer Sound</label>
+      <label data-i18n="feat.buzzer">Buzzer Sound</label>
       <div class="mode-select two" id="featBUZZER" data-feature="BUZZER">
-        <button type="button" data-val="ON"  disabled>On</button>
-        <button type="button" data-val="OFF" disabled>Off</button>
+        <button type="button" data-val="ON"  disabled data-i18n="common.on">On</button>
+        <button type="button" data-val="OFF" disabled data-i18n="common.off">Off</button>
       </div>
     </div>
     <div class="thresh-current" id="featInfo">Not connected</div>
@@ -642,21 +666,21 @@
 
   <!-- Threshold Control -->
   <div class="sidebar-section">
-    <h3><span class="icon">&#x2699;</span> Threshold Control</h3>
+    <h3><span class="icon">&#x2699;</span> <span data-i18n="thresh.title">Threshold Control</span></h3>
     <div class="input-group">
-      <label>Signal Threshold (0&ndash;4095, 12-bit)</label>
+      <label data-i18n="thresh.signalLabel">Signal Threshold (0&ndash;4095, 12-bit)</label>
       <input type="number" id="threshSignal" min="0" max="4095" value="120">
     </div>
     <div class="btn-group">
-      <button class="btn btn-primary btn-sm" id="btnSetThresh" disabled>Set</button>
-      <button class="btn btn-outline btn-sm" id="btnGetThresh" disabled>Get</button>
+      <button class="btn btn-primary btn-sm" id="btnSetThresh" disabled data-i18n="common.set">Set</button>
+      <button class="btn btn-outline btn-sm" id="btnGetThresh" disabled data-i18n="common.get">Get</button>
     </div>
     <div style="height:6px"></div>
     <div class="input-group">
-      <label>Auto Calibrate Margin (above sampled max)</label>
+      <label data-i18n="thresh.marginLabel">Auto Calibrate Margin (above sampled max)</label>
       <input type="number" id="autoMargin" min="0" max="4095" value="50">
     </div>
-    <button class="btn btn-secondary" id="btnAutoThresh" disabled>&#x1f50d; Auto Calibrate</button>
+    <button class="btn btn-secondary" id="btnAutoThresh" disabled>&#x1f50d; <span data-i18n="thresh.autoCal">Auto Calibrate</span></button>
     <div class="thresh-current" id="threshInfo">Not connected</div>
   </div>
 </aside>
@@ -665,11 +689,15 @@
 <div class="main">
   <!-- Header -->
   <header class="header">
-    <h1>&#x1f4ca; Data Analysis</h1>
+    <h1>&#x1f4ca; <span data-i18n="header.title">Data Analysis</span></h1>
     <div class="header-right">
       <span id="elapsedTime">Elapsed: --:--:--</span>
       <span id="modeBadge" class="mode-badge unknown">&#x1f4e1; Mode: --</span>
       <span><span class="status-dot disconnected" id="statusDot"></span> <span id="statusText">Not connected</span></span>
+      <div class="lang-switch" role="group" aria-label="Language">
+        <button type="button" data-lang="ja" title="&#x65e5;&#x672c;&#x8a9e;" aria-label="&#x65e5;&#x672c;&#x8a9e;"><svg width="24" height="16" viewBox="0 0 24 16" aria-hidden="true"><rect width="24" height="16" fill="#fff"/><circle cx="12" cy="8" r="4.8" fill="#bc002d"/></svg></button>
+        <button type="button" data-lang="en" title="English" aria-label="English"><svg width="24" height="16" viewBox="0 0 24 16" aria-hidden="true"><rect width="24" height="16" fill="#fff"/><g fill="#b22234"><rect y="0" width="24" height="1.23"/><rect y="2.46" width="24" height="1.23"/><rect y="4.92" width="24" height="1.23"/><rect y="7.38" width="24" height="1.23"/><rect y="9.85" width="24" height="1.23"/><rect y="12.31" width="24" height="1.23"/><rect y="14.77" width="24" height="1.23"/></g><rect width="10.5" height="8.61" fill="#3c3b6e"/><g fill="#fff"><circle cx="2.2" cy="1.7" r="0.55"/><circle cx="5.25" cy="1.7" r="0.55"/><circle cx="8.3" cy="1.7" r="0.55"/><circle cx="3.7" cy="4.3" r="0.55"/><circle cx="6.8" cy="4.3" r="0.55"/><circle cx="2.2" cy="6.9" r="0.55"/><circle cx="5.25" cy="6.9" r="0.55"/><circle cx="8.3" cy="6.9" r="0.55"/></g></svg></button>
+      </div>
     </div>
   </header>
 
@@ -679,8 +707,9 @@
 
     <!-- Tabs -->
     <div class="tabs">
-      <div class="tab active" data-tab="analysis">Analysis</div>
-      <div class="tab" data-tab="stats">Statistics</div>
+      <div class="tab active" data-tab="analysis" data-i18n="tabs.analysis">Analysis</div>
+      <div class="tab" data-tab="stats" data-i18n="tabs.stats">Statistics</div>
+      <div class="tab" data-tab="scope" data-i18n="tabs.scope">Oscilloscope</div>
     </div>
 
     <!-- Analysis Tab -->
@@ -688,12 +717,12 @@
       <!-- Charts -->
       <div class="charts-row">
         <div class="chart-container">
-          <h3>&#x1f4ca; ADC Energy Histogram</h3>
+          <h3>&#x1f4ca; <span data-i18n="chart.histTitle">ADC Energy Histogram</span></h3>
           <div class="chart-wrapper">
             <canvas id="histogramChart"></canvas>
           </div>
           <div style="margin-top:8px;">
-            <label style="font-size:12px;color:#888;">ADC Bin Width:
+            <label style="font-size:12px;color:#888;"><span data-i18n="chart.binWidth">ADC Bin Width:</span>
               <select id="binWidth" style="padding:2px 6px;font-size:12px;border:1px solid #ddd;border-radius:3px;">
                 <option value="4">4</option>
                 <option value="8">8</option>
@@ -706,12 +735,12 @@
           </div>
         </div>
         <div class="chart-container">
-          <h3>&#x1f4c8; Count Rate Over Time</h3>
+          <h3>&#x1f4c8; <span data-i18n="chart.rateTitle">Count Rate Over Time</span></h3>
           <div class="chart-wrapper">
             <canvas id="rateChart"></canvas>
           </div>
           <div style="margin-top:8px;">
-            <label style="font-size:12px;color:#888;">Data points: <span id="rateDataCount">0</span></label>
+            <label style="font-size:12px;color:#888;"><span data-i18n="chart.dataPoints">Data points:</span> <span id="rateDataCount">0</span></label>
           </div>
         </div>
       </div>
@@ -720,23 +749,23 @@
       <div class="stats-row">
         <div class="stat-card">
           <div class="stat-value" id="statTotalEvents">0</div>
-          <div class="stat-label">Total Events</div>
+          <div class="stat-label" data-i18n="stat.totalEvents">Total Events</div>
         </div>
         <div class="stat-card">
           <div class="stat-value" id="statRate">0.00</div>
-          <div class="stat-label">Avg. Rate (cps)</div>
+          <div class="stat-label" data-i18n="stat.avgRate">Avg. Rate (cps)</div>
         </div>
         <div class="stat-card">
           <div class="stat-value" id="statAdc">--</div>
-          <div class="stat-label">Avg. ADC (0-4095)</div>
+          <div class="stat-label" data-i18n="stat.avgAdc">Avg. ADC (0-4095)</div>
         </div>
         <div class="stat-card">
           <div class="stat-value" id="statDeadtime">--</div>
-          <div class="stat-label">Total Deadtime (s)</div>
+          <div class="stat-label" data-i18n="stat.totalDeadtime">Total Deadtime (s)</div>
         </div>
         <div class="stat-card">
           <div class="stat-value" id="statElapsed">00:00:00</div>
-          <div class="stat-label">Elapsed Time</div>
+          <div class="stat-label" data-i18n="stat.elapsed">Elapsed Time</div>
         </div>
       </div>
 
@@ -744,21 +773,21 @@
       <div class="env-row">
         <div class="env-card">
           <div class="env-value"><span id="envTemp">--</span> &deg;C</div>
-          <div class="env-label">Temperature (BME280)</div>
+          <div class="env-label" data-i18n="env.temp">Temperature (BME280)</div>
         </div>
         <div class="env-card">
           <div class="env-value"><span id="envHum">--</span> %</div>
-          <div class="env-label">Humidity (BME280)</div>
+          <div class="env-label" data-i18n="env.hum">Humidity (BME280)</div>
         </div>
         <div class="env-card">
           <div class="env-value"><span id="envPress">--</span> hPa</div>
-          <div class="env-label">Pressure (BME280)</div>
+          <div class="env-label" data-i18n="env.press">Pressure (BME280)</div>
         </div>
       </div>
 
       <!-- External detectors (latest) -->
       <div class="card">
-        <h3>&#x1f9ea; External Detectors (latest event)</h3>
+        <h3>&#x1f9ea; <span data-i18n="ext.title">External Detectors (latest event)</span></h3>
         <div class="ext-grid" id="extGrid">
           <!-- filled by JS -->
         </div>
@@ -766,20 +795,20 @@
 
       <!-- Measurement Data Table -->
       <div class="card">
-        <h3>&#x1f4cb; Measurement Data</h3>
-        <p style="font-size:12px;color:#888;margin-bottom:12px;">Displayed newest first (latest 100 rows)</p>
+        <h3>&#x1f4cb; <span data-i18n="table.title">Measurement Data</span></h3>
+        <p style="font-size:12px;color:#888;margin-bottom:12px;" data-i18n="table.desc">Displayed newest first (latest 100 rows)</p>
         <div class="table-wrapper" id="tableWrapper">
           <table>
             <thead>
               <tr>
                 <th>#</th>
-                <th>PC Timestamp</th>
-                <th>Time [&micro;s]</th>
-                <th>ADC [0-4095]</th>
-                <th>Deadtime [&micro;s]</th>
-                <th>Temp [&deg;C]</th>
-                <th>Hum [%]</th>
-                <th>Press [hPa]</th>
+                <th data-i18n="table.pcTs">PC Timestamp</th>
+                <th data-i18n="table.time">Time [&micro;s]</th>
+                <th data-i18n="table.adc">ADC [0-4095]</th>
+                <th data-i18n="table.deadtime">Deadtime [&micro;s]</th>
+                <th data-i18n="table.temp">Temp [&deg;C]</th>
+                <th data-i18n="table.hum">Hum [%]</th>
+                <th data-i18n="table.press">Press [hPa]</th>
                 <th>D1</th><th>D2</th><th>D3</th>
                 <th>A1</th><th>A2</th><th>A3</th>
               </tr>
@@ -787,44 +816,109 @@
             <tbody id="dataTableBody">
             </tbody>
           </table>
-          <div class="no-data" id="noDataMsg">Waiting for data...</div>
+          <div class="no-data" id="noDataMsg" data-i18n="table.noData">Waiting for data...</div>
         </div>
       </div>
 
       <!-- Raw Data -->
       <div class="card">
-        <h3>&#x1f4df; Raw Data</h3>
-        <p style="font-size:12px;color:#888;margin-bottom:8px;">Raw data received from CosmicRay (latest 100 lines)</p>
+        <h3>&#x1f4df; <span data-i18n="raw.title">Raw Data</span></h3>
+        <p style="font-size:12px;color:#888;margin-bottom:8px;" data-i18n="raw.desc">Raw data received from CosmicRay (latest 100 lines)</p>
         <div class="raw-data" id="rawDataDisplay">Waiting for connection...</div>
+      </div>
+    </div>
+
+    <!-- Oscilloscope Tab -->
+    <!-- このタブを開いている間だけファームに SET_SCOPE:ON を送り、波形を流させる。
+         ファーム側はオシロ中 ADC1 を DMA に渡すため計数を止める（滞在時間はデッドタイムに計上）。
+         V2 の A0 はアンプの生出力ではなくピークホールドの出力なので、
+         見えるのは「整定 -> ドループ -> リセット」という階段状の波形になる。 -->
+    <div id="tab-scope" style="display:none;">
+      <div class="card">
+        <h3>&#x1f4c9; <span data-i18n="scope.title">Oscilloscope</span></h3>
+        <p style="font-size:12px;color:#888;margin-bottom:10px;" data-i18n="scope.desc">
+          While this tab is open the detector stops counting and streams raw waveforms (12 us/sample).
+          The time spent here is added to deadtime, so the count rate stays correct.
+        </p>
+        <p style="font-size:12px;color:#888;margin-bottom:10px;" data-i18n="scope.holdNote">
+          A0 is the peak-hold output, not the raw amplifier pulse. Expect settle -> droop -> reset.
+        </p>
+        <div id="scopeBleWarn" class="alert alert-warning" style="display:none;" data-i18n="scope.bleWarn">
+          Over Bluetooth each waveform takes several notifications. Keep the rate low.
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:14px;align-items:center;margin-bottom:12px;">
+          <label style="font-size:12px;color:#666;">
+            <span data-i18n="scope.rate">Rate limit [/s]</span>
+            <input type="number" id="scopeRate" value="3" min="1" max="20"
+                   style="width:62px;padding:3px 6px;font-size:12px;border:1px solid #ddd;border-radius:3px;">
+          </label>
+          <label style="font-size:12px;color:#666;">
+            <span data-i18n="scope.persist">Persistence</span>
+            <input type="number" id="scopePersist" value="20" min="0" max="200"
+                   style="width:62px;padding:3px 6px;font-size:12px;border:1px solid #ddd;border-radius:3px;">
+          </label>
+          <label style="font-size:12px;color:#666;display:flex;align-items:center;gap:5px;">
+            <input type="checkbox" id="scopeAutoY" checked>
+            <span data-i18n="scope.autoY">Auto Y</span>
+          </label>
+          <button class="btn btn-secondary btn-sm" id="scopeFreeze" data-i18n="scope.freeze">Freeze</button>
+          <button class="btn btn-secondary btn-sm" id="scopeClear" data-i18n="scope.clear">Clear</button>
+          <button class="btn btn-outline btn-sm" id="scopeSave" data-i18n="scope.save">Save .wfm</button>
+        </div>
+        <div style="width:100%;overflow-x:auto;">
+          <canvas id="scopeCanvas" width="1120" height="440" style="display:block;max-width:100%;"></canvas>
+        </div>
+        <div class="stats-row" style="margin-top:14px;">
+          <div class="stat-card">
+            <div class="stat-value" id="scopePeak">--</div>
+            <div class="stat-label" data-i18n="scope.peak">Peak ADC</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="scopeTPeak">--</div>
+            <div class="stat-label" data-i18n="scope.tpeak">t_peak [us]</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="scopeCount">0</div>
+            <div class="stat-label" data-i18n="scope.frames">Waveforms</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="scopeFps">0.0</div>
+            <div class="stat-label" data-i18n="scope.fps">Waveforms/s</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="scopeBad">0</div>
+            <div class="stat-label" data-i18n="scope.bad">Dropped lines</div>
+          </div>
+        </div>
       </div>
     </div>
 
     <!-- Stats Tab -->
     <div id="tab-stats" style="display:none;">
       <div class="card">
-        <h3>Detailed Statistics</h3>
+        <h3 data-i18n="stats.title">Detailed Statistics</h3>
         <div class="table-wrapper">
           <table>
             <thead>
-              <tr><th>Item</th><th>Value</th></tr>
+              <tr><th data-i18n="stats.item">Item</th><th data-i18n="stats.value">Value</th></tr>
             </thead>
             <tbody id="statsTableBody">
-              <tr><td>Total Events</td><td id="ds_total">0</td></tr>
-              <tr><td>Measurement Time</td><td id="ds_elapsed">--</td></tr>
-              <tr><td>Avg. Count Rate (cps)</td><td id="ds_rate">--</td></tr>
-              <tr><td>Count Rate Std Dev</td><td id="ds_rateStd">--</td></tr>
-              <tr><td>Avg. Temperature (&deg;C)</td><td id="ds_temp">--</td></tr>
-              <tr><td>Temp. Std Dev</td><td id="ds_tempStd">--</td></tr>
-              <tr><td>Max / Min Temperature (&deg;C)</td><td id="ds_tempRange">--</td></tr>
-              <tr><td>Avg. Humidity (%)</td><td id="ds_hum">--</td></tr>
-              <tr><td>Max / Min Humidity (%)</td><td id="ds_humRange">--</td></tr>
-              <tr><td>Avg. Pressure (hPa)</td><td id="ds_press">--</td></tr>
-              <tr><td>Max / Min Pressure (hPa)</td><td id="ds_pressRange">--</td></tr>
-              <tr><td>Total Deadtime (s)</td><td id="ds_deadtime">--</td></tr>
-              <tr><td>Avg. ADC Value</td><td id="ds_adcMean">--</td></tr>
-              <tr><td>Max ADC Value</td><td id="ds_adcMax">--</td></tr>
-              <tr><td>Dig1 / Dig2 / Dig3 hit rate</td><td id="ds_digRate">--</td></tr>
-              <tr><td>Avg. Ana1 / Ana2 / Ana3</td><td id="ds_anaMean">--</td></tr>
+              <tr><td data-i18n="stats.total">Total Events</td><td id="ds_total">0</td></tr>
+              <tr><td data-i18n="stats.elapsed">Measurement Time</td><td id="ds_elapsed">--</td></tr>
+              <tr><td data-i18n="stats.rate">Avg. Count Rate (cps)</td><td id="ds_rate">--</td></tr>
+              <tr><td data-i18n="stats.rateStd">Count Rate Std Dev</td><td id="ds_rateStd">--</td></tr>
+              <tr><td data-i18n="stats.temp">Avg. Temperature (&deg;C)</td><td id="ds_temp">--</td></tr>
+              <tr><td data-i18n="stats.tempStd">Temp. Std Dev</td><td id="ds_tempStd">--</td></tr>
+              <tr><td data-i18n="stats.tempRange">Max / Min Temperature (&deg;C)</td><td id="ds_tempRange">--</td></tr>
+              <tr><td data-i18n="stats.hum">Avg. Humidity (%)</td><td id="ds_hum">--</td></tr>
+              <tr><td data-i18n="stats.humRange">Max / Min Humidity (%)</td><td id="ds_humRange">--</td></tr>
+              <tr><td data-i18n="stats.press">Avg. Pressure (hPa)</td><td id="ds_press">--</td></tr>
+              <tr><td data-i18n="stats.pressRange">Max / Min Pressure (hPa)</td><td id="ds_pressRange">--</td></tr>
+              <tr><td data-i18n="stats.deadtime">Total Deadtime (s)</td><td id="ds_deadtime">--</td></tr>
+              <tr><td data-i18n="stats.adcMean">Avg. ADC Value</td><td id="ds_adcMean">--</td></tr>
+              <tr><td data-i18n="stats.adcMax">Max ADC Value</td><td id="ds_adcMax">--</td></tr>
+              <tr><td data-i18n="stats.digRate">Dig1 / Dig2 / Dig3 hit rate</td><td id="ds_digRate">--</td></tr>
+              <tr><td data-i18n="stats.anaMean">Avg. Ana1 / Ana2 / Ana3</td><td id="ds_anaMean">--</td></tr>
             </tbody>
           </table>
         </div>
@@ -835,7 +929,7 @@
   <!-- Footer -->
   <footer class="footer">
     <span>
-      &copy; 2020&ndash;2026 <a href="https://accel-kitchen.com/" target="_blank" rel="noopener">Accel Kitchen LLC</a>
+      &copy; 2020&ndash;2026 <a href="https://accel-kitchen.com/" target="_blank" rel="noopener" data-i18n="footer.company">Accel Kitchen LLC</a>
       &nbsp;&mdash;&nbsp; <a href="mailto:info@accel-kitchen.com">info@accel-kitchen.com</a>
     </span>
     <span>CosmicRay Recorder v2</span>
@@ -843,6 +937,399 @@
 </div>
 
 <script>
+// ========== i18n ==========
+const I18N = {
+  en: {
+    'app.title': 'CosmicRay Recorder v2',
+    'app.subtitle': 'Radiation Detector Data Acquisition App',
+    'notes.title': 'Notes & Tips',
+    'notes.chrome': 'Works on Chrome / Edge',
+    'notes.usb': 'USB: Web Serial API (9600 bps)',
+    'notes.ble': 'BLE: Web Bluetooth API',
+    'notes.https': 'BLE requires HTTPS or localhost',
+    'notes.adc': 'ADC range is 0–4095 (12-bit)',
+    'autosave.title': 'Auto-Save',
+    'autosave.desc': 'Select a folder to automatically save data as it arrives. Requires Chrome / Edge.',
+    'autosave.format': 'Save Format',
+    'autosave.datOnly': '.dat only',
+    'autosave.csvOnly': '.csv only',
+    'autosave.both': 'Both (.dat & .csv)',
+    'autosave.selectFolder': 'Select Save Folder',
+    'autosave.notConfigured': 'Not configured',
+    'autosave.status': 'Saving: {file}\nWritten: {n} events',
+    'autosave.writeError': 'Write error: {msg}',
+    'file.title': 'File Settings',
+    'file.commentDesc': 'Add a comment (written into the file header on download)',
+    'file.commentPlaceholder': 'Measurement notes...',
+    'file.downloadDat': 'Download (.dat)',
+    'file.downloadCsv': 'Download (.csv)',
+    'file.clearData': 'Clear Data',
+    'conn.title': 'Connect to CosmicRay',
+    'conn.baud': 'Baud Rate (USB)',
+    'conn.bleName': 'Bluetooth Device Name',
+    'conn.connectUsb': 'Connect USB',
+    'conn.connectBle': 'Connect Bluetooth',
+    'conn.stopLogging': 'Stop Logging',
+    'conn.resumeLogging': 'Resume Logging',
+    'conn.disconnect': 'Disconnect',
+    'conn.pausedInfo': 'Logging paused — incoming events are ignored (device keeps measuring).',
+    'conn.renameReboot': 'Rename & Reboot',
+    'conn.bleNameHint': '1–24 printable ASCII. Device reboots on save.',
+    'conn.bleNameCurrent': 'Device BLE name: {name}',
+    'conn.bleNameSaving': 'Saving "{name}" and rebooting...',
+    'conn.connectedUsb': 'Connected (USB)',
+    'conn.connectedBle': 'Connected (BLE)',
+    'conn.pausedSuffix': ' — Logging paused',
+    'refresh.title': 'Chart Refresh',
+    'refresh.desc': 'Histogram & rate chart update interval.',
+    'refresh.manual': 'Manual',
+    'refresh.now': 'Refresh Now',
+    'trigger.title': 'Trigger Mode',
+    'trigger.desc': 'Digital: ISR on D0 edge. Dual: ISR + ADC re-check. Analog: A0 polling only.',
+    'feat.title': 'Feature Toggles',
+    'feat.desc': 'Runtime on/off for deadtime / power optimization.',
+    'feat.sd': 'SD Logging',
+    'feat.ext': 'External Channels',
+    'feat.oled': 'OLED Display',
+    'feat.buzzer': 'Buzzer Sound',
+    'feat.fetching': 'Connected. Fetching toggles...',
+    'feat.status': 'SD: {sd}  EXT: {ext}  OLED: {oled}  Buzzer: {buzzer}',
+    'thresh.title': 'Threshold Control',
+    'thresh.signalLabel': 'Signal Threshold (0–4095, 12-bit)',
+    'thresh.marginLabel': 'Auto Calibrate Margin (above sampled max)',
+    'thresh.autoCal': 'Auto Calibrate',
+    'thresh.current': 'Signal threshold: {sig} / 4095   (PWM Duty: {duty} / 1023)',
+    'thresh.fetching': 'Connected. Fetching thresholds...',
+    'thresh.calibrating': 'Auto-calibrating threshold (margin={m})...',
+    'mode.current': 'Current mode: {mode}',
+    'mode.fetching': 'Connected. Fetching mode...',
+    'mode.switching': 'Switching to {mode}...',
+    'common.set': 'Set',
+    'common.get': 'Get',
+    'common.on': 'On',
+    'common.off': 'Off',
+    'common.notConnected': 'Not connected',
+    'header.title': 'Data Analysis',
+    'header.elapsed': 'Elapsed: {time}',
+    'badge.mode': 'Mode: {mode}',
+    'badge.unknown': 'Mode: --',
+    'tabs.analysis': 'Analysis',
+    'tabs.scope': 'Oscilloscope',
+    'scope.title': 'Oscilloscope',
+    'scope.desc': 'While this tab is open the detector stops counting and streams raw waveforms (12 us/sample). The time spent here is added to deadtime, so the count rate stays correct.',
+    'scope.holdNote': 'A0 is the peak-hold output, not the raw amplifier pulse. Expect settle -> droop -> reset.',
+    'scope.bleWarn': 'Over Bluetooth each waveform takes several notifications. Keep the rate low.',
+    'scope.rate': 'Rate limit [/s]',
+    'scope.persist': 'Persistence',
+    'scope.autoY': 'Auto Y',
+    'scope.freeze': 'Freeze',
+    'scope.unfreeze': 'Run',
+    'scope.clear': 'Clear',
+    'scope.save': 'Save .wfm',
+    'scope.peak': 'Peak ADC',
+    'scope.tpeak': 't_peak [us]',
+    'scope.frames': 'Waveforms',
+    'scope.fps': 'Waveforms/s',
+    'scope.bad': 'Dropped lines',
+    'scope.waiting': 'Waiting for a trigger...',
+    'scope.notConnected': 'Not connected.',
+    'tabs.stats': 'Statistics',
+    'chart.histTitle': 'ADC Energy Histogram',
+    'chart.rateTitle': 'Count Rate Over Time',
+    'chart.binWidth': 'ADC Bin Width:',
+    'chart.dataPoints': 'Data points:',
+    'chart.xAdc': 'ADC Value (0-4095)',
+    'chart.yCount': 'Count',
+    'chart.xTime': 'Time',
+    'chart.yRate': 'Rate (cps)',
+    'stat.totalEvents': 'Total Events',
+    'stat.avgRate': 'Avg. Rate (cps)',
+    'stat.avgAdc': 'Avg. ADC (0-4095)',
+    'stat.totalDeadtime': 'Total Deadtime (s)',
+    'stat.elapsed': 'Elapsed Time',
+    'env.temp': 'Temperature (BME280)',
+    'env.hum': 'Humidity (BME280)',
+    'env.press': 'Pressure (BME280)',
+    'ext.title': 'External Detectors (latest event)',
+    'ext.cellLabel': 'External Detector {n}',
+    'table.title': 'Measurement Data',
+    'table.desc': 'Displayed newest first (latest 100 rows)',
+    'table.pcTs': 'PC Timestamp',
+    'table.time': 'Time [µs]',
+    'table.adc': 'ADC [0-4095]',
+    'table.deadtime': 'Deadtime [µs]',
+    'table.temp': 'Temp [°C]',
+    'table.hum': 'Hum [%]',
+    'table.press': 'Press [hPa]',
+    'table.noData': 'Waiting for data...',
+    'raw.title': 'Raw Data',
+    'raw.desc': 'Raw data received from CosmicRay (latest 100 lines)',
+    'raw.waiting': 'Waiting for connection...',
+    'stats.title': 'Detailed Statistics',
+    'stats.item': 'Item',
+    'stats.value': 'Value',
+    'stats.total': 'Total Events',
+    'stats.elapsed': 'Measurement Time',
+    'stats.rate': 'Avg. Count Rate (cps)',
+    'stats.rateStd': 'Count Rate Std Dev',
+    'stats.temp': 'Avg. Temperature (°C)',
+    'stats.tempStd': 'Temp. Std Dev',
+    'stats.tempRange': 'Max / Min Temperature (°C)',
+    'stats.hum': 'Avg. Humidity (%)',
+    'stats.humRange': 'Max / Min Humidity (%)',
+    'stats.press': 'Avg. Pressure (hPa)',
+    'stats.pressRange': 'Max / Min Pressure (hPa)',
+    'stats.deadtime': 'Total Deadtime (s)',
+    'stats.adcMean': 'Avg. ADC Value',
+    'stats.adcMax': 'Max ADC Value',
+    'stats.digRate': 'Dig1 / Dig2 / Dig3 hit rate',
+    'stats.anaMean': 'Avg. Ana1 / Ana2 / Ana3',
+    'footer.company': 'Accel Kitchen LLC',
+    'export.progress': 'Exporting… {done} / {total}',
+    'export.saved': 'Saved {n} events.',
+    'export.error': 'Export error: {msg}',
+    'alert.threshRange': 'Signal threshold must be an integer in 0–{max}.',
+    'alert.marginRange': 'Margin must be an integer in 0–{max}.',
+    'alert.bleName': 'BLE name must be 1-24 printable ASCII characters.',
+    'alert.fsApi': 'File System Access API is not supported. Please use Chrome or Edge.',
+    'confirm.rename': 'Rename BLE device to "{name}" and reboot?',
+    'confirm.clear': 'Clear all data and reset detector count?',
+    'warn.noSerial': 'Web Serial API is not available (USB connection disabled).',
+    'warn.noBle': 'Web Bluetooth API is not available (Bluetooth connection disabled).',
+    'warn.useChrome': 'Please use Chrome or Edge.',
+    'warn.memCap': 'Memory cap ({n} events) reached; oldest data is being dropped from memory. Use Auto-Save (Select Save Folder) to keep every event, or Download and Clear periodically.',
+  },
+  ja: {
+    'app.title': 'CosmicRay Recorder v2',
+    'app.subtitle': '放射線検出器データ収集アプリ',
+    'notes.title': '注意事項・ヒント',
+    'notes.chrome': 'Chrome / Edge で動作します',
+    'notes.usb': 'USB: Web Serial API (9600 bps)',
+    'notes.ble': 'BLE: Web Bluetooth API',
+    'notes.https': 'BLE は HTTPS または localhost が必要',
+    'notes.adc': 'ADC 範囲は 0〜4095 (12ビット)',
+    'autosave.title': '自動保存',
+    'autosave.desc': 'フォルダを選択すると、受信したデータを自動的に保存します。Chrome / Edge が必要です。',
+    'autosave.format': '保存形式',
+    'autosave.datOnly': '.dat のみ',
+    'autosave.csvOnly': '.csv のみ',
+    'autosave.both': '両方 (.dat と .csv)',
+    'autosave.selectFolder': '保存フォルダを選択',
+    'autosave.notConfigured': '未設定',
+    'autosave.status': '保存先: {file}\n書き込み済み: {n} イベント',
+    'autosave.writeError': '書き込みエラー: {msg}',
+    'file.title': 'ファイル設定',
+    'file.commentDesc': 'コメントを追加（ダウンロード時にファイルヘッダへ書き込まれます）',
+    'file.commentPlaceholder': '測定メモ...',
+    'file.downloadDat': 'ダウンロード (.dat)',
+    'file.downloadCsv': 'ダウンロード (.csv)',
+    'file.clearData': 'データを消去',
+    'conn.title': 'CosmicRay に接続',
+    'conn.baud': 'ボーレート (USB)',
+    'conn.bleName': 'Bluetooth デバイス名',
+    'conn.connectUsb': 'USB 接続',
+    'conn.connectBle': 'Bluetooth 接続',
+    'conn.stopLogging': '記録を停止',
+    'conn.resumeLogging': '記録を再開',
+    'conn.disconnect': '切断',
+    'conn.pausedInfo': '記録停止中 — 受信イベントは無視されます（デバイスは測定を続けます）。',
+    'conn.renameReboot': '名前変更して再起動',
+    'conn.bleNameHint': '印字可能な ASCII 1〜24文字。保存時にデバイスが再起動します。',
+    'conn.bleNameCurrent': 'デバイスの BLE 名: {name}',
+    'conn.bleNameSaving': '"{name}" を保存して再起動中...',
+    'conn.connectedUsb': '接続中 (USB)',
+    'conn.connectedBle': '接続中 (BLE)',
+    'conn.pausedSuffix': ' — 記録停止中',
+    'refresh.title': 'チャート更新',
+    'refresh.desc': 'ヒストグラムとレートチャートの更新間隔。',
+    'refresh.manual': '手動',
+    'refresh.now': '今すぐ更新',
+    'trigger.title': 'トリガーモード',
+    'trigger.desc': 'Digital: D0 エッジで割り込み。Dual: 割り込み + ADC 再確認。Analog: A0 ポーリングのみ。',
+    'feat.title': '機能スイッチ',
+    'feat.desc': 'デッドタイム / 消費電力の最適化のため実行中にオン/オフできます。',
+    'feat.sd': 'SD 記録',
+    'feat.ext': '外部チャンネル',
+    'feat.oled': 'OLED 表示',
+    'feat.buzzer': 'ブザー音',
+    'feat.fetching': '接続しました。設定を取得中...',
+    'feat.status': 'SD: {sd}  EXT: {ext}  OLED: {oled}  ブザー: {buzzer}',
+    'thresh.title': 'しきい値制御',
+    'thresh.signalLabel': '信号しきい値 (0〜4095, 12ビット)',
+    'thresh.marginLabel': '自動校正マージン（測定最大値への上乗せ）',
+    'thresh.autoCal': '自動校正',
+    'thresh.current': '信号しきい値: {sig} / 4095   (PWM Duty: {duty} / 1023)',
+    'thresh.fetching': '接続しました。しきい値を取得中...',
+    'thresh.calibrating': 'しきい値を自動校正中 (マージン={m})...',
+    'mode.current': '現在のモード: {mode}',
+    'mode.fetching': '接続しました。モードを取得中...',
+    'mode.switching': '{mode} に切り替え中...',
+    'common.set': '設定',
+    'common.get': '取得',
+    'common.on': 'オン',
+    'common.off': 'オフ',
+    'common.notConnected': '未接続',
+    'header.title': 'データ解析',
+    'header.elapsed': '経過: {time}',
+    'badge.mode': 'モード: {mode}',
+    'badge.unknown': 'モード: --',
+    'tabs.analysis': '解析',
+    'tabs.scope': 'オシロスコープ',
+    'scope.title': 'オシロスコープ',
+    'scope.desc': 'このタブを開いている間、検出器は計数を止めて生波形を流します（12µs/点）。滞在時間はデッドタイムに計上されるので、計数率は正しいままです。',
+    'scope.holdNote': 'A0 はアンプの生出力ではなく【ピークホールドの出力】です。整定 → ドループ → リセット という階段状の波形になります。',
+    'scope.bleWarn': 'Bluetooth では 1 波形が複数の通知に割れます。レートは低めにしてください。',
+    'scope.rate': 'レート上限 [/s]',
+    'scope.persist': '残光',
+    'scope.autoY': 'Y軸オート',
+    'scope.freeze': '停止',
+    'scope.unfreeze': '再開',
+    'scope.clear': 'クリア',
+    'scope.save': '.wfm 保存',
+    'scope.peak': 'ピーク ADC',
+    'scope.tpeak': 't_peak [µs]',
+    'scope.frames': '波形数',
+    'scope.fps': '波形/秒',
+    'scope.bad': '壊れた行',
+    'scope.waiting': 'トリガ待ち...',
+    'scope.notConnected': '未接続です。',
+    'tabs.stats': '統計',
+    'chart.histTitle': 'ADC エネルギーヒストグラム',
+    'chart.rateTitle': 'カウントレートの推移',
+    'chart.binWidth': 'ADC ビン幅:',
+    'chart.dataPoints': 'データ点数:',
+    'chart.xAdc': 'ADC 値 (0-4095)',
+    'chart.yCount': 'カウント',
+    'chart.xTime': '時刻',
+    'chart.yRate': 'レート (cps)',
+    'stat.totalEvents': '総イベント数',
+    'stat.avgRate': '平均レート (cps)',
+    'stat.avgAdc': '平均 ADC (0-4095)',
+    'stat.totalDeadtime': '総デッドタイム (s)',
+    'stat.elapsed': '経過時間',
+    'env.temp': '温度 (BME280)',
+    'env.hum': '湿度 (BME280)',
+    'env.press': '気圧 (BME280)',
+    'ext.title': '外部検出器（最新イベント）',
+    'ext.cellLabel': '外部検出器 {n}',
+    'table.title': '測定データ',
+    'table.desc': '新しい順に表示（最新100行）',
+    'table.pcTs': 'PC 時刻',
+    'table.time': '時刻 [µs]',
+    'table.adc': 'ADC [0-4095]',
+    'table.deadtime': 'デッドタイム [µs]',
+    'table.temp': '温度 [°C]',
+    'table.hum': '湿度 [%]',
+    'table.press': '気圧 [hPa]',
+    'table.noData': 'データ待機中...',
+    'raw.title': '生データ',
+    'raw.desc': 'CosmicRay から受信した生データ（最新100行）',
+    'raw.waiting': '接続待機中...',
+    'stats.title': '詳細統計',
+    'stats.item': '項目',
+    'stats.value': '値',
+    'stats.total': '総イベント数',
+    'stats.elapsed': '測定時間',
+    'stats.rate': '平均カウントレート (cps)',
+    'stats.rateStd': 'カウントレート標準偏差',
+    'stats.temp': '平均温度 (°C)',
+    'stats.tempStd': '温度標準偏差',
+    'stats.tempRange': '最高 / 最低温度 (°C)',
+    'stats.hum': '平均湿度 (%)',
+    'stats.humRange': '最高 / 最低湿度 (%)',
+    'stats.press': '平均気圧 (hPa)',
+    'stats.pressRange': '最高 / 最低気圧 (hPa)',
+    'stats.deadtime': '総デッドタイム (s)',
+    'stats.adcMean': '平均 ADC 値',
+    'stats.adcMax': '最大 ADC 値',
+    'stats.digRate': 'Dig1 / Dig2 / Dig3 ヒット率',
+    'stats.anaMean': '平均 Ana1 / Ana2 / Ana3',
+    'footer.company': '加速キッチン合同会社',
+    'export.progress': 'エクスポート中… {done} / {total}',
+    'export.saved': '{n} イベントを保存しました。',
+    'export.error': 'エクスポートエラー: {msg}',
+    'alert.threshRange': '信号しきい値は 0〜{max} の整数で入力してください。',
+    'alert.marginRange': 'マージンは 0〜{max} の整数で入力してください。',
+    'alert.bleName': 'BLE 名は印字可能な ASCII 1〜24文字で入力してください。',
+    'alert.fsApi': 'File System Access API に対応していません。Chrome または Edge をご利用ください。',
+    'confirm.rename': 'BLE デバイス名を "{name}" に変更して再起動しますか?',
+    'confirm.clear': '全データを消去し、検出器のカウントをリセットしますか?',
+    'warn.noSerial': 'Web Serial API が利用できません（USB 接続は無効）。',
+    'warn.noBle': 'Web Bluetooth API が利用できません（Bluetooth 接続は無効）。',
+    'warn.useChrome': 'Chrome または Edge をご利用ください。',
+    'warn.memCap': 'メモリ上限 ({n} 件) に達したため、古いデータをメモリから破棄しています。全件を残すにはフォルダ自動保存 (保存フォルダを選択) を使うか、こまめにダウンロードしてからデータを消去してください。',
+  },
+};
+
+let currentLang = 'en';
+
+function t(key, params) {
+  const dict = I18N[currentLang] || I18N.en;
+  let str = dict[key] ?? I18N.en[key] ?? key;
+  if (params) {
+    for (const [k, v] of Object.entries(params)) {
+      str = str.split(`{${k}}`).join(v);
+    }
+  }
+  return str;
+}
+
+function detectLanguage() {
+  try {
+    const saved = localStorage.getItem('uiLang');
+    if (saved === 'ja' || saved === 'en') return saved;
+  } catch (_) {}
+  return (navigator.language || '').toLowerCase().startsWith('ja') ? 'ja' : 'en';
+}
+
+function setLanguage(lang) {
+  currentLang = (lang === 'ja') ? 'ja' : 'en';
+  try { localStorage.setItem('uiLang', currentLang); } catch (_) {}
+  applyLanguage();
+}
+
+function applyLanguage() {
+  document.documentElement.lang = currentLang;
+  document.title = t('app.title');
+
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    el.textContent = t(el.dataset.i18n);
+  });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    el.placeholder = t(el.dataset.i18nPlaceholder);
+  });
+  document.querySelectorAll('.lang-switch button').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.lang === currentLang);
+  });
+
+  if (histogramChart && rateChart) {
+    histogramChart.opts.xTitle = t('chart.xAdc');
+    histogramChart.opts.yTitle = t('chart.yCount');
+    rateChart.opts.xTitle = t('chart.xTime');
+    rateChart.opts.yTitle = t('chart.yRate');
+    histogramChart.update();
+    rateChart.update();
+  }
+
+  // Re-render state-derived dynamic text in the new language.
+  renderStatusText();
+  renderThreshInfo();
+  renderModeInfo();
+  renderBleNameInfo();
+  renderPauseButton();
+  renderApiWarning();
+  updateFeatureInfo();
+  updateModeBadge(state.mode);
+  updateAutoSaveUI();
+  if (state.events.length === 0) {
+    $('elapsedTime').textContent = t('header.elapsed', { time: '--:--:--' });
+  }
+  updateStats();
+  updateExtGrid();
+  if (memWarned) renderMemWarning();
+  if (state.rawLines.length === 0) $('rawDataDisplay').textContent = t('raw.waiting');
+}
+
 // ========== Firmware constants (match description.md) ==========
 const ADC_MAX = 4095;                  // 12-bit ADC
 const EVENT_TOKEN_COUNT = 13;          // count, time_us, adc, deadtime_us, T, H, P, d1..3, a1..3
@@ -1079,15 +1566,15 @@ function initCharts() {
   for (let i = 0; i < numBins; i++) labels.push(i * binWidth);
 
   histogramChart = makeChart($('histogramChart'), 'bar', {
-    xTitle: 'ADC Value (0-4095)',
-    yTitle: 'Count',
+    xTitle: t('chart.xAdc'),
+    yTitle: t('chart.yCount'),
   });
   histogramChart.data.labels = labels;
   histogramChart.data.datasets[0].data = new Array(numBins).fill(0);
 
   rateChart = makeChart($('rateChart'), 'line', {
-    xTitle: 'Time',
-    yTitle: 'Rate (cps)',
+    xTitle: t('chart.xTime'),
+    yTitle: t('chart.yRate'),
   });
 
   histogramChart.update();
@@ -1125,6 +1612,25 @@ function rebuildHistogram() {
 
 // ========== USB Serial Connection ==========
 const usbTextEncoder = new TextEncoder();
+let usbBootloaderRecoveryDone = false;
+
+// The ESP-ROM banner means the chip is sitting in download mode instead of
+// running the firmware. Pulsing RTS while DTR stays low emulates pressing
+// the reset button with the boot strap released, so the app boots normally.
+async function recoverFromBootloader() {
+  if (usbBootloaderRecoveryDone) return;
+  if (state.connectionType !== 'usb' || !state.port) return;
+  usbBootloaderRecoveryDone = true;
+  try {
+    await state.port.setSignals({ dataTerminalReady: false, requestToSend: true });
+    await new Promise(r => setTimeout(r, 100));
+    await state.port.setSignals({ dataTerminalReady: false, requestToSend: false });
+    await new Promise(r => setTimeout(r, 100));
+    await state.port.setSignals({ dataTerminalReady: true, requestToSend: true });
+  } catch (e) {
+    console.error('Bootloader recovery failed:', e);
+  }
+}
 
 async function connectUSB() {
   if (state.isConnected) return;
@@ -1132,6 +1638,15 @@ async function connectUSB() {
     const port = await navigator.serial.requestPort();
     const baudRate = parseInt($('baudRate').value);
     await port.open({ baudRate });
+
+    // ESP32-S3 native USB (USB-Serial-JTAG) maps DTR/RTS onto the auto-reset
+    // circuit: the half-asserted state the browser leaves after open() can
+    // reset the chip into the ROM bootloader. Assert both to disarm it.
+    try {
+      await port.setSignals({ dataTerminalReady: true, requestToSend: true });
+    } catch (_) {}
+    usbBootloaderRecoveryDone = false;
+
     state.port = port;
     state.connectionType = 'usb';
     state.isConnected = true;
@@ -1330,14 +1845,73 @@ function updateFeatureButtons(containerId, val) {
 }
 
 function updateFeatureInfo() {
-  const fmt = v => (v === null ? '?' : (v ? 'On' : 'Off'));
+  const fmt = v => (v === null ? '?' : (v ? t('common.on') : t('common.off')));
   const info = $('featInfo');
   if (!info) return;
   if (!state.isConnected) {
-    info.textContent = 'Not connected';
+    info.textContent = t('common.notConnected');
     return;
   }
-  info.textContent = `SD: ${fmt(state.sdEnabled)}  EXT: ${fmt(state.extEnabled)}  OLED: ${fmt(state.oledEnabled)}  Buzzer: ${fmt(state.buzzerEnabled)}`;
+  info.textContent = t('feat.status', {
+    sd: fmt(state.sdEnabled), ext: fmt(state.extEnabled),
+    oled: fmt(state.oledEnabled), buzzer: fmt(state.buzzerEnabled),
+  });
+}
+
+// State-derived text renderers: called both from the data paths and from
+// applyLanguage() so a language switch redraws the current state.
+function renderStatusText() {
+  const text = $('statusText');
+  if (!text) return;
+  if (!state.isConnected) { text.textContent = t('common.notConnected'); return; }
+  const label = state.connectionType === 'ble' ? t('conn.connectedBle') : t('conn.connectedUsb');
+  text.textContent = state.paused ? label + t('conn.pausedSuffix') : label;
+}
+
+function renderThreshInfo() {
+  const el = $('threshInfo');
+  if (!el) return;
+  if (!state.isConnected) el.textContent = t('common.notConnected');
+  else if (state.threshold != null) el.textContent = t('thresh.current', { sig: state.threshold, duty: state.pwmDuty ?? '?' });
+  else el.textContent = t('thresh.fetching');
+}
+
+function renderModeInfo() {
+  const el = $('modeInfo');
+  if (!el) return;
+  if (!state.isConnected) el.textContent = t('common.notConnected');
+  else if (state.mode) el.textContent = t('mode.current', { mode: state.mode });
+  else el.textContent = t('mode.fetching');
+}
+
+function renderBleNameInfo() {
+  const el = $('bleNameInfo');
+  if (!el) return;
+  el.textContent = state.bleName ? t('conn.bleNameCurrent', { name: state.bleName }) : t('conn.bleNameHint');
+}
+
+function renderPauseButton() {
+  const btn = $('btnPauseLog');
+  if (!btn) return;
+  btn.innerHTML = state.paused
+    ? '&#x25b6;&#xfe0f; ' + t('conn.resumeLogging')
+    : '&#x23f8;&#xfe0f; ' + t('conn.stopLogging');
+  btn.classList.toggle('btn-primary', state.paused);
+  btn.classList.toggle('btn-warning', !state.paused);
+}
+
+function renderApiWarning() {
+  const el = $('apiWarning');
+  if (!el) return;
+  const warnings = [];
+  if (!('serial' in navigator)) warnings.push(t('warn.noSerial'));
+  if (!('bluetooth' in navigator)) warnings.push(t('warn.noBle'));
+  if (warnings.length > 0) {
+    el.style.display = '';
+    el.textContent = warnings.join(' ') + ' ' + t('warn.useChrome');
+  } else {
+    el.style.display = 'none';
+  }
 }
 
 // ========== Data Processing ==========
@@ -1351,6 +1925,21 @@ function processLine(line) {
   if (state.rawLines.length > 100) state.rawLines.shift();
   uiDirty = true;
 
+  // ROM bootloader output — the chip was reset into download mode when the
+  // port opened. Reboot it into the app (once per connection).
+  if (line.startsWith('ESP-ROM:') || line.includes('waiting for download')) {
+    recoverFromBootloader();
+    return;
+  }
+
+  // Firmware boot banner — the device (re)booted, so re-query its state.
+  // The GETs land while setup() is still running and are answered once
+  // loop() starts draining the RX buffer.
+  if (line.startsWith('Booting')) {
+    refreshDeviceState();
+    return;
+  }
+
   // Threshold response: "THRESH:<sig> DUTY:<duty>" (space-separated)
   if (line.startsWith('THRESH:')) {
     const m = line.match(/^THRESH:\s*(\d+)\s+DUTY:\s*(\d+)/i);
@@ -1360,7 +1949,7 @@ function processLine(line) {
       state.threshold = sig;
       state.pwmDuty = duty;
       $('threshSignal').value = sig;
-      $('threshInfo').textContent = `Signal threshold: ${sig} / 4095   (PWM Duty: ${duty} / 1023)`;
+      renderThreshInfo();
       if (state.isConnected) $('btnAutoThresh').disabled = false;
     }
     return;
@@ -1373,7 +1962,7 @@ function processLine(line) {
       state.mode = modeStr;
       updateModeBadge(modeStr);
       updateModeButtons();
-      $('modeInfo').textContent = `Current mode: ${modeStr}`;
+      renderModeInfo();
     }
     return;
   }
@@ -1395,7 +1984,7 @@ function processLine(line) {
       state.bleName = name;
       $('bleName').value = name;
       try { localStorage.setItem('bleName', name); } catch (_) {}
-      $('bleNameInfo').textContent = `Device BLE name: ${name}`;
+      renderBleNameInfo();
     }
     return;
   }
@@ -1428,13 +2017,31 @@ function processLine(line) {
       state.threshold = sig;
       state.pwmDuty = duty;
       $('threshSignal').value = sig;
-      $('threshInfo').textContent = `Signal threshold: ${sig} / 4095   (PWM Duty: ${duty} / 1023)`;
+      renderThreshInfo();
     }
     return;
   }
 
   // System messages (don't treat as data, but let them live in raw log).
   if (/^(Booting|BLE:|SD:|BME280:|OLED)/i.test(line)) return;
+
+  // Oscilloscope waveform line (scope mode):
+  //   WF,<evt>,<t_ms>,U,<npre>,<ntot>,<period_ns>,<v0>,<v1>,...
+  // 空白を含まないので下の split(/\s+/) では拾えない。ここで横取りする。
+  // ロギング一時停止中でもオシロは見えるべきなので、state.paused の判定より前に置く。
+  if (line.startsWith('WF,')) {
+    scopeOnLine(line);
+    return;
+  }
+  if (line.startsWith('SCOPE:')) {
+    scope.deviceOn = (line.substring(6).trim().toUpperCase() === 'ON');
+    return;
+  }
+  if (line.startsWith('SCOPE_RATE:')) {
+    const v = parseInt(line.substring(11));
+    if (!isNaN(v)) $('scopeRate').value = v;
+    return;
+  }
 
   // Logging paused (web side): keep showing raw lines and control responses,
   // but stop recording incoming data events. The device keeps measuring, so the
@@ -1583,7 +2190,7 @@ function updateStats() {
   const elapsedUs = events[n - 1].timestamp_us;    // device Time is microseconds (v2)
   const elapsedStr = formatTime(elapsedUs / 1000); // formatTime expects ms
   $('statElapsed').textContent = elapsedStr;
-  $('elapsedTime').textContent = 'Elapsed: ' + elapsedStr;
+  $('elapsedTime').textContent = t('header.elapsed', { time: elapsedStr });
   $('ds_elapsed').textContent = elapsedStr + ` (${(elapsedUs / 1e6).toFixed(1)} s)`;
 
   const elapsedSec = elapsedUs / 1e6;
@@ -1647,7 +2254,7 @@ function updateExtGrid() {
     const a = last ? last.ana[i] : '--';
     html += `
       <div class="ext-cell">
-        <div class="ext-label">External Detector ${i + 1}</div>
+        <div class="ext-label">${t('ext.cellLabel', { n: i + 1 })}</div>
         <div class="ext-row">
           <span><span class="ext-dot ${d === 1 ? 'on' : ''}"></span>Dig ${last ? d : '--'}</span>
           <span>Ana ${a}</span>
@@ -1666,7 +2273,7 @@ function updateRawDisplay() {
 // ========== Auto-Save ==========
 async function selectSaveFolder() {
   if (!('showDirectoryPicker' in window)) {
-    alert('File System Access API is not supported. Please use Chrome or Edge.');
+    alert(t('alert.fsApi'));
     return;
   }
   try {
@@ -1759,7 +2366,7 @@ async function flushAutoSave() {
       // (concat avoids spread-on-huge-array limits).
       as.pending = batch.concat(as.pending);
       $('autoSaveStatus').className = 'autosave-status error';
-      $('autoSaveStatus').textContent = 'Write error: ' + e.message;
+      $('autoSaveStatus').textContent = t('autosave.writeError', { msg: e.message });
     }
   } finally {
     as.flushing = false;
@@ -1771,14 +2378,14 @@ function updateAutoSaveUI() {
   const el = $('autoSaveStatus');
   if (!as.enabled || !as.dirHandle) {
     el.className = 'autosave-status idle';
-    el.textContent = 'Not configured';
+    el.textContent = t('autosave.notConfigured');
     return;
   }
   const prefix = getFilePrefix();
   const format = $('autoSaveFormat').value;
   const ext = format === 'both' ? '.dat / .csv' : '.' + format;
   el.className = 'autosave-status active';
-  el.textContent = `Saving: ${prefix}_${as.currentDate || '...'}${ext}\nWritten: ${as.lineCount} events`;
+  el.textContent = t('autosave.status', { file: `${prefix}_${as.currentDate || '...'}${ext}`, n: as.lineCount });
 }
 
 function updateModeBadge(mode) {
@@ -1786,16 +2393,16 @@ function updateModeBadge(mode) {
   const m = (mode || '').toUpperCase();
   if (m === 'DIGITAL') {
     badge.className = 'mode-badge digital';
-    badge.innerHTML = '&#x1f3af; Mode: Digital';
+    badge.innerHTML = '&#x1f3af; ' + t('badge.mode', { mode: 'Digital' });
   } else if (m === 'DUAL') {
     badge.className = 'mode-badge dual';
-    badge.innerHTML = '&#x1f500; Mode: Dual';
+    badge.innerHTML = '&#x1f500; ' + t('badge.mode', { mode: 'Dual' });
   } else if (m === 'ANALOG') {
     badge.className = 'mode-badge analog';
-    badge.innerHTML = '&#x1f4c8; Mode: Analog';
+    badge.innerHTML = '&#x1f4c8; ' + t('badge.mode', { mode: 'Analog' });
   } else {
     badge.className = 'mode-badge unknown';
-    badge.innerHTML = '&#x1f4e1; Mode: --';
+    badge.innerHTML = '&#x1f4e1; ' + t('badge.unknown');
   }
 }
 
@@ -1818,19 +2425,10 @@ function updateModeButtons() {
 
 function setLoggingPaused(paused) {
   state.paused = !!paused && state.isConnected;
-  const btn = $('btnPauseLog');
-  if (btn) {
-    btn.innerHTML = state.paused ? '&#x25b6;&#xfe0f; Resume Logging' : '&#x23f8;&#xfe0f; Stop Logging';
-    btn.classList.toggle('btn-primary', state.paused);
-    btn.classList.toggle('btn-warning', !state.paused);
-  }
+  renderPauseButton();
   const info = $('logPausedInfo');
   if (info) info.style.display = state.paused ? '' : 'none';
-  const text = $('statusText');
-  if (state.isConnected && text) {
-    const label = state.connectionType === 'ble' ? 'Connected (BLE)' : 'Connected (USB)';
-    text.textContent = state.paused ? label + ' — Logging paused' : label;
-  }
+  if (state.isConnected) renderStatusText();
 }
 
 function toggleLogging() {
@@ -1840,11 +2438,8 @@ function toggleLogging() {
 
 function updateConnectionUI(connected) {
   const dot = $('statusDot');
-  const text = $('statusText');
   if (connected) {
     dot.className = 'status-dot connected';
-    const label = state.connectionType === 'ble' ? 'Connected (BLE)' : 'Connected (USB)';
-    text.textContent = label;
     $('connectButtons').style.display = 'none';
     $('baudRateGroup').style.display = 'none';
     $('connectionInfo').style.display = 'block';
@@ -1852,16 +2447,15 @@ function updateConnectionUI(connected) {
     $('btnGetThresh').disabled = false;
     $('btnAutoThresh').disabled = false;
     $('btnSetBleName').disabled = false;
-    $('threshInfo').textContent = 'Connected. Fetching thresholds...';
-    $('modeInfo').textContent   = 'Connected. Fetching mode...';
+    renderThreshInfo();
+    renderModeInfo();
     ['featSD', 'featEXT', 'featOLED', 'featBUZZER'].forEach(id => {
       $(id).querySelectorAll('button').forEach(btn => { btn.disabled = false; });
     });
-    $('featInfo').textContent = 'Connected. Fetching toggles...';
+    $('featInfo').textContent = t('feat.fetching');
     setLoggingPaused(false);
   } else {
     dot.className = 'status-dot disconnected';
-    text.textContent = 'Not connected';
     setLoggingPaused(false);
     $('connectButtons').style.display = '';
     $('baudRateGroup').style.display = '';
@@ -1870,8 +2464,6 @@ function updateConnectionUI(connected) {
     $('btnGetThresh').disabled = true;
     $('btnAutoThresh').disabled = true;
     $('btnSetBleName').disabled = true;
-    $('threshInfo').textContent = 'Not connected';
-    $('modeInfo').textContent   = 'Not connected';
     state.mode = null;
     state.threshold = null;
     state.pwmDuty = null;
@@ -1885,9 +2477,12 @@ function updateConnectionUI(connected) {
         btn.classList.remove('active');
       });
     });
-    $('featInfo').textContent = 'Not connected';
+    renderThreshInfo();
+    renderModeInfo();
+    updateFeatureInfo();
     updateModeBadge(null);
   }
+  renderStatusText();
   updateModeButtons();
 }
 
@@ -1946,12 +2541,13 @@ let memWarned = false;
 function showMemWarning() {
   if (memWarned) return;
   memWarned = true;
+  renderMemWarning();
+}
+function renderMemWarning() {
   const el = $('memWarning');
   if (!el) return;
   el.style.display = '';
-  el.textContent =
-    `メモリ上限 (${MAX_EVENTS.toLocaleString()} 件) に達したため、古いデータをメモリから破棄しています。` +
-    `全件を残すにはフォルダ自動保存 (Select Save Folder) を使うか、こまめに Download してから Clear してください。`;
+  el.textContent = t('warn.memCap', { n: MAX_EVENTS.toLocaleString() });
 }
 
 // ========== File Export (non-blocking, streaming) ==========
@@ -1975,10 +2571,10 @@ function updateExportStatus(done, total, finished) {
   el.style.display = '';
   el.style.color = '#007a6e';
   if (finished) {
-    el.textContent = `Saved ${total.toLocaleString()} events.`;
+    el.textContent = t('export.saved', { n: total.toLocaleString() });
     setTimeout(() => { if (!exporting) el.style.display = 'none'; }, 4000);
   } else {
-    el.textContent = `Exporting… ${done.toLocaleString()} / ${total.toLocaleString()}`;
+    el.textContent = t('export.progress', { done: done.toLocaleString(), total: total.toLocaleString() });
   }
 }
 
@@ -2060,7 +2656,7 @@ async function exportData(format) {
   } catch (e) {
     console.error('Export error:', e);
     const el = $('exportStatus');
-    if (el) { el.style.display = ''; el.style.color = '#c0392b'; el.textContent = 'Export error: ' + (e && e.message ? e.message : e); }
+    if (el) { el.style.display = ''; el.style.color = '#c0392b'; el.textContent = t('export.error', { msg: (e && e.message ? e.message : e) }); }
   } finally {
     exporting = false;
     setExportBusy(false);
@@ -2099,14 +2695,246 @@ function formatDateForFile(date) {
     String(d.getSeconds()).padStart(2, '0');
 }
 
+// ========== Oscilloscope ==========
+// タブを開いている間だけファームに SET_SCOPE:ON を送り、WF, 行を受けて描く。
+// Chart.js ではなく生 canvas を使うのは、毎イベント全体を描き直すため
+// （Chart.js のデータセット更新＋アニメーションは数 Hz でも重い）。
+const scope = {
+  active: false,     // タブが開いている
+  deviceOn: false,   // ファームが SCOPE:ON を返した
+  frozen: false,
+  traces: [],        // 新しいものほど後ろ
+  raw: [],           // 保存用の生 WF, 行
+  count: 0,
+  bad: 0,
+  stamps: [],
+  drawPending: false,
+};
+
+function scopeOnLine(line) {
+  const p = line.split(',');
+  // 宣言された点数と実際の項目数が食い違う行は捨てる。
+  // USB CDC の送信が詰まると行が途中で切れることがあるため。
+  if (p.length < 7) { scope.bad++; scopeStats(); return; }
+  const kind = p[3];
+  const npre = +p[4], ntot = +p[5], periodNs = +p[6];
+  if (kind !== 'U' || !(ntot > 0) || !(npre >= 0) || npre >= ntot ||
+      p.length !== 7 + ntot || !(periodNs > 0)) {
+    scope.bad++; scopeStats(); return;
+  }
+
+  const v = new Float32Array(ntot);
+  for (let i = 0; i < ntot; i++) {
+    const x = +p[7 + i];
+    if (!isFinite(x)) { scope.bad++; scopeStats(); return; }
+    v[i] = x;
+  }
+
+  const dtUs = periodNs / 1000;
+  let base = 0;
+  for (let i = 0; i < npre; i++) base += v[i];
+  base = npre > 0 ? base / npre : v[0];
+
+  let peak = -Infinity, pi = 0;
+  for (let i = 0; i < ntot; i++) { const a = v[i] - base; if (a > peak) { peak = a; pi = i; } }
+
+  scope.count++;
+  scope.stamps.push(Date.now());
+  if (scope.stamps.length > 200) scope.stamps.shift();
+  scope.raw.push(line);
+  if (scope.raw.length > 2000) scope.raw.shift();
+
+  if (scope.frozen) { scopeStats(); return; }
+
+  scope.traces.push({ v, npre, dtUs, base, peak, tPeak: (pi - npre) * dtUs, ntot });
+  const keep = Math.max(1, (parseInt($('scopePersist').value) || 0) + 1);
+  while (scope.traces.length > keep) scope.traces.shift();
+
+  scopeStats();
+  if (!scope.drawPending) {
+    scope.drawPending = true;
+    requestAnimationFrame(() => { scope.drawPending = false; scopeDraw(); });
+  }
+}
+
+function scopeStats() {
+  const last = scope.traces[scope.traces.length - 1];
+  $('scopePeak').textContent  = last ? Math.round(last.peak) : '--';
+  $('scopeTPeak').textContent = last ? last.tPeak.toFixed(1) : '--';
+  $('scopeCount').textContent = scope.count;
+  $('scopeBad').textContent   = scope.bad;
+  const now = Date.now();
+  $('scopeFps').textContent = (scope.stamps.filter(s => now - s < 5000).length / 5).toFixed(1);
+}
+
+function scopeDraw() {
+  const cv = $('scopeCanvas');
+  if (!cv) return;
+  const ctx = cv.getContext('2d');
+  const W = cv.width, H = cv.height;
+  const padL = 64, padR = 16, padT = 14, padB = 40;
+  const pw = W - padL - padR, ph = H - padT - padB;
+
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#10262b';
+  ctx.fillRect(padL, padT, pw, ph);
+
+  const traces = scope.traces;
+  if (!traces.length) {
+    ctx.fillStyle = '#6f8b93';
+    ctx.font = '13px -apple-system, Segoe UI, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(state.isConnected ? t('scope.waiting') : t('scope.notConnected'),
+                 padL + pw / 2, padT + ph / 2);
+    ctx.textAlign = 'left';
+    return;
+  }
+
+  const ref = traces[traces.length - 1];
+  const t0 = -ref.npre * ref.dtUs;
+  const t1 = (ref.ntot - 1 - ref.npre) * ref.dtUs;
+
+  let yLo, yHi;
+  if ($('scopeAutoY').checked) {
+    yLo = Infinity; yHi = -Infinity;
+    for (const tr of traces) {
+      for (let i = 0; i < tr.ntot; i++) {
+        if (tr.v[i] < yLo) yLo = tr.v[i];
+        if (tr.v[i] > yHi) yHi = tr.v[i];
+      }
+    }
+    const pad = Math.max(4, (yHi - yLo) * 0.08);
+    yLo -= pad; yHi += pad;
+  } else {
+    yLo = 0; yHi = ADC_MAX;
+  }
+  if (!(yHi > yLo)) yHi = yLo + 1;
+
+  const xOf = us => padL + (us - t0) / (t1 - t0) * pw;
+  const yOf = a  => padT + (1 - (a - yLo) / (yHi - yLo)) * ph;
+
+  ctx.strokeStyle = 'rgba(255,255,255,0.07)';
+  ctx.lineWidth = 1;
+  for (let k = 1; k < 8; k++) {
+    const x = padL + pw * k / 8;
+    ctx.beginPath(); ctx.moveTo(x, padT); ctx.lineTo(x, padT + ph); ctx.stroke();
+  }
+  for (let k = 1; k < 5; k++) {
+    const y = padT + ph * k / 5;
+    ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(padL + pw, y); ctx.stroke();
+  }
+
+  // しきい値線（V2 はコンパレータのしきい値 = SIGNAL のみ）
+  const thr = parseInt($('threshSignal').value);
+  if (isFinite(thr) && thr >= yLo && thr <= yHi) {
+    ctx.strokeStyle = 'rgba(255,138,101,0.85)';
+    ctx.setLineDash([5, 4]);
+    ctx.beginPath(); ctx.moveTo(padL, yOf(thr)); ctx.lineTo(padL + pw, yOf(thr)); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = 'rgba(255,138,101,0.95)';
+    ctx.font = '10px Consolas, monospace';
+    ctx.fillText('SIGNAL', padL + 4, yOf(thr) - 3);
+  }
+
+  ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+  ctx.setLineDash([4, 4]);
+  ctx.beginPath(); ctx.moveTo(xOf(0), padT); ctx.lineTo(xOf(0), padT + ph); ctx.stroke();
+  ctx.setLineDash([]);
+
+  for (let k = 0; k < traces.length; k++) {
+    const tr = traces[k];
+    const newest = (k === traces.length - 1);
+    const age = traces.length > 1 ? k / (traces.length - 1) : 1;
+    ctx.strokeStyle = newest ? '#b2ff59' : `rgba(77,208,225,${(0.08 + 0.30 * age).toFixed(3)})`;
+    ctx.lineWidth = newest ? 2 : 1;
+    ctx.beginPath();
+    for (let i = 0; i < tr.ntot; i++) {
+      const x = xOf((i - tr.npre) * tr.dtUs), y = yOf(tr.v[i]);
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  }
+
+  ctx.strokeStyle = '#90a4ae';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(padL, padT, pw, ph);
+  ctx.fillStyle = '#78909c';
+  ctx.font = '11px -apple-system, Segoe UI, sans-serif';
+  ctx.textAlign = 'center';
+  for (let k = 0; k <= 8; k++) {
+    ctx.fillText((t0 + (t1 - t0) * k / 8).toFixed(0), padL + pw * k / 8, padT + ph + 16);
+  }
+  ctx.fillText('time from trigger [us]', padL + pw / 2, H - 8);
+  ctx.textAlign = 'right';
+  for (let k = 0; k <= 5; k++) {
+    ctx.fillText((yLo + (yHi - yLo) * (1 - k / 5)).toFixed(0), padL - 6, padT + ph * k / 5 + 4);
+  }
+  ctx.textAlign = 'left';
+  ctx.fillText('ADC', 6, padT + 10);
+}
+
+function scopeEnter() {
+  scope.active = true;
+  $('scopeBleWarn').style.display = (state.connectionType === 'ble') ? '' : 'none';
+  if (state.isConnected) {
+    sendCommand('SET_SCOPE_RATE:' + (parseInt($('scopeRate').value) || 3));
+    sendCommand('SET_SCOPE:ON');
+  }
+  scopeDraw();
+}
+
+function scopeLeave() {
+  scope.active = false;
+  // 計数を再開させる。接続が切れていれば送れないが、
+  // ファーム側は再起動時に必ず OFF なので取り残されることは無い。
+  if (state.isConnected) sendCommand('SET_SCOPE:OFF');
+}
+
+$('scopeRate').addEventListener('change', () => {
+  const v = Math.min(20, Math.max(1, parseInt($('scopeRate').value) || 3));
+  $('scopeRate').value = v;
+  if (state.isConnected && scope.active) sendCommand('SET_SCOPE_RATE:' + v);
+});
+$('scopePersist').addEventListener('change', scopeDraw);
+$('scopeAutoY').addEventListener('change', scopeDraw);
+$('scopeFreeze').addEventListener('click', () => {
+  scope.frozen = !scope.frozen;
+  $('scopeFreeze').textContent = t(scope.frozen ? 'scope.unfreeze' : 'scope.freeze');
+});
+$('scopeClear').addEventListener('click', () => {
+  scope.traces = []; scope.raw = []; scope.count = 0; scope.bad = 0; scope.stamps = [];
+  scopeStats(); scopeDraw();
+});
+$('scopeSave').addEventListener('click', () => {
+  if (!scope.raw.length) return;
+  const hdr = `#WF ver=1 mode=DMA board_rev=v2 source=index.html thr=${$('threshSignal').value}`;
+  const blob = new Blob([hdr + '\n' + scope.raw.join('\n') + '\n'], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `scope_${formatDateForFile()}.wfm`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+});
+
+window.addEventListener('beforeunload', () => {
+  if (scope.active && state.isConnected) sendCommand('SET_SCOPE:OFF');
+});
+
 // ========== Tabs ==========
 document.querySelectorAll('.tab').forEach(tab => {
   tab.addEventListener('click', () => {
+    const prev = document.querySelector('.tab.active');
+    const prevTarget = prev ? prev.dataset.tab : null;
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     tab.classList.add('active');
     const target = tab.dataset.tab;
     document.querySelectorAll('[id^="tab-"]').forEach(el => el.style.display = 'none');
     document.getElementById('tab-' + target).style.display = '';
+
+    // オシロタブは開いている間だけファームに波形を吐かせる。
+    // 出るときに必ず止めないと、計数が止まったままになる。
+    if (prevTarget === 'scope' && target !== 'scope') scopeLeave();
+    if (target === 'scope' && prevTarget !== 'scope') scopeEnter();
   });
 });
 
@@ -2119,7 +2947,7 @@ $('btnPauseLog').addEventListener('click', toggleLogging);
 $('btnSetThresh').addEventListener('click', () => {
   const sig = parseInt($('threshSignal').value);
   if (isNaN(sig) || sig < 0 || sig > ADC_MAX) {
-    alert(`Signal threshold must be an integer in 0\u2013${ADC_MAX}.`);
+    alert(t('alert.threshRange', { max: ADC_MAX }));
     return;
   }
   sendCommand(`SET_THRESH:${sig}`);
@@ -2130,22 +2958,22 @@ $('btnGetThresh').addEventListener('click', () => sendCommand('GET_THRESH'));
 $('btnSetBleName').addEventListener('click', () => {
   const name = ($('bleName').value || '').trim();
   if (!/^[\x20-\x7E]{1,24}$/.test(name)) {
-    alert('BLE name must be 1-24 printable ASCII characters.');
+    alert(t('alert.bleName'));
     return;
   }
-  if (!confirm(`Rename BLE device to "${name}" and reboot?`)) return;
+  if (!confirm(t('confirm.rename', { name }))) return;
   try { localStorage.setItem('bleName', name); } catch (_) {}
   sendCommand(`SET_BLENAME:${name}`);
-  $('bleNameInfo').textContent = `Saving "${name}" and rebooting...`;
+  $('bleNameInfo').textContent = t('conn.bleNameSaving', { name });
 });
 
 $('btnAutoThresh').addEventListener('click', () => {
   const m = parseInt($('autoMargin').value);
   if (isNaN(m) || m < 0 || m > ADC_MAX) {
-    alert(`Margin must be an integer in 0\u2013${ADC_MAX}.`);
+    alert(t('alert.marginRange', { max: ADC_MAX }));
     return;
   }
-  $('threshInfo').textContent = `Auto-calibrating threshold (margin=${m})...`;
+  $('threshInfo').textContent = t('thresh.calibrating', { m });
   $('btnAutoThresh').disabled = true;
   sendCommand(`AUTO_THRESH:${m}`);
   setTimeout(() => { $('btnAutoThresh').disabled = !state.isConnected; }, 3000);
@@ -2157,7 +2985,7 @@ $('modeSelect').querySelectorAll('button').forEach(btn => {
     if (!state.isConnected || btn.disabled) return;
     const m = btn.dataset.mode;
     if (!VALID_MODES.includes(m)) return;
-    $('modeInfo').textContent = `Switching to ${m}...`;
+    $('modeInfo').textContent = t('mode.switching', { mode: m });
     sendCommand(`SET_MODE:${m}`);
   });
 });
@@ -2177,7 +3005,7 @@ $('btnExportDat').addEventListener('click', exportDat);
 $('btnExportCsv').addEventListener('click', exportCsv);
 
 $('btnClearData').addEventListener('click', () => {
-  if (state.events.length > 0 && !confirm('Clear all data and reset detector count?')) return;
+  if (state.events.length > 0 && !confirm(t('confirm.clear'))) return;
   if (state.isConnected) sendCommand('RESET');
   state.events = [];
   state.rateHistory = [];
@@ -2194,7 +3022,7 @@ $('btnClearData').addEventListener('click', () => {
   uiDirty = false;
   statsDirty = false;
   $('dataTableBody').innerHTML = '';
-  $('rawDataDisplay').textContent = 'Waiting for connection...';
+  $('rawDataDisplay').textContent = t('raw.waiting');
   $('noDataMsg').style.display = '';
   $('btnExportDat').disabled = true;
   $('btnExportCsv').disabled = true;
@@ -2226,14 +3054,11 @@ $('btnRefreshNow').addEventListener('click', refreshCharts);
 
 // ========== Initialization ==========
 document.addEventListener('DOMContentLoaded', () => {
-  const warnings = [];
-  if (!('serial' in navigator)) warnings.push('Web Serial API is not available (USB connection disabled).');
-  if (!('bluetooth' in navigator)) warnings.push('Web Bluetooth API is not available (Bluetooth connection disabled).');
+  currentLang = detectLanguage();
 
-  if (warnings.length > 0) {
-    $('apiWarning').style.display = '';
-    $('apiWarning').textContent = warnings.join(' ') + ' Please use Chrome or Edge.';
-  }
+  document.querySelectorAll('.lang-switch button').forEach(btn => {
+    btn.addEventListener('click', () => setLanguage(btn.dataset.lang));
+  });
 
   if (!('serial' in navigator)) $('btnConnectUSB').disabled = true;
   if (!('bluetooth' in navigator)) $('btnConnectBLE').disabled = true;
@@ -2247,7 +3072,7 @@ document.addEventListener('DOMContentLoaded', () => {
   } catch (_) {}
 
   initCharts();
-  updateExtGrid();
+  applyLanguage();   // also renders apiWarning, ext grid, and all state-derived text
 
   setInterval(updateUIBatch,    UI_UPDATE_INTERVAL);
   setInterval(updateStatsBatch, STATS_UPDATE_INTERVAL);

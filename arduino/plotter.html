@@ -158,6 +158,13 @@ body {
 }
 .data-table input:focus { border-color: #00BCD4; box-shadow: 0 0 0 2px rgba(0,188,212,0.15); }
 .data-table .auto { color: #888; background: #fafafa; }
+.data-table tr.cal-row-armed { background: #e0f7fa; }
+.data-table tr.cal-row-armed td { border-bottom-color: #00BCD4; }
+.cal-remove {
+  background: none; border: none; color: #e57373;
+  font-size: 1.15rem; line-height: 1; cursor: pointer; padding: 4px 8px;
+}
+.cal-remove:hover { color: #c62828; }
 .btn {
   background: #00BCD4;
   color: #fff;
@@ -198,8 +205,9 @@ Data Analysis
 </div>
 
 <div class="tabs">
-  <button class="tab-btn active" onclick="switchTab('tab1')">ADC Histogram</button>
-  <button class="tab-btn" onclick="switchTab('tab2')">Zenith Angle</button>
+  <button class="tab-btn active" data-tab="tab1" onclick="switchTab('tab1')">ADC Histogram</button>
+  <button class="tab-btn" data-tab="tab2" onclick="switchTab('tab2')">Zenith Angle</button>
+  <button class="tab-btn" data-tab="tab3" onclick="switchTab('tab3')">Energy Cal</button>
 </div>
 
 <div class="container">
@@ -253,6 +261,7 @@ Data Analysis
           <div class="check-row">
             <label class="check"><input type="checkbox" id="subtractBg" disabled> Subtract Background</label>
             <label class="check"><input type="checkbox" id="logY"> Log Y-axis</label>
+            <label class="check"><input type="checkbox" id="useKeV" disabled> Energy axis [keV]</label>
           </div>
         </div>
       </div>
@@ -265,15 +274,15 @@ Data Analysis
       </div>
       <div class="stat-box">
         <div class="stat-value" id="statMean">-</div>
-        <div class="stat-label">Mean ADC</div>
+        <div class="stat-label" id="statMeanLabel">Mean ADC</div>
       </div>
       <div class="stat-box">
         <div class="stat-value" id="statMedian">-</div>
-        <div class="stat-label">Median ADC</div>
+        <div class="stat-label" id="statMedianLabel">Median ADC</div>
       </div>
       <div class="stat-box">
         <div class="stat-value" id="statStd">-</div>
-        <div class="stat-label">Std Dev</div>
+        <div class="stat-label" id="statStdLabel">Std Dev</div>
       </div>
     </div>
 
@@ -335,6 +344,96 @@ Data Analysis
       </div>
     </div>
   </div>
+
+  <!-- Tab 3: Energy Calibration -->
+  <div id="tab3" class="tab-content">
+    <div class="card">
+      <div class="card-title">Calibration Source (Th-232 series)
+        <span class="hint">トリウム系列線源の測定 .dat を読み込み、下の表で各ピークを指定します</span>
+      </div>
+      <div class="controls">
+        <div class="control-group">
+          <label>Load calibration .dat</label>
+          <label class="file-label">
+            Choose File
+            <input type="file" id="calFileInput" accept=".dat,.csv,.txt">
+          </label>
+          <div class="file-name" id="calFileName">No file selected</div>
+        </div>
+        <div class="control-group">
+          <label>Bin Width</label>
+          <input type="number" id="calBinWidth" value="10" min="1" max="200" step="1">
+        </div>
+        <div class="control-group">
+          <label>Options</label>
+          <div class="check-row">
+            <label class="check"><input type="checkbox" id="calLogY"> Log Y-axis</label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" id="calHistCard">
+      <div class="card-title">Spectrum &mdash; ピークをクリックして選択中の行の Peak ADC に取得
+        <span class="hint">クリック = そのビンの ADC 中心値 / 手入力も可</span>
+      </div>
+      <div id="calHistEmpty" class="file-name" style="padding:8px 2px;">校正用の .dat を読み込んでください。</div>
+      <div class="chart-wrap">
+        <div id="calHistDiv"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Calibration Peaks (ADC &harr; keV)
+        <span class="hint">Use にチェックした行のうち、keV と Peak ADC の両方が数値の点で E = a·ADC + b を最小二乗フィット (2点以上必要)</span>
+      </div>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Arm</th>
+            <th>Use</th>
+            <th>Nuclide / Line</th>
+            <th>Energy [keV]</th>
+            <th>Peak ADC</th>
+            <th>Residual [keV]</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="calTableBody"></tbody>
+      </table>
+      <div class="action-bar" style="margin-top:16px;">
+        <button class="btn" id="addCalRowBtn">+ Add Row</button>
+        <div class="fit-result" id="calResult">
+          <div class="n-value" id="calEqn" style="font-size:1.05rem;">-</div>
+          <div class="r2-value" id="calR2"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="charts-row">
+      <div class="card">
+        <div class="card-title">Calibration Fit &mdash; keV vs ADC</div>
+        <div class="chart-wrap">
+          <div id="calFitDiv"></div>
+        </div>
+      </div>
+      <div class="card" style="flex:0 1 340px;">
+        <div class="card-title">Save / Load</div>
+        <div class="check-row" style="gap:10px;">
+          <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <button class="btn" id="saveCalBtn">Save</button>
+            <button class="btn" id="loadCalBtn">Load</button>
+            <button class="btn" id="clearCalBtn">Clear</button>
+          </div>
+          <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:4px;">
+            <button class="btn" id="exportCalBtn">Export .json</button>
+            <label class="file-label">Import .json<input type="file" id="calImportInput" accept=".json,application/json"></label>
+          </div>
+          <div class="file-name" style="margin-top:6px;">校正はブラウザに自動保存され、ADC Histogram タブの「Energy axis [keV]」で他の測定データにも適用できます。</div>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -356,8 +455,8 @@ function resizePlot(divId) {
 
 // --- Tab Management ---
 function switchTab(id) {
-  document.querySelectorAll('.tab-btn').forEach((b, i) => {
-    b.classList.toggle('active', (i === 0 && id === 'tab1') || (i === 1 && id === 'tab2'));
+  document.querySelectorAll('.tab-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.tab === id);
   });
   document.querySelectorAll('.tab-content').forEach(el => {
     el.classList.toggle('active', el.id === id);
@@ -366,9 +465,12 @@ function switchTab(id) {
   setTimeout(() => {
     if (id === 'tab1') {
       resizePlot('histDiv');
-    } else {
+    } else if (id === 'tab2') {
       resizePlot('linearDiv');
       resizePlot('logDiv');
+    } else if (id === 'tab3') {
+      resizePlot('calHistDiv');
+      resizePlot('calFitDiv');
     }
   }, 0);
 }
@@ -376,6 +478,12 @@ function switchTab(id) {
 // --- ADC Histogram ---
 let signal = { adc: [], times: [], deads: [], t0: 0, duration: 0, liveTime: 0 };
 let background = null;
+
+// --- Energy Calibration (Th-232 → keV) ---
+let calSignal = { adc: [], times: [], deads: [], t0: 0, duration: 0, liveTime: 0 };
+let calibration = null;   // { a, b, r2, n } for E[keV] = a*ADC + b, or null when not calibrated
+let armedRow = null;      // <tr> that click-to-pick fills
+let calClickBound = false;
 
 // Auto BG scale = signal live time / background live time (units cancel in the ratio).
 // Falls back to 1.0 when either live time cannot be derived. Uses the time-windowed
@@ -552,12 +660,21 @@ function renderAll() {
   // Restrict the plotted events to the selected time window (from start).
   const sig = windowedSignal();
   const stats = computeStats(sig.adc);
+
+  // Energy-calibration display transform: E = A*ADC + B (identity when keV axis is off).
+  const kev = useKeVActive();
+  const A = kev ? calibration.a : 1, B = kev ? calibration.b : 0;
+  const toE = x => A * x + B;
+
   document.getElementById('statsRow').style.display = 'flex';
   document.getElementById('histCard').style.display = 'block';
   document.getElementById('statCount').textContent = stats.count.toLocaleString();
-  document.getElementById('statMean').textContent = stats.mean.toFixed(1);
-  document.getElementById('statMedian').textContent = stats.median.toFixed(1);
-  document.getElementById('statStd').textContent = stats.std.toFixed(1);
+  document.getElementById('statMean').textContent = toE(stats.mean).toFixed(1);
+  document.getElementById('statMedian').textContent = toE(stats.median).toFixed(1);
+  document.getElementById('statStd').textContent = (Math.abs(A) * stats.std).toFixed(1);
+  document.getElementById('statMeanLabel').textContent = kev ? 'Mean [keV]' : 'Mean ADC';
+  document.getElementById('statMedianLabel').textContent = kev ? 'Median [keV]' : 'Median ADC';
+  document.getElementById('statStdLabel').textContent = kev ? 'Std Dev [keV]' : 'Std Dev';
 
   const subtract = !!(background && document.getElementById('subtractBg').checked);
   const logY = document.getElementById('logY').checked;
@@ -581,8 +698,15 @@ function renderAll() {
   // In log mode, drop non-positive values so the log scale and line gaps behave.
   const forLog = arr => logY ? arr.map(v => (v > 0 ? v : null)) : arr;
 
-  // Per-bin hover label: "ADC lo – hi".
-  const binText = labels.map(c => `ADC ${c - binWidth / 2} – ${c + binWidth / 2}`);
+  // Display x-values and bar width in keV when a calibration is applied (else ADC).
+  const xDisp = labels.map(toE);
+  const barW = binWidth * Math.abs(A);
+  // Per-bin hover label: "lo – hi" in the active unit.
+  const binText = labels.map(c => {
+    if (!kev) return `ADC ${c - binWidth / 2} – ${c + binWidth / 2}`;
+    const e1 = toE(c - binWidth / 2), e2 = toE(c + binWidth / 2);
+    return `${Math.min(e1, e2).toFixed(1)} – ${Math.max(e1, e2).toFixed(1)} keV`;
+  });
 
   const traces = [];
   if (subtract) {
@@ -595,9 +719,9 @@ function renderAll() {
     traces.push({
       type: 'bar',
       name: 'Subtracted (S − BG)',
-      x: labels,
+      x: xDisp,
       y: forLog(subtracted),
-      width: binWidth,
+      width: barW,
       marker: { color: 'rgba(0, 150, 136, 0.65)', line: { color: 'rgba(0, 150, 136, 1)', width: 1 } },
       text: binText,
       hovertemplate: '%{text}<br>Counts: %{y:.1f}<extra></extra>'
@@ -605,14 +729,14 @@ function renderAll() {
     traces.push({
       type: 'scatter', mode: 'lines',
       name: 'Signal',
-      x: labels,
+      x: xDisp,
       y: forLog(signalCounts),
       line: { color: 'rgba(0, 188, 212, 1)', width: 1.5, shape: 'linear' }
     });
     traces.push({
       type: 'scatter', mode: 'lines',
       name: `Background ×${scale.toFixed(3)}`,
-      x: labels,
+      x: xDisp,
       y: forLog(bgScaled),
       line: { color: 'rgba(255, 112, 67, 1)', width: 1.5, dash: 'dash', shape: 'linear' }
     });
@@ -620,9 +744,9 @@ function renderAll() {
     traces.push({
       type: 'bar',
       name: 'Events',
-      x: labels,
+      x: xDisp,
       y: forLog(signalCounts),
-      width: binWidth,
+      width: barW,
       marker: { color: 'rgba(0, 188, 212, 0.6)', line: { color: 'rgba(0, 188, 212, 1)', width: 1 } },
       text: binText,
       hovertemplate: '%{text}<br>Counts: %{y}<extra></extra>'
@@ -637,7 +761,7 @@ function renderAll() {
     legend: { orientation: 'h', y: 1.12, x: 0 },
     hovermode: 'closest',
     dragmode: 'zoom',
-    xaxis: { title: { text: 'ADC Channel' }, zeroline: false },
+    xaxis: { title: { text: kev ? 'Energy [keV]' : 'ADC Channel' }, zeroline: false },
     yaxis: {
       title: { text: logY ? 'Counts (log)' : 'Counts' },
       type: logY ? 'log' : 'linear',
@@ -866,8 +990,376 @@ function updateZenithPlots(fitResult) {
   }, PLOT_CONFIG);
 }
 
+// ===== Energy Calibration (Th-232 series) =====
+const CAL_KEY = 'crd_energy_cal_v1';
+
+// Common Th-232 (thorium) decay-chain gamma lines used for energy calibration.
+// kev = literature energy; adc is filled in by the user from the measured spectrum.
+const CAL_PRESETS = [
+  { label: 'Pb-212', kev: 238.6,  adc: '', include: true },
+  { label: 'Ac-228', kev: 338.3,  adc: '', include: true },
+  { label: 'Tl-208', kev: 583.2,  adc: '', include: true },
+  { label: 'Bi-212', kev: 727.3,  adc: '', include: true },
+  { label: 'Ac-228', kev: 911.2,  adc: '', include: true },
+  { label: 'Ac-228', kev: 968.9,  adc: '', include: true },
+  { label: 'Tl-208', kev: 2614.5, adc: '', include: true }
+];
+
+// Clickable ADC spectrum of the loaded calibration source. Peaks are read off here.
+function renderCalHistogram() {
+  const empty = document.getElementById('calHistEmpty');
+  if (!calSignal.adc.length) {
+    if (empty) empty.style.display = 'block';
+    calClickBound = false;          // handler is dropped by purge; rebind on next render
+    Plotly.purge('calHistDiv');
+    return;
+  }
+  if (empty) empty.style.display = 'none';
+
+  const binWidth = Math.max(1, parseInt(document.getElementById('calBinWidth').value, 10) || 10);
+  const logY = document.getElementById('calLogY').checked;
+  // Explicit min/max avoid computeHistogram's Math.min(...vals) spread (stack overflow on big files).
+  const { mn, mx } = rangeOf(calSignal.adc);
+  const minV = Math.floor(mn / binWidth) * binWidth;
+  const maxV = Math.ceil((mx + 1) / binWidth) * binWidth;
+  const { labels, counts } = computeHistogram(calSignal.adc, binWidth, minV, maxV);
+  const y = logY ? counts.map(v => (v > 0 ? v : null)) : counts;
+  const binText = labels.map(c => `ADC ${c - binWidth / 2} – ${c + binWidth / 2}`);
+
+  const traces = [{
+    type: 'bar',
+    name: 'Counts',
+    x: labels,
+    y: y,
+    width: binWidth,
+    marker: { color: 'rgba(0, 188, 212, 0.6)', line: { color: 'rgba(0, 188, 212, 1)', width: 1 } },
+    text: binText,
+    hovertemplate: '%{text}<br>Counts: %{y}<br>クリックで選択行に取得<extra></extra>'
+  }];
+  const layout = {
+    margin: { l: 60, r: 20, t: 12, b: 50 },
+    bargap: 0,
+    hovermode: 'closest',
+    dragmode: 'zoom',
+    xaxis: { title: { text: 'ADC Channel' }, zeroline: false },
+    yaxis: {
+      title: { text: logY ? 'Counts (log)' : 'Counts' },
+      type: logY ? 'log' : 'linear',
+      rangemode: logY ? 'normal' : 'tozero',
+      zeroline: false
+    }
+  };
+  Plotly.react('calHistDiv', traces, layout, PLOT_CONFIG);
+  bindCalHistClick();
+}
+
+// Bind the click-to-pick handler exactly once (Plotly.react keeps .on handlers,
+// so re-binding every render would stack duplicate fills).
+function bindCalHistClick() {
+  if (calClickBound) return;
+  const gd = document.getElementById('calHistDiv');
+  if (!gd || !gd.on) return;
+  gd.on('plotly_click', ev => {
+    if (!ev || !ev.points || !ev.points.length) return;
+    const tr = getArmedRow();
+    if (!tr) return;
+    tr.querySelector('.cal-adc').value = Math.round(ev.points[0].x);   // x = bin center = ADC
+    onCalTableChange();
+  });
+  calClickBound = true;
+}
+
+// The row a click fills. Driven by an explicit armed state (not :focus — clicking
+// the Plotly canvas blurs the input, which would clear a focus-based highlight).
+function getArmedRow() {
+  if (armedRow && document.body.contains(armedRow)) return armedRow;
+  const checked = document.querySelector('#calTableBody input.cal-arm:checked');
+  if (checked) return checked.closest('tr');
+  return document.querySelector('#calTableBody tr');
+}
+
+function setArmed(tr) {
+  armedRow = tr;
+  document.querySelectorAll('#calTableBody tr').forEach(r => r.classList.toggle('cal-row-armed', r === tr));
+  if (tr) {
+    const radio = tr.querySelector('input.cal-arm');
+    if (radio) radio.checked = true;
+  }
+}
+
+function buildCalRow(point) {
+  const tr = document.createElement('tr');
+  tr.innerHTML =
+    '<td><input type="radio" name="armRow" class="cal-arm"></td>' +
+    '<td><input type="checkbox" class="cal-include"></td>' +
+    '<td><input type="text" class="cal-label" placeholder="line"></td>' +
+    '<td><input type="number" step="any" class="cal-kev" placeholder="keV"></td>' +
+    '<td><input type="number" step="any" class="cal-adc" placeholder="ADC"></td>' +
+    '<td class="auto cal-resid">-</td>' +
+    '<td><button class="cal-remove" title="remove">&times;</button></td>';
+  const p = point || {};
+  tr.querySelector('.cal-include').checked = (p.include !== false);
+  tr.querySelector('.cal-label').value = (p.label != null ? p.label : '');
+  tr.querySelector('.cal-kev').value = (p.kev != null ? p.kev : '');
+  tr.querySelector('.cal-adc').value = (p.adc != null ? p.adc : '');
+  tr.querySelector('.cal-arm').addEventListener('change', () => setArmed(tr));
+  tr.addEventListener('focusin', () => setArmed(tr));
+  tr.querySelector('.cal-include').addEventListener('change', onCalTableChange);
+  tr.querySelector('.cal-label').addEventListener('input', onCalTableChange);
+  tr.querySelector('.cal-kev').addEventListener('input', onCalTableChange);
+  tr.querySelector('.cal-adc').addEventListener('input', onCalTableChange);
+  tr.querySelector('.cal-remove').addEventListener('click', () => removeCalRow(tr));
+  return tr;
+}
+
+function addCalRow() {
+  const tr = buildCalRow({ label: '', kev: '', adc: '', include: true });
+  document.getElementById('calTableBody').appendChild(tr);
+  setArmed(tr);
+  onCalTableChange();
+}
+
+function removeCalRow(tr) {
+  const body = document.getElementById('calTableBody');
+  if (armedRow === tr) armedRow = null;
+  tr.remove();
+  if (!body.querySelector('tr')) {              // always keep at least one row
+    body.appendChild(buildCalRow({ label: '', kev: '', adc: '', include: true }));
+  }
+  const first = body.querySelector('tr');
+  if (!armedRow && first) setArmed(first);
+  onCalTableChange();
+}
+
+// Rows with Use checked and both keV and ADC numeric.
+function collectCalPoints() {
+  const pts = [];
+  document.querySelectorAll('#calTableBody tr').forEach(tr => {
+    const inc = tr.querySelector('.cal-include').checked;
+    const kev = parseFloat(tr.querySelector('.cal-kev').value);
+    const adc = parseFloat(tr.querySelector('.cal-adc').value);
+    if (inc && isFinite(kev) && isFinite(adc)) pts.push({ adc: adc, kev: kev, tr: tr });
+  });
+  return pts;
+}
+
+// General 2-parameter least squares E = a*ADC + b. Null when degenerate.
+function linearLeastSquares(pts) {
+  const n = pts.length;
+  if (n < 2) return null;
+  let sx = 0, sy = 0, sxx = 0, sxy = 0;
+  for (const p of pts) { sx += p.adc; sy += p.kev; sxx += p.adc * p.adc; sxy += p.adc * p.kev; }
+  const den = n * sxx - sx * sx;
+  if (den === 0) return null;                   // all ADC equal → slope undefined
+  const a = (n * sxy - sx * sy) / den;
+  const b = (sy - a * sx) / n;
+  const yMean = sy / n;
+  let ssTot = 0, ssRes = 0;
+  for (const p of pts) { const yh = a * p.adc + b; ssTot += (p.kev - yMean) ** 2; ssRes += (p.kev - yh) ** 2; }
+  const r2 = ssTot > 0 ? 1 - ssRes / ssTot : 1;
+  return { a: a, b: b, r2: r2, n: n };
+}
+
+function recomputeFit() {
+  const pts = collectCalPoints();
+  calibration = linearLeastSquares(pts.map(p => ({ adc: p.adc, kev: p.kev })));   // null if < 2 pts
+  const fit = calibration;
+
+  document.querySelectorAll('#calTableBody tr').forEach(tr => {
+    const cell = tr.querySelector('.cal-resid');
+    const kev = parseFloat(tr.querySelector('.cal-kev').value);
+    const adc = parseFloat(tr.querySelector('.cal-adc').value);
+    cell.textContent = (fit && isFinite(kev) && isFinite(adc))
+      ? ((fit.a * adc + fit.b) - kev).toFixed(1) : '-';
+  });
+
+  const eqn = document.getElementById('calEqn');
+  const r2 = document.getElementById('calR2');
+  if (fit) {
+    const bsign = fit.b >= 0 ? '+' : '−';
+    eqn.textContent = 'E = ' + fit.a.toFixed(4) + '·ADC ' + bsign + ' ' + Math.abs(fit.b).toFixed(2) + ' keV';
+    let note = 'R² = ' + fit.r2.toFixed(4) + '  (n=' + fit.n + ')';
+    if (fit.a <= 0) note += '  ⚠ 傾きが非物理的です（点を確認）';
+    r2.textContent = note;
+  } else {
+    eqn.textContent = '2 点以上のピーク (keV と Peak ADC) を指定してください';
+    r2.textContent = '';
+  }
+
+  setUseKeVEnabled(!!fit);
+  renderCalFit();
+  if (signal.adc.length) renderAll();           // keep Tab 1 in sync with the new calibration
+}
+
+function renderCalFit() {
+  const pts = collectCalPoints();
+  const traces = [{
+    type: 'scatter', mode: 'markers',
+    name: 'Peaks',
+    x: pts.map(p => p.adc),
+    y: pts.map(p => p.kev),
+    text: pts.map(p => p.tr.querySelector('.cal-label').value || ''),
+    marker: { color: '#00BCD4', size: 10 },
+    hovertemplate: '%{text}<br>ADC %{x}<br>%{y} keV<extra></extra>'
+  }];
+  if (calibration) {
+    let lo = 0, hi = 4095;
+    if (pts.length) {
+      lo = Math.min.apply(null, pts.map(p => p.adc));
+      hi = Math.max.apply(null, pts.map(p => p.adc));
+      const pad = (hi - lo) * 0.1 || 100;
+      lo = Math.max(0, lo - pad); hi = hi + pad;
+    }
+    traces.push({
+      type: 'scatter', mode: 'lines',
+      name: 'Fit',
+      x: [lo, hi],
+      y: [calibration.a * lo + calibration.b, calibration.a * hi + calibration.b],
+      line: { color: '#FF5722', width: 2 },
+      hoverinfo: 'skip'
+    });
+  }
+  const showLegend = !!calibration;
+  Plotly.react('calFitDiv', traces, {
+    margin: { l: 60, r: 20, t: showLegend ? 36 : 12, b: 50 },
+    showlegend: showLegend,
+    legend: { orientation: 'h', y: 1.12, x: 0 },
+    hovermode: 'closest',
+    dragmode: 'zoom',
+    xaxis: { title: { text: 'ADC Channel' }, zeroline: false },
+    yaxis: { title: { text: 'Energy [keV]' }, rangemode: 'tozero', zeroline: false }
+  }, PLOT_CONFIG);
+}
+
+function onCalTableChange() {
+  recomputeFit();
+  saveCalibration();
+}
+
+function useKeVActive() {
+  const c = document.getElementById('useKeV');
+  return !!(c && c.checked && !c.disabled && calibration && isFinite(calibration.a));
+}
+
+function setUseKeVEnabled(enabled) {
+  const c = document.getElementById('useKeV');
+  if (!c) return;
+  c.disabled = !enabled;
+  if (!enabled) c.checked = false;              // never display a stale/invalid calibration
+}
+
+// --- Persistence (localStorage auto + explicit save/load + JSON export/import) ---
+function serializeCalState() {
+  const points = [];
+  document.querySelectorAll('#calTableBody tr').forEach(tr => {
+    points.push({
+      label: tr.querySelector('.cal-label').value,
+      kev: tr.querySelector('.cal-kev').value,
+      adc: tr.querySelector('.cal-adc').value,
+      include: tr.querySelector('.cal-include').checked
+    });
+  });
+  return { version: 1, model: 'linear', points: points, fit: calibration, useKeV: document.getElementById('useKeV').checked };
+}
+
+function saveCalibration() {
+  try { localStorage.setItem(CAL_KEY, JSON.stringify(serializeCalState())); } catch (e) { /* storage unavailable / private mode */ }
+}
+
+function rebuildCalTable(points) {
+  const body = document.getElementById('calTableBody');
+  body.innerHTML = '';
+  armedRow = null;
+  const rows = (points && points.length) ? points : CAL_PRESETS;
+  rows.forEach(p => body.appendChild(buildCalRow(p)));
+  const first = body.querySelector('tr');
+  if (first) setArmed(first);
+}
+
+function applyCalState(obj) {
+  if (!obj || obj.model !== 'linear' || !Array.isArray(obj.points)) return false;
+  rebuildCalTable(obj.points);
+  recomputeFit();
+  const c = document.getElementById('useKeV');
+  if (obj.useKeV && c && !c.disabled) c.checked = true;
+  if (signal.adc.length) renderAll();
+  return true;
+}
+
+function loadCalibration() {
+  let raw = null;
+  try { raw = localStorage.getItem(CAL_KEY); } catch (e) { return false; }
+  if (!raw) return false;
+  try { return applyCalState(JSON.parse(raw)); } catch (e) { return false; }
+}
+
+function clearCalibration() {
+  try { localStorage.removeItem(CAL_KEY); } catch (e) {}
+  calibration = null;
+  rebuildCalTable(CAL_PRESETS);
+  setUseKeVEnabled(false);
+  recomputeFit();
+  if (signal.adc.length) renderAll();
+}
+
+function downloadJSON(obj, name) {
+  const blob = new Blob([JSON.stringify(obj, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function flashBtn(id, msg) {
+  const b = document.getElementById(id);
+  if (!b) return;
+  const orig = b.textContent;
+  b.textContent = msg;
+  setTimeout(() => { b.textContent = orig; }, 1200);
+}
+
+function initCalTab() {
+  document.getElementById('calFileInput').addEventListener('change', function (e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    document.getElementById('calFileName').textContent = file.name;
+    const reader = new FileReader();
+    reader.onload = ev => { calSignal = parseDataFile(ev.target.result); renderCalHistogram(); };
+    reader.readAsText(file);
+  });
+  document.getElementById('calBinWidth').addEventListener('change', renderCalHistogram);
+  document.getElementById('calBinWidth').addEventListener('input', renderCalHistogram);
+  document.getElementById('calLogY').addEventListener('change', renderCalHistogram);
+  document.getElementById('addCalRowBtn').addEventListener('click', addCalRow);
+  document.getElementById('saveCalBtn').addEventListener('click', () => { saveCalibration(); flashBtn('saveCalBtn', '保存しました'); });
+  document.getElementById('loadCalBtn').addEventListener('click', () => { if (!loadCalibration()) alert('保存された校正がありません。'); });
+  document.getElementById('clearCalBtn').addEventListener('click', clearCalibration);
+  document.getElementById('exportCalBtn').addEventListener('click', () => downloadJSON(serializeCalState(), 'energy_calibration.json'));
+  document.getElementById('calImportInput').addEventListener('change', function (e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        const obj = JSON.parse(ev.target.result);
+        if (!applyCalState(obj)) { alert('校正ファイルの形式が不正です。'); return; }
+        saveCalibration();
+      } catch (err) { alert('校正ファイルを読み込めませんでした: ' + err.message); }
+    };
+    reader.readAsText(file);
+    e.target.value = '';        // allow re-importing the same file name
+  });
+  document.getElementById('useKeV').addEventListener('change', () => { renderAll(); saveCalibration(); });
+
+  rebuildCalTable(CAL_PRESETS);   // default preset rows
+  loadCalibration();              // override from storage if a saved calibration exists
+  recomputeFit();                 // populate equation/plot + set useKeV enabled state
+}
+
 // Init
 initZenithTable();
+initCalTab();
 </script>
 </body>
 </html>

@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>V1検出器 パルス波形 測定レポート</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Hiragino Sans', 'Yu Gothic UI', Roboto, sans-serif;
+  background:#f4f6f8; color:#333; line-height:1.75; -webkit-font-smoothing:antialiased;
+}
+.header { background:linear-gradient(135deg,#00838F,#00BCD4); color:#fff; padding:26px 24px; }
+.header h1 { font-size:1.45rem; font-weight:700; }
+.header .sub { font-size:.88rem; font-weight:400; opacity:.9; margin-top:6px; }
+.container { max-width:1000px; margin:0 auto; padding:24px 20px 80px; }
+.card { background:#fff; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,.08); padding:24px 28px; margin-bottom:22px; }
+h2 { font-size:1.15rem; color:#00838F; margin:0 0 14px; padding-bottom:8px; border-bottom:2px solid #B2EBF2; }
+h3 { font-size:1rem; color:#37474F; margin:22px 0 8px; }
+h3:first-of-type { margin-top:4px; }
+p { margin:10px 0; }
+ul, ol { margin:10px 0 10px 22px; }
+li { margin:5px 0; }
+code { background:#eceff1; color:#00695C; padding:2px 6px; border-radius:4px;
+       font-family:'Consolas','Menlo',monospace; font-size:.87em; }
+table { width:100%; border-collapse:collapse; margin:14px 0; font-size:.92rem; }
+th { background:#f0fafa; color:#00838F; font-size:.78rem; text-transform:uppercase; letter-spacing:.4px;
+     padding:9px 10px; border-bottom:2px solid #00BCD4; text-align:left; }
+td { padding:8px 10px; border-bottom:1px solid #eee; }
+td.num, th.num { text-align:right; font-variant-numeric:tabular-nums; }
+tr.hl td { background:#e0f7fa; font-weight:600; }
+.kpi { display:flex; gap:14px; flex-wrap:wrap; margin:16px 0 4px; }
+.kpi .box { flex:1; min-width:150px; background:#fff; border:1px solid #e0e0e0; border-top:3px solid #00BCD4;
+            border-radius:8px; padding:14px 16px; text-align:center; }
+.kpi .v { font-size:1.5rem; font-weight:700; color:#00838F; line-height:1.2; }
+.kpi .l { font-size:.72rem; color:#888; letter-spacing:.4px; margin-top:5px; }
+.note { background:#f0fafa; border-left:4px solid #00BCD4; padding:12px 16px; border-radius:0 6px 6px 0; margin:14px 0; font-size:.93rem; }
+.warn { background:#fff5f5; border-left:4px solid #E53935; padding:12px 16px; border-radius:0 6px 6px 0; margin:14px 0; font-size:.93rem; }
+.ok   { background:#f3faf0; border-left:4px solid #7CB342; padding:12px 16px; border-radius:0 6px 6px 0; margin:14px 0; font-size:.93rem; }
+figure { margin:20px 0; }
+figure svg { width:100%; height:auto; display:block; border:1px solid #eceff1; border-radius:6px; background:#fff; }
+figcaption { font-size:.83rem; color:#78909c; margin-top:8px; padding-left:2px; }
+.chain { display:flex; flex-direction:column; gap:0; margin:18px 0; }
+.chain .step { background:#fff; border:1px solid #cfd8dc; border-radius:7px; padding:12px 16px; font-size:.92rem; }
+.chain .step b { color:#00838F; }
+.chain .arrow { text-align:center; color:#90a4ae; font-size:1.2rem; line-height:1.5; }
+.chain .step.bad { border-color:#ef9a9a; background:#fff8f8; }
+.chain .step.good { border-color:#c5e1a5; background:#f8fbf5; }
+.meta { font-size:.83rem; color:#78909c; font-family:'Consolas','Menlo',monospace;
+        background:#fafafa; border:1px solid #eee; border-radius:6px; padding:12px 14px;
+        overflow-x:auto; white-space:pre; }
+.tag { display:inline-block; font-size:.7rem; font-weight:700; letter-spacing:.5px; padding:2px 8px;
+       border-radius:10px; vertical-align:middle; margin-left:8px; }
+.tag.meas { background:#e0f2f1; color:#00695C; }
+.tag.derived { background:#fff8e1; color:#EF6C00; }
+.tag.schem { background:#eceff1; color:#546E7A; }
+@media (max-width:640px){ .card{padding:18px 16px;} .kpi .box{min-width:45%;} }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>V1 検出器 パルス波形 測定レポート</h1>
+  <div class="sub">Accel Kitchen Cosmic Detector V1 基板 / ESP32-S3 &nbsp;·&nbsp; 測定日 2026-07-21</div>
+</div>
+
+<div class="container">
+
+<!-- ============================================================ -->
+<div class="card">
+<h2>要約</h2>
+
+<div class="kpi">
+  <div class="box"><div class="v">199 µs</div><div class="l">減衰時定数 τ</div></div>
+  <div class="box"><div class="v">0.7 µs</div><div class="l">しきい値→ピーク</div></div>
+  <div class="box"><div class="v">t = 0</div><div class="l">ピーク位置</div></div>
+  <div class="box"><div class="v">ADC 5</div><div class="l">ベースライン</div></div>
+</div>
+
+<p>当初の問い —「トリガがかかってから<b>どれぐらい待てばピークを採れるか</b>」— の答えは
+<b>「待ってはいけない。しきい値を超えた最初の1点がすでにピークである」</b>。</p>
+
+<p>V1 基板のパルスは <b>立ち上がり 0.7 µs / 減衰 τ≈199 µs</b> の非対称波形だった。
+立ち上がりは ESP32-S3 のどのサンプリング手段でも分解できない（DMA 連続モードの上限 12 µs でも足りない）。
+一方で減衰は 199 µs と十分に遅いため、しきい値超えを検出した時点のサンプルは
+まだピークの数％以内に留まっている。<b>そこから待つと単調に損をするだけ</b>である。</p>
+
+<p>したがって現行ファームの <code>SAMPLE_PEAK</code> が正しく動いているのは
+<code>int peak = trig;</code> の 1 行のおかげであり、トリガ後に撃つ追加の
+<code>analogRead</code> は <b>実測で 94〜98% のイベントにおいて一度も勝っていない</b>。</p>
+
+<div class="warn">
+<b>ただし別の問題が見つかった。</b> アンプ出力の DC 点が ADC=5（約4 mV）と
+ESP32 の ADC レンジ最下端に貼り付いており、ベースラインノイズの 18.7% が 0 でクリップされている。
+この領域は ADC が非線形なため、<b>低エネルギー側のイベントは「トリガはできるが波高値が正しく測れない」</b>状態にある。
+詳細は<a href="#lowe">「低エネルギー成分が正確に測れない理由」</a>を参照。
+</div>
+</div>
+
+<!-- ============================================================ -->
+<div class="card">
+<h2>測定条件</h2>
+<div class="meta">ファーム   : v1/COSMICRAY_WAVEFORM_ESP32-S3-Nano
+ボード     : ESP32S3_DEV (Waveshare 系クローン) / ESP32 Arduino Core 3.1.1
+デバイス側 : mode=DMA period_ns=12000 fs_hz=83333 pre=64 post=256
+             thr=77 rst=57 base=5 bits=12 atten=12db
+             adc_read_ns=29733 maxrate=50 cpu_mhz=240
+データ     : waveform_20260721_131445.wfm   DMA 4938 events / POLL 2180 events
+             waveform_20260721_125044.wfm   POLL 136 events
+             avg_waveform_20260721_122238.csv</div>
+
+<h3>2 つの取得モード</h3>
+<table>
+<thead><tr><th>モード</th><th class="num">サンプル間隔</th><th>意味</th></tr></thead>
+<tbody>
+<tr><td><b>DMA</b></td><td class="num">12.00 µs</td><td>ADC 連続モード。ハードウェアクロック駆動で等間隔・ジッタ無し・トリガ前も取得。<b>回路が出している波形</b>を見る</td></tr>
+<tr><td><b>POLL</b></td><td class="num">32.30 µs</td><td><code>analogRead</code> ポーリング。<b>実機ファームが見ている波形</b>を見る</td></tr>
+</tbody>
+</table>
+<p>POLL の 32.30 µs の内訳は <code>analogRead</code> 単体 29.50 µs（BENCH の実測 29.733 µs と一致）＋
+<code>loop()</code> のオーバーヘッド約 2.8 µs。</p>
+</div>
+
+<!-- ============================================================ -->
+<div class="card">
+<h2>1. パルス形状</h2>
+
+<h3>減衰時定数 <span class="tag meas">実測</span></h3>
+<p>2 つの取得モードは全く別経路（DMA は SAR の DMA 転送、POLL は oneshot API）にもかかわらず、
+同じ τ を返した。パルス形状の測定として信用してよい。</p>
+<table>
+<thead><tr><th>フィット区間</th><th class="num">DMA (n=4938)</th><th class="num">POLL (n=2180)</th></tr></thead>
+<tbody>
+<tr><td>t = 0..100 µs</td><td class="num">190.4 µs</td><td class="num">190.2 µs</td></tr>
+<tr><td>t = 100..200 µs</td><td class="num">184.8 µs</td><td class="num">185.3 µs</td></tr>
+<tr><td>t = 200..400 µs</td><td class="num">177.2 µs</td><td class="num">179.0 µs</td></tr>
+<tr class="hl"><td>ADC&gt;100 のサンプルのみ</td><td class="num" colspan="2">193 〜 202 µs → <b>τ ≈ 199 µs</b></td></tr>
+</tbody>
+</table>
+<p>素直にフィットすると区間によって 177〜190 µs とばらつくが、これは後述の ADC 下端の問題によるもの。
+ADC の信頼できる領域だけを使うと <b>τ ≈ 199 µs</b> に収束する。</p>
+
+<h3>立ち上がり時間 <span class="tag derived">導出</span></h3>
+<p>0.7 µs はどちらのサンプラでも直接は分解できない。しかし間接的に測れる。</p>
+<p>しきい値を超えた最初のサンプルは、交差時刻から <span style="white-space:nowrap">U(0, T)</span> に一様に落ちる（T はサンプル間隔）。
+それが<b>ピークより手前</b>に落ちる確率は Δ/T である（Δ = しきい値通過からピークまでの時間）。
+「ピークがトリガ点ではなかったイベントの割合」を数えれば Δ が求まる。</p>
+<table>
+<thead><tr><th>モード</th><th class="num">T</th><th class="num">ピーク≠トリガ点</th><th class="num">Δ = 割合 × T</th></tr></thead>
+<tbody>
+<tr><td>DMA</td><td class="num">12.00 µs</td><td class="num">5.7%</td><td class="num"><b>0.68 µs</b></td></tr>
+<tr><td>POLL</td><td class="num">32.30 µs</td><td class="num">2.5%</td><td class="num"><b>0.80 µs</b></td></tr>
+</tbody>
+</table>
+<div class="ok">サンプリング周期が 2.7 倍違う 2 つの測定が同じ値を出した。この 0.7〜0.8 µs は信用できる。</div>
+
+<h3>飽和はしていない <span class="tag meas">実測</span></h3>
+<p>ADC 生値が 4090 以上に達したイベントは DMA 4938 中 <b>3 件（0.1%）</b>、POLL 2180 中 2 件。
+アンプの飽和もクリップも実質起きていない。</p>
+</div>
+
+<!-- ============================================================ -->
+<div class="card">
+<h2>2. サンプリングによる波高の取りこぼし</h2>
+
+<p>ピークはトリガ点にあるが、トリガ点そのものが<b>真のピークより少し遅い</b>。
+パルスの立ち上がり（0.7 µs）はサンプル間隔より遥かに速いので、
+最初のサンプルはすでに減衰カーブ上のどこかに落ちている。</p>
+
+<p>その遅れ δ は <span style="white-space:nowrap">U(0, T)</span> に一様なので、
+採れる割合は <code>x = exp(−δ/τ)</code> の分布として計算できる（τ=199 µs）。</p>
+
+<table>
+<thead><tr><th>サンプル間隔</th><th class="num">平均</th><th class="num">ばらつき (sd)</th><th>備考</th></tr></thead>
+<tbody>
+<tr><td>12.0 µs（DMA）</td><td class="num">97.0%</td><td class="num">± 1.9%</td><td></td></tr>
+<tr class="hl"><td>32.3 µs（POLL＝実機）</td><td class="num">92.3%</td><td class="num">± 4.2%</td><td>現行ファームはここ</td></tr>
+<tr><td>60 µs</td><td class="num">85.9%</td><td class="num">± 7.7%</td><td></td></tr>
+</tbody>
+</table>
+
+<div class="note">
+この <b>±4.2% は「サンプリングだけで乗る広がり」</b>で、検出器本来のエネルギー分解能に二乗和で足される。
+仮に本来の分解能を σ=6.4%（FWHM 15%）とすると、
+POLL では √(6.4²+4.2²)=7.7% → FWHM <b>18.0%</b>、
+DMA なら √(6.4²+1.9²)=6.7% → FWHM <b>15.7%</b>。無視できる大きさではない。
+</div>
+
+<h3>ピークがトリガ点だったイベントの割合 <span class="tag meas">実測</span></h3>
+<p>DMA <b>94.3%</b>（4659/4938）、POLL <b>97.5%</b>（2126/2180）。</p>
+<p>POLL のほうが高いのは、サンプルが粗いほど「立ち上がりの途中を踏む」確率が下がるため。
+いずれにせよ<b>トリガ後の追加サンプルは 94〜98% のイベントで無駄</b>ということになる。</p>
+</div>
+
+<!-- ============================================================ -->
+<div class="card" id="lowe">
+<h2>3. 低エネルギー成分が正確に測れない理由</h2>
+
+<div class="note">
+<b>先に結論。</b> <code>AUTO_THRESH</code> のアルゴリズム自体は壊れていない。
+「ノイズの最大値＋マージン」という置き方は正しく、トリガも正常に動いている。
+問題は、<b>そうやって決まった正しい位置（ADC 77）が、たまたま ADC が正しく測れない領域の中にある</b>こと。
+根本原因はアンプ出力の DC 点であって、<code>AUTO_THRESH</code> はその犠牲者である。
+（前の説明で「AUTO_THRESH が壊れたノイズ分布を見ている」と書いたのは不正確だった。訂正する。）
+</div>
+
+<h3>3.1 何が起きているか</h3>
+
+<p>ESP32 の ADC は減衰 11/12 dB でも <b>入力 100 mV 前後（≒130 カウント）以下では非線形</b>で、
+下端では 0 に潰れる。V1 基板のアンプ出力は静止時に約 4 mV しかなく、
+<b>信号がまるごとこの使えない領域の底に置かれている</b>。</p>
+
+<figure>
+<svg viewBox="0 0 760 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="ベースラインADC値の実測ヒストグラム">
+<rect x="0" y="0" width="760" height="300" fill="#ffffff"/>
+<line x1="58" y1="248.0" x2="742" y2="248.0" stroke="#eceff1"/>
+<text x="50" y="252.0" font-size="11" fill="#78909c" text-anchor="end">0%</text>
+<line x1="58" y1="216.6" x2="742" y2="216.6" stroke="#eceff1"/>
+<text x="50" y="220.6" font-size="11" fill="#78909c" text-anchor="end">5%</text>
+<line x1="58" y1="185.2" x2="742" y2="185.2" stroke="#eceff1"/>
+<text x="50" y="189.2" font-size="11" fill="#78909c" text-anchor="end">10%</text>
+<line x1="58" y1="153.8" x2="742" y2="153.8" stroke="#eceff1"/>
+<text x="50" y="157.8" font-size="11" fill="#78909c" text-anchor="end">15%</text>
+<line x1="58" y1="122.4" x2="742" y2="122.4" stroke="#eceff1"/>
+<text x="50" y="126.4" font-size="11" fill="#78909c" text-anchor="end">20%</text>
+<line x1="58" y1="91.1" x2="742" y2="91.1" stroke="#eceff1"/>
+<text x="50" y="95.1" font-size="11" fill="#78909c" text-anchor="end">25%</text>
+<line x1="58" y1="59.7" x2="742" y2="59.7" stroke="#eceff1"/>
+<text x="50" y="63.7" font-size="11" fill="#78909c" text-anchor="end">30%</text>
+<line x1="58" y1="28.3" x2="742" y2="28.3" stroke="#eceff1"/>
+<text x="50" y="32.3" font-size="11" fill="#78909c" text-anchor="end">35%</text>
+<rect x="58" y="22" width="32.7" height="226" fill="#ffebee"/>
+<rect x="63.3" y="130.4" width="27.4" height="117.6" fill="#e53935" rx="1"/>
+<text x="77.0" y="264" font-size="11" fill="#546e7a" text-anchor="middle">0</text>
+<text x="77.0" y="125.4" font-size="10" fill="#37474f" text-anchor="middle">18.73%</text>
+<rect x="101.3" y="230.9" width="27.4" height="17.1" fill="#ff8a65" rx="1"/>
+<text x="115.0" y="264" font-size="11" fill="#546e7a" text-anchor="middle">1</text>
+<rect x="139.3" y="235.8" width="27.4" height="12.2" fill="#ff8a65" rx="1"/>
+<text x="153.0" y="264" font-size="11" fill="#546e7a" text-anchor="middle">2</text>
+<rect x="177.3" y="182.5" width="27.4" height="65.5" fill="#00838f" rx="1"/>
+<text x="191.0" y="264" font-size="11" fill="#546e7a" text-anchor="middle">3</text>
+<text x="191.0" y="177.5" font-size="10" fill="#37474f" text-anchor="middle">10.43%</text>
+<rect x="215.3" y="158.8" width="27.4" height="89.2" fill="#00838f" rx="1"/>
+<text x="229.0" y="264" font-size="11" fill="#546e7a" text-anchor="middle">4</text>
+<text x="229.0" y="153.8" font-size="10" fill="#37474f" text-anchor="middle">14.21%</text>
+<rect x="253.3" y="35.6" width="27.4" height="212.4" fill="#00838f" rx="1"/>
+<text x="267.0" y="264" font-size="11" fill="#546e7a" text-anchor="middle">5</text>
+<text x="267.0" y="30.6" font-size="10" fill="#37474f" text-anchor="middle">33.84%</text>
+<rect x="291.3" y="193.2" width="27.4" height="54.8" fill="#00838f" rx="1"/>
+<text x="305.0" y="264" font-size="11" fill="#546e7a" text-anchor="middle">6</text>
+<text x="305.0" y="188.2" font-size="10" fill="#37474f" text-anchor="middle">8.73%</text>
+<rect x="329.3" y="215.2" width="27.4" height="32.8" fill="#00838f" rx="1"/>
+<text x="343.0" y="264" font-size="11" fill="#546e7a" text-anchor="middle">7</text>
+<text x="343.0" y="210.2" font-size="10" fill="#37474f" text-anchor="middle">5.22%</text>
+<rect x="367.3" y="241.7" width="27.4" height="6.3" fill="#00838f" rx="1"/>
+<text x="381.0" y="264" font-size="11" fill="#546e7a" text-anchor="middle">8</text>
+<rect x="405.3" y="241.1" width="27.4" height="6.9" fill="#00838f" rx="1"/>
+<text x="419.0" y="264" font-size="11" fill="#546e7a" text-anchor="middle">9</text>
+<rect x="443.3" y="246.0" width="27.4" height="2.0" fill="#00838f" rx="1"/>
+<text x="457.0" y="264" font-size="11" fill="#546e7a" text-anchor="middle">10</text>
+<rect x="481.3" y="245.0" width="27.4" height="3.0" fill="#00838f" rx="1"/>
+<text x="495.0" y="264" font-size="11" fill="#546e7a" text-anchor="middle">11</text>
+<rect x="519.3" y="246.5" width="27.4" height="1.5" fill="#00838f" rx="1"/>
+<text x="533.0" y="264" font-size="11" fill="#546e7a" text-anchor="middle">12</text>
+<rect x="557.3" y="245.5" width="27.4" height="2.5" fill="#00838f" rx="1"/>
+<text x="571.0" y="264" font-size="11" fill="#546e7a" text-anchor="middle">13</text>
+<rect x="595.3" y="247.4" width="27.4" height="0.6" fill="#00838f" rx="1"/>
+<text x="609.0" y="264" font-size="11" fill="#546e7a" text-anchor="middle">14</text>
+<rect x="633.3" y="247.8" width="27.4" height="0.2" fill="#00838f" rx="1"/>
+<text x="647.0" y="264" font-size="11" fill="#546e7a" text-anchor="middle">15</text>
+<rect x="671.3" y="244.9" width="27.4" height="3.1" fill="#b0bec5" rx="1"/>
+<text x="685.0" y="264" font-size="10" fill="#546e7a" text-anchor="middle">16+</text>
+<line x1="58" y1="248" x2="742" y2="248" stroke="#90a4ae"/>
+<text x="400.0" y="290" font-size="12" fill="#455a64" text-anchor="middle">トリガ前サンプルの生ADC値 [count]</text>
+<text x="91.0" y="106.4" font-size="11.5" fill="#c62828" font-weight="600">18.7% がちょうど 0</text>
+<text x="91.0" y="120.4" font-size="11" fill="#c62828">＝ 下側が切り取られている</text>
+<path d="M 87.0 123.4 L 79.0 136.4" stroke="#c62828" stroke-width="1.4" fill="none" marker-end="url(#ar)"/>
+<text x="419.0" y="160.1" font-size="11" fill="#e64a19">ADC=1,2 が不自然に低い</text>
+<text x="419.0" y="173.1" font-size="11" fill="#e64a19">＝ コードの抜け(DNL)</text>
+<path d="M 415.0 166.4 L 157.0 229.2" stroke="#e64a19" stroke-width="1.2" fill="none" marker-end="url(#ar2)"/>
+<defs><marker id="ar" markerWidth="7" markerHeight="7" refX="6" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 z" fill="#c62828"/></marker><marker id="ar2" markerWidth="7" markerHeight="7" refX="6" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 z" fill="#e64a19"/></marker></defs>
+</svg>
+<figcaption><b>図1（実測）</b> トリガ前サンプル 316,032 点の生 ADC 値の分布。
+本来ならベースライン ADC=5 を中心にノイズが上下に広がるはずだが、
+<b>18.7% がちょうど 0 に積み上がっている</b>＝下半分が切り取られている。
+ADC=1,2 だけ不自然に落ち込んでいるのはコードの抜け（DNL）で、この領域が非線形であることの直接の証拠。</figcaption>
+</figure>
+
+<h3>3.2 因果の流れ</h3>
+
+<div class="chain">
+  <div class="step">① アンプ出力の DC 点が約 <b>4 mV</b>（ADC=5）</div>
+  <div class="arrow">↓</div>
+  <div class="step">② ノイズは ADC=0〜7 に収まる。下側は 0 でクリップ、<b>実測の max は 17</b></div>
+  <div class="arrow">↓</div>
+  <div class="step">③ <code>AUTO_THRESH</code> が <b>max + margin = 17 + 60 = 77</b> にしきい値を置く<br>
+      <span style="font-size:.86rem;color:#607D8B;">— ここまでは設計どおりで、何も間違っていない</span></div>
+  <div class="arrow">↓</div>
+  <div class="step good">④ <b>トリガは正常に働く。</b> しきい値もノイズも同じ ADC カウント空間で比較しているので、
+      圧縮の影響は打ち消し合う。イベントを取りこぼしてはいない</div>
+  <div class="arrow">↓</div>
+  <div class="step bad">⑤ <b>しかし波高値は正しくない。</b> ADC 77 前後は非線形域のど真ん中。
+      ここでトリガした低エネルギーイベントは、<b>トリガはできるが波高が圧縮されて記録される</b></div>
+</div>
+
+<p>つまり <b>「低エネルギー成分が見えない」のではなく「見えているが値が間違っている」</b>。
+これがこの問題の厄介なところで、イベント数を増やしても改善しない。</p>
+
+<h3>3.3 実測での現れ方 <span class="tag meas">実測</span></h3>
+
+<p>電子回路が線形なら、パルスの<b>形</b>は振幅に依らないはずである。
+ところがイベントをピーク振幅の四分位に分けて τ を測ると、振幅で 25 µs もばらつく。</p>
+
+<figure>
+<svg viewBox="0 0 760 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="振幅帯ごとの減衰時定数、ADC下限カット前後">
+<rect width="760" height="300" fill="#fff"/>
+<line x1="62" y1="248.0" x2="620" y2="248.0" stroke="#eceff1"/>
+<text x="54" y="252.0" font-size="11" fill="#78909c" text-anchor="end">160</text>
+<line x1="62" y1="204.5" x2="620" y2="204.5" stroke="#eceff1"/>
+<text x="54" y="208.5" font-size="11" fill="#78909c" text-anchor="end">170</text>
+<line x1="62" y1="161.1" x2="620" y2="161.1" stroke="#eceff1"/>
+<text x="54" y="165.1" font-size="11" fill="#78909c" text-anchor="end">180</text>
+<line x1="62" y1="117.6" x2="620" y2="117.6" stroke="#eceff1"/>
+<text x="54" y="121.6" font-size="11" fill="#78909c" text-anchor="end">190</text>
+<line x1="62" y1="74.2" x2="620" y2="74.2" stroke="#eceff1"/>
+<text x="54" y="78.2" font-size="11" fill="#78909c" text-anchor="end">200</text>
+<line x1="62" y1="30.7" x2="620" y2="30.7" stroke="#eceff1"/>
+<text x="54" y="34.7" font-size="11" fill="#78909c" text-anchor="end">210</text>
+<text x="131.8" y="266" font-size="11" fill="#546e7a" text-anchor="middle">peak&lt;146</text>
+<text x="271.2" y="266" font-size="11" fill="#546e7a" text-anchor="middle">146-273</text>
+<text x="410.8" y="266" font-size="11" fill="#546e7a" text-anchor="middle">273-555</text>
+<text x="550.2" y="266" font-size="11" fill="#546e7a" text-anchor="middle">555+</text>
+<polyline points="131.8,195.8 271.2,155.0 410.8,118.9 550.2,88.1" fill="none" stroke="#e53935" stroke-width="2.6" />
+<circle cx="131.8" cy="195.8" r="4.5" fill="#e53935"/>
+<text x="131.8" y="185.8" font-size="10.5" fill="#e53935" text-anchor="middle">172.0</text>
+<circle cx="271.2" cy="155.0" r="4.5" fill="#e53935"/>
+<text x="271.2" y="145.0" font-size="10.5" fill="#e53935" text-anchor="middle">181.4</text>
+<circle cx="410.8" cy="118.9" r="4.5" fill="#e53935"/>
+<text x="410.8" y="108.9" font-size="10.5" fill="#e53935" text-anchor="middle">189.7</text>
+<circle cx="550.2" cy="88.1" r="4.5" fill="#e53935"/>
+<text x="550.2" y="78.1" font-size="10.5" fill="#e53935" text-anchor="middle">196.8</text>
+<polyline points="131.8,67.2 271.2,92.8 410.8,106.3 550.2,82.0" fill="none" stroke="#00838f" stroke-width="2.6" />
+<circle cx="131.8" cy="67.2" r="4.5" fill="#00838f"/>
+<text x="131.8" y="57.2" font-size="10.5" fill="#00838f" text-anchor="middle">201.6</text>
+<circle cx="271.2" cy="92.8" r="4.5" fill="#00838f"/>
+<text x="271.2" y="82.8" font-size="10.5" fill="#00838f" text-anchor="middle">195.7</text>
+<circle cx="410.8" cy="106.3" r="4.5" fill="#00838f"/>
+<text x="410.8" y="96.3" font-size="10.5" fill="#00838f" text-anchor="middle">192.6</text>
+<circle cx="550.2" cy="82.0" r="4.5" fill="#00838f"/>
+<text x="550.2" y="72.0" font-size="10.5" fill="#00838f" text-anchor="middle">198.2</text>
+<line x1="62" y1="248" x2="620" y2="248" stroke="#90a4ae"/>
+<text x="16" y="135.0" font-size="12" fill="#455a64" text-anchor="middle" transform="rotate(-90 16 135.0)">減衰時定数 τ [µs]</text>
+<text x="341.0" y="290" font-size="12" fill="#455a64" text-anchor="middle">イベントのピーク振幅帯 [ADC count]</text>
+<rect x="636" y="38" width="12" height="12" fill="#e53935"/><text x="654" y="48" font-size="11.5" fill="#37474f">全サンプル使用</text>
+<text x="654" y="62" font-size="10.5" fill="#78909c">→ 振幅で 25µs ばらつく</text>
+<rect x="636" y="84" width="12" height="12" fill="#00838f"/><text x="654" y="94" font-size="11.5" fill="#37474f">ADC&gt;100 のみ</text>
+<text x="654" y="108" font-size="10.5" fill="#78909c">→ 全帯で 193-202µs</text>
+<text x="654" y="122" font-size="10.5" fill="#78909c">に収束</text>
+</svg>
+<figcaption><b>図2（実測）</b> 振幅帯ごとの減衰時定数。
+赤＝全サンプルを使った場合。小振幅ほど τ が短く出て、あたかも「小さいパルスは速く減衰する」ように見える。
+青＝生 ADC が 100 を超えるサンプルだけを使った場合。
+<b>4 つの振幅帯すべてが 193〜202 µs に収束する</b>＝形は振幅に依らない＝アンプは線形。
+赤の傾きは物理ではなく、ADC 下端の測定誤差だった。</figcaption>
+</figure>
+
+<p>小振幅パルスは波形の大半が ADC 100 以下を通るため、この誤差をまともに受ける。
+大振幅パルスは尾の後半でしか影響を受けない。それが図2の赤い傾きの正体である。</p>
+
+<h3>3.4 誤差の内訳 <span class="tag derived">部分的にしか分離できない</span></h3>
+
+<p>この歪みには 2 つの成分が混ざっており、今回のデータでは<b>完全には分離できなかった</b>。
+正直に両方を挙げる。</p>
+
+<ol>
+<li><b>ベースラインの過大減算。</b> 測定したベースライン（ADC=5）は<i>クリップされた</i>分布の平均なので、
+真のゼロ点より高い。これを差し引くと全振幅が下振れし、小振幅ほど相対的に大きく効く。<br>
+検証: 減衰を <code>A·exp(−t/τ) + c</code> と 3 パラメータでフィットすると
+c は常に負（−0.010〜−0.029）で、τ は 182/195/201/201 µs とかなり揃う。
+ただし c をカウントに直すと −2.1/−5.8/−9.7/−8.6 とばらつき、<b>単一の固定オフセットでは説明しきれない</b>。</li>
+<li><b>ADC 自体の圧縮・コード抜け。</b> 図1 の ADC=1,2 の落ち込みが示すとおり、
+下端では 1 カウントの重みが一定でない。こちらは補正のしようがない。</li>
+</ol>
+
+<p>実務的には、原因の内訳を突き止めるより<b>「ADC 100 以下の値は使わない」</b>で運用するほうが確実である
+（図2 の青がそれ）。</p>
+
+<h3>3.5 副作用: 自己診断が効かない</h3>
+<p><code>calibrateThreshold()</code> は <code>min/max/mean/sd</code> を出力し、
+スケッチのコメントでは「マージンが sd の 5 倍程度あるか」で妥当性を判断するよう書いてある。
+しかし分布の下半分がクリップされているため <b>sd は過小評価</b>され、mean は上振れする。
+この自己診断は現状あてにならない。</p>
+</div>
+
+<!-- ============================================================ -->
+<div class="card">
+<h2>4. 対処の方向</h2>
+
+<h3>4.1 ハードウェア（本質的な対処）</h3>
+<p>アンプ出力に <b>150〜200 mV 程度の DC オフセット</b>を載せ、ベースラインを ADC 200〜300 付近まで持ち上げる。
+そうすればしきい値も信号も ADC の線形領域に入る。</p>
+<div class="warn">
+既知の未対策事項として <b>A0 に最大 5V が入りうる</b>問題がある（LT1807 の出力が分圧なしで A0 直結）。
+ここに分圧を入れると信号が小さくなり <b>この DC 点の問題は悪化する</b>。
+分圧とオフセットは必ず一緒に設計すること。
+</div>
+
+<h3>4.2 ファームウェア（今すぐできる）</h3>
+<p>対象: <code>v1/COSMICRAY_DETECTOR_ESP32-S3-Nano/COSMICRAY_DETECTOR_ESP32-S3-Nano.ino</code></p>
+<table>
+<thead><tr><th>案</th><th>内容</th><th>効果</th></tr></thead>
+<tbody>
+<tr>
+  <td><b>A</b><br>最小</td>
+  <td><code>PEAK_WINDOW_US</code> 120 → 40<br><code>PEAK_SAMPLES</code> 8 → 1</td>
+  <td>波高精度は不変（追加読みは勝たない）。イベントあたり約 90 µs のデッドタイム削減。
+      ただし主役は再アーム待ち（τ=199 µs では中央値パルスで約 330 µs）なので全体では約 15% 減</td>
+</tr>
+<tr>
+  <td><b>B</b><br>本命</td>
+  <td>取得方式を DMA 連続へ</td>
+  <td>92.3%±4.2% → 97.0%±1.9%。再アーム待ちも波高窓も不要になりデッドタイム実質ゼロ。
+      本診断スケッチで動作実績あり。ただし検出ループの書き換えとコインシデンス処理との噛み合わせが必要</td>
+</tr>
+</tbody>
+</table>
+<p>いずれも <b>4.1 を直さない限り低エネルギー端の歪みは残る</b>。順序としてはハードが先。</p>
+</div>
+
+<!-- ============================================================ -->
+<div class="card">
+<h2>5. データ品質</h2>
+<table>
+<thead><tr><th>項目</th><th class="num">値</th><th>評価</th></tr></thead>
+<tbody>
+<tr><td>壊れた行</td><td class="num">2 / 7120 (0.03%)</td><td>他の行と混線した行。プロッタのフィールド数チェックが弾いた</td></tr>
+<tr><td>DMA プール溢れ (ovf)</td><td class="num">1</td><td>実質問題なし</td></tr>
+<tr><td>間引き (drop)</td><td class="num">1084 / 7864 (14%)</td><td><code>SET_MAXRATE:50</code> による。波形解析には無害。統計を稼ぐなら上げてよい</td></tr>
+</tbody>
+</table>
+
+<div class="note">
+<b>取得時の注意。</b> <code>waveform_20260721_125044.wfm</code> には <code>#WF</code> ヘッダ行が入っておらず、
+そのときのしきい値設定が記録に残らなかった。
+保存の前に一度 <code>GET_CFG</code> を送ってヘッダをストリームに流し込むこと。
+</div>
+</div>
+
+<!-- ============================================================ -->
+<div class="card">
+<h2>付録: 再現手順</h2>
+<ol>
+<li><code>v1/COSMICRAY_WAVEFORM_ESP32-S3-Nano</code> を書き込む（ESP32S3 Dev Module + USB CDC On Boot=Enabled）</li>
+<li><code>arduino/wave_plotter.html</code> を開いて USB 接続</li>
+<li><code>BENCH</code> → <code>analogRead</code> の実所要時間を得る</li>
+<li><code>AUTO_THRESH</code> → <code>GET_CFG</code>（ヘッダを記録に残すため）→ <code>START</code></li>
+<li>宇宙線の約 1 Hz では統計が溜まらない。線源を近づけるか、しきい値を下げて SiPM のダークカウントを拾う。
+    回路が線形なら 1 p.e. のダークパルスも muon のパルスも形は同じなので、波形測定にはそれで足りる</li>
+<li>数千イベント収集したら <code>SET_MODE:POLL</code> で同じ測定を行い、両者を比較する</li>
+</ol>
+<p style="font-size:.85rem;color:#78909c;margin-top:16px;">
+このレポートの数値はすべて上記 3 ファイルから算出したもの。<span class="tag meas">実測</span> は測定値、
+<span class="tag derived">導出</span> はモデルを介した推定値。
+</p>
+</div>
+
+</div>
+</body>
+</html>

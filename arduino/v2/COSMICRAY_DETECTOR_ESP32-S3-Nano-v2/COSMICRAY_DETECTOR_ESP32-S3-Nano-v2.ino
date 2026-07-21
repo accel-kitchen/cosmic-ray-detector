@@ -35,9 +35,19 @@
 #include <BLEServer.h>
 #include <BLEUtils.h>
 #include <BLE2902.h>
+#include "esp_adc/adc_continuous.h"  // オシロスコープモードの DMA 連続サンプリング
+#include "esp_err.h"
+#include "esp32-hal-periman.h"       // ADC1 の所有権を oneshot から DMA へ渡すため
+
+// オシロスコープモードで esp_adc/adc_continuous.h を使うため 3.x を要求する。
+// これが無いと 2.x では意味の分かりにくいエラーになる。
+#if !defined(ESP_ARDUINO_VERSION_MAJOR) || (ESP_ARDUINO_VERSION_MAJOR < 3)
+#error "ESP32 Arduino Core 3.x が必要です。"
+#endif
 
 // ==========================================
-//   險ｭ螳・// ==========================================
+//   設定
+// ==========================================
 const byte OLED = 1;
 
 // Pin assignments for the v2 board.
@@ -57,7 +67,7 @@ static constexpr int SD_SPI_MISO_PIN = 47;       // D12 / CIPO
 static constexpr int SD_SPI_SCK_PIN = 48;        // D13 / SCK
 static constexpr uint32_t SD_SPI_FREQ_HZ = 4000000;
 
-// OLED險ｭ螳・#define SCREEN_WIDTH 128
+// OLED設定
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 64
 const int OLED_RESET = -1;
@@ -67,10 +77,10 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 Adafruit_BME280 bme;
 bool bmeReady = false;
 
-// 縺励″縺・､ (0-4095 繧ｹ繧ｱ繝ｼ繝ｫ, 12bit ADC / 8bit PWM Duty 縺ｸ螟画鋤)
+// しきい値 (0-4095 スケール, 12bit ADC / 8bit PWM Duty へ変換)
 int SIGNAL_THRESHOLD = 120;
 
-// ADC / PWM 蛻・ｧ｣閭ｽ
+// ADC / PWM 分解能
 static constexpr int ADC_BITS = 12;
 static constexpr int ADC_MAX  = (1 << ADC_BITS) - 1;   // 4095
 static constexpr int PWM_BITS = 8;
@@ -82,20 +92,37 @@ static constexpr int LEGACY_ADC_MAX  = (1 << LEGACY_ADC_BITS) - 1;  // 1023
 static constexpr unsigned long DISPLAY_INTERVAL_MS = 2000;
 
 
-// 繝医Μ繧ｬ繝ｼ繝ｪ繧ｻ繝・ヨ繝代Ν繧ｹ蟷・(us)
+// センサ読み出し間隔 (ms) とトリガーリセットパルス幅 (us)
 static constexpr unsigned long TEMP_READ_INTERVAL_MS = 2000;
 static constexpr unsigned int TRIG_RESET_PULSE_US = 20;
 static constexpr unsigned int ADC_SAMPLE_DELAY_US = 5;
+// 注意: この 5us は「トリガから ADC を読むまで」ではない。
+// handleTriggerEvent() は extEnabled(既定 true) のとき先に
+// COIN_SYNC_DELAY_US(50us) + digitalRead x3 を通るので、
+// 実際のサンプル点はトリガから約 55〜60us 後になる。
+// ピークホールドの整定・ドループに対して妥当かは未測定。
+// 測定用: v2/COSMICRAY_WAVEFORM_ESP32-S3-Nano-v2
 // COIN_OUT パルス幅 (us, 非ブロッキング / micros() で管理)
 static constexpr unsigned int COIN_OUT_PULSE_US = 100;
 // 自ボードが COIN_OUT HIGH を出してから DIG_IN を読むまでの同期待ち時間 (us)
 // 相手ボードが自身の ISR を処理して COIN_OUT HIGH を立てるまでのマージン。
 static constexpr unsigned int COIN_SYNC_DELAY_US = 50;
-// 繝悶じ繝ｼ繝医・繝ｳ (Hz) 縺ｨ魑ｴ蜍墓凾髢・(ms)
-// ブザー: 宇宙線イベント毎に波高(ADC)で音程を変える ("ピっ")
-static constexpr unsigned int BEEP_FREQ_MIN_HZ = 250;   // 波高=しきい値時の周波数
-static constexpr unsigned int BEEP_FREQ_MAX_HZ = 1025;  // 波高=ADC最大時
-static constexpr unsigned long BEEP_MS = 15;            // 鳴動時間
+// ブザートーン (Hz) と鳴動時間 (ms)
+// ブザー: 宇宙線イベント毎に波高(ADC=エネルギー)で音程を変える ("ピっ")
+// 音の高さ ∝ log(エネルギー) の対数マッピング（後述 handleTriggerEvent 内）。
+// 人の音感は対数（オクターブ=2倍）で、線源スペクトルも急峻に落ちるため、線形だと
+// 大多数の低エネルギー事象が狭い低音域に潰れて聞き分けられない。対数なら
+// 「エネルギー2倍 = 一定の音程差」になり波高差が耳で分かる。
+// SET_BEEP:<min>,<max>,<ms> で実行時に調整でき、Preferences に保存される。
+// 既定: 500Hz(しきい値/低エネ)〜4000Hz(ADC最大/高エネ)。高域はブザー共振・
+// 人の可聴感度のピーク(2〜5kHz)寄りなので、稀な高エネ事象が目立って鳴る。
+unsigned int  beepFreqMinHz = 500;    // 波高=しきい値時の周波数
+unsigned int  beepFreqMaxHz = 4000;   // 波高=ADC最大時
+// 鳴動時間。tone() はノンブロッキング(別タスク)なので測定デッドタイムには効かない。
+// ただし単一チャンネル・キュー処理なので、~1000/beepMs [ev/s] を超えると音が詰まる。
+// 25ms なら〜40/s まで。線源で高レートなら 12〜15ms、音程を聞き分けたいなら 30〜40ms。
+unsigned long beepMs = 25;             // 鳴動時間
+static constexpr unsigned int BEEP_FREQ_LIMIT_HZ = 20000;  // 設定上限
 static constexpr unsigned long LED_BLINK_MS = 20;
 
 enum TriggerMode : uint8_t {
@@ -126,7 +153,7 @@ static constexpr int AUTO_MARGIN_DEFAULT = 50;
 int autoMargin = AUTO_MARGIN_DEFAULT;
 
 // ==========================================
-//   Preferences (EEPROM莉｣譖ｿ)
+//   Preferences (EEPROM代替)
 // ==========================================
 Preferences prefs;
 File sdLogFile;
@@ -135,7 +162,7 @@ bool sdWriteFailed = false;
 char sdLogPath[16] = {0};
 
 // ==========================================
-//   繧ｰ繝ｭ繝ｼ繝舌Ν螟画焚
+//   グローバル変数
 // ==========================================
 uint64_t start_time_us = 0ULL;
 uint64_t total_deadtime_us = 0ULL;
@@ -157,18 +184,62 @@ unsigned long lastTempReadMs = 0;
 unsigned long ledOffMs = 0;
 unsigned long coinOffUs = 0;
 
-// ISR 繝輔Λ繧ｰ
+// ==========================================
+//   オシロスコープモード（DMA 専用・計数停止）の状態
+// ==========================================
+// 「測定を止めて信号そのものを見る」ための独立モード。計数経路とは排他。
+//
+// なぜ計数を止めるのか:
+//   ESP32-S3 の ADC1 は oneshot(analogRead) と continuous(DMA) のどちらか一方しか
+//   持てない（adc_oneshot_new_unit のエラーに ESP_ERR_NOT_FOUND "already in use" がある）。
+//   A0 を 12us 間隔で見るには DMA が要るが、そうすると analogRead が使えず
+//   handleTriggerEvent() が動かせない。「見ている間は測っていない」と割り切ることで、
+//   計数経路にもコインシデンスにも一切手を入れずに済む。
+//
+// 滞在時間はデッドタイムに計上するので、オシロを見たあとも計数率は正しいままになる。
+//
+// V2 固有の注意: A0 はアンプの生出力ではなく【ピークホールドの出力】。
+// ホールドはラッチするので、窓を切り出したら必ず TRIG_RESET を叩いて放電すること。
+// 叩かないと 2 発目以降が永久に来ない。
+bool     scopeOn   = false;
+uint32_t scopeRate = 3;
+static constexpr uint32_t SCOPE_RATE_MAX = 20;
+
+static constexpr int SCOPE_PRE  = 32;
+static constexpr int SCOPE_POST = 128;
+static constexpr uint32_t SCOPE_FS_HZ = 83333;  // ESP32-S3 の連続モード上限 = 12.0us/点
+static constexpr adc_channel_t SCOPE_ADC_CHANNEL = ADC_CHANNEL_0;  // GPIO1 = A0
+
+adc_continuous_handle_t scopeAdc = nullptr;
+volatile bool scopeOvfFlag = false;
+
+static constexpr size_t SCOPE_RING      = 4096;
+static constexpr size_t SCOPE_RING_MASK = SCOPE_RING - 1;
+static uint16_t scopeRing[SCOPE_RING];
+static uint64_t scopeWritten = 0;
+
+static constexpr size_t SCOPE_READ_BYTES = 512;  // 4 byte/sample なので 128 点
+static uint8_t scopeReadBuf[SCOPE_READ_BYTES];
+
+bool     scopeArmed     = false;
+bool     scopePendValid = false;
+uint64_t scopePendTrigG = 0;
+uint32_t scopeEmitted   = 0;
+uint32_t scopeOvfCount  = 0;
+unsigned long scopeEnterMs    = 0;
+uint64_t      scopeEnterUs    = 0;
+unsigned long scopeLastEmitMs = 0;
+
+// ISR フラグ
 volatile bool triggerFlag = false;
 static bool triggerIsrAttached = false;  // tracks whether the TRIGGER_IN ISR is currently attached
 
-// BLE繧ｳ繝槭Φ繝峨ヰ繝・ヵ繧｡
+// BLEコマンドバッファ
 static char bleCmdBuffer[32];
 static int bleCmdIndex = 0;
 
 // ==========================================
-//   繝励Ο繝医ち繧､繝・// ==========================================
-// ==========================================
-// Function prototypes
+//   プロトタイプ / Function prototypes
 // ==========================================
 void executeCommand(const char* cmd);
 void dualPrint(const char* str);
@@ -200,6 +271,14 @@ void initBLE();
 void IRAM_ATTR onTriggerISR();
 void handleTriggerEvent(bool fromDigitalTrigger);
 int scaleAdcValue(int value, int fromBits, int toBits);
+bool scopeSetOn(bool on);
+void scopeService();
+void scopeHoldReset();
+bool scopeAdcStart();
+void scopeAdcStop();
+void printScope();
+void printScopeRate();
+uint64_t micros64();
 
 // ==========================================
 //   BLE Callbacks
@@ -233,7 +312,7 @@ class MyRXCallbacks : public BLECharacteristicCallbacks {
 };
 
 // ==========================================
-//   BLE騾∽ｿ｡繝倥Ν繝代・
+//   BLE送信ヘルパー
 // ==========================================
 void bleSend(const char* data, size_t len) {
   if (!bleDeviceConnected || !pTxCharacteristic) return;
@@ -487,6 +566,39 @@ void executeCommand(const char* cmd) {
     printBuzzerStatus();
   } else if (strcmp(cmd, "GET_BUZZER") == 0) {
     printBuzzerStatus();
+  } else if (strncmp(cmd, "SET_BEEP:", 9) == 0) {
+    // SET_BEEP:<min_hz>,<max_hz>[,<ms>]  波高→音程の対数レンジと鳴動時間
+    int fmin = 0, fmax = 0, ms = -1;
+    int n = sscanf(cmd + 9, "%d,%d,%d", &fmin, &fmax, &ms);
+    if (n >= 2 && fmin >= 50 && fmax > fmin && fmax <= (int)BEEP_FREQ_LIMIT_HZ) {
+      beepFreqMinHz = (unsigned int)fmin;
+      beepFreqMaxHz = (unsigned int)fmax;
+      if (n == 3 && ms >= 1 && ms <= 500) beepMs = (unsigned long)ms;
+      saveThresholds();
+    }
+    printBeep();
+  } else if (strcmp(cmd, "GET_BEEP") == 0) {
+    printBeep();
+  } else if (strcmp(cmd, "BEEP_TEST") == 0) {
+    // 低(min)→中(幾何中点)→高(max) を順に鳴らして音域を耳で確認する
+    unsigned int mid = (unsigned int)(sqrtf((float)beepFreqMinHz * (float)beepFreqMaxHz) + 0.5f);
+    tone(BUZZER_PIN, beepFreqMinHz, 200);
+    tone(BUZZER_PIN, mid,           200);
+    tone(BUZZER_PIN, beepFreqMaxHz, 200);
+    printBeep();
+  } else if (strncmp(cmd, "SET_SCOPE:", 10) == 0) {
+    // オシロは永続化しない。次回起動時は必ず OFF。
+    if (strcmp(cmd + 10, "ON") == 0)       scopeSetOn(true);
+    else if (strcmp(cmd + 10, "OFF") == 0) scopeSetOn(false);
+    else                                   printScope();
+  } else if (strcmp(cmd, "GET_SCOPE") == 0) {
+    printScope();
+  } else if (strncmp(cmd, "SET_SCOPE_RATE:", 15) == 0) {
+    int r = atoi(cmd + 15);
+    if (r >= 1 && r <= (int)SCOPE_RATE_MAX) scopeRate = (uint32_t)r;
+    printScopeRate();
+  } else if (strcmp(cmd, "GET_SCOPE_RATE") == 0) {
+    printScopeRate();
   } else if (strcmp(cmd, "GET_BLENAME") == 0) {
     printBleName();
   } else if (strncmp(cmd, "SET_BLENAME:", 12) == 0) {
@@ -544,6 +656,13 @@ void loadThresholds() {
   extEnabled  = prefs.getUChar("ext_en",  1) != 0;
   oledEnabled = prefs.getUChar("oled_en", 1) != 0;
   buzzerEnabled = prefs.getUChar("buzz_en", 1) != 0;
+  beepFreqMinHz = prefs.getUInt("beep_fmin", beepFreqMinHz);
+  beepFreqMaxHz = prefs.getUInt("beep_fmax", beepFreqMaxHz);
+  beepMs        = prefs.getULong("beep_ms",  beepMs);
+  // 壊れた値が保存されていた場合の健全化（min<max、範囲内、ms 1..500）
+  if (beepFreqMinHz < 50 || beepFreqMinHz > BEEP_FREQ_LIMIT_HZ) beepFreqMinHz = 500;
+  if (beepFreqMaxHz <= beepFreqMinHz || beepFreqMaxHz > BEEP_FREQ_LIMIT_HZ) beepFreqMaxHz = 4000;
+  if (beepMs < 1 || beepMs > 500) beepMs = 25;
   String storedBleName = prefs.getString("ble_name", "CosmicRay");
   strncpy(bleName, storedBleName.c_str(), BLE_NAME_MAX);
   bleName[BLE_NAME_MAX] = '\0';
@@ -569,6 +688,9 @@ void saveThresholds() {
   prefs.putUChar("ext_en",  extEnabled  ? 1 : 0);
   prefs.putUChar("oled_en", oledEnabled ? 1 : 0);
   prefs.putUChar("buzz_en", buzzerEnabled ? 1 : 0);
+  prefs.putUInt("beep_fmin", beepFreqMinHz);
+  prefs.putUInt("beep_fmax", beepFreqMaxHz);
+  prefs.putULong("beep_ms",  beepMs);
   prefs.putString("ble_name", bleName);
   prefs.putInt("auto_margin", autoMargin);
   prefs.end();
@@ -606,6 +728,13 @@ void printBuzzerStatus() {
   dualPrintln(buzzerEnabled ? "BUZZER:ON" : "BUZZER:OFF");
 }
 
+void printBeep() {
+  char buf[48];
+  snprintf(buf, sizeof(buf), "BEEP:%u,%u,%lu",
+           beepFreqMinHz, beepFreqMaxHz, beepMs);
+  dualPrintln(buf);
+}
+
 void printBleName() {
   char buf[48];
   snprintf(buf, sizeof(buf), "BLENAME:%s", bleName);
@@ -641,6 +770,21 @@ void applyOledEnable() {
 // Threshold calibration and sensor helpers
 // ==========================================
 void calibrateThreshold(int samples, int margin) {
+  // オシロ中は ADC1 が DMA に取られていて analogRead が通らない。
+  // 一時的に DMA を降ろして校正し、終わったら戻す。
+  const bool resumeScope = scopeOn;
+  if (resumeScope) {
+    scopeAdcStop();
+#if ARDUINO_USB_CDC_ON_BOOT
+    Serial.setTxTimeoutMs(0);
+#endif
+  }
+
+  // A0 はピークホールド出力。ラッチしたままだとベースラインではなく
+  // 前回の波高を測ってしまうので、必ず放電してから校正する。
+  scopeHoldReset();
+  delay(5);
+
   int minValue = ADC_MAX;
   int maxValue = 0;
   for (int i = 0; i < samples; i++) {
@@ -663,6 +807,20 @@ void calibrateThreshold(int samples, int margin) {
            "### Auto-threshold calib: min=%d max=%d margin=%d -> thr=%d",
            minValue, maxValue, margin, SIGNAL_THRESHOLD);
   dualPrintln(buf);
+
+  if (resumeScope) {
+    if (scopeAdcStart()) {
+#if ARDUINO_USB_CDC_ON_BOOT
+      Serial.setTxTimeoutMs(50);
+#endif
+    } else {
+      // 戻せなかったら黙ってオシロを畳む（analogRead は生きているので計数は続く）
+      scopeOn = false;
+      total_deadtime_us += micros64() - scopeEnterUs;
+      dualPrintln("### SCOPE: could not resume after calibration, scope is OFF.");
+      printScope();
+    }
+  }
 }
 
 void applyThresholdPwm() {
@@ -768,6 +926,13 @@ void setup() {
   analogWriteFrequency(PWM_THRESH, PWM_FREQ_HZ);
 
   Serial.begin(9600);
+  // USB CDC の既定 TX タイムアウトは 250ms。ポートを開いたままダッシュボードを
+  // 閉じると Serial.print() が 1 回あたり最大 250ms ブロックし、
+  // 検出器が壊れたように見える巨大なデッドタイムになる。0 にして非ブロッキングにする。
+  // オシロ中だけは行が途中で切れないよう scopeSetOn() が 50ms に戻す。
+#if ARDUINO_USB_CDC_ON_BOOT
+  Serial.setTxTimeoutMs(0);
+#endif
   unsigned long t0 = millis();
   while (!Serial && (millis() - t0 < 1500)) { delay(10); }
 
@@ -800,7 +965,7 @@ void setup() {
 
   if (OLED == 1) {
     if (display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
-      display.setRotation(2);
+      display.setRotation(2);  // 実機の取り付け向きに合わせる（旧 1 は 90 度回っていた）
       OpeningScreen();
       delay(2000);
       display.setTextSize(1);
@@ -859,7 +1024,10 @@ void loop() {
     bleOldDeviceConnected = true;
   }
 
-  if (triggerMode == TRIGGER_MODE_ANALOG_ONLY) {
+  // 検出 / オシロは排他。ADC1 は oneshot と DMA のどちらか一方しか持てない。
+  if (scopeOn) {
+    scopeService();
+  } else if (triggerMode == TRIGGER_MODE_ANALOG_ONLY) {
     int analogNow = analogRead(SELF_SIG_IN);
     if (analogNow >= SIGNAL_THRESHOLD) {
       if (analogArmed) {
@@ -880,6 +1048,246 @@ void loop() {
       updateDisplay();
     }
   }
+}
+
+// ==========================================
+// Oscilloscope mode (DMA 専用・計数停止)
+// ==========================================
+// 状態変数の宣言はグローバル変数の節にある（loop() より前で使うため）。
+// ここは実装のみ。
+
+// --- 出力行の組み立て ---
+// 161 点 x "4095," で約 800 バイト。snprintf を点ごとに呼ぶと ms かかるので手書きで詰める。
+static char   scopeLine[1400];
+static size_t scopeLineLen = 0;
+
+static inline void slChar(char c) {
+  if (scopeLineLen < sizeof(scopeLine) - 1) scopeLine[scopeLineLen++] = c;
+}
+static void slStr(const char* s) { while (*s) slChar(*s++); }
+static void slUInt(uint32_t v) {
+  char t[12];
+  int n = 0;
+  do { t[n++] = (char)('0' + (v % 10)); v /= 10; } while (v);
+  while (n) slChar(t[--n]);
+}
+static void slFlush() {
+  slChar('\n');
+  Serial.write((const uint8_t*)scopeLine, scopeLineLen);
+  bleSend(scopeLine, scopeLineLen);
+  scopeLineLen = 0;
+}
+
+void scopeFail(const char* what, esp_err_t err) {
+  char buf[128];
+  snprintf(buf, sizeof(buf), "### ERROR: %s failed: %s (0x%x)",
+           what, esp_err_to_name(err), (unsigned)err);
+  dualPrintln(buf);
+}
+
+static bool IRAM_ATTR scopeOvfCb(adc_continuous_handle_t h,
+                                 const adc_continuous_evt_data_t* edata,
+                                 void* user_data) {
+  (void)h; (void)edata; (void)user_data;
+  scopeOvfFlag = true;
+  return false;
+}
+
+// ピークホールドの放電。handleTriggerEvent() と同じ叩き方。
+void scopeHoldReset() {
+  digitalWrite(TRIG_RESET, HIGH);
+  delayMicroseconds(TRIG_RESET_PULSE_US);
+  digitalWrite(TRIG_RESET, LOW);
+}
+
+bool scopeAdcStart() {
+  if (scopeAdc) return true;
+
+  // --- ADC1 の所有権を oneshot から取り上げる ---
+  // analogRead() が初回に作る oneshot ユニットは ADC1 を握りっぱなしにするので、
+  // 剥がさないと adc_continuous_new_handle が必ず失敗する。
+  // adcDetachBus は「ADC1 上の ADC_ONESHOT なピンが残り1本」になって初めて
+  // ユニットを削除するため、ADC1 のピンを全部剥がす必要がある。
+  // V2 では A0(GPIO1) に加えて A1(GPIO2)/A2(GPIO3) も ADC1（外部検出器入力）。
+  // A6(GPIO13) は ADC2 なので無関係。
+  perimanClearPinBus(ANA_IN_PINS[0]);
+  perimanClearPinBus(ANA_IN_PINS[1]);
+  perimanClearPinBus(SELF_SIG_IN);
+
+  adc_continuous_handle_cfg_t hcfg = {};
+  hcfg.max_store_buf_size = 16384;
+  hcfg.conv_frame_size    = SCOPE_READ_BYTES;
+  hcfg.flags.flush_pool   = 0;
+  esp_err_t err = adc_continuous_new_handle(&hcfg, &scopeAdc);
+  if (err != ESP_OK) { scopeFail("adc_continuous_new_handle", err); scopeAdc = nullptr; return false; }
+
+  adc_digi_pattern_config_t pat = {};
+  pat.atten     = ADC_ATTEN_DB_12;  // 旧 ADC_ATTEN_DB_11
+  pat.channel   = (uint8_t)SCOPE_ADC_CHANNEL;
+  pat.unit      = ADC_UNIT_1;
+  pat.bit_width = ADC_BITS;
+
+  adc_continuous_config_t ccfg = {};
+  ccfg.pattern_num    = 1;
+  ccfg.adc_pattern    = &pat;
+  ccfg.sample_freq_hz = SCOPE_FS_HZ;
+  ccfg.conv_mode      = ADC_CONV_SINGLE_UNIT_1;
+  ccfg.format         = ADC_DIGI_OUTPUT_FORMAT_TYPE2;  // S3 は type2（data 12bit）
+  err = adc_continuous_config(scopeAdc, &ccfg);
+  if (err != ESP_OK) {
+    scopeFail("adc_continuous_config", err);
+    adc_continuous_deinit(scopeAdc); scopeAdc = nullptr; return false;
+  }
+
+  adc_continuous_evt_cbs_t cbs = {};
+  cbs.on_pool_ovf = scopeOvfCb;
+  adc_continuous_register_event_callbacks(scopeAdc, &cbs, nullptr);
+
+  err = adc_continuous_start(scopeAdc);
+  if (err != ESP_OK) {
+    scopeFail("adc_continuous_start", err);
+    adc_continuous_deinit(scopeAdc); scopeAdc = nullptr; return false;
+  }
+
+  scopeWritten = 0;
+  scopeArmed = false;
+  scopePendValid = false;
+  scopeOvfFlag = false;
+  return true;
+}
+
+void scopeAdcStop() {
+  if (!scopeAdc) return;
+  // stop で ADC1 のロックが解放され、deinit でユニットが解放される。
+  // この後の analogRead は __analogRead が oneshot を作り直してくれる。
+  adc_continuous_stop(scopeAdc);
+  adc_continuous_deinit(scopeAdc);
+  scopeAdc = nullptr;
+}
+
+void scopeEmit(uint64_t gTrig) {
+  int npre = SCOPE_PRE;
+  if (gTrig < (uint64_t)npre) npre = (int)gTrig;
+  const uint64_t gFirst = gTrig - (uint64_t)npre;
+  const int ntot = npre + 1 + SCOPE_POST;
+  if (scopeWritten - gFirst > SCOPE_RING) return;
+
+  const uint32_t periodNs = (uint32_t)((1000000000ULL + SCOPE_FS_HZ / 2) / SCOPE_FS_HZ);
+
+  scopeLineLen = 0;
+  slStr("WF,");  slUInt(scopeEmitted);
+  slChar(',');   slUInt((uint32_t)(millis() - scopeEnterMs));
+  slStr(",U,");  slUInt((uint32_t)npre);
+  slChar(',');   slUInt((uint32_t)ntot);
+  slChar(',');   slUInt(periodNs);
+  for (int i = 0; i < ntot; i++) {
+    slChar(',');
+    slUInt(scopeRing[(size_t)(gFirst + (uint64_t)i) & SCOPE_RING_MASK]);
+  }
+  slFlush();
+  scopeEmitted++;
+}
+
+void scopeService() {
+  if (!scopeAdc) return;
+
+  if (scopeOvfFlag) {
+    scopeOvfFlag = false;
+    scopeOvfCount++;
+    scopePendValid = false;
+    scopeArmed = false;
+  }
+
+  // ホールド出力なので、放電されて十分下がったところで再アームする
+  const int rearm = SIGNAL_THRESHOLD / 2;
+
+  for (int iter = 0; iter < 8; iter++) {
+    uint32_t outLen = 0;
+    esp_err_t err = adc_continuous_read(scopeAdc, scopeReadBuf, SCOPE_READ_BYTES, &outLen, 0);
+    if (err != ESP_OK || outLen == 0) break;
+
+    for (uint32_t off = 0; off + SOC_ADC_DIGI_RESULT_BYTES <= outLen;
+         off += SOC_ADC_DIGI_RESULT_BYTES) {
+      adc_digi_output_data_t* p = (adc_digi_output_data_t*)&scopeReadBuf[off];
+      if (p->type2.channel != (uint32_t)SCOPE_ADC_CHANNEL) continue;
+
+      const uint16_t v = (uint16_t)p->type2.data;
+      const uint64_t g = scopeWritten;
+      scopeRing[g & SCOPE_RING_MASK] = v;
+      scopeWritten = g + 1;
+
+      if (scopePendValid) continue;
+      if (!scopeArmed) {
+        if ((int)v <= rearm) scopeArmed = true;
+        continue;
+      }
+      if ((int)v <= SIGNAL_THRESHOLD) continue;
+      scopeArmed = false;
+      scopePendTrigG = g;
+      scopePendValid = true;
+    }
+  }
+
+  if (scopePendValid && scopeWritten >= scopePendTrigG + (uint64_t)SCOPE_POST + 1) {
+    const unsigned long now = millis();
+    const unsigned long minMs = (scopeRate > 0) ? (1000UL / scopeRate) : 0UL;
+    if (minMs == 0 || (now - scopeLastEmitMs) >= minMs) {
+      scopeEmit(scopePendTrigG);
+      scopeLastEmitMs = now;
+    }
+    scopePendValid = false;
+    // 窓を取り終えたら必ず放電する。しないとホールドが張り付いて次が来ない。
+    scopeHoldReset();
+  }
+}
+
+void printScope()     { dualPrintln(scopeOn ? "SCOPE:ON" : "SCOPE:OFF"); }
+void printScopeRate() {
+  char buf[32];
+  snprintf(buf, sizeof(buf), "SCOPE_RATE:%lu", (unsigned long)scopeRate);
+  dualPrintln(buf);
+}
+
+bool scopeSetOn(bool on) {
+  if (on == scopeOn) return true;
+
+  if (on) {
+    if (!scopeAdcStart()) {
+      dualPrintln("### SCOPE: failed to start DMA, staying in counting mode.");
+      return false;
+    }
+    scopeOn = true;
+    scopeEnterMs = millis();
+    scopeEnterUs = micros64();
+    scopeEmitted = 0;
+    scopeOvfCount = 0;
+    scopeLastEmitMs = 0;
+    scopeHoldReset();  // ラッチしていた値を捨ててから始める
+#if ARDUINO_USB_CDC_ON_BOOT
+    // 検出ループが止まっている間だけ、行が途中で切れないよう送信待ちを許す。
+    Serial.setTxTimeoutMs(50);
+#endif
+    dualPrintln("### SCOPE: ON - counting is PAUSED while the scope is open.");
+    dualPrintln("###        A0 is the PEAK-HOLD output, not the raw amplifier pulse.");
+    if (bleDeviceConnected) {
+      dualPrintln("### WARN: scope over BLE is slow (one waveform = several notifications).");
+    }
+    printScope();
+    return true;
+  }
+
+  scopeAdcStop();
+  scopeOn = false;
+#if ARDUINO_USB_CDC_ON_BOOT
+  Serial.setTxTimeoutMs(0);
+#endif
+  scopeHoldReset();
+  // 見ていた時間は測定していない時間なので、正直にデッドタイムへ計上する。
+  // これをやらないとオシロを開いた回数だけ計数率が下がって見える。
+  total_deadtime_us += micros64() - scopeEnterUs;
+  dualPrintln("### SCOPE: OFF - counting resumed.");
+  printScope();
+  return true;
 }
 
 // ==========================================
@@ -923,16 +1331,23 @@ void handleTriggerEvent(bool fromDigitalTrigger) {
     }
   }
 
-  // 宇宙線イベント毎に、波高(ADC)に応じた音程で短くビープ。
-  // adc は必ず SIGNAL_THRESHOLD 以上なので、しきい値〜ADC_MAX を周波数レンジに線形対応させる。
-  int span = ADC_MAX - SIGNAL_THRESHOLD;
-  unsigned int beepFreq = BEEP_FREQ_MAX_HZ;            // span<=0 の退避値
-  if (span > 0) {
-    long f = map(adc, SIGNAL_THRESHOLD, ADC_MAX, BEEP_FREQ_MIN_HZ, BEEP_FREQ_MAX_HZ);
-    beepFreq = (unsigned int)constrain(f, (long)BEEP_FREQ_MIN_HZ, (long)BEEP_FREQ_MAX_HZ);
+  // 宇宙線イベント毎に、波高(ADC=エネルギー)に応じた音程で短くビープ。
+  // 音の高さ ∝ log(エネルギー) の対数マッピング:
+  //   x = (ln adc - ln thr) / (ln ADC_MAX - ln thr)   … 0(しきい値)〜1(最大)
+  //   f = fmin * (fmax/fmin)^x                          … 幾何補間
+  // これで「エネルギーが r 倍 = 常に同じ音程差」になり、線形マップのように
+  // 大多数の低エネ事象が最低音域へ潰れることがない。
+  unsigned int beepFreq = beepFreqMinHz;              // 退避値(しきい値時)
+  int thr = (SIGNAL_THRESHOLD > 1) ? SIGNAL_THRESHOLD : 1;
+  if (adc > thr && ADC_MAX > thr && beepFreqMaxHz > beepFreqMinHz) {
+    float x = (logf((float)adc) - logf((float)thr)) /
+              (logf((float)ADC_MAX) - logf((float)thr));
+    if (x < 0.0f) x = 0.0f; else if (x > 1.0f) x = 1.0f;
+    beepFreq = (unsigned int)(beepFreqMinHz *
+               expf(x * logf((float)beepFreqMaxHz / (float)beepFreqMinHz)) + 0.5f);
   }
   if (buzzerEnabled) {
-    tone(BUZZER_PIN, beepFreq, BEEP_MS);
+    tone(BUZZER_PIN, beepFreq, beepMs);
   }
 
   digitalWrite(TRIG_RESET, HIGH);
@@ -1023,7 +1438,7 @@ void updateDisplay() {
 // Opening screen
 // ==========================================
 void OpeningScreen() {
-  display.setTextSize(1);
+  display.setTextSize(2);
   display.setTextColor(SSD1306_WHITE);
   display.setCursor(8, 0);
   display.clearDisplay();
