@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>宇宙線検出器 V2 — 改善アイデア集</title>
+<style>
+  :root {
+    --accent: #00BCD4;
+    --accent-dark: #0097A7;
+    --bg: #fafafa;
+    --card: #ffffff;
+    --text: #263238;
+    --muted: #607D8B;
+    --border: #CFD8DC;
+    --hi: #E53935;
+    --mid: #FB8C00;
+    --lo: #43A047;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: "Segoe UI", "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    margin: 0;
+    line-height: 1.7;
+  }
+  header {
+    background: linear-gradient(135deg, #006064, var(--accent-dark));
+    color: #fff;
+    padding: 28px 24px 20px;
+  }
+  header h1 { margin: 0 0 4px; font-size: 1.5rem; }
+  header p  { margin: 0; opacity: 0.85; font-size: 0.9rem; }
+  main { max-width: 980px; margin: 0 auto; padding: 24px 16px 64px; }
+  section {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px 24px;
+    margin-bottom: 24px;
+  }
+  h2 {
+    margin: 0 0 12px;
+    font-size: 1.15rem;
+    color: var(--accent-dark);
+    border-bottom: 2px solid var(--accent);
+    padding-bottom: 6px;
+  }
+  h3 { margin: 20px 0 6px; font-size: 1.0rem; }
+  table { border-collapse: collapse; width: 100%; font-size: 0.88rem; }
+  th, td { border: 1px solid var(--border); padding: 6px 10px; text-align: left; vertical-align: top; }
+  th { background: #ECEFF1; white-space: nowrap; }
+  code {
+    background: #ECEFF1;
+    border-radius: 3px;
+    padding: 1px 5px;
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 0.85em;
+  }
+  .pri { font-weight: bold; white-space: nowrap; }
+  .pri-hi  { color: var(--hi); }
+  .pri-mid { color: var(--mid); }
+  .pri-lo  { color: var(--lo); }
+  .tag {
+    display: inline-block;
+    font-size: 0.72rem;
+    border-radius: 10px;
+    padding: 1px 9px;
+    margin-right: 6px;
+    color: #fff;
+    vertical-align: middle;
+  }
+  .tag-hi  { background: var(--hi); }
+  .tag-mid { background: var(--mid); }
+  .tag-lo  { background: var(--lo); }
+  .tag-eff { background: var(--muted); }
+  .note {
+    background: #E0F7FA;
+    border-left: 4px solid var(--accent);
+    padding: 10px 14px;
+    border-radius: 0 6px 6px 0;
+    font-size: 0.88rem;
+    margin: 10px 0;
+  }
+  .idea { margin: 14px 0 18px; padding-left: 4px; }
+  .idea p { margin: 4px 0; font-size: 0.92rem; }
+  .why { color: var(--muted); font-size: 0.86rem; }
+  footer { text-align: center; color: var(--muted); font-size: 0.8rem; padding: 12px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>宇宙線検出器 V2 — 改善アイデア集</h1>
+  <p>2026-07-22 時点 / 波形プローブ実測（整定・ドループ・デッドタイム・コンパレータ特性）と Web UI 調査に基づく提案</p>
+</header>
+
+<main>
+
+<!-- ============================================================ -->
+<section id="summary">
+<h2>0. サマリ（優先度順）</h2>
+<table>
+  <tr><th>#</th><th>対象</th><th>アイデア</th><th>優先度</th><th>工数</th></tr>
+  <tr><td>A-1</td><td>本番ファーム</td><td>AUTO_PWM をコンパレータ較正として移植</td><td class="pri pri-hi">高</td><td>小</td></tr>
+  <tr><td>A-2</td><td>本番ファーム</td><td><code>applyThresholdPwm()</code> の <code>*2</code> 換算見直し</td><td class="pri pri-hi">高</td><td>小</td></tr>
+  <tr><td>C-1</td><td>ダッシュボード</td><td>SET_BEEP / BEEP_TEST の UI 追加</td><td class="pri pri-hi">高</td><td>小</td></tr>
+  <tr><td>D-1</td><td>プロッタ</td><td>Energy Cal 強化（ガウスフィット・自動ピーク検出・2次式）</td><td class="pri pri-hi">高</td><td>中</td></tr>
+  <tr><td>E-1</td><td>マニュアル</td><td>実ファームとの記載ドリフト修正（ADCレンジ・単位・未記載コマンド）</td><td class="pri pri-hi">高</td><td>小</td></tr>
+  <tr><td>B-1</td><td>波形プローブ</td><td>ADC クロックドリフト補正（実測 ~4ppm）</td><td class="pri pri-hi">高</td><td>中</td></tr>
+  <tr><td>A-3</td><td>本番ファーム</td><td>デッドタイム削減（読み出しシーケンス最適化）</td><td class="pri pri-mid">中</td><td>中</td></tr>
+  <tr><td>A-4</td><td>本番ファーム</td><td>SET_OLED_ROT の本番移植</td><td class="pri pri-mid">中</td><td>小</td></tr>
+  <tr><td>A-5</td><td>本番ファーム</td><td>音の追加改善（音階量子化・同時計数音・間引き）</td><td class="pri pri-mid">中</td><td>小</td></tr>
+  <tr><td>B-2</td><td>波形プローブ</td><td>MEASURE_SETTLE コマンド</td><td class="pri pri-mid">中</td><td>小</td></tr>
+  <tr><td>B-3</td><td>波形プローブ</td><td>COUNT_RATE（digital 計数のデッドタイム実測）</td><td class="pri pri-mid">中</td><td>小</td></tr>
+  <tr><td>C-2</td><td>ダッシュボード</td><td>PWM duty 直接制御 + AUTO_PWM ボタン</td><td class="pri pri-mid">中</td><td>小</td></tr>
+  <tr><td>C-3</td><td>ダッシュボード</td><td>OLED 回転 UI</td><td class="pri pri-mid">中</td><td>小</td></tr>
+  <tr><td>C-4</td><td>ダッシュボード</td><td>keV 較正の読み込み（ライブヒストグラムのエネルギー軸化）</td><td class="pri pri-mid">中</td><td>中</td></tr>
+  <tr><td>E-2</td><td>マニュアル</td><td>実測知見の技術ノート化</td><td class="pri pri-mid">中</td><td>小</td></tr>
+  <tr><td>A-6</td><td>本番ファーム</td><td>設定一括ダンプ（GET_CFG 拡張）</td><td class="pri pri-lo">低</td><td>小</td></tr>
+  <tr><td>A-7</td><td>本番ファーム</td><td>波高のドループ逆補正</td><td class="pri pri-lo">低</td><td>中</td></tr>
+  <tr><td>B-4</td><td>波形プローブ</td><td>AUTO_PWM 掃引の二分探索化</td><td class="pri pri-lo">低</td><td>小</td></tr>
+  <tr><td>D-2</td><td>プロッタ</td><td>wave_plotter.html との役割整理・リンク</td><td class="pri pri-lo">低</td><td>小</td></tr>
+</table>
+</section>
+
+<!-- ============================================================ -->
+<section id="findings">
+<h2>実測で分かったこと（アイデアの根拠）</h2>
+<div class="note">
+2026-07-21〜22 の波形プローブ測定（<code>COSMICRAY_WAVEFORM_ESP32-S3-Nano-v2</code>、83.3kHz DMA 連続サンプリング）による。
+</div>
+<table>
+  <tr><th>項目</th><th>実測値</th><th>含意</th></tr>
+  <tr><td>ピークホールド整定時間</td><td><b>約 12–24 µs</b>（1–2 サンプル）、振幅非依存</td><td>本番の読み出し遅延 55–60 µs は整定後で安全。むしろ過剰マージン</td></tr>
+  <tr><td>ホールドのドループ</td><td>1.5 ms で 4095 → 約 180（大振幅時）</td><td>読み出しが遅いほど波高を過小評価。遅延短縮 or 逆補正の価値あり</td></tr>
+  <tr><td>リセット復帰</td><td>TRIG_RESET 後 <b>≤24 µs</b> でベースライン復帰</td><td>デッドタイムの律速はリセットではなく読み出しシーケンス</td></tr>
+  <tr><td>実効デッドタイム（アナログ読み）</td><td>約 100–110 µs/イベント（整定+ADC約47µs+リセット）</td><td>COMP/LEVEL どちらのトリガでも同じ。速くしたいなら digital 計数</td></tr>
+  <tr><td>コンパレータ特性</td><td>duty 16 でノイズ発振 ~10万/s、duty 24–40 で静粛。ノイズと信号の分離窓が狭い</td><td>固定 duty は危険。起動時自動較正（ニー検出）が必須</td></tr>
+  <tr><td>COMP vs LEVEL</td><td>レート・振幅スペクトルが一致（1.57 vs 1.66 /s）</td><td>同一イベント集団を検出。トリガ方式でエネルギー分布は変わらない</td></tr>
+  <tr><td>ADC クロックドリフト</td><td>公称 83333 Hz に対し実測 <b>約 4 ppm</b> ずれ（0.335 サンプル/秒）</td><td>時刻→サンプル通番換算が長時間で狂う。COMP の整定統計に系統誤差</td></tr>
+  <tr><td><code>tone()</code> の実装</td><td>ESP32 core 3.x は別タスク実行（ノンブロッキング）</td><td>ビープ長は測定デッドタイムに影響しない。ただしキュー詰まりは ~1000/beepMs [ev/s] から</td></tr>
+</table>
+</section>
+
+<!-- ============================================================ -->
+<section id="a">
+<h2>A. 本番ファーム（v2/COSMICRAY_DETECTOR_ESP32-S3-Nano-v2.ino）</h2>
+
+<div class="idea">
+<h3><span class="tag tag-hi">高</span><span class="tag tag-eff">工数小</span>A-1. AUTO_PWM の移植（コンパレータしきい値の自動較正）</h3>
+<p>プローブで実証済みの方式（duty を掃引し、ノイズ山を検出してその上側のニーを採用）を本番に移植する。起動時と <code>AUTO_PWM</code> コマンドで実行。</p>
+<p class="why">根拠: コンパレータはノイズと信号の分離窓が狭く（duty 16 で 10万/s 発振 → 24 で静粛）、固定値は基板個体差・温度で破綻する。DIGITAL / DUAL トリガモードを実用にする前提条件。プローブの <code>autoPwm()</code> がそのまま流用できる。</p>
+</div>
+
+<div class="idea">
+<h3><span class="tag tag-hi">高</span><span class="tag tag-eff">工数小</span>A-2. <code>applyThresholdPwm()</code> の <code>*2</code> 換算見直し</h3>
+<p>現状 <code>pwmDuty = SIGNAL_THRESHOLD * PWM_MAX * 2 / ADC_MAX</code>。<code>*2</code> の根拠が不明で、SIGNAL_THRESHOLD &gt; 2047 で duty が飽和する。回路の分圧比（PWM 平滑電圧 → コンパレータ基準）を実測し、正しい換算式に置き換えるか、A-1 の自動較正へ一本化して換算自体を廃止する。</p>
+<p class="why">根拠: プローブ側のコメントでも既知の疑問点。実測では duty 40 ≒ ADC 90 相当のしきい値で、現行換算（duty 40 → ADC 320 相当）と大きく食い違う。</p>
+</div>
+
+<div class="idea">
+<h3><span class="tag tag-mid">中</span><span class="tag tag-eff">工数中</span>A-3. デッドタイム削減（読み出しシーケンス最適化)</h3>
+<p>イベント毎の処理: <code>COIN_SYNC_DELAY_US</code>(50µs) → digital 3ch 読み → 5µs → <code>analogRead</code>(約47µs) → EXT 3ch 読み → リセット。改善候補:</p>
+<p>・整定は実測 12–24µs なので、単独運用（EXT 無し）時は 50µs 待ちを短縮可能<br>
+・<code>extEnabled</code> でも実際に接続の無いチャンネルはスキップ（設定で ch 個別有効化）<br>
+・<code>analogRead</code>(47µs) を oneshot ではなく校正済み生読みへ（<code>adc_oneshot_read</code> 直叩きで短縮余地）</p>
+<p class="why">根拠: デッドタイム実測 ~100–110µs/イベント。リセット復帰は ≤24µs と速く、律速は読み出しシーケンス側。線源測定（数十/s〜）でデッドタイム比が効いてくる。</p>
+</div>
+
+<div class="idea">
+<h3><span class="tag tag-mid">中</span><span class="tag tag-eff">工数小</span>A-4. SET_OLED_ROT の本番移植</h3>
+<p>プローブに実装済みの <code>SET_OLED_ROT:&lt;0-3&gt;</code>（実行時回転変更）を本番にも追加し、Preferences に保存する。</p>
+<p class="why">根拠: 今回、本番は定数修正（setRotation 1→2）で対応したが、ケースの組み方・設置向きで再フラッシュが必要になるのは不便。</p>
+</div>
+
+<div class="idea">
+<h3><span class="tag tag-mid">中</span><span class="tag tag-eff">工数小</span>A-5. 音の追加改善</h3>
+<p>・<b>音階量子化</b>: 対数マップの出力を半音階（またはペンタトニック）にスナップ。隣接エネルギーの音が濁らず「音が変わった＝エネルギー帯が変わった」が明確になる<br>
+・<b>同時計数音</b>: DUAL/DIGITAL で外部一致したイベントだけ二音（和音/上昇音）にして耳で区別<br>
+・<b>高レート間引き</b>: レートが閾値（例 30/s）を超えたら n 発に 1 回だけ鳴らす。<code>tone()</code> キュー詰まり（~1000/beepMs [ev/s]）対策</p>
+<p class="why">根拠: 対数マップ（実装済み）で聞き分けは改善したが、連続音だと相対比較が難しい。音階化は教育用途（アウトリーチ）で特に効果的。</p>
+</div>
+
+<div class="idea">
+<h3><span class="tag tag-lo">低</span><span class="tag tag-eff">工数小</span>A-6. 設定一括ダンプ（GET_CFG 拡張）</h3>
+<p>thresh / duty / mode / sd / ext / oled / buzzer / beep(fmin,fmax,ms) / ble_name / auto_margin を 1 コマンドで JSON 風に返す。ダッシュボード接続時の初期同期が 1 往復で済む。</p>
+</div>
+
+<div class="idea">
+<h3><span class="tag tag-lo">低</span><span class="tag tag-eff">工数中</span>A-7. 波高のドループ逆補正</h3>
+<p>トリガ→ADC 読みまでの遅延 Δt が既知なので、実測したドループ曲線（指数減衰）で <code>adc_corr = adc · exp(Δt/τ)</code> と逆補正する。τ はプローブのドループ測定（SET_FS:8333 + SET_HOLDRESET:15000）から求める。</p>
+<p class="why">根拠: 1.5ms で 4095→180 まで垂れる実測から、55–60µs 遅延でも数 % の系統的過小評価がある。エネルギー較正の精度を上げるなら補正価値あり。</p>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<section id="b">
+<h2>B. 波形プローブ（v2/COSMICRAY_WAVEFORM_ESP32-S3-Nano-v2.ino）</h2>
+
+<div class="idea">
+<h3><span class="tag tag-hi">高</span><span class="tag tag-eff">工数中</span>B-1. ADC クロックドリフト補正</h3>
+<p>実測でサンプル列が micros() 基準に対し約 4ppm（0.335 サンプル/秒）ドリフトし、COMP トリガの位置決めが約 5 分で 100 サンプルずれる。対策候補:</p>
+<p>・起動時に数十秒かけて実効 fs を較正し、<code>indexFromUs()</code> の換算に反映<br>
+・または一定周期（例 30 秒）で DMA を自動再アンカー（現在は START/overflow 時のみ）</p>
+<p class="why">根拠: 現在の settle 統計は長時間運用で単調増加する偽値になる（実測 23µs → 547µs）。ドリフト補正が入れば settle_mean が常に信頼できる。</p>
+</div>
+
+<div class="idea">
+<h3><span class="tag tag-mid">中</span><span class="tag tag-eff">工数小</span>B-2. MEASURE_SETTLE コマンド</h3>
+<p>「STOP → DMA 再アンカー → 数秒だけ COMP 収集 → settle の中央値を報告」を 1 コマンド化。ドリフトの影響を受けない直後データだけで整定時間を返す。</p>
+<p class="why">根拠: 現在は「START 直後の値だけ読む」という手動運用でカバーしているが、コマンド化すれば誰でも正しい値が取れる。B-1 実装までの実用的な代替でもある。</p>
+</div>
+
+<div class="idea">
+<h3><span class="tag tag-mid">中</span><span class="tag tag-eff">工数小</span>B-3. COUNT_RATE テスト（digital 計数のデッドタイム実測）</h3>
+<p>一定時間コンパレータ端エッジだけを ISR で計数し、レート vs 取りこぼしの関係から digital 計数の実効デッドタイム（期待値: 数 µs）を実測する。</p>
+<p class="why">根拠: アナログ読みのデッドタイム ~100µs に対し、波高不要ならコンパレータ計数で桁違いに速くなるはず。定量値があれば本番の DIGITAL モードの仕様が書ける。</p>
+</div>
+
+<div class="idea">
+<h3><span class="tag tag-lo">低</span><span class="tag tag-eff">工数小</span>B-4. AUTO_PWM 掃引の二分探索化</h3>
+<p>現在は 0→255 を step 8 の線形掃引で約 6 秒。ノイズ山より上側は単調に静かになるので、山の検出後は二分探索でニーを絞れば 1–2 秒になる。</p>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<section id="c">
+<h2>C. ダッシュボード（v2/index.html）</h2>
+
+<div class="idea">
+<h3><span class="tag tag-hi">高</span><span class="tag tag-eff">工数小</span>C-1. ビープ設定 UI（SET_BEEP / GET_BEEP / BEEP_TEST）</h3>
+<p>ファーム側は実装済み（対数マップ・Preferences 保存）だが UI が無い。サイドバーの Buzzer トグルの下に、fmin/fmax スライダー（対数目盛）＋鳴動時間＋「テスト音」ボタンを追加し、<code>SET_BEEP:&lt;min&gt;,&lt;max&gt;,&lt;ms&gt;</code> / <code>BEEP_TEST</code> を送る。接続時に <code>GET_BEEP</code> で現在値を同期。</p>
+<p class="why">根拠: 音の好みは耳で追い込むものなので、シリアルコンソールより UI スライダーが圧倒的に速い。</p>
+</div>
+
+<div class="idea">
+<h3><span class="tag tag-mid">中</span><span class="tag tag-eff">工数小</span>C-2. PWM duty 直接制御 + AUTO_PWM ボタン</h3>
+<p>現在 DUTY は <code>THRESH:</code> 応答のパース表示のみ（読み取り専用）。A-1 のファーム移植と合わせ、duty の数値設定と「自動較正」ボタン（掃引ログの表示付き）を追加する。</p>
+<p class="why">根拠: DIGITAL/DUAL モードを UI から使えるようにするにはコンパレータしきい値の制御が不可欠。</p>
+</div>
+
+<div class="idea">
+<h3><span class="tag tag-mid">中</span><span class="tag tag-eff">工数小</span>C-3. OLED 回転 UI</h3>
+<p>A-4（SET_OLED_ROT 本番移植）後、OLED トグルの隣に 0/90/180/270° の回転セレクタを追加。</p>
+</div>
+
+<div class="idea">
+<h3><span class="tag tag-mid">中</span><span class="tag tag-eff">工数中</span>C-4. keV 較正の読み込み（ライブヒストグラムのエネルギー軸化）</h3>
+<p>plotter.html の Energy Cal がエクスポートする較正 JSON（E = a·ADC + b）をダッシュボードに読み込み、Analysis タブのヒストグラム横軸を ADC / keV で切替できるようにする。localStorage キーを共通化すれば同一ブラウザなら自動連携も可能。</p>
+<p class="why">根拠: 較正済みの検出器なら「いまのイベントは ~600 keV」とライブで見えるのは教育・デモで強い。プロッタ側に較正資産（Th-232 系列プリセット・JSON 入出力）が既にある。</p>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<section id="d">
+<h2>D. プロッタ（plotter.html）</h2>
+
+<div class="idea">
+<h3><span class="tag tag-hi">高</span><span class="tag tag-eff">工数中</span>D-1. Energy Cal 強化</h3>
+<p>現状: 手動ピーク指定（クリック）＋線形 2 点フィット（E = a·ADC + b、R² 表示）。強化案:</p>
+<p>・<b>ガウスピークフィット</b>: クリック位置の近傍でガウス＋直線背景をフィットし、ピーク中心を bin 分解能以下で決定。FWHM からエネルギー分解能も算出・表示<br>
+・<b>自動ピーク検出</b>: スペクトルの平滑化＋極大探索で候補ピークをマーカー表示（クリックの補助）<br>
+・<b>2次多項式フィット</b>: 状態オブジェクトに <code>model:'linear'</code> フィールドが既にあり拡張前提の設計。ADC 高域の非線形（ドループ・アンプ飽和）を吸収<br>
+・<b>フィット誤差</b>: a, b の標準誤差と較正の 1σ バンド表示<br>
+・<b>プリセット追加</b>: 現在 Th-232 系列のみ → Cs-137 (661.7)、Co-60 (1173.2/1332.5)、K-40 (1460.8) などのプリセット切替</p>
+<p class="why">根拠: 較正精度は現状「クリックした bin の中心」が限界。ガウスフィットで一桁改善し、FWHM はシンチ＋SiPM の性能評価にそのまま使える。</p>
+</div>
+
+<div class="idea">
+<h3><span class="tag tag-lo">低</span><span class="tag tag-eff">工数小</span>D-2. wave_plotter.html との役割整理</h3>
+<p>plotter.html（イベントログ解析）と wave_plotter.html（波形プローブ用）の使い分けを両ページのヘッダに一言明記し、相互リンクを張る。</p>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<section id="e">
+<h2>E. マニュアル（MANUAL.html）</h2>
+
+<div class="idea">
+<h3><span class="tag tag-hi">高</span><span class="tag tag-eff">工数小</span>E-1. 実ファームとの記載ドリフト修正</h3>
+<p>調査で判明した不一致:</p>
+<table>
+  <tr><th>項目</th><th>マニュアル記載</th><th>実際</th></tr>
+  <tr><td>ADC レンジ</td><td>0–1023</td><td>0–4095（12bit）</td></tr>
+  <tr><td>Duty レンジ</td><td>0–255</td><td>ダッシュボードは 0–1023 表記（実機と要すり合わせ）</td></tr>
+  <tr><td>ログの時間単位</td><td>Time/Deadtime [ms]</td><td>[µs]（plotter.html は µs でパース）</td></tr>
+  <tr><td>AUTO_THRESH</td><td>固定 min+40、引数なし</td><td><code>AUTO_THRESH:&lt;margin&gt;</code> 引数対応</td></tr>
+  <tr><td>未記載コマンド</td><td>—</td><td><code>SET_MODE</code> / <code>SET_SCOPE(_RATE)</code> / <code>SET_BLENAME</code> / <code>GET_AUTO_MARGIN</code> / <code>RESET</code> / <code>SET_BEEP</code> / <code>GET_BEEP</code> / <code>BEEP_TEST</code></td></tr>
+</table>
+<p class="why">根拠: マニュアルだけ読んで操作すると現行ファームと食い違う。コマンド表の全面同期が最優先のドキュメント作業。</p>
+</div>
+
+<div class="idea">
+<h3><span class="tag tag-mid">中</span><span class="tag tag-eff">工数小</span>E-2. 実測知見の技術ノート化</h3>
+<p>本ページ冒頭の「実測で分かったこと」（整定 12–24µs、リセット復帰 ≤24µs、デッドタイム ~100µs、COMP/LEVEL の等価性、コンパレータのノイズ山と duty 設定指針、ドループ特性）を MANUAL.html の技術資料節として整理する。測定条件（プローブ設定・日付・基板）も併記。</p>
+<p class="why">根拠: 測定値の出典が会話ログにしか無い状態は再現性が低い。次の基板ロットや後継機の設計判断の基礎データになる。</p>
+</div>
+</section>
+
+</main>
+
+<footer>Accel Kitchen — Cosmic Ray Detector V2 / idea.html（改善提案・実測知見つき）</footer>
+
+</body>
+</html>
