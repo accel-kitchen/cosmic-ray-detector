@@ -186,7 +186,7 @@ input::placeholder, textarea::placeholder { color: var(--ink-4); }
 
 /* ===== Top bar ===== */
 .topbar {
-  position: sticky; top: 0; z-index: 40;
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 40;
   background: var(--paper);
   border-bottom: 1px solid var(--rule);
 }
@@ -640,7 +640,7 @@ body[data-view="scope"] .msg .i { color: var(--night-ink-2); }
   .rail-close { display: grid; position: absolute; top: 10px; right: 10px; }
   .save-fab {
     display: inline-flex; align-items: center; gap: 8px;
-    position: fixed; right: 16px; bottom: 16px; z-index: 44;
+    position: fixed; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); z-index: 44;
     height: 44px; padding: 0 18px; border: 0; border-radius: 999px;
     background: var(--ink); color: var(--paper); font-weight: 700; cursor: pointer;
     box-shadow: 0 10px 24px -10px rgba(23, 22, 48, .6);
