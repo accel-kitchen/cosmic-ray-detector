@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CosmicRay Recorder v2</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+JP:wght@400;500;700&family=Shippori+Mincho:wght@600;700&display=swap">
+  <link rel="stylesheet" href="console.css">
+</head>
+<body data-view="connect">
+
+<!-- Icons: one stroke family, 24px grid. Styled by .i in console.css. -->
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+  <symbol id="i-usb" viewBox="0 0 24 24"><path d="M12 4v13.6"/><path d="M9.6 6.4 12 4l2.4 2.4"/><circle cx="12" cy="19.2" r="1.6"/><path d="M12 14.5 7.5 12V9.6"/><circle cx="7.5" cy="8.3" r="1.3"/><path d="M12 12.3l4.5-2.4V7.6"/><path d="M15.3 5h2.4v2.4h-2.4z"/></symbol>
+  <symbol id="i-bluetooth" viewBox="0 0 24 24"><path d="M7 7.6l10 8.9-5 4.5V3l5 4.5-10 8.9"/></symbol>
+  <symbol id="i-flask" viewBox="0 0 24 24"><path d="M9.5 3h5"/><path d="M10.5 3v5.6L5.3 18.1A1.9 1.9 0 0 0 7 21h10a1.9 1.9 0 0 0 1.7-2.9L13.5 8.6V3"/><path d="M7.7 14.5h8.6"/></symbol>
+  <symbol id="i-pause" viewBox="0 0 24 24"><path d="M9 5.5v13M15 5.5v13"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5.5v13l10-6.5z"/></symbol>
+  <symbol id="i-unplug" viewBox="0 0 24 24"><path d="M9 3v4M15 3v4"/><path d="M7 7h10v3a5 5 0 0 1-10 0z"/><path d="M12 15v6"/><path d="M4 4l16 16"/></symbol>
+  <symbol id="i-wave" viewBox="0 0 24 24"><path d="M2.5 12.5h3.3l2.2-6.5 3.5 12 3-9.5 1.8 4h5.2"/></symbol>
+  <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></symbol>
+  <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3.5 7.5A1.5 1.5 0 0 1 5 6h4l2 2h8a1.5 1.5 0 0 1 1.5 1.5v8A1.5 1.5 0 0 1 19 19H5a1.5 1.5 0 0 1-1.5-1.5z"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 20h14"/></symbol>
+  <symbol id="i-image" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="14" rx="1.5"/><path d="M3.5 16l5-4.5 4 3.5 3-2.5 5 4"/><circle cx="15.5" cy="9.5" r="1.5"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3"/><path d="M19.5 4.5v4h-4"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4.5 7h15M9.5 7V4.5h5V7M6.5 7l.9 12.5h9.2L17.5 7M10 10.5v6M14 10.5v6"/></symbol>
+  <symbol id="i-cloud" viewBox="0 0 24 24"><path d="M7 18.5a4 4 0 0 1-.6-7.95A6 6 0 0 1 17.8 9.6 4.5 4.5 0 0 1 17 18.5"/><path d="M12 12.5v7M9.2 15.2 12 12.5l2.8 2.7"/></symbol>
+  <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6"/></symbol>
+  <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.4a2.5 2.5 0 1 1 3.4 2.3c-.7.3-1 .8-1 1.5v.6"/><path d="M12 16.8v.2"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 4 21 19.5H3z"/><path d="M12 10v4.5M12 17v.2"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.5M12 7.8v.2"/></symbol>
+  <symbol id="i-speaker" viewBox="0 0 24 24"><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/></symbol>
+  <symbol id="i-vibrate" viewBox="0 0 24 24"><rect x="8" y="4" width="8" height="16" rx="1.5"/><path d="M4.5 9v6M19.5 9v6M2 10.5v3M22 10.5v3"/></symbol>
+  <symbol id="i-zap" viewBox="0 0 24 24"><path d="M13 3 5.5 13.5H11L10 21l8-11h-5.5z"/></symbol>
+  <symbol id="i-chevron" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
+  <symbol id="i-stop" viewBox="0 0 24 24"><rect x="6.5" y="6.5" width="11" height="11" rx="1"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+</svg>
+
+<!-- ===== Top bar: the one place that shows the connection ===== -->
+<header class="topbar" id="topbar">
+  <div class="topbar-row">
+    <div class="brand">
+      <span class="brand-name">CosmicRay Recorder</span>
+      <span class="brand-ver">v2</span>
+    </div>
+
+    <div class="status" id="status">
+      <span class="live off" id="liveDot" aria-hidden="true"></span>
+      <span class="status-text" id="statusText">未接続</span>
+      <span class="status-device" id="statusDevice"></span>
+    </div>
+
+    <div class="top-actions" id="topActions">
+      <button type="button" class="btn btn-line btn-sm" id="btnPauseLog">
+        <svg class="i"><use href="#i-pause"/></svg><span id="pauseLabel"></span>
+      </button>
+      <button type="button" class="btn btn-quiet btn-sm" id="btnDisconnect">
+        <svg class="i"><use href="#i-unplug"/></svg><span data-i18n="conn.disconnect">切断</span>
+      </button>
+      <span class="quick-connect" id="quickConnect">
+        <span class="quick-label" data-i18n="conn.reconnectLabel">もう一度つなぐ:</span>
+        <button type="button" class="btn btn-line btn-sm" id="btnQuickUSB"><svg class="i"><use href="#i-usb"/></svg><span data-i18n="conn.quickUsb">USB</span></button>
+        <button type="button" class="btn btn-line btn-sm" id="btnQuickBLE"><svg class="i"><use href="#i-bluetooth"/></svg><span data-i18n="conn.quickBle">Bluetooth</span></button>
+        <button type="button" class="btn btn-line btn-sm" id="btnQuickDemo"><svg class="i"><use href="#i-flask"/></svg><span data-i18n="conn.quickDemo">デモ</span></button>
+      </span>
+    </div>
+
+    <span class="scope-chip" id="scopeBadge" hidden></span>
+
+    <div class="scope-state" id="scopeState"></div>
+
+    <nav class="top-right">
+      <button type="button" class="btn btn-quiet btn-sm" id="btnOpenScope" data-i18n-title="scope.openTitle">
+        <svg class="i"><use href="#i-wave"/></svg><span class="lbl" data-i18n="scope.open">オシロスコープ</span>
+      </button>
+      <button type="button" class="btn btn-quiet btn-sm" id="btnOpenAdvanced" aria-controls="drawer" aria-expanded="false">
+        <svg class="i"><use href="#i-sliders"/></svg><span class="lbl" data-i18n="advanced.title">詳細設定</span>
+      </button>
+      <button type="button" class="btn btn-signal btn-sm" id="btnCloseScope">
+        <svg class="i"><use href="#i-back"/></svg><span data-i18n="scope.close">閉じて計数に戻る</span>
+      </button>
+      <div class="lang" role="group" data-i18n-aria="lang.label" aria-label="Language">
+        <button type="button" data-lang="ja" lang="ja">日本語</button><span aria-hidden="true">/</span><button type="button" data-lang="en" lang="en">English</button>
+      </div>
+    </nav>
+  </div>
+  <div class="demo-band" id="demoBanner" hidden>
+    <span class="demo-tag" data-i18n="demo.bannerTag">デモ</span>
+    <span data-i18n="demo.banner"></span>
+  </div>
+</header>
+
+<div class="page" id="page">
+  <main class="col-main">
+    <div class="msgs" id="msgs" aria-live="polite"></div>
+
+    <!-- ===== 1. Not connected: only the ways to connect ===== -->
+    <section class="view-connect" id="viewConnect">
+      <div class="hero">
+        <p class="eyebrow" data-i18n="connect.eyebrow"></p>
+        <h1 class="hero-title" data-i18n="connect.title">宇宙線を数えよう</h1>
+        <p class="hero-lead" data-i18n="connect.lead"></p>
+      </div>
+
+      <div class="choices">
+        <div class="choice">
+          <button type="button" class="choice-btn" id="btnConnectUSB">
+            <svg class="i choice-icon"><use href="#i-usb"/></svg>
+            <span class="choice-title" data-i18n="conn.connectUsb">USBでつなぐ</span>
+            <span class="choice-desc" data-i18n="conn.usbDesc"></span>
+          </button>
+          <div class="choice-foot">
+            <p class="choice-na" id="usbNA" hidden></p>
+            <details class="choice-opt">
+              <summary><span data-i18n="conn.options">接続オプション</span><svg class="i"><use href="#i-chevron"/></svg></summary>
+              <label class="field">
+                <span data-i18n="conn.baud">ボーレート（USB）</span>
+                <select id="baudRate">
+                  <option value="9600" selected>9600</option>
+                  <option value="115200">115200</option>
+                </select>
+              </label>
+            </details>
+          </div>
+        </div>
+
+        <div class="choice">
+          <button type="button" class="choice-btn" id="btnConnectBLE">
+            <svg class="i choice-icon"><use href="#i-bluetooth"/></svg>
+            <span class="choice-title" data-i18n="conn.connectBle">Bluetoothでつなぐ</span>
+            <span class="choice-desc" data-i18n="conn.bleDesc"></span>
+          </button>
+          <div class="choice-foot">
+            <p class="choice-na" id="bleNA" hidden></p>
+            <label class="field field-row">
+              <span data-i18n="conn.bleName">検出器の名前</span>
+              <input type="text" id="bleName" value="CosmicRay" maxlength="19" placeholder="CosmicRay" spellcheck="false" autocomplete="off">
+            </label>
+          </div>
+        </div>
+
+        <div class="choice choice-demo">
+          <button type="button" class="choice-btn" id="btnConnectDemo">
+            <svg class="i choice-icon"><use href="#i-flask"/></svg>
+            <span class="choice-title" data-i18n="demo.connect">デモで試す</span>
+            <span class="choice-desc" data-i18n="demo.connectDesc"></span>
+          </button>
+        </div>
+      </div>
+
+      <ol class="steps">
+        <li><span class="step-n">1</span><div><b data-i18n="steps.connect">つなぐ</b><span data-i18n="steps.connectDesc"></span></div></li>
+        <li><span class="step-n">2</span><div><b data-i18n="steps.measure">測る</b><span data-i18n="steps.measureDesc"></span></div></li>
+        <li><span class="step-n">3</span><div><b data-i18n="steps.save">保存する</b><span data-i18n="steps.saveDesc"></span>
+          <button type="button" class="link-btn" id="btnPreFolder"><svg class="i"><use href="#i-folder"/></svg><span data-i18n="steps.preFolder">保存先を先に選ぶ</span></button>
+          <span class="pre-folder-done" id="preFolderInfo" hidden><svg class="i"><use href="#i-check"/></svg><span data-i18n="steps.preFolderDone"></span></span>
+        </div></li>
+      </ol>
+      <p class="connect-note" data-i18n="connect.note"></p>
+    </section>
+
+    <!-- ===== 2. Measuring: numbers and graphs first ===== -->
+    <section class="view-measure" id="viewMeasure" hidden>
+      <div class="first" id="firstScreen">
+        <div class="readouts">
+          <div class="readout">
+            <div class="readout-label"><span data-i18n="stat.totalEvents">総イベント数</span><button type="button" class="term" data-term="event"></button></div>
+            <div class="readout-value num" id="statTotalEvents">0</div>
+          </div>
+          <div class="readout">
+            <div class="readout-label"><span data-i18n="stat.avgRate">平均カウントレート</span><button type="button" class="term" data-term="rate"></button></div>
+            <div class="readout-value"><span class="num" id="statRate">0.000</span><span class="unit" data-i18n="unit.cps">回/秒</span><span class="readout-err"><span class="num">± <span id="statRateErr">—</span></span><button type="button" class="term" data-term="rateErr"></button></span></div>
+          </div>
+          <div class="readout">
+            <div class="readout-label"><span data-i18n="stat.elapsed">経過時間</span><button type="button" class="term" data-term="elapsed"></button></div>
+            <div class="readout-value num" id="statElapsed">00:00:00</div>
+          </div>
+          <p class="paused-note" id="logPausedInfo" hidden><svg class="i"><use href="#i-pause"/></svg><span data-i18n="conn.pausedInfo"></span></p>
+        </div>
+
+        <div class="charts">
+          <figure class="chart chart-hist">
+            <figcaption class="chart-head">
+              <h2 class="chart-title"><span data-i18n="chart.histTitle">エネルギー分布</span> <span class="chart-sub" data-i18n="chart.histSub">ADC ヒストグラム</span><button type="button" class="term" data-term="histogram"></button></h2>
+              <div class="chart-tools">
+                <label class="mini">
+                  <span data-i18n="chart.binWidth">ビン幅</span>
+                  <select id="binWidth">
+                    <option value="4">4</option>
+                    <option value="8">8</option>
+                    <option value="16">16</option>
+                    <option value="32">32</option>
+                    <option value="64" selected>64</option>
+                    <option value="128">128</option>
+                  </select>
+                </label>
+                <label class="mini check"><input type="checkbox" id="histLogScale"><span data-i18n="chart.logScale">対数</span></label>
+                <button type="button" class="term" data-term="logScale"></button>
+                <button type="button" class="icon-btn" id="btnSaveHistPng" data-i18n-title="chart.savePng"><svg class="i"><use href="#i-image"/></svg></button>
+              </div>
+            </figcaption>
+            <div class="chart-box" id="histBox">
+              <canvas id="histogramChart"></canvas>
+              <canvas id="histOverlay" class="overlay" aria-hidden="true"></canvas>
+            </div>
+          </figure>
+          <figure class="chart chart-rate">
+            <figcaption class="chart-head">
+              <h2 class="chart-title"><span data-i18n="chart.rateTitle">カウントレートの変化</span></h2>
+              <div class="chart-tools">
+                <span class="mini muted"><span data-i18n="chart.dataPoints">点数</span> <span class="num" id="rateDataCount">0</span></span>
+                <button type="button" class="icon-btn" id="btnSaveRatePng" data-i18n-title="chart.savePng"><svg class="i"><use href="#i-image"/></svg></button>
+              </div>
+            </figcaption>
+            <div class="chart-box" id="rateBox">
+              <canvas id="rateChart"></canvas>
+            </div>
+          </figure>
+        </div>
+
+        <dl class="aux">
+          <div class="aux-item"><dt><span data-i18n="env.temp">温度</span><button type="button" class="term" data-term="env"></button></dt><dd><span class="num" id="envTemp">--</span> °C</dd></div>
+          <div class="aux-item"><dt data-i18n="env.hum">湿度</dt><dd><span class="num" id="envHum">--</span> %</dd></div>
+          <div class="aux-item"><dt data-i18n="env.press">気圧</dt><dd><span class="num" id="envPress">--</span> hPa</dd></div>
+          <div class="aux-item aux-ext"><dt><span data-i18n="ext.title">外部検出器</span><button type="button" class="term" data-term="external"></button></dt><dd id="extGrid"></dd></div>
+          <div class="aux-item"><dt><span data-i18n="stat.avgAdc">平均 ADC</span><button type="button" class="term" data-term="adc"></button></dt><dd class="num" id="statAdc">--</dd></div>
+          <div class="aux-item"><dt><span data-i18n="stat.totalDeadtime">デッドタイム</span><button type="button" class="term" data-term="deadtime"></button></dt><dd><span class="num" id="statDeadtime">--</span> s</dd></div>
+          <div class="aux-item"><dt><span data-i18n="stat.mode">トリガー</span><button type="button" class="term" data-term="triggerMode"></button></dt><dd id="modeBadge">--</dd></div>
+        </dl>
+      </div>
+
+      <section class="data" id="dataSection">
+        <h2 class="data-title" data-i18n="data.title">記録の中身</h2>
+        <div class="data-tabs" role="tablist">
+          <button type="button" role="tab" data-dtab="table" aria-selected="true"><span data-i18n="data.table">測定データ</span></button>
+          <button type="button" role="tab" data-dtab="raw" aria-selected="false"><span data-i18n="data.raw">受信ログ</span></button>
+          <button type="button" role="tab" data-dtab="stats" aria-selected="false"><span data-i18n="data.stats">統計</span></button>
+        </div>
+
+        <div class="dpanel" id="dtab-table" role="tabpanel">
+          <p class="dpanel-desc" data-i18n="table.desc"></p>
+          <div class="table-wrap">
+            <table class="events">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th data-i18n="table.pcTs">PC 時刻</th>
+                  <th data-i18n="table.time">基板の時刻 [µs]</th>
+                  <th data-i18n="table.adc">ADC</th>
+                  <th data-i18n="table.deadtime">デッドタイム [µs]</th>
+                  <th data-i18n="table.temp">温度 [°C]</th>
+                  <th data-i18n="table.hum">湿度 [%]</th>
+                  <th data-i18n="table.press">気圧 [hPa]</th>
+                  <th>D1</th><th>D2</th><th>D3</th>
+                  <th>A1</th><th>A2</th><th>A3</th>
+                </tr>
+              </thead>
+              <tbody id="dataTableBody"></tbody>
+            </table>
+            <div class="no-data" id="noDataMsg" data-i18n="table.noData">データを待っています…</div>
+          </div>
+        </div>
+
+        <div class="dpanel" id="dtab-raw" role="tabpanel" hidden>
+          <p class="dpanel-desc" data-i18n="raw.desc"></p>
+          <pre class="raw" id="rawDataDisplay"></pre>
+        </div>
+
+        <div class="dpanel" id="dtab-stats" role="tabpanel" hidden>
+          <dl class="stats-grid">
+            <div><dt data-i18n="stats.total">総イベント数</dt><dd id="ds_total">0</dd></div>
+            <div><dt data-i18n="stats.elapsed">測定時間</dt><dd id="ds_elapsed">--</dd></div>
+            <div><dt data-i18n="stats.rate">平均カウントレート</dt><dd id="ds_rate">--</dd></div>
+            <div><dt data-i18n="stats.rateStd">統計誤差</dt><dd id="ds_rateStd">--</dd></div>
+            <div><dt data-i18n="stats.devCounts">検出器の計数</dt><dd id="ds_devCounts">--</dd></div>
+            <div><dt><span data-i18n="stats.liveTime">ライブタイム</span><button type="button" class="term" data-term="livetime"></button></dt><dd id="ds_liveTime">--</dd></div>
+            <div><dt data-i18n="stats.deadtime">総デッドタイム</dt><dd id="ds_deadtime">--</dd></div>
+            <div><dt data-i18n="stats.adcMean">平均 ADC 値</dt><dd id="ds_adcMean">--</dd></div>
+            <div><dt data-i18n="stats.adcMax">最大 ADC 値</dt><dd id="ds_adcMax">--</dd></div>
+            <div><dt data-i18n="stats.temp">平均温度</dt><dd id="ds_temp">--</dd></div>
+            <div><dt data-i18n="stats.tempStd">温度の標準偏差</dt><dd id="ds_tempStd">--</dd></div>
+            <div><dt data-i18n="stats.tempRange">最高 / 最低温度</dt><dd id="ds_tempRange">--</dd></div>
+            <div><dt data-i18n="stats.hum">平均湿度</dt><dd id="ds_hum">--</dd></div>
+            <div><dt data-i18n="stats.humRange">最高 / 最低湿度</dt><dd id="ds_humRange">--</dd></div>
+            <div><dt data-i18n="stats.press">平均気圧</dt><dd id="ds_press">--</dd></div>
+            <div><dt data-i18n="stats.pressRange">最高 / 最低気圧</dt><dd id="ds_pressRange">--</dd></div>
+            <div><dt data-i18n="stats.digRate">外部検出器の反応率</dt><dd id="ds_digRate">--</dd></div>
+            <div><dt data-i18n="stats.anaMean">外部検出器のアナログ平均</dt><dd id="ds_anaMean">--</dd></div>
+          </dl>
+        </div>
+      </section>
+    </section>
+
+    <!-- ===== 3. Oscilloscope: a mode of its own, counting is stopped ===== -->
+    <section class="view-scope" id="viewScope" hidden>
+      <div class="scope-tools">
+        <label class="mini">
+          <span data-i18n="scope.rate">レート上限 [/s]</span><button type="button" class="term" data-term="scopeRate"></button>
+          <input type="number" id="scopeRate" value="3" min="1" max="20">
+        </label>
+        <label class="mini">
+          <span data-i18n="scope.persist">残光</span><button type="button" class="term" data-term="persistence"></button>
+          <input type="number" id="scopePersist" value="20" min="0" max="200">
+        </label>
+        <label class="mini check"><input type="checkbox" id="scopeAutoY" checked><span data-i18n="scope.autoY">縦軸を自動で合わせる</span></label>
+        <span class="tools-gap"></span>
+        <button type="button" class="btn btn-night btn-sm" id="scopeFreeze"><svg class="i"><use href="#i-pause"/></svg><span id="scopeFreezeLabel"></span></button>
+        <button type="button" class="btn btn-night btn-sm" id="scopeClear"><svg class="i"><use href="#i-trash"/></svg><span data-i18n="scope.clear">クリア</span></button>
+        <button type="button" class="btn btn-night btn-sm" id="scopeSave"><svg class="i"><use href="#i-download"/></svg><span data-i18n="scope.save">.wfm で保存</span></button>
+      </div>
+      <p class="scope-warn" id="scopeBleWarn" hidden><svg class="i"><use href="#i-alert"/></svg><span data-i18n="scope.bleWarn"></span></p>
+      <div class="scope-wrap" id="scopeWrap">
+        <canvas id="scopeCanvas"></canvas>
+      </div>
+      <dl class="scope-stats">
+        <div><dt data-i18n="scope.peak">ピーク ADC</dt><dd class="num" id="scopePeak">--</dd></div>
+        <div><dt><span data-i18n="scope.tpeak">t_peak [µs]</span><button type="button" class="term" data-term="tPeak"></button></dt><dd class="num" id="scopeTPeak">--</dd></div>
+        <div><dt data-i18n="scope.frames">波形の数</dt><dd class="num" id="scopeCount">0</dd></div>
+        <div><dt data-i18n="scope.fps">波形/秒</dt><dd class="num" id="scopeFps">0.0</dd></div>
+        <div><dt data-i18n="scope.bad">壊れた行</dt><dd class="num" id="scopeBad">0</dd></div>
+      </dl>
+      <details class="scope-about">
+        <summary><span data-i18n="scope.about">このモードについて</span><svg class="i"><use href="#i-chevron"/></svg></summary>
+        <p data-i18n="scope.desc"></p>
+        <p><span data-i18n="scope.holdNote"></span><button type="button" class="term" data-term="peakHold"></button></p>
+        <p data-i18n="scope.fwNote"></p>
+      </details>
+    </section>
+
+    <footer class="foot" id="foot">
+      <span>&copy; 2020&ndash;2026 <a href="https://accel-kitchen.com/" target="_blank" rel="noopener" data-i18n="footer.company">加速キッチン合同会社</a></span>
+      <a href="mailto:info@accel-kitchen.com">info@accel-kitchen.com</a>
+      <span data-i18n="notes.v2only"></span>
+    </footer>
+  </main>
+
+  <!-- ===== Save: always within reach while measuring ===== -->
+  <aside class="rail" id="rail" aria-labelledby="railTitle">
+    <button type="button" class="icon-btn rail-close" id="btnCloseRail" data-i18n-title="common.close"><svg class="i"><use href="#i-close"/></svg></button>
+
+    <section class="rail-sec demo-sec" id="demoSection" hidden>
+      <h2 class="rail-title"><svg class="i"><use href="#i-flask"/></svg><span data-i18n="demo.title">デモの設定</span></h2>
+      <div class="seg seg-wide" id="demoScenario">
+        <button type="button" data-scenario="background" class="active" data-i18n="demo.scBackground">通常</button>
+        <button type="button" data-scenario="source" data-i18n="demo.scSource">線源あり</button>
+        <button type="button" data-scenario="shower" data-i18n="demo.scShower">シャワー</button>
+      </div>
+      <p class="hint" id="demoScenarioInfo"></p>
+      <label class="field">
+        <span id="demoRateLabel"></span>
+        <input type="range" class="range" id="demoRate" min="0" max="100" step="1" value="50">
+      </label>
+      <div class="row">
+        <button type="button" class="btn btn-line btn-sm" id="btnDemoBurst"><svg class="i"><use href="#i-zap"/></svg><span data-i18n="demo.burst">バーストを起こす</span></button>
+        <label class="check"><input type="checkbox" id="demoSound"><span id="demoSoundLabel" data-i18n="demo.sound">ブザー音を鳴らす</span></label>
+      </div>
+      <p class="hint num-hint" id="demoInfo"></p>
+    </section>
+
+    <section class="rail-sec">
+      <h2 class="rail-title" id="railTitle" data-i18n="save.title">保存</h2>
+
+      <div class="block">
+        <h3 class="block-title" data-i18n="autosave.title">自動保存</h3>
+        <p class="hint" id="autoSaveIntro" data-i18n="autosave.intro"></p>
+        <div class="autosave-status" id="autoSaveStatus" hidden></div>
+        <div class="row">
+          <button type="button" class="btn btn-primary" id="btnSelectFolder"><svg class="i"><use href="#i-folder"/></svg><span id="selectFolderLabel"></span></button>
+        </div>
+        <label class="field field-row">
+          <span><span data-i18n="autosave.format">形式</span><button type="button" class="term" data-term="format"></button></span>
+          <select id="autoSaveFormat">
+            <option value="dat" data-i18n="autosave.datOnly">.dat</option>
+            <option value="csv" data-i18n="autosave.csvOnly">.csv</option>
+            <option value="both" data-i18n="autosave.both">.dat と .csv</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="block">
+        <label class="field">
+          <span data-i18n="file.comment">メモ</span>
+          <textarea id="fileComment" rows="2" data-i18n-placeholder="file.commentPlaceholder"></textarea>
+          <small class="hint" data-i18n="file.commentHint"></small>
+        </label>
+      </div>
+
+      <div class="block">
+        <h3 class="block-title" data-i18n="file.download">ダウンロード</h3>
+        <div class="row">
+          <button type="button" class="btn btn-line" id="btnExportDat" disabled><svg class="i"><use href="#i-download"/></svg><span data-i18n="file.downloadDat">.dat で保存</span></button>
+          <button type="button" class="btn btn-line" id="btnExportCsv" disabled><svg class="i"><use href="#i-download"/></svg><span data-i18n="file.downloadCsv">.csv で保存</span></button>
+        </div>
+        <p class="hint" id="exportStatus" hidden></p>
+        <p class="warn-text" id="memWarning" hidden></p>
+      </div>
+    </section>
+
+    <section class="rail-sec rail-end">
+      <button type="button" class="btn btn-danger" id="btnClearData"><svg class="i"><use href="#i-trash"/></svg><span data-i18n="file.clearData">データを消去して最初から</span></button>
+      <p class="hint" data-i18n="file.clearHint"></p>
+    </section>
+  </aside>
+</div>
+
+<button type="button" class="save-fab" id="btnSaveFab" aria-controls="rail"><svg class="i"><use href="#i-folder"/></svg><span data-i18n="save.fab">保存</span><span class="fab-dot" id="fabDot"></span></button>
+
+<!-- ===== Advanced settings: out of the way until needed ===== -->
+<aside class="drawer" id="drawer" role="dialog" aria-labelledby="drawerTitle" aria-hidden="true">
+  <div class="drawer-head">
+    <h2 id="drawerTitle" data-i18n="advanced.title">詳細設定</h2>
+    <button type="button" class="icon-btn" id="btnCloseDrawer" data-i18n-title="common.close"><svg class="i"><use href="#i-close"/></svg></button>
+  </div>
+  <nav class="drawer-nav" id="drawerNav">
+    <a href="#adv-trigger" data-i18n="adv.trigger">トリガーとしきい値</a>
+    <a href="#adv-features" data-i18n="adv.features">検出器の機能</a>
+    <a href="#adv-sound" data-i18n="adv.soundVib">音と振動</a>
+    <a href="#adv-display" data-i18n="adv.display">表示</a>
+    <a href="#adv-connection" data-i18n="adv.connection">接続</a>
+    <a href="#adv-upload" data-i18n="adv.upload">サーバー送信</a>
+    <a href="#adv-help" data-i18n="adv.help">ヘルプ</a>
+  </nav>
+  <div class="drawer-body" id="drawerBody">
+    <p class="drawer-note" id="drawerOffline"><svg class="i"><use href="#i-info"/></svg><span data-i18n="advanced.offline"></span></p>
+
+    <!-- Trigger and thresholds -->
+    <details class="adv" id="adv-trigger" open>
+      <summary><span data-i18n="adv.trigger">トリガーとしきい値</span><svg class="i"><use href="#i-chevron"/></svg></summary>
+      <div class="adv-body">
+        <div class="group">
+          <div class="group-head"><h3 data-i18n="trigger.title">トリガーモード</h3><button type="button" class="term" data-term="triggerMode"></button></div>
+          <div class="seg" id="modeSelect">
+            <button type="button" data-mode="DIGITAL" disabled>Digital</button>
+            <button type="button" data-mode="DUAL" disabled>Dual</button>
+            <button type="button" data-mode="ANALOG" disabled>Analog</button>
+          </div>
+          <p class="state" id="modeInfo"></p>
+          <p class="hint" data-i18n="trigger.desc"></p>
+        </div>
+
+        <div class="group">
+          <div class="group-head"><h3 data-i18n="thresh.signalLabel">信号しきい値（0〜4095）</h3><button type="button" class="term" data-term="threshold"></button></div>
+          <div class="frow">
+            <input type="number" class="num-input" id="threshSignal" min="0" max="4095" value="120">
+            <button type="button" class="btn btn-line btn-sm" id="btnSetThresh" disabled data-i18n="common.set">設定</button>
+            <button type="button" class="icon-btn" id="btnGetThresh" disabled data-i18n-title="common.get"><svg class="i"><use href="#i-refresh"/></svg></button>
+          </div>
+          <p class="field-msg" id="threshMsg" hidden></p>
+          <p class="state" id="threshInfo"></p>
+          <div class="frow">
+            <label class="field field-inline"><span data-i18n="thresh.marginLabel">自動校正のマージン</span><input type="number" class="num-input" id="autoMargin" min="0" max="4095" value="50"></label>
+            <button type="button" class="btn btn-line btn-sm" id="btnAutoThresh" disabled><svg class="i"><use href="#i-refresh"/></svg><span data-i18n="thresh.autoCal">自動校正</span></button>
+            <button type="button" class="term" data-term="autoCal"></button>
+          </div>
+          <p class="field-msg" id="marginMsg" hidden></p>
+          <p class="hint" data-i18n="thresh.autoDesc"></p>
+        </div>
+
+        <div class="group">
+          <div class="group-head"><h3 data-i18n="pwm.label">コンパレータしきい値</h3><button type="button" class="term" data-term="pwm"></button></div>
+          <div class="frow">
+            <input type="number" class="num-input" id="pwmDuty" min="0" max="255" value="96">
+            <button type="button" class="btn btn-line btn-sm" id="btnSetPwm" disabled data-i18n="common.set">設定</button>
+            <button type="button" class="icon-btn" id="btnGetPwm" disabled data-i18n-title="common.get"><svg class="i"><use href="#i-refresh"/></svg></button>
+          </div>
+          <p class="field-msg" id="pwmMsg" hidden></p>
+          <p class="state" id="pwmInfo"></p>
+          <div class="frow">
+            <label class="field field-inline"><span data-i18n="pwm.targetLabel">Auto PWM の目標</span><input type="number" class="num-input" id="pwmTarget" min="0" max="100000" value="50"></label>
+            <button type="button" class="btn btn-line btn-sm" id="btnAutoPwm" disabled><svg class="i"><use href="#i-refresh"/></svg><span data-i18n="pwm.auto">Auto PWM</span></button>
+          </div>
+          <p class="field-msg" id="pwmTargetMsg" hidden></p>
+          <p class="hint" data-i18n="pwm.desc"></p>
+        </div>
+      </div>
+    </details>
+
+    <!-- Feature switches -->
+    <details class="adv" id="adv-features">
+      <summary><span data-i18n="adv.features">検出器の機能</span><svg class="i"><use href="#i-chevron"/></svg></summary>
+      <div class="adv-body">
+        <p class="hint" data-i18n="feat.desc"></p>
+        <ul class="switches">
+          <li><span data-i18n="feat.sd">microSD に記録</span><button type="button" class="switch" role="switch" aria-checked="false" data-feature="SD" disabled><span class="knob"></span></button></li>
+          <li><span><span data-i18n="feat.ext">外部検出器の読み取り</span><button type="button" class="term" data-term="external"></button></span><button type="button" class="switch" role="switch" aria-checked="false" data-feature="EXT" disabled><span class="knob"></span></button></li>
+          <li><span data-i18n="feat.oled">OLED 画面</span><button type="button" class="switch" role="switch" aria-checked="false" data-feature="OLED" disabled><span class="knob"></span></button></li>
+          <li><span data-i18n="feat.buzzer">ブザー</span><button type="button" class="switch" role="switch" aria-checked="false" data-feature="BUZZER" disabled><span class="knob"></span></button></li>
+          <li><span data-i18n="feat.vib">振動モーター</span><button type="button" class="switch" role="switch" aria-checked="false" data-feature="VIB" disabled><span class="knob"></span></button></li>
+        </ul>
+      </div>
+    </details>
+
+    <!-- Beep and vibration -->
+    <details class="adv" id="adv-sound">
+      <summary><span data-i18n="adv.soundVib">音と振動</span><svg class="i"><use href="#i-chevron"/></svg></summary>
+      <div class="adv-body">
+        <div class="group">
+          <div class="group-head"><svg class="i"><use href="#i-speaker"/></svg><h3 data-i18n="beep.title">ブザー</h3></div>
+          <p class="hint" data-i18n="beep.desc"></p>
+          <div class="frow">
+            <label class="field field-inline"><span data-i18n="beep.minLabel">最低 Hz</span><input type="number" class="num-input" id="beepMin" min="50" max="20000" step="1" value="500"></label>
+            <label class="field field-inline"><span data-i18n="beep.maxLabel">最高 Hz</span><input type="number" class="num-input" id="beepMax" min="50" max="20000" step="1" value="4000"></label>
+            <label class="field field-inline"><span data-i18n="beep.msLabel">長さ ms</span><input type="number" class="num-input" id="beepMs" min="1" max="500" step="1" value="25"></label>
+          </div>
+          <div class="frow">
+            <button type="button" class="btn btn-line btn-sm" id="btnSetBeep" disabled data-i18n="common.set">設定</button>
+            <button type="button" class="btn btn-quiet btn-sm" id="btnTestBeep" disabled><svg class="i"><use href="#i-speaker"/></svg><span data-i18n="beep.test">鳴らしてみる</span></button>
+          </div>
+          <p class="field-msg" id="beepMsg" hidden></p>
+          <p class="state" id="beepInfo"></p>
+        </div>
+        <div class="group">
+          <div class="group-head"><svg class="i"><use href="#i-vibrate"/></svg><h3 data-i18n="vib.title">振動</h3></div>
+          <p class="hint" data-i18n="vib.desc"></p>
+          <div class="frow">
+            <label class="field field-inline"><span data-i18n="vib.minLabel">最短 ms</span><input type="number" class="num-input" id="vibMin" min="1" max="500" step="1" value="20"></label>
+            <label class="field field-inline"><span data-i18n="vib.maxLabel">最長 ms</span><input type="number" class="num-input" id="vibMax" min="1" max="500" step="1" value="120"></label>
+          </div>
+          <div class="frow">
+            <button type="button" class="btn btn-line btn-sm" id="btnSetVib" disabled data-i18n="common.set">設定</button>
+            <button type="button" class="btn btn-quiet btn-sm" id="btnTestVib" disabled><svg class="i"><use href="#i-vibrate"/></svg><span data-i18n="vib.test">振動させてみる</span></button>
+          </div>
+          <p class="field-msg" id="vibMsg" hidden></p>
+          <p class="state" id="vibInfo"></p>
+        </div>
+      </div>
+    </details>
+
+    <!-- Display -->
+    <details class="adv" id="adv-display">
+      <summary><span data-i18n="adv.display">表示</span><svg class="i"><use href="#i-chevron"/></svg></summary>
+      <div class="adv-body">
+        <div class="group">
+          <div class="group-head"><h3 data-i18n="refresh.title">グラフの更新間隔</h3></div>
+          <p class="hint" data-i18n="refresh.desc"></p>
+          <div class="frow">
+            <div class="seg" id="refreshSelect">
+              <button type="button" data-interval="1000" data-i18n="refresh.s1">1 秒</button>
+              <button type="button" data-interval="3000" class="active" data-i18n="refresh.s3">3 秒</button>
+              <button type="button" data-interval="10000" data-i18n="refresh.s10">10 秒</button>
+              <button type="button" data-interval="manual" data-i18n="refresh.manual">手動</button>
+            </div>
+            <button type="button" class="btn btn-line btn-sm" id="btnRefreshNow" disabled><svg class="i"><use href="#i-refresh"/></svg><span data-i18n="refresh.now">今すぐ更新</span></button>
+          </div>
+        </div>
+      </div>
+    </details>
+
+    <!-- Connection -->
+    <details class="adv" id="adv-connection">
+      <summary><span data-i18n="adv.connection">接続</span><svg class="i"><use href="#i-chevron"/></svg></summary>
+      <div class="adv-body">
+        <div class="group" id="connDetailGroup">
+          <div class="group-head"><h3 data-i18n="conn.detailTitle">接続先</h3></div>
+          <ul class="conn-detail" id="connDetail"></ul>
+        </div>
+        <div class="group">
+          <div class="group-head"><h3 data-i18n="conn.bleNameAdv">Bluetooth の名前</h3></div>
+          <div class="frow">
+            <input type="text" id="advBleName" maxlength="19" placeholder="CosmicRay" spellcheck="false" autocomplete="off">
+            <button type="button" class="btn btn-line btn-sm" id="btnSetBleName" disabled data-i18n="conn.renameReboot">名前を変えて再起動</button>
+          </div>
+          <p class="field-msg" id="bleNameMsg" hidden></p>
+          <p class="state" id="bleNameInfo"></p>
+        </div>
+        <div class="group">
+          <div class="group-head"><h3 data-i18n="conn.baud">ボーレート（USB）</h3></div>
+          <div class="frow">
+            <select id="advBaudRate">
+              <option value="9600" selected>9600</option>
+              <option value="115200">115200</option>
+            </select>
+          </div>
+          <p class="hint" data-i18n="conn.baudHint"></p>
+        </div>
+      </div>
+    </details>
+
+    <!-- Server upload -->
+    <details class="adv" id="adv-upload">
+      <summary><span data-i18n="adv.upload">サーバー送信</span><svg class="i"><use href="#i-chevron"/></svg></summary>
+      <div class="adv-body">
+        <p class="hint" data-i18n="upload.desc"></p>
+        <label class="field"><span data-i18n="upload.server">サーバー URL</span><input type="url" id="uploadServer" data-i18n-placeholder="upload.serverPlaceholder"></label>
+        <div class="frow frow-fill">
+          <label class="field"><span data-i18n="upload.stationId">観測局 ID</span><input type="text" id="uploadStationId" autocomplete="username" maxlength="64"></label>
+          <label class="field"><span data-i18n="upload.password">パスワード</span><input type="password" id="uploadPassword" autocomplete="current-password"></label>
+        </div>
+        <label class="check"><input type="checkbox" id="uploadRemember"><span data-i18n="upload.remember">このパソコンにパスワードを保存する</span></label>
+        <p class="warn-text" id="uploadRememberWarn" hidden data-i18n="upload.rememberWarn"></p>
+        <label class="field"><span data-i18n="upload.deviceLabel">装置ラベル</span><input type="text" id="uploadDeviceLabel" maxlength="32" data-i18n-placeholder="upload.deviceLabelPlaceholder"></label>
+        <div class="frow frow-fill">
+          <label class="field"><span data-i18n="upload.lat">緯度</span><input type="number" class="num-input" id="uploadLat" step="0.000001" min="-90" max="90"></label>
+          <label class="field"><span data-i18n="upload.lon">経度</span><input type="number" class="num-input" id="uploadLon" step="0.000001" min="-180" max="180"></label>
+        </div>
+        <label class="field"><span data-i18n="upload.decimate">送る量</span>
+          <select id="uploadDecimate">
+            <option value="1" data-i18n="upload.decAll">全イベント</option>
+            <option value="10" data-i18n="upload.dec10">10 件に 1 件</option>
+            <option value="100" data-i18n="upload.dec100">100 件に 1 件</option>
+          </select>
+        </label>
+        <div class="frow">
+          <button type="button" class="btn btn-line btn-sm" id="btnUploadLogin" data-i18n="upload.login">ログイン</button>
+          <button type="button" class="btn btn-primary btn-sm" id="btnUploadStart" disabled><svg class="i"><use href="#i-cloud"/></svg><span data-i18n="upload.start">送信開始</span></button>
+          <button type="button" class="btn btn-line btn-sm" id="btnUploadStop" disabled><svg class="i"><use href="#i-stop"/></svg><span data-i18n="upload.stop">送信停止</span></button>
+        </div>
+        <div class="frow">
+          <button type="button" class="btn btn-quiet btn-sm" id="btnUploadResend" disabled><svg class="i"><use href="#i-refresh"/></svg><span data-i18n="upload.resend">未送信のデータを再送</span></button>
+          <button type="button" class="btn btn-quiet btn-sm" id="btnUploadLogout" disabled data-i18n="upload.logout">ログアウト</button>
+        </div>
+        <div class="upload-status" id="uploadStatus"></div>
+        <div class="hint upload-counters" id="uploadCounters"></div>
+      </div>
+    </details>
+
+    <!-- Help -->
+    <details class="adv" id="adv-help">
+      <summary><span data-i18n="adv.help">ヘルプ</span><svg class="i"><use href="#i-chevron"/></svg></summary>
+      <div class="adv-body">
+        <ul class="notes">
+          <li data-i18n="notes.chrome"></li>
+          <li data-i18n="notes.usb"></li>
+          <li data-i18n="notes.ble"></li>
+          <li data-i18n="notes.https"></li>
+          <li data-i18n="notes.adc"></li>
+          <li data-i18n="notes.v2only"></li>
+          <li data-i18n="notes.csv"></li>
+        </ul>
+      </div>
+    </details>
+  </div>
+</aside>
+
+<!-- Confirmations (scope, clear data, rename) -->
+<dialog class="dlg" id="dlg" aria-labelledby="dlgTitle">
+  <form method="dialog">
+    <h2 class="dlg-title" id="dlgTitle"></h2>
+    <div class="dlg-body" id="dlgBody"></div>
+    <label class="check" id="dlgSkipWrap" hidden><input type="checkbox" id="dlgSkip"><span data-i18n="dlg.skip">次回からこの確認を表示しない</span></label>
+    <div class="dlg-actions">
+      <button type="submit" value="cancel" class="btn btn-quiet" id="dlgCancel" data-i18n="common.cancel">やめる</button>
+      <button type="submit" value="ok" class="btn btn-primary" id="dlgOk">OK</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Glossary popover -->
+<div class="pop" id="pop" role="tooltip" hidden>
+  <strong class="pop-title" id="popTitle"></strong>
+  <p class="pop-body" id="popBody"></p>
+</div>
+
+<script src="js/i18n.js"></script>
+<script src="js/core.js"></script>
+<script src="js/charts.js"></script>
+<script src="js/ui.js"></script>
+</body>
+</html>
