@@ -22,18 +22,50 @@ function lsSet(key, value) { try { localStorage.setItem(key, value); } catch (_)
 const busy = { autoThresh: false, autoThreshM: 0, testVib: false, modeSwitch: null, rename: null };
 let uiAlert = null;   // { key, params } raised by core (folder API missing, demo upload)
 
+// ========== Detector model ==========
+// v1 / v2 / v2.1 は見た目（ケース）で選んでもらう。v2 はこのページ、v1 は v1.html。
+// 選んだ機種は覚えておき、次回からは選ぶ画面を飛ばす（v1 は index.html の head で v1.html へ送る）。
+// ?choose を付けて開くと、覚えた機種に関係なく選ぶ画面を出す。
+const MODEL_KEY = 'detectorModel';
+let modelChosen = false;
+
+function chooseModel(model) {
+  lsSet(MODEL_KEY, model);
+  if (model === 'v1') { location.href = 'v1.html'; return; }
+  modelChosen = true;
+  // ?choose を外しておく（付いたままだと再読み込みでまた選ぶ画面になる）
+  if (new URLSearchParams(location.search).has('choose')) history.replaceState(null, '', location.pathname + location.hash);
+  renderView();
+  window.scrollTo(0, 0);
+}
+
+function showModelChooser() {
+  modelChosen = false;
+  renderModelChooser();
+  renderView();
+  window.scrollTo(0, 0);
+}
+
+function renderModelChooser() {
+  const last = lsGet(MODEL_KEY);
+  qsa('.model[data-model]').forEach(card => {
+    card.querySelector('.model-last').hidden = card.dataset.model !== last;
+  });
+}
+
 // ========== Views ==========
 function currentView() {
   if (scope.active) return 'scope';
   if (state.isConnected || state.reconnecting) return 'measure';
   if (state.stats.n > 0 || state.events.length > 0) return 'measure';
-  return 'connect';
+  return modelChosen ? 'connect' : 'model';
 }
 
 let lastView = null;
 function renderView() {
   const v = currentView();
   document.body.dataset.view = v;
+  $('viewModel').hidden = v !== 'model';
   $('viewConnect').hidden = v !== 'connect';
   $('viewMeasure').hidden = v !== 'measure';
   $('viewScope').hidden = v !== 'scope';
@@ -96,7 +128,7 @@ function renderTopActions() {
   $('btnPauseLog').hidden = !conn;
   $('btnDisconnect').hidden = !(conn || retry);
   $('quickConnect').hidden = !(v === 'measure' && !conn && !retry);
-  $('btnOpenScope').hidden = v === 'connect';
+  $('btnOpenScope').hidden = v === 'connect' || v === 'model';
   $('btnOpenScope').disabled = !conn;
   const paused = state.paused;
   $('btnPauseLog').querySelector('use').setAttribute('href', paused ? '#i-play' : '#i-pause');
@@ -1038,6 +1070,10 @@ function bindControls() {
   // --- language
   qsa('.lang button').forEach(btn => btn.addEventListener('click', () => setLanguage(btn.dataset.lang)));
 
+  // --- detector model
+  qsa('.model[data-model]').forEach(card => card.addEventListener('click', () => chooseModel(card.dataset.model)));
+  $('btnChangeModel').addEventListener('click', showModelChooser);
+
   // --- connect (user activation: call straight through)
   $('btnConnectUSB').addEventListener('click', connectUSB);
   $('btnConnectBLE').addEventListener('click', connectBLE);
@@ -1337,6 +1373,8 @@ function bindControls() {
 // ========== Start ==========
 document.addEventListener('DOMContentLoaded', () => {
   currentLang = detectLanguage();
+  modelChosen = lsGet(MODEL_KEY) === 'v2' && !new URLSearchParams(location.search).has('choose');
+  renderModelChooser();
 
   // Inputs -> settings, and the Bluetooth name remembered from the last board.
   const savedBleName = lsGet('bleName');

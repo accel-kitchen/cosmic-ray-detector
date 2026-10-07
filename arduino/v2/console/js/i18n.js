@@ -21,6 +21,18 @@ const I18N = {
     'common.cancel': 'やめる',
     'common.ok': 'OK',
 
+    // --- 機種を選ぶ画面 ---
+    'model.eyebrow': '宇宙線検出器のデータ記録アプリ',
+    'model.title': 'お使いの検出器はどれですか',
+    'model.lead': 'ケースの形で選んでください。機種によってデータの形式が違うので、画面も別々です。',
+    'model.v1Desc': '縦長の箱。上の面に画面の小窓と小さな丸い穴があります。',
+    'model.v2Desc': 'ほぼ立方体の箱。横の面に画面の窓と、丸い穴が 2 つあります。',
+    'model.v21Desc': '四隅に柱がある平たい箱。横の面に丸い穴が 4 つ並んでいます。この画面はいま準備中です。',
+    'model.soon': '準備中',
+    'model.last': '前回',
+    'model.note': '選んだ機種は覚えておき、次からはすぐ接続の画面を開きます。あとから「機種を選び直す」で変えられます。',
+    'model.change': '機種を選び直す',
+
     // --- 最初の画面 ---
     'connect.eyebrow': '宇宙線検出器 v2 のデータ記録アプリ',
     'connect.title': '宇宙線を数えよう',
@@ -319,7 +331,7 @@ const I18N = {
     'notes.ble': 'Bluetooth は Web Bluetooth API を使います。',
     'notes.https': 'Bluetooth は https:// か localhost で開いたページでだけ使えます。',
     'notes.adc': 'ADC の範囲は 0〜4095（12 ビット）です。',
-    'notes.v2only': 'v2 基板専用です。v1 基板には v1/index.html を使ってください（列の並びが違います）。',
+    'notes.v2only': 'v2 基板専用です。v1 基板は「機種を選び直す」から v1 を選んでください（列の並びが違います）。',
     'notes.csv': "保存した .csv の先頭には # で始まるメモの行があります（pandas では read_csv(..., comment='#')）。",
     'footer.company': '加速キッチン合同会社',
 
@@ -375,6 +387,17 @@ const I18N = {
     'common.close': 'Close',
     'common.cancel': 'Cancel',
     'common.ok': 'OK',
+
+    'model.eyebrow': 'Data recorder for the cosmic-ray detector',
+    'model.title': 'Which detector do you have?',
+    'model.lead': 'Pick the one whose case matches yours. Each model writes its data differently, so each has its own screen.',
+    'model.v1Desc': 'A tall box. The top has a small display window and a small round hole.',
+    'model.v2Desc': 'A box that is almost a cube. One side has a display window and two round holes.',
+    'model.v21Desc': 'A flat box with a post at each corner and four round holes in a row on one side. This screen is still being prepared.',
+    'model.soon': 'Coming soon',
+    'model.last': 'Last time',
+    'model.note': 'Your choice is remembered, so next time the connect screen opens straight away. Use "Choose another model" to change it.',
+    'model.change': 'Choose another model',
 
     'connect.eyebrow': 'Data recorder for the v2 cosmic-ray detector',
     'connect.title': 'Count cosmic rays',
@@ -666,7 +689,7 @@ const I18N = {
     'notes.ble': 'Bluetooth uses the Web Bluetooth API.',
     'notes.https': 'Bluetooth needs a page opened over https:// or localhost.',
     'notes.adc': 'The ADC range is 0–4095 (12-bit).',
-    'notes.v2only': 'For the v2 board only. v1 boards need v1/index.html (the columns differ).',
+    'notes.v2only': 'For the v2 board only. For a v1 board, use "Choose another model" and pick v1 (the columns differ).',
     'notes.csv': "Saved .csv files start with # note lines (pandas: read_csv(..., comment='#')).",
     'footer.company': 'Accel Kitchen LLC',
 

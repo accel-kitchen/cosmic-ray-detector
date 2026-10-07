@@ -1,0 +1,2749 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CosmicRay Recorder v1</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"
+          integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ"
+          crossorigin="anonymous"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f0f2f5;
+      color: #333;
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: 280px;
+      min-width: 280px;
+      background: #fff;
+      border-right: 1px solid #e0e0e0;
+      padding: 20px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .sidebar-section { }
+    .sidebar-section h3 {
+      font-size: 14px;
+      font-weight: 600;
+      color: #555;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .sidebar-section h3 .icon { font-size: 16px; }
+    .sidebar-section p {
+      font-size: 12px;
+      color: #888;
+      line-height: 1.6;
+      margin-bottom: 8px;
+    }
+    .sidebar-section ul {
+      font-size: 12px;
+      color: #888;
+      line-height: 1.8;
+      padding-left: 18px;
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s, opacity 0.2s;
+      width: 100%;
+    }
+    .btn:hover { opacity: 0.85; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-primary { background: #00b8a9; color: #fff; }
+    .btn-ble { background: #4a90d9; color: #fff; }
+    .btn-danger { background: #e74c3c; color: #fff; }
+    .btn-secondary { background: #eee; color: #333; }
+    .btn-outline {
+      background: transparent;
+      border: 1px solid #ddd;
+      color: #555;
+    }
+    .btn-sm { padding: 6px 12px; font-size: 12px; }
+    .btn-group { display: flex; gap: 8px; }
+    .btn-group .btn { flex: 1; }
+
+    /* Input */
+    .input-group { margin-bottom: 10px; }
+    .input-group label {
+      display: block;
+      font-size: 12px;
+      color: #666;
+      margin-bottom: 4px;
+    }
+    .input-group input, .input-group select {
+      width: 100%;
+      padding: 6px 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+    .input-row {
+      display: flex;
+      gap: 8px;
+    }
+    .input-row .input-group { flex: 1; }
+
+    /* Main content */
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* Header */
+    .header {
+      background: #fff;
+      border-bottom: 1px solid #e0e0e0;
+      padding: 12px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .header h1 {
+      font-size: 18px;
+      font-weight: 600;
+      color: #333;
+    }
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      font-size: 13px;
+      color: #666;
+    }
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+    .status-dot.connected { background: #2ecc71; }
+    .status-dot.disconnected { background: #e74c3c; }
+
+    /* Content area */
+    .content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px 24px;
+    }
+
+    /* Section header */
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    .section-header h2 {
+      font-size: 16px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Cards */
+    .card {
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .card h3 {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: #444;
+    }
+
+    /* Charts row */
+    .charts-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+    .chart-container {
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      padding: 20px;
+    }
+    .chart-container h3 {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: #444;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    /* .btn は width:100% なので、見出しの右端に置くぶんだけ上書きする */
+    .chart-save { width: auto; flex: none; margin-left: auto; }
+    .chart-wrapper {
+      position: relative;
+      height: 250px;
+    }
+
+    /* Stats row */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .stat-card {
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      padding: 16px;
+      text-align: center;
+    }
+    .stat-card .stat-value {
+      font-size: 24px;
+      font-weight: 700;
+      color: #00b8a9;
+    }
+    .stat-card .stat-label {
+      font-size: 12px;
+      color: #888;
+      margin-top: 4px;
+    }
+
+    /* Data table */
+    .table-wrapper {
+      overflow-x: auto;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    thead th {
+      background: #f8f9fa;
+      padding: 8px 12px;
+      text-align: left;
+      font-weight: 600;
+      color: #555;
+      border-bottom: 2px solid #e0e0e0;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+    tbody td {
+      padding: 6px 12px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    tbody tr:hover { background: #f8f9fa; }
+    .no-data {
+      text-align: center;
+      padding: 40px;
+      color: #aaa;
+      font-size: 14px;
+    }
+
+    /* Raw data terminal */
+    .raw-data {
+      background: #1a1a2e;
+      border-radius: 8px;
+      padding: 16px;
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: 12px;
+      color: #4ade80;
+      max-height: 200px;
+      overflow-y: auto;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      gap: 0;
+      margin-bottom: 16px;
+      border-bottom: 2px solid #e0e0e0;
+    }
+    .tab {
+      padding: 8px 20px;
+      font-size: 13px;
+      font-weight: 500;
+      color: #888;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+      transition: color 0.2s, border-color 0.2s;
+    }
+    .tab:hover { color: #555; }
+    .tab.active {
+      color: #00b8a9;
+      border-bottom-color: #00b8a9;
+    }
+
+    /* File format row */
+    .file-format-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .file-format-row input[type="checkbox"] { margin: 0; }
+    .file-format-row label { font-size: 12px; color: #666; }
+
+    /* Threshold display */
+    .thresh-current {
+      font-size: 12px;
+      color: #888;
+      margin-top: 6px;
+      padding: 6px 8px;
+      background: #f8f9fa;
+      border-radius: 4px;
+    }
+
+    /* Alert */
+    .alert {
+      padding: 12px 16px;
+      border-radius: 6px;
+      font-size: 13px;
+      margin-bottom: 12px;
+    }
+    .alert-warning {
+      background: #fff3cd;
+      color: #856404;
+      border: 1px solid #ffc107;
+    }
+
+    /* Mode Badge */
+    .mode-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      border: 1px solid transparent;
+    }
+    .mode-badge.unknown { background: #f5f5f5; color: #9e9e9e; border-color: #e0e0e0; }
+    .mode-badge.master  { background: #e8f4fd; color: #1a7abf; border-color: #90c8f0; }
+    .mode-badge.slave   { background: #fff3e0; color: #e65100; border-color: #ffb74d; }
+
+    /* Auto-Save status */
+    .autosave-status {
+      font-size: 11px;
+      margin-top: 8px;
+      padding: 6px 8px;
+      border-radius: 4px;
+      line-height: 1.6;
+    }
+    .autosave-status.idle    { background: #f5f5f5; color: #999; }
+    .autosave-status.active  { background: #e6f9f7; color: #007a6e; border: 1px solid #b2e8e3; }
+    .autosave-status.error   { background: #fdecea; color: #c0392b; border: 1px solid #f5b7b1; }
+
+    /* Footer */
+    .footer {
+      background: #fff;
+      border-top: 1px solid #e0e0e0;
+      padding: 12px 24px;
+      font-size: 11px;
+      color: #999;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      flex-shrink: 0;
+    }
+    .footer a { color: #00b8a9; text-decoration: none; }
+    .footer a:hover { text-decoration: underline; }
+
+    /* Logo */
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid #eee;
+    }
+    .logo-icon {
+      width: 32px;
+      height: 32px;
+      background: #00b8a9;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-weight: bold;
+      font-size: 16px;
+    }
+    .logo-text h2 { font-size: 15px; font-weight: 600; }
+    .logo-text p { font-size: 11px; color: #999; }
+    .model-switch { display: inline-block; margin-top: 4px; font-size: 11px; color: #00b8a9; text-decoration: none; }
+    .model-switch:hover { text-decoration: underline; }
+
+    /* Language switch (top-right flags) */
+    .lang-switch {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .lang-switch button {
+      display: inline-flex;
+      padding: 0;
+      border: 1px solid #ddd;
+      border-radius: 3px;
+      background: none;
+      cursor: pointer;
+      line-height: 0;
+      opacity: 0.45;
+      transition: opacity 0.15s, box-shadow 0.15s;
+    }
+    .lang-switch button:hover { opacity: 0.8; }
+    .lang-switch button.active {
+      opacity: 1;
+      box-shadow: 0 0 0 2px #00b8a9;
+    }
+    .lang-switch svg { display: block; border-radius: 2px; }
+  </style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<aside class="sidebar">
+  <div class="logo">
+    <div class="logo-text">
+      <h2>CosmicRay Recorder</h2>
+      <p data-i18n="app.subtitle">Radiation Detector Data Acquisition App</p>
+      <a class="model-switch" href="index.html?choose" data-i18n="model.change">v1 &middot; Choose another model</a>
+    </div>
+  </div>
+
+  <!-- Notes -->
+  <div class="sidebar-section">
+    <h3><span class="icon">&#x1f4cb;</span> <span data-i18n="notes.title">Notes &amp; Tips</span></h3>
+    <ul>
+      <li data-i18n="notes.chrome">Works on Chrome / Edge (Web Serial API)</li>
+      <li data-i18n="notes.usb">Connect Arduino via USB</li>
+      <li data-i18n="notes.baud">Baud rate: 9600 bps</li>
+      <li data-i18n="notes.autosave">Use Auto-Save to write data continuously to a local folder.</li>
+    </ul>
+  </div>
+
+  <!-- Auto-Save -->
+  <div class="sidebar-section">
+    <h3><span class="icon">&#x1f4be;</span> <span data-i18n="autosave.title">Auto-Save</span></h3>
+    <p data-i18n="autosave.desc">Select a folder to automatically save data as it arrives. Requires Chrome / Edge.</p>
+    <div class="input-group">
+      <label data-i18n="autosave.format">Save Format</label>
+      <select id="autoSaveFormat">
+        <option value="dat" data-i18n="autosave.datOnly">.dat only</option>
+        <option value="csv" data-i18n="autosave.csvOnly">.csv only</option>
+        <option value="both" data-i18n="autosave.both">Both (.dat &amp; .csv)</option>
+      </select>
+    </div>
+    <button class="btn btn-primary" id="btnSelectFolder">&#x1f4c2; <span data-i18n="autosave.selectFolder">Select Save Folder</span></button>
+    <div class="autosave-status idle" id="autoSaveStatus">Not configured</div>
+  </div>
+
+  <!-- File Settings -->
+  <div class="sidebar-section">
+    <h3><span class="icon">&#x1f4c1;</span> <span data-i18n="file.title">File Settings</span></h3>
+    <p data-i18n="file.commentDesc">Add a comment (written into the file header on download)</p>
+    <div class="input-group">
+      <textarea id="fileComment" rows="2" style="width:100%;padding:6px 10px;border:1px solid #ddd;border-radius:4px;font-size:12px;resize:vertical;" placeholder="Measurement notes..." data-i18n-placeholder="file.commentPlaceholder"></textarea>
+    </div>
+    <div class="input-group">
+      <label data-i18n="file.prefixLabel">File name prefix</label>
+      <input type="text" id="filePrefix" value="CosmicRay" placeholder="CosmicRay">
+    </div>
+    <button class="btn btn-primary" id="btnExportDat" disabled>&#x1f4e5; <span data-i18n="file.downloadDat">Download (.dat)</span></button>
+    <div style="height:6px"></div>
+    <button class="btn btn-outline" id="btnExportCsv" disabled>&#x1f4e5; <span data-i18n="file.downloadCsv">Download (.csv)</span></button>
+    <div style="height:6px"></div>
+    <button class="btn btn-secondary" id="btnClearData">&#x1f5d1; <span data-i18n="file.clearData">Clear Data</span></button>
+  </div>
+
+  <!-- Connection -->
+  <div class="sidebar-section">
+    <h3><span class="icon">&#x1f50c;</span> <span data-i18n="conn.title">Connect to CosmicRay</span></h3>
+    <div class="input-group" id="baudGroup">
+      <label data-i18n="conn.baud">Baud Rate (USB)</label>
+      <select id="baudRate">
+        <option value="9600" selected>9600</option>
+        <option value="115200">115200</option>
+      </select>
+    </div>
+    <div class="input-group" id="bleNameGroup">
+      <label data-i18n="conn.bleName">Bluetooth Device Name</label>
+      <input type="text" id="bleDeviceName" value="CosmicRay" maxlength="24" placeholder="CosmicRay">
+    </div>
+    <div class="input-group">
+      <label data-i18n="conn.board">Board</label>
+      <select id="boardSelect">
+        <option value="auto" selected data-i18n="conn.boardAuto">Auto-detect</option>
+        <option value="NANO" data-i18n="conn.boardNano">Arduino Nano (10bit)</option>
+        <option value="ESP32S3" data-i18n="conn.boardEsp">ESP32-S3 Nano (12bit)</option>
+      </select>
+    </div>
+    <div id="connectButtons">
+      <button class="btn btn-primary" id="btnConnectUSB">&#x1f50c; <span data-i18n="conn.connectUsb">Connect USB</span></button>
+      <div style="height:6px"></div>
+      <button class="btn btn-ble" id="btnConnectBLE">&#x1f4f6; <span data-i18n="conn.connectBle">Connect Bluetooth</span></button>
+      <div class="thresh-current" id="bleHint" style="margin-top:6px;display:none;"></div>
+    </div>
+    <div id="connectionInfo" style="display:none;margin-top:8px;">
+      <div class="thresh-current" id="connDetail" style="margin-top:0;margin-bottom:8px;"></div>
+      <button class="btn btn-danger" id="btnDisconnect">&#x26a0; <span data-i18n="conn.disconnect">Disconnect</span></button>
+    </div>
+  </div>
+
+  <!-- Threshold Control -->
+  <div class="sidebar-section">
+    <h3><span class="icon">&#x2699;</span> <span data-i18n="thresh.title">Threshold Control</span></h3>
+    <div class="input-row">
+      <div class="input-group">
+        <label data-i18n="thresh.signalLabel">Signal Threshold</label>
+        <input type="number" id="threshSignal" min="0" max="1023" value="30">
+      </div>
+      <div class="input-group">
+        <label data-i18n="thresh.resetLabel">Reset Threshold</label>
+        <input type="number" id="threshReset" min="0" max="1023" value="20">
+      </div>
+    </div>
+    <div class="btn-group">
+      <button class="btn btn-primary btn-sm" id="btnSetThresh" disabled data-i18n="common.set">Set</button>
+      <button class="btn btn-outline btn-sm" id="btnGetThresh" disabled data-i18n="common.get">Get</button>
+    </div>
+    <div style="height:6px"></div>
+    <button class="btn btn-secondary" id="btnAutoThresh" disabled>&#x1f50d; <span data-i18n="thresh.autoCal">Auto Calibrate (1s)</span></button>
+    <div class="thresh-current" id="threshInfo">Not connected</div>
+  </div>
+
+  <!-- Mode Control -->
+  <div class="sidebar-section">
+    <h3><span class="icon">&#x1f504;</span> <span data-i18n="mode.title">Mode Control</span></h3>
+    <div class="input-group">
+      <label data-i18n="mode.detectorMode">Detector Mode</label>
+      <select id="modeSelect">
+        <option value="0" data-i18n="mode.master">&#x1f539; Master (Single)</option>
+        <option value="1" data-i18n="mode.slave">&#x26a1; Slave (Coincidence)</option>
+      </select>
+    </div>
+    <div class="btn-group">
+      <button class="btn btn-primary btn-sm" id="btnSetMode" disabled data-i18n="common.set">Set</button>
+      <button class="btn btn-outline btn-sm" id="btnGetMode" disabled data-i18n="common.get">Get</button>
+    </div>
+    <div class="thresh-current" id="modeInfo">Not connected</div>
+  </div>
+
+  <!-- ESP32-S3 only controls -->
+  <div class="sidebar-section" id="espSection" style="display:none;">
+    <h3><span class="icon">&#x1f4f6;</span> <span data-i18n="esp.title">ESP32-S3 Settings</span></h3>
+    <div class="input-group">
+      <label data-i18n="esp.autoMargin">Auto-Calibration Margin</label>
+      <input type="number" id="autoMarginInput" min="0" max="4095" value="60">
+    </div>
+    <div class="btn-group">
+      <button class="btn btn-primary btn-sm" id="btnSetAutoMargin" data-i18n="common.set">Set</button>
+      <button class="btn btn-outline btn-sm" id="btnGetAutoMargin" data-i18n="common.get">Get</button>
+    </div>
+    <div style="height:8px"></div>
+    <div class="input-group">
+      <label data-i18n="esp.sampleMode">Pulse Sampling</label>
+      <select id="sampleSelect">
+        <option value="PEAK" data-i18n="esp.samplePeak">Peak tracking (recommended)</option>
+        <option value="SINGLE" data-i18n="esp.sampleSingle">Single re-read (V1 compatible)</option>
+      </select>
+    </div>
+    <div style="height:6px"></div>
+    <div class="input-group">
+      <label data-i18n="esp.coincMode">Coincidence Gating</label>
+      <select id="coincSelect">
+        <option value="SLAVE" data-i18n="esp.coincSlave">Slave gates (V1 behaviour)</option>
+        <option value="OFF" data-i18n="esp.coincOff">No gating</option>
+        <option value="PAIR" data-i18n="esp.coincPair">Both units gate (symmetric)</option>
+      </select>
+    </div>
+    <div style="height:6px"></div>
+    <div class="input-group">
+      <label data-i18n="esp.oled">OLED Display</label>
+      <select id="oledSelect">
+        <option value="ON" data-i18n="common.on">ON</option>
+        <option value="OFF" data-i18n="common.off">OFF</option>
+      </select>
+    </div>
+    <div style="height:8px"></div>
+    <div class="input-group">
+      <label data-i18n="esp.bleName">BLE Advertised Name</label>
+      <input type="text" id="bleNameInput" maxlength="24" placeholder="CosmicRay">
+    </div>
+    <button class="btn btn-outline btn-sm" id="btnSetBleName" data-i18n="esp.setBleName">Set name &amp; reboot</button>
+    <div style="height:8px"></div>
+    <button class="btn btn-secondary" id="btnResetCounter">&#x1f504; <span data-i18n="esp.resetCounter">Reset Counter</span></button>
+    <div class="thresh-current" id="espInfo">--</div>
+  </div>
+</aside>
+
+<!-- Main -->
+<div class="main">
+  <!-- Header -->
+  <header class="header">
+    <h1>&#x1f4ca; <span data-i18n="header.title">Data Analysis</span></h1>
+    <div class="header-right">
+      <span id="elapsedTime">Elapsed: --:--:--</span>
+      <span id="boardBadge" class="mode-badge unknown">&#x1f9e9; Board: --</span>
+      <span id="modeBadge" class="mode-badge unknown">&#x1f4e1; Mode: --</span>
+      <span><span class="status-dot disconnected" id="statusDot"></span> <span id="statusText">Not connected</span></span>
+      <div class="lang-switch" role="group" aria-label="Language">
+        <button type="button" data-lang="ja" title="&#x65e5;&#x672c;&#x8a9e;" aria-label="&#x65e5;&#x672c;&#x8a9e;"><svg width="24" height="16" viewBox="0 0 24 16" aria-hidden="true"><rect width="24" height="16" fill="#fff"/><circle cx="12" cy="8" r="4.8" fill="#bc002d"/></svg></button>
+        <button type="button" data-lang="en" title="English" aria-label="English"><svg width="24" height="16" viewBox="0 0 24 16" aria-hidden="true"><rect width="24" height="16" fill="#fff"/><g fill="#b22234"><rect y="0" width="24" height="1.23"/><rect y="2.46" width="24" height="1.23"/><rect y="4.92" width="24" height="1.23"/><rect y="7.38" width="24" height="1.23"/><rect y="9.85" width="24" height="1.23"/><rect y="12.31" width="24" height="1.23"/><rect y="14.77" width="24" height="1.23"/></g><rect width="10.5" height="8.61" fill="#3c3b6e"/><g fill="#fff"><circle cx="2.2" cy="1.7" r="0.55"/><circle cx="5.25" cy="1.7" r="0.55"/><circle cx="8.3" cy="1.7" r="0.55"/><circle cx="3.7" cy="4.3" r="0.55"/><circle cx="6.8" cy="4.3" r="0.55"/><circle cx="2.2" cy="6.9" r="0.55"/><circle cx="5.25" cy="6.9" r="0.55"/><circle cx="8.3" cy="6.9" r="0.55"/></g></svg></button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Content -->
+  <div class="content">
+    <div id="serialWarning" class="alert alert-warning" style="display:none;" data-i18n="warn.noSerial">
+      Web Serial API is not supported. Please use Chrome or Edge.
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <div class="tab active" data-tab="analysis" data-i18n="tabs.analysis">Analysis</div>
+      <div class="tab" data-tab="stats" data-i18n="tabs.stats">Statistics</div>
+      <div class="tab" data-tab="scope" data-i18n="tabs.scope">Oscilloscope</div>
+    </div>
+
+    <!-- Analysis Tab -->
+    <div id="tab-analysis">
+      <!-- Charts -->
+      <div class="charts-row">
+        <div class="chart-container">
+          <h3>&#x1f4ca; <span data-i18n="chart.histTitle">ADC Energy Histogram</span>
+            <button class="btn btn-outline btn-sm chart-save" id="btnSaveHistPng">&#x1f5bc; <span data-i18n="chart.savePng">Save PNG</span></button>
+          </h3>
+          <div class="chart-wrapper">
+            <canvas id="histogramChart"></canvas>
+          </div>
+          <div style="margin-top:8px;">
+            <label style="font-size:12px;color:#888;"><span data-i18n="chart.binWidth">ADC Bin Width:</span>
+              <select id="binWidth" style="padding:2px 6px;font-size:12px;border:1px solid #ddd;border-radius:3px;">
+                <option value="16" selected>16</option>
+                <option value="32">32</option>
+                <option value="64">64</option>
+              </select>
+            </label>
+            <label style="font-size:12px;color:#888;margin-left:12px;">
+              <input type="checkbox" id="histLogScale" style="vertical-align:-1px;margin-right:4px;">
+              <span data-i18n="chart.logScale">Log scale (Y)</span>
+            </label>
+          </div>
+        </div>
+        <div class="chart-container">
+          <h3>&#x1f4c8; <span data-i18n="chart.rateTitle">Count Rate Over Time</span>
+            <button class="btn btn-outline btn-sm chart-save" id="btnSaveRatePng">&#x1f5bc; <span data-i18n="chart.savePng">Save PNG</span></button>
+          </h3>
+          <div class="chart-wrapper">
+            <canvas id="rateChart"></canvas>
+          </div>
+          <div style="margin-top:8px;">
+            <label style="font-size:12px;color:#888;"><span data-i18n="chart.dataPoints">Data points:</span> <span id="rateDataCount">0</span></label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stats Row -->
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-value" id="statTotalEvents">0</div>
+          <div class="stat-label" data-i18n="stat.totalEvents">Total Events</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="statRate">0.00</div>
+          <div class="stat-label" data-i18n="stat.avgRate">Avg. Rate (cps)</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="statTemp">--</div>
+          <div class="stat-label" data-i18n="stat.avgTemp">Avg. Temp (°C)</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="statDeadtime">--</div>
+          <div class="stat-label" data-i18n="stat.avgDeadtime">Avg. Deadtime (ms)</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="statElapsed">00:00:00</div>
+          <div class="stat-label" data-i18n="stat.elapsed">Elapsed Time</div>
+        </div>
+      </div>
+
+      <!-- Measurement Data Table -->
+      <div class="card">
+        <h3>&#x1f4cb; <span data-i18n="table.title">Measurement Data</span></h3>
+        <p style="font-size:12px;color:#888;margin-bottom:12px;" data-i18n="table.desc">Displayed newest first</p>
+        <div class="table-wrapper" id="tableWrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th data-i18n="table.pcTs">PC Timestamp</th>
+                <th data-i18n="table.time">Time [ms]</th>
+                <th id="thAdc">ADC [0-1023]</th>
+                <th id="thSipm">SiPM [mV]</th>
+                <th data-i18n="table.deadtime">Deadtime [ms]</th>
+                <th data-i18n="table.temp">Temp [°C]</th>
+                <th data-i18n="table.mode">Mode</th>
+              </tr>
+            </thead>
+            <tbody id="dataTableBody">
+            </tbody>
+          </table>
+          <div class="no-data" id="noDataMsg" data-i18n="table.noData">Waiting for data...</div>
+        </div>
+      </div>
+
+      <!-- Raw Data -->
+      <div class="card">
+        <h3>&#x1f4df; <span data-i18n="raw.title">Raw Data</span></h3>
+        <p style="font-size:12px;color:#888;margin-bottom:8px;" data-i18n="raw.desc">Raw data received from CosmicRay (latest 100 lines)</p>
+        <div class="raw-data" id="rawDataDisplay">Waiting for connection...</div>
+      </div>
+    </div>
+
+    <!-- Oscilloscope Tab -->
+    <!-- このタブを開いている間だけファームに SET_SCOPE:ON を送り、波形を流させる。
+         ファーム側はオシロ中 ADC1 を DMA に渡すため計数を止める（滞在時間はデッドタイムに計上）。 -->
+    <div id="tab-scope" style="display:none;">
+      <div class="card">
+        <h3>&#x1f4c9; <span data-i18n="scope.title">Oscilloscope</span></h3>
+        <p style="font-size:12px;color:#888;margin-bottom:10px;" data-i18n="scope.desc">
+          While this tab is open the detector stops counting and streams raw waveforms (12 µs/sample).
+          The time spent here is added to deadtime, so the count rate stays correct.
+        </p>
+        <div id="scopeUnsupported" class="alert alert-warning" style="display:none;" data-i18n="scope.unsupported">
+          This firmware does not support the oscilloscope (ESP32-S3 only).
+        </div>
+        <div id="scopeBleWarn" class="alert alert-warning" style="display:none;" data-i18n="scope.bleWarn">
+          Over Bluetooth each waveform takes several notifications. Keep the rate low.
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:14px;align-items:center;margin-bottom:12px;">
+          <label style="font-size:12px;color:#666;">
+            <span data-i18n="scope.rate">Rate limit [/s]</span>
+            <input type="number" id="scopeRate" value="3" min="1" max="20"
+                   style="width:62px;padding:3px 6px;font-size:12px;border:1px solid #ddd;border-radius:3px;">
+          </label>
+          <label style="font-size:12px;color:#666;">
+            <span data-i18n="scope.persist">Persistence</span>
+            <input type="number" id="scopePersist" value="20" min="0" max="200"
+                   style="width:62px;padding:3px 6px;font-size:12px;border:1px solid #ddd;border-radius:3px;">
+          </label>
+          <label style="font-size:12px;color:#666;display:flex;align-items:center;gap:5px;">
+            <input type="checkbox" id="scopeAutoY" checked>
+            <span data-i18n="scope.autoY">Auto Y</span>
+          </label>
+          <button class="btn btn-secondary" id="scopeFreeze" data-i18n="scope.freeze"
+                  style="padding:6px 14px;font-size:12px;">Freeze</button>
+          <button class="btn btn-secondary" id="scopeClear" data-i18n="scope.clear"
+                  style="padding:6px 14px;font-size:12px;">Clear</button>
+          <button class="btn btn-secondary" id="scopeSave" data-i18n="scope.save"
+                  style="padding:6px 14px;font-size:12px;">Save .wfm</button>
+        </div>
+        <div style="width:100%;overflow-x:auto;">
+          <canvas id="scopeCanvas" width="1120" height="440" style="display:block;max-width:100%;"></canvas>
+        </div>
+        <div class="stats-row" style="margin-top:14px;">
+          <div class="stat-card">
+            <div class="stat-value" id="scopePeak">--</div>
+            <div class="stat-label" data-i18n="scope.peak">Peak ADC</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="scopeTPeak">--</div>
+            <div class="stat-label" data-i18n="scope.tpeak">t_peak [µs]</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="scopeCount">0</div>
+            <div class="stat-label" data-i18n="scope.frames">Waveforms</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="scopeFps">0.0</div>
+            <div class="stat-label" data-i18n="scope.fps">Waveforms/s</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="scopeBad">0</div>
+            <div class="stat-label" data-i18n="scope.bad">Dropped lines</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stats Tab -->
+    <div id="tab-stats" style="display:none;">
+      <div class="card">
+        <h3 data-i18n="stats.title">Detailed Statistics</h3>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr><th data-i18n="stats.item">Item</th><th data-i18n="stats.value">Value</th></tr>
+            </thead>
+            <tbody id="statsTableBody">
+              <tr><td data-i18n="stats.total">Total Events</td><td id="ds_total">0</td></tr>
+              <tr><td data-i18n="stats.elapsed">Measurement Time</td><td id="ds_elapsed">--</td></tr>
+              <tr><td data-i18n="stats.rate">Avg. Count Rate (cps)</td><td id="ds_rate">--</td></tr>
+              <tr><td data-i18n="stats.rateStd">Count Rate Std Dev</td><td id="ds_rateStd">--</td></tr>
+              <tr><td data-i18n="stats.temp">Avg. Temperature (°C)</td><td id="ds_temp">--</td></tr>
+              <tr><td data-i18n="stats.tempStd">Temp. Std Dev</td><td id="ds_tempStd">--</td></tr>
+              <tr><td data-i18n="stats.tempMax">Max Temperature (°C)</td><td id="ds_tempMax">--</td></tr>
+              <tr><td data-i18n="stats.tempMin">Min Temperature (°C)</td><td id="ds_tempMin">--</td></tr>
+              <tr><td data-i18n="stats.deadtime">Avg. Deadtime (ms)</td><td id="ds_deadtime">--</td></tr>
+              <tr><td data-i18n="stats.adcMean">Avg. ADC Value</td><td id="ds_adcMean">--</td></tr>
+              <tr><td data-i18n="stats.adcMax">Max ADC Value</td><td id="ds_adcMax">--</td></tr>
+              <tr><td id="lbl_sipmMean">Avg. SiPM (mV)</td><td id="ds_sipmMean">--</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <span>
+      &copy; 2020&ndash;2026 <a href="https://accel-kitchen.com/" target="_blank" rel="noopener" data-i18n="footer.company">加速キッチン合同会社 (Accel Kitchen LLC)</a>
+      &nbsp;&mdash;&nbsp; <a href="mailto:info@accel-kitchen.com">info@accel-kitchen.com</a>
+    </span>
+    <span>CosmicRay Recorder</span>
+  </footer>
+</div>
+
+<script>
+// ========== i18n ==========
+const I18N = {
+  en: {
+    'app.title': 'CosmicRay Recorder v1',
+    'app.subtitle': 'Radiation Detector Data Acquisition App',
+    'model.change': 'v1 · Choose another model',
+    'notes.title': 'Notes & Tips',
+    'notes.chrome': 'Works on Chrome / Edge (Web Serial API)',
+    'notes.usb': 'Connect Arduino via USB',
+    'notes.baud': 'Baud rate: 9600 bps',
+    'notes.autosave': 'Use Auto-Save to write data continuously to a local folder.',
+    'autosave.title': 'Auto-Save',
+    'autosave.desc': 'Select a folder to automatically save data as it arrives. Requires Chrome / Edge.',
+    'autosave.format': 'Save Format',
+    'autosave.datOnly': '.dat only',
+    'autosave.csvOnly': '.csv only',
+    'autosave.both': 'Both (.dat & .csv)',
+    'autosave.selectFolder': 'Select Save Folder',
+    'autosave.notConfigured': 'Not configured',
+    'autosave.status': 'Saving: {file}\nWritten: {n} events',
+    'autosave.writeError': 'Write error: {msg}',
+    'file.title': 'File Settings',
+    'file.commentDesc': 'Add a comment (written into the file header on download)',
+    'file.commentPlaceholder': 'Measurement notes...',
+    'file.prefixLabel': 'File name prefix',
+    'file.downloadDat': 'Download (.dat)',
+    'file.downloadCsv': 'Download (.csv)',
+    'file.clearData': 'Clear Data',
+    'conn.title': 'Connect to CosmicRay',
+    'conn.baud': 'Baud Rate',
+    'conn.connect': 'Connect',
+    'conn.disconnect': 'Disconnect',
+    'conn.connected': 'Connected',
+    'thresh.title': 'Threshold Control',
+    'thresh.signalLabel': 'Signal Threshold',
+    'thresh.resetLabel': 'Reset Threshold',
+    'thresh.autoCal': 'Auto Calibrate (1s)',
+    'thresh.current': 'Current thresholds: Signal={sig}, Reset={rst}',
+    'thresh.fetching': 'Connected... Fetching thresholds',
+    'thresh.calibrating': 'Calibrating... (measuring background for 1s)',
+    'mode.title': 'Mode Control',
+    'mode.detectorMode': 'Detector Mode',
+    'mode.master': '\u{1f539} Master (Single)',
+    'mode.slave': '⚡ Slave (Coincidence)',
+    'mode.masterName': 'Master (Single)',
+    'mode.slaveName': 'Slave (Coincidence)',
+    'mode.current': 'Current mode: {mode}',
+    'mode.fetching': 'Connected... Fetching mode',
+    'common.set': 'Set',
+    'common.get': 'Get',
+    'common.notConnected': 'Not connected',
+    'header.title': 'Data Analysis',
+    'header.elapsed': 'Elapsed: {time}',
+    'badge.master': 'Single (Master)',
+    'badge.slave': 'Coincidence (Slave)',
+    'badge.unknown': 'Mode: --',
+    'tabs.analysis': 'Analysis',
+    'tabs.stats': 'Statistics',
+    'tabs.scope': 'Oscilloscope',
+    'scope.title': 'Oscilloscope',
+    'scope.desc': 'While this tab is open the detector stops counting and streams raw waveforms (12 µs/sample). The time spent here is added to deadtime, so the count rate stays correct.',
+    'scope.unsupported': 'This firmware does not support the oscilloscope (ESP32-S3 only).',
+    'scope.bleWarn': 'Over Bluetooth each waveform takes several notifications. Keep the rate low.',
+    'scope.rate': 'Rate limit [/s]',
+    'scope.persist': 'Persistence',
+    'scope.autoY': 'Auto Y',
+    'scope.freeze': 'Freeze',
+    'scope.unfreeze': 'Run',
+    'scope.clear': 'Clear',
+    'scope.save': 'Save .wfm',
+    'scope.peak': 'Peak ADC',
+    'scope.tpeak': 't_peak [µs]',
+    'scope.frames': 'Waveforms',
+    'scope.fps': 'Waveforms/s',
+    'scope.bad': 'Dropped lines',
+    'scope.waiting': 'Waiting for a trigger...',
+    'scope.notConnected': 'Not connected.',
+    'chart.histTitle': 'ADC Energy Histogram',
+    'chart.rateTitle': 'Count Rate Over Time',
+    'chart.binWidth': 'ADC Bin Width:',
+    'chart.logScale': 'Log scale (Y)',
+    'chart.dataPoints': 'Data points:',
+    'chart.savePng': 'Save PNG',
+    'chart.xAdc': 'ADC Value',
+    'chart.yCount': 'Count',
+    'chart.xTime': 'Time',
+    'chart.yRate': 'Rate (cps)',
+    'stat.totalEvents': 'Total Events',
+    'stat.avgRate': 'Avg. Rate (cps)',
+    'stat.avgTemp': 'Avg. Temp (°C)',
+    'stat.avgDeadtime': 'Avg. Deadtime (ms)',
+    'stat.elapsed': 'Elapsed Time',
+    'table.title': 'Measurement Data',
+    'table.desc': 'Displayed newest first',
+    'table.pcTs': 'PC Timestamp',
+    'table.time': 'Time [ms]',
+    'table.adc': 'ADC [0-1023]',
+    'table.sipm': 'SiPM [mV]',
+    'table.deadtime': 'Deadtime [ms]',
+    'table.temp': 'Temp [°C]',
+    'table.mode': 'Mode',
+    'table.noData': 'Waiting for data...',
+    'raw.title': 'Raw Data',
+    'raw.desc': 'Raw data received from CosmicRay (latest 100 lines)',
+    'raw.waiting': 'Waiting for connection...',
+    'stats.title': 'Detailed Statistics',
+    'stats.item': 'Item',
+    'stats.value': 'Value',
+    'stats.total': 'Total Events',
+    'stats.elapsed': 'Measurement Time',
+    'stats.rate': 'Avg. Count Rate (cps)',
+    'stats.rateStd': 'Count Rate Std Dev',
+    'stats.temp': 'Avg. Temperature (°C)',
+    'stats.tempStd': 'Temp. Std Dev',
+    'stats.tempMax': 'Max Temperature (°C)',
+    'stats.tempMin': 'Min Temperature (°C)',
+    'stats.deadtime': 'Avg. Deadtime (ms)',
+    'stats.adcMean': 'Avg. ADC Value',
+    'stats.adcMax': 'Max ADC Value',
+    'stats.sipmMean': 'Avg. SiPM (mV)',
+    'stats.vadcMean': 'Avg. Vadc (mV)',
+    'table.adcFmt': 'ADC [0-{max}]',
+    'table.vadc': 'Vadc [mV]',
+    'conn.connectUsb': 'Connect USB',
+    'conn.connectBle': 'Connect Bluetooth',
+    'conn.bleName': 'Bluetooth Device Name',
+    'conn.board': 'Board',
+    'conn.boardAuto': 'Auto-detect',
+    'conn.boardNano': 'Arduino Nano (10bit)',
+    'conn.boardEsp': 'ESP32-S3 Nano (12bit)',
+    'conn.connectedUsb': 'Connected (USB)',
+    'conn.connectedBle': 'Connected (Bluetooth)',
+    'conn.detailUsb': 'USB serial',
+    'conn.detailBle': 'Bluetooth LE',
+    'conn.vidpid': 'VID:PID',
+    'conn.comPort': 'COM port',
+    'conn.comUnavailable': 'not exposed by the browser',
+    'conn.deviceName': 'Device name',
+    'conn.address': 'Address',
+    'conn.boardAddr': 'Board address',
+    'conn.addrFetching': 'querying...',
+    'conn.addrUnknown': 'unavailable (older firmware)',
+    'conn.browserId': 'Browser ID',
+    'badge.boardNano': 'Board: Arduino Nano',
+    'badge.boardEsp': 'Board: ESP32-S3',
+    'badge.boardUnknown': 'Board: --',
+    'esp.title': 'ESP32-S3 Settings',
+    'esp.autoMargin': 'Auto-Calibration Margin',
+    'esp.sampleMode': 'Pulse Sampling',
+    'esp.samplePeak': 'Peak tracking (recommended)',
+    'esp.sampleSingle': 'Single re-read (V1 compatible)',
+    'esp.coincMode': 'Coincidence Gating',
+    'esp.coincSlave': 'Slave gates (V1 behaviour)',
+    'esp.coincOff': 'No gating',
+    'esp.coincPair': 'Both units gate (symmetric)',
+    'esp.oled': 'OLED Display',
+    'esp.bleName': 'BLE Advertised Name',
+    'esp.setBleName': 'Set name & reboot',
+    'esp.resetCounter': 'Reset Counter',
+    'common.on': 'ON',
+    'common.off': 'OFF',
+    'warn.noBle': 'Web Bluetooth API is not supported. Please use Chrome or Edge.',
+    'footer.company': 'Accel Kitchen LLC',
+    'alert.threshRange': 'Signal threshold must be greater than Reset threshold and in range 0–{max}.',
+    'alert.fsApi': 'File System Access API is not supported. Please use Chrome or Edge.',
+    'confirm.clear': 'Clear all data?',
+    'warn.noSerial': 'Web Serial API is not supported. Please use Chrome or Edge.',
+  },
+  ja: {
+    'app.title': 'CosmicRay Recorder v1',
+    'app.subtitle': '放射線検出器データ収集アプリ',
+    'model.change': 'v1 · 機種を選び直す',
+    'notes.title': '注意事項・ヒント',
+    'notes.chrome': 'Chrome / Edge で動作します（Web Serial API）',
+    'notes.usb': 'Arduino を USB で接続',
+    'notes.baud': 'ボーレート: 9600 bps',
+    'notes.autosave': '自動保存を使うとローカルフォルダへ連続的にデータを書き込めます。',
+    'autosave.title': '自動保存',
+    'autosave.desc': 'フォルダを選択すると、受信したデータを自動的に保存します。Chrome / Edge が必要です。',
+    'autosave.format': '保存形式',
+    'autosave.datOnly': '.dat のみ',
+    'autosave.csvOnly': '.csv のみ',
+    'autosave.both': '両方 (.dat と .csv)',
+    'autosave.selectFolder': '保存フォルダを選択',
+    'autosave.notConfigured': '未設定',
+    'autosave.status': '保存先: {file}\n書き込み済み: {n} イベント',
+    'autosave.writeError': '書き込みエラー: {msg}',
+    'file.title': 'ファイル設定',
+    'file.commentDesc': 'コメントを追加（ダウンロード時にファイルヘッダへ書き込まれます）',
+    'file.commentPlaceholder': '測定メモ...',
+    'file.prefixLabel': 'ファイル名の接頭辞',
+    'file.downloadDat': 'ダウンロード (.dat)',
+    'file.downloadCsv': 'ダウンロード (.csv)',
+    'file.clearData': 'データを消去',
+    'conn.title': 'CosmicRay に接続',
+    'conn.baud': 'ボーレート',
+    'conn.connect': '接続',
+    'conn.disconnect': '切断',
+    'conn.connected': '接続中',
+    'thresh.title': 'しきい値制御',
+    'thresh.signalLabel': '信号しきい値',
+    'thresh.resetLabel': 'リセットしきい値',
+    'thresh.autoCal': '自動校正（1秒）',
+    'thresh.current': '現在のしきい値: Signal={sig}, Reset={rst}',
+    'thresh.fetching': '接続しました…しきい値を取得中',
+    'thresh.calibrating': '校正中...（バックグラウンドを1秒間測定）',
+    'mode.title': 'モード制御',
+    'mode.detectorMode': '検出器モード',
+    'mode.master': '\u{1f539} Master（単独）',
+    'mode.slave': '⚡ Slave（コインシデンス）',
+    'mode.masterName': 'Master（単独）',
+    'mode.slaveName': 'Slave（コインシデンス）',
+    'mode.current': '現在のモード: {mode}',
+    'mode.fetching': '接続しました…モードを取得中',
+    'common.set': '設定',
+    'common.get': '取得',
+    'common.notConnected': '未接続',
+    'header.title': 'データ解析',
+    'header.elapsed': '経過: {time}',
+    'badge.master': '単独 (Master)',
+    'badge.slave': 'コインシデンス (Slave)',
+    'badge.unknown': 'モード: --',
+    'tabs.analysis': '解析',
+    'tabs.stats': '統計',
+    'tabs.scope': 'オシロスコープ',
+    'scope.title': 'オシロスコープ',
+    'scope.desc': 'このタブを開いている間、検出器は計数を止めて生波形を流します（12µs/点）。滞在時間はデッドタイムに計上されるので、計数率は正しいままです。',
+    'scope.unsupported': 'このファームはオシロスコープに対応していません（ESP32-S3 のみ）。',
+    'scope.bleWarn': 'Bluetooth では 1 波形が複数の通知に割れます。レートは低めにしてください。',
+    'scope.rate': 'レート上限 [/s]',
+    'scope.persist': '残光',
+    'scope.autoY': 'Y軸オート',
+    'scope.freeze': '停止',
+    'scope.unfreeze': '再開',
+    'scope.clear': 'クリア',
+    'scope.save': '.wfm 保存',
+    'scope.peak': 'ピーク ADC',
+    'scope.tpeak': 't_peak [µs]',
+    'scope.frames': '波形数',
+    'scope.fps': '波形/秒',
+    'scope.bad': '壊れた行',
+    'scope.waiting': 'トリガ待ち...',
+    'scope.notConnected': '未接続です。',
+    'chart.histTitle': 'ADC エネルギーヒストグラム',
+    'chart.rateTitle': 'カウントレートの推移',
+    'chart.binWidth': 'ADC ビン幅:',
+    'chart.logScale': 'Y軸 対数表示',
+    'chart.dataPoints': 'データ点数:',
+    'chart.savePng': 'PNG 保存',
+    'chart.xAdc': 'ADC 値',
+    'chart.yCount': 'カウント',
+    'chart.xTime': '時刻',
+    'chart.yRate': 'レート (cps)',
+    'stat.totalEvents': '総イベント数',
+    'stat.avgRate': '平均レート (cps)',
+    'stat.avgTemp': '平均温度 (°C)',
+    'stat.avgDeadtime': '平均デッドタイム (ms)',
+    'stat.elapsed': '経過時間',
+    'table.title': '測定データ',
+    'table.desc': '新しい順に表示',
+    'table.pcTs': 'PC 時刻',
+    'table.time': '時刻 [ms]',
+    'table.adc': 'ADC [0-1023]',
+    'table.sipm': 'SiPM [mV]',
+    'table.deadtime': 'デッドタイム [ms]',
+    'table.temp': '温度 [°C]',
+    'table.mode': 'モード',
+    'table.noData': 'データ待機中...',
+    'raw.title': '生データ',
+    'raw.desc': 'CosmicRay から受信した生データ（最新100行）',
+    'raw.waiting': '接続待機中...',
+    'stats.title': '詳細統計',
+    'stats.item': '項目',
+    'stats.value': '値',
+    'stats.total': '総イベント数',
+    'stats.elapsed': '測定時間',
+    'stats.rate': '平均カウントレート (cps)',
+    'stats.rateStd': 'カウントレート標準偏差',
+    'stats.temp': '平均温度 (°C)',
+    'stats.tempStd': '温度標準偏差',
+    'stats.tempMax': '最高温度 (°C)',
+    'stats.tempMin': '最低温度 (°C)',
+    'stats.deadtime': '平均デッドタイム (ms)',
+    'stats.adcMean': '平均 ADC 値',
+    'stats.adcMax': '最大 ADC 値',
+    'stats.sipmMean': '平均 SiPM (mV)',
+    'stats.vadcMean': '平均 Vadc (mV)',
+    'table.adcFmt': 'ADC [0-{max}]',
+    'table.vadc': 'Vadc [mV]',
+    'conn.connectUsb': 'USB で接続',
+    'conn.connectBle': 'Bluetooth で接続',
+    'conn.bleName': 'Bluetooth デバイス名',
+    'conn.board': 'ボード',
+    'conn.boardAuto': '自動判別',
+    'conn.boardNano': 'Arduino Nano (10bit)',
+    'conn.boardEsp': 'ESP32-S3 Nano (12bit)',
+    'conn.connectedUsb': '接続中 (USB)',
+    'conn.connectedBle': '接続中 (Bluetooth)',
+    'conn.detailUsb': 'USB シリアル',
+    'conn.detailBle': 'Bluetooth LE',
+    'conn.vidpid': 'VID:PID',
+    'conn.comPort': 'COM ポート',
+    'conn.comUnavailable': 'ブラウザからは取得不可',
+    'conn.deviceName': 'デバイス名',
+    'conn.address': 'アドレス',
+    'conn.boardAddr': '基板アドレス',
+    'conn.addrFetching': '取得中...',
+    'conn.addrUnknown': '取得不可 (旧ファーム)',
+    'conn.browserId': 'ブラウザ ID',
+    'badge.boardNano': 'ボード: Arduino Nano',
+    'badge.boardEsp': 'ボード: ESP32-S3',
+    'badge.boardUnknown': 'ボード: --',
+    'esp.title': 'ESP32-S3 設定',
+    'esp.autoMargin': '自動校正マージン',
+    'esp.sampleMode': '波高サンプリング',
+    'esp.samplePeak': 'ピーク追跡 (推奨)',
+    'esp.sampleSingle': '単発再読み (V1互換)',
+    'esp.coincMode': 'コインシデンス判定',
+    'esp.coincSlave': 'Slave側でゲート (V1挙動)',
+    'esp.coincOff': 'ゲートしない',
+    'esp.coincPair': '両機でゲート（対称）',
+    'esp.oled': 'OLED 表示',
+    'esp.bleName': 'BLE アドバタイズ名',
+    'esp.setBleName': '名前を設定して再起動',
+    'esp.resetCounter': 'カウンタをリセット',
+    'common.on': 'ON',
+    'common.off': 'OFF',
+    'warn.noBle': 'Web Bluetooth API に対応していません。Chrome または Edge をご利用ください。',
+    'footer.company': '加速キッチン合同会社',
+    'alert.threshRange': '信号しきい値はリセットしきい値より大きく、0〜{max} の範囲で入力してください。',
+    'alert.fsApi': 'File System Access API に対応していません。Chrome または Edge をご利用ください。',
+    'confirm.clear': '全データを消去しますか?',
+    'warn.noSerial': 'Web Serial API に対応していません。Chrome または Edge をご利用ください。',
+  },
+};
+
+let currentLang = 'en';
+
+function t(key, params) {
+  const dict = I18N[currentLang] || I18N.en;
+  let str = dict[key] ?? I18N.en[key] ?? key;
+  if (params) {
+    for (const [k, v] of Object.entries(params)) {
+      str = str.split(`{${k}}`).join(v);
+    }
+  }
+  return str;
+}
+
+function detectLanguage() {
+  try {
+    const saved = localStorage.getItem('uiLang');
+    if (saved === 'ja' || saved === 'en') return saved;
+  } catch (_) {}
+  return (navigator.language || '').toLowerCase().startsWith('ja') ? 'ja' : 'en';
+}
+
+function setLanguage(lang) {
+  currentLang = (lang === 'ja') ? 'ja' : 'en';
+  try { localStorage.setItem('uiLang', currentLang); } catch (_) {}
+  applyLanguage();
+}
+
+function applyLanguage() {
+  document.documentElement.lang = currentLang;
+  document.title = t('app.title');
+
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    el.textContent = t(el.dataset.i18n);
+  });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    el.placeholder = t(el.dataset.i18nPlaceholder);
+  });
+  document.querySelectorAll('.lang-switch button').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.lang === currentLang);
+  });
+
+  if (histogramChart && rateChart) {
+    histogramChart.options.scales.x.title.text = t('chart.xAdc');
+    histogramChart.options.scales.y.title.text = t('chart.yCount');
+    rateChart.options.scales.x.title.text = t('chart.xTime');
+    rateChart.options.scales.y.title.text = t('chart.yRate');
+    histogramChart.update();
+    rateChart.update();
+  }
+
+  // Re-render state-derived dynamic text in the new language.
+  renderStatusText();
+  renderConnDetail();
+  renderThreshInfo();
+  renderModeInfo();
+  updateModeBadge(state.mode);
+  updateAutoSaveUI();
+  if (state.events.length === 0) {
+    $('elapsedTime').textContent = t('header.elapsed', { time: '--:--:--' });
+  }
+  // ボード依存のラベルは data-i18n では扱えないので明示的に再描画する
+  renderDynamicLabels();
+  updateBoardBadge();
+  updateStats();
+  if (state.rawLines.length === 0) $('rawDataDisplay').textContent = t('raw.waiting');
+}
+
+// ========== State ==========
+const state = {
+  port: null,
+  reader: null,
+  writer: null,
+  isConnected: false,
+  transport: null,   // 'serial' | 'ble'
+  ble: { device: null, server: null, txChar: null, rxChar: null, buffer: '' },
+  // 接続先の識別情報。ブラウザから取れるものと、ファームに問い合わせて得るものの両方。
+  //   Web Serial は VID/PID しか公開しない（COM 番号は仕様上取得できない）。
+  //   Web Bluetooth の device.id はオリジン固有の不透明 ID で MAC ではない。
+  //   btAddr は GET_BTADDR の応答（= 基板の BLE アドレス）。USB 接続でも取れる。
+  conn: { usbVendorId: null, usbProductId: null, bleId: null, bleName: null, btAddr: null, btAddrTimedOut: false },
+  // ボード種別。null=未判別, 'NANO'=Arduino Nano(10bit), 'ESP32S3'=ESP32-S3 Nano(12bit)
+  board: null,
+  adcBits: 10,
+  adcMax: 1023,
+  boardProbeTimer: null,
+  events: [],
+  rateHistory: [],
+  sessionStart: null,
+  rawLines: [],
+  // インクリメンタル統計用
+  stats: {
+    sumTemp: 0, sumTemp2: 0, minTemp: Infinity, maxTemp: -Infinity,
+    sumDead: 0, sumAdc: 0, maxAdc: 0, sumSipm: 0
+  },
+  mode: null,  // null=不明, 0=Master(単体), 1=Slave(コインシデンス)
+  threshSig: null,  // 直近のTHRESH:応答（言語切替時の再描画用）
+  threshRst: null,
+  // 自動保存用
+  autoSave: {
+    dirHandle: null,   // FileSystemDirectoryHandle
+    pending: [],       // 書き込み待ちのデータ行
+    currentDate: null, // 現在の日付文字列 (YYYY-MM-DD)
+    lineCount: 0,      // 書き込み済みイベント数
+    enabled: false,
+  },
+};
+
+// ========== DOM Elements ==========
+const $ = id => document.getElementById(id);
+
+// ========== Board profiles ==========
+// このページは Arduino Nano 版 V1 ファームと ESP32-S3 版の両方を扱う。
+// 違いは ADC の分解能と、4列目の意味、そして BLE が使えるかどうか。
+//   NANO    : 10bit(0-1023)。4列目は cal[] 多項式による SiPM 電圧[mV]。Web Serial のみ。
+//   ESP32S3 : 12bit(0-4095)。4列目は ADC ピンの実電圧[mV]（cal[] は廃止）。USB / BLE 両対応。
+// 4列目は同名で別物なので、ラベルもボードごとに出し分ける。
+const BOARD_PROFILES = {
+  NANO:    { adcBits: 10, adcMax: 1023, esp: false, col4Key: 'table.sipm', col4Stat: 'stats.sipmMean', badge: 'badge.boardNano' },
+  ESP32S3: { adcBits: 12, adcMax: 4095, esp: true,  col4Key: 'table.vadc', col4Stat: 'stats.vadcMean', badge: 'badge.boardEsp' },
+};
+
+// ボード種別を確定させ、依存する UI をすべて更新する。
+function setBoard(kind) {
+  const prof = BOARD_PROFILES[kind];
+  if (!prof) return;
+  const changed = (state.board !== kind) || (state.adcMax !== prof.adcMax);
+  state.board = kind;
+  state.adcBits = prof.adcBits;
+  state.adcMax = prof.adcMax;
+
+  // しきい値入力の上限
+  $('threshSignal').max = String(prof.adcMax);
+  $('threshReset').max = String(prof.adcMax);
+  $('autoMarginInput').max = String(prof.adcMax);
+
+  // ESP32 専用 UI の出し分け
+  $('espSection').style.display = prof.esp ? '' : 'none';
+
+  renderDynamicLabels();
+  updateBoardBadge();
+
+  // ADC レンジが変わったらヒストグラムのビン構成を作り直す
+  if (changed && typeof histogramChart !== 'undefined' && histogramChart) rebuildHistogram();
+}
+
+// ボード依存のラベル（言語切替時にも呼ぶ必要があるので関数に切り出す）
+function renderDynamicLabels() {
+  const prof = BOARD_PROFILES[state.board] || BOARD_PROFILES.NANO;
+  const thAdc = $('thAdc');
+  const thSipm = $('thSipm');
+  const lblSipm = $('lbl_sipmMean');
+  if (thAdc) thAdc.textContent = t('table.adcFmt', { max: state.adcMax });
+  if (thSipm) thSipm.textContent = t(prof.col4Key);
+  if (lblSipm) lblSipm.textContent = t(prof.col4Stat);
+}
+
+// エクスポートのヘッダ行。どのボード/ADCレンジで取ったデータか後から分かるようにする。
+// 4列目はボードによって意味が違う（Nano=cal[]によるSiPM電圧 / ESP32-S3=ADCピン実電圧）ので
+// 列名も出し分ける。
+function datHeaderLine() {
+  const col4 = (state.board === 'ESP32S3') ? 'Vadc[mV]' : 'SiPM[mV]';
+  const board = (state.board === 'ESP32S3') ? 'ESP32-S3' : 'ArduinoNano';
+  return `# Board=${board} ADC=0-${state.adcMax}\n` +
+         `# Event\tPC_Timestamp\tTime[ms]\tADC[0-${state.adcMax}]\t${col4}\tDeadtime[ms]\tTemp[C]\tMode[0:Master,1:Slave]\n`;
+}
+
+function csvHeaderLine() {
+  const col4 = (state.board === 'ESP32S3') ? 'Vadc_mV' : 'SiPM_mV';
+  return `Event,PC_Timestamp,Time_ms,ADC,${col4},Deadtime_ms,Temp_C,Mode\n`;
+}
+
+function updateBoardBadge() {
+  const badge = $('boardBadge');
+  if (!badge) return;
+  if (state.board === 'ESP32S3') {
+    badge.className = 'mode-badge slave';
+    badge.innerHTML = '&#x1f9e9; ' + t('badge.boardEsp');
+  } else if (state.board === 'NANO') {
+    badge.className = 'mode-badge master';
+    badge.innerHTML = '&#x1f9e9; ' + t('badge.boardNano');
+  } else {
+    badge.className = 'mode-badge unknown';
+    badge.innerHTML = '&#x1f9e9; ' + t('badge.boardUnknown');
+  }
+}
+
+// 接続直後のボード判別。
+// GET_BOARD を投げ、BOARD: 応答が来れば ESP32-S3。
+// Arduino Nano 版ファームは未知コマンドを黙って無視するので、
+// タイムアウトしたら Nano と判断する。
+function probeBoard() {
+  const forced = $('boardSelect').value;
+  if (forced !== 'auto') {
+    setBoard(forced);
+    return;
+  }
+  if (state.transport === 'ble') {
+    // BLE で繋がっている時点で ESP32-S3 で確定
+    setBoard('ESP32S3');
+    return;
+  }
+  clearTimeout(state.boardProbeTimer);
+  sendCommand('GET_BOARD');
+  state.boardProbeTimer = setTimeout(() => {
+    if (state.board === null) setBoard('NANO');
+  }, 1500);
+}
+
+// ========== Charts ==========
+let histogramChart, rateChart;
+
+function initCharts() {
+  const histCtx = $('histogramChart').getContext('2d');
+  const binWidth = parseInt($('binWidth').value);
+  const numBins = Math.ceil((state.adcMax + 1) / binWidth);
+  const labels = [];
+  for (let i = 0; i < numBins; i++) {
+    labels.push(i * binWidth);
+  }
+
+  histogramChart = new Chart(histCtx, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Count',
+        data: new Array(numBins).fill(0),
+        backgroundColor: 'rgba(0, 184, 169, 0.7)',
+        borderColor: 'rgba(0, 184, 169, 1)',
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { title: { display: true, text: t('chart.xAdc') } },
+        y: { title: { display: true, text: t('chart.yCount') }, beginAtZero: true }
+      }
+    }
+  });
+
+  const rateCtx = $('rateChart').getContext('2d');
+  rateChart = new Chart(rateCtx, {
+    type: 'line',
+    data: {
+      labels: [],
+      datasets: [{
+        label: 'Count Rate (cps)',
+        data: [],
+        borderColor: '#00b8a9',
+        backgroundColor: 'rgba(0, 184, 169, 0.1)',
+        fill: true,
+        tension: 0.3,
+        pointRadius: 2
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { title: { display: true, text: t('chart.xTime') } },
+        y: { title: { display: true, text: t('chart.yRate') }, beginAtZero: true }
+      }
+    }
+  });
+
+  applyHistScale();
+}
+
+// Histogram Y axis, linear <-> logarithmic.
+// A log axis cannot render an empty bin, so the axis floor is pinned to 0.5:
+// that keeps 1-count bins visible (half a decade tall) instead of flat.
+const HIST_LOG_MIN = 0.5;
+
+// Chart.js would also label 1.5, 3, 8... on a log axis; keep only the decades.
+const isDecade = v => v > 0 && Math.abs(v / Math.pow(10, Math.round(Math.log10(v))) - 1) < 1e-9;
+
+function applyHistScale() {
+  if (!histogramChart) return;
+  const y = histogramChart.options.scales.y;
+  if ($('histLogScale').checked) {
+    y.type = 'logarithmic';
+    y.min = HIST_LOG_MIN;
+    y.beginAtZero = false;
+    y.ticks = { callback: v => isDecade(v) ? String(v) : '' };
+  } else {
+    y.type = 'linear';
+    delete y.min;
+    y.beginAtZero = true;
+    y.ticks = {};
+  }
+  histogramChart.update();
+}
+
+function rebuildHistogram() {
+  const binWidth = parseInt($('binWidth').value);
+  const numBins = Math.ceil((state.adcMax + 1) / binWidth);
+  const counts = new Array(numBins).fill(0);
+  const labels = [];
+  for (let i = 0; i < numBins; i++) labels.push(i * binWidth);
+  state.events.forEach(ev => {
+    const bin = Math.min(Math.floor(ev.adc / binWidth), numBins - 1);
+    counts[bin]++;
+  });
+  histogramChart.data.labels = labels;
+  histogramChart.data.datasets[0].data = counts;
+  histogramChart.update();
+}
+
+// ========== Connection (Web Serial / Web Bluetooth) ==========
+// Nordic UART Service。ESP32-S3 版ファームが提供する。
+const BLE_SERVICE_UUID = '6e400001-b5a3-f393-e0a9-e50e24dcca9e';
+const BLE_RX_UUID      = '6e400002-b5a3-f393-e0a9-e50e24dcca9e';  // Write  (web -> device)
+const BLE_TX_UUID      = '6e400003-b5a3-f393-e0a9-e50e24dcca9e';  // Notify (device -> web)
+
+// USB / Bluetooth はそれぞれ専用ボタンから直接呼ぶ。
+// Bluetooth は ESP32-S3 版ファームのみ対応（Arduino Nano 版は Web Serial のみ）。
+
+async function connectSerial() {
+  try {
+    const port = await navigator.serial.requestPort();
+    const baudRate = parseInt($('baudRate').value);
+    await port.open({ baudRate });
+    state.port = port;
+    state.transport = 'serial';
+    state.isConnected = true;
+    state.sessionStart = new Date();
+    // getInfo() が返すのは USB の VID/PID だけ。COM 番号はブラウザからは見えない。
+    const info = (typeof port.getInfo === 'function') ? (port.getInfo() || {}) : {};
+    state.conn.usbVendorId  = info.usbVendorId ?? null;
+    state.conn.usbProductId = info.usbProductId ?? null;
+    state.conn.bleId = null;
+    state.conn.bleName = null;
+    state.conn.btAddr = null;
+
+    // Writer
+    const encoder = new TextEncoderStream();
+    encoder.readable.pipeTo(port.writable);
+    state.writer = encoder.writable.getWriter();
+
+    updateConnectionUI(true);
+    readLoop(port);
+
+    onConnected();
+  } catch (e) {
+    console.error('Connection failed:', e);
+  }
+}
+
+async function connectBLE() {
+  if (!('bluetooth' in navigator)) {
+    alert(t('warn.noBle'));
+    return;
+  }
+  try {
+    const targetName = ($('bleDeviceName').value || 'CosmicRay').trim() || 'CosmicRay';
+    const device = await navigator.bluetooth.requestDevice({
+      filters: [{ name: targetName }],
+      optionalServices: [BLE_SERVICE_UUID]
+    });
+    device.addEventListener('gattserverdisconnected', onBleDisconnected);
+
+    const server = await device.gatt.connect();
+    const service = await server.getPrimaryService(BLE_SERVICE_UUID);
+    const txChar = await service.getCharacteristic(BLE_TX_UUID);
+    const rxChar = await service.getCharacteristic(BLE_RX_UUID);
+
+    await txChar.startNotifications();
+    txChar.addEventListener('characteristicvaluechanged', handleBLEData);
+
+    state.ble.device = device;
+    state.ble.server = server;
+    state.ble.txChar = txChar;
+    state.ble.rxChar = rxChar;
+    state.ble.buffer = '';
+    state.transport = 'ble';
+    state.isConnected = true;
+    state.sessionStart = new Date();
+    // device.id はオリジンごとにハッシュ化された不透明 ID。実アドレスは
+    // GET_BTADDR でファームから受け取る（BTADDR: 行）。
+    state.conn.bleId = device.id || null;
+    state.conn.bleName = device.name || targetName;
+    state.conn.btAddr = null;
+    state.conn.usbVendorId = null;
+    state.conn.usbProductId = null;
+
+    try { localStorage.setItem('bleDeviceName', targetName); } catch (_) {}
+
+    updateConnectionUI(true);
+    onConnected();
+  } catch (e) {
+    console.error('BLE connection failed:', e);
+  }
+}
+
+// notify は 20〜244 バイトの断片で届くので、改行までバッファしてから行として処理する。
+function handleBLEData(event) {
+  const chunk = new TextDecoder().decode(event.target.value);
+  state.ble.buffer += chunk;
+  const lines = state.ble.buffer.split('\n');
+  state.ble.buffer = lines.pop();
+  for (const line of lines) {
+    processLine(line.trim());
+  }
+}
+
+function onBleDisconnected() {
+  if (!state.isConnected) return;
+  state.isConnected = false;
+  state.ble.device = null;
+  state.ble.server = null;
+  state.ble.txChar = null;
+  state.ble.rxChar = null;
+  updateConnectionUI(false);
+}
+
+// 接続方式によらず、接続後の初期問い合わせは同じ手順。
+// 応答が衝突しないよう時間をずらす。
+function onConnected() {
+  state.board = null;
+  updateBoardBadge();
+  setTimeout(() => probeBoard(), 800);
+  setTimeout(() => sendCommand('GET_THRESH'), 1500);
+  setTimeout(() => sendCommand('GET_MODE'), 1700);
+  // ESP32 専用。Nano は未知コマンドとして黙って無視するので投げても安全。
+  setTimeout(() => sendCommand('GET_AUTO_MARGIN'), 1900);
+  setTimeout(() => sendCommand('GET_SAMPLE'), 2100);
+  setTimeout(() => sendCommand('GET_COINC'), 2300);
+  setTimeout(() => sendCommand('GET_OLED'), 2500);
+  setTimeout(() => sendCommand('GET_BLENAME'), 2700);
+  // GET_BTADDR は新しめのファームだけが応答する。無応答なら「取得不可」に切り替える。
+  state.conn.btAddr = null;
+  state.conn.btAddrTimedOut = false;
+  setTimeout(() => sendCommand('GET_BTADDR'), 2900);
+  setTimeout(() => {
+    if (state.isConnected && !state.conn.btAddr) {
+      state.conn.btAddrTimedOut = true;
+      renderConnDetail();
+    }
+  }, 4400);
+  // オシロタブを開いたまま繋ぎ直した場合は、改めて ON を送らないと波形が来ない
+  setTimeout(() => { if (scope.active) scopeEnter(); }, 3100);
+}
+
+async function disconnect() {
+  state.isConnected = false;
+  clearTimeout(state.boardProbeTimer);
+  try {
+    if (state.ble.device) {
+      if (state.ble.txChar) {
+        try { await state.ble.txChar.stopNotifications(); } catch (_) {}
+      }
+      if (state.ble.device.gatt && state.ble.device.gatt.connected) state.ble.device.gatt.disconnect();
+      state.ble.device = null;
+      state.ble.server = null;
+      state.ble.txChar = null;
+      state.ble.rxChar = null;
+    }
+    if (state.reader) {
+      await state.reader.cancel();
+      state.reader = null;
+    }
+    if (state.writer) {
+      await state.writer.close();
+      state.writer = null;
+    }
+    if (state.port) {
+      await state.port.close();
+      state.port = null;
+    }
+  } catch (e) {
+    console.error('Disconnect error:', e);
+  }
+  state.transport = null;
+  updateConnectionUI(false);
+}
+
+async function readLoop(port) {
+  const decoder = new TextDecoderStream();
+  port.readable.pipeTo(decoder.writable);
+  const reader = decoder.readable.getReader();
+  state.reader = reader;
+
+  let buffer = '';
+  try {
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += value;
+      const lines = buffer.split('\n');
+      buffer = lines.pop();
+      for (const line of lines) {
+        processLine(line.trim());
+      }
+    }
+  } catch (e) {
+    if (state.isConnected) {
+      console.error('Read error:', e);
+      disconnect();
+    }
+  }
+}
+
+async function sendCommand(cmd) {
+  const payload = cmd + '\n';
+  try {
+    if (state.transport === 'ble') {
+      if (!state.ble.rxChar) return;
+      // ATT の既定ペイロードに収まるよう 20 バイトずつ分割して書く。
+      // ファーム側は改行までを 1 コマンドとして組み立てるので分割しても問題ない。
+      const bytes = new TextEncoder().encode(payload);
+      for (let i = 0; i < bytes.length; i += 20) {
+        await state.ble.rxChar.writeValue(bytes.slice(i, i + 20));
+      }
+      return;
+    }
+    if (!state.writer) return;
+    await state.writer.write(payload);
+  } catch (e) {
+    console.error('Send error:', e);
+  }
+}
+
+// ========== Data Processing ==========
+let chartUpdatePending = false;
+let rawDisplayPending = false;
+
+function processLine(line) {
+  if (!line) return;
+
+  // Add to raw display (throttled)
+  state.rawLines.push(line);
+  if (state.rawLines.length > 100) state.rawLines.shift();
+  if (!rawDisplayPending) {
+    rawDisplayPending = true;
+    requestAnimationFrame(() => {
+      updateRawDisplay();
+      rawDisplayPending = false;
+    });
+  }
+
+  // Board identification (ESP32-S3 only; Nano firmware ignores GET_BOARD silently)
+  // 例: "BOARD:ESP32S3,12"
+  if (line.startsWith('BOARD:')) {
+    clearTimeout(state.boardProbeTimer);
+    const body = line.substring(6).trim();
+    const kind = body.split(',')[0].trim().toUpperCase();
+    if ($('boardSelect').value === 'auto') {
+      setBoard(BOARD_PROFILES[kind] ? kind : 'ESP32S3');
+    }
+    return;
+  }
+
+  // ESP32-S3 reboots (e.g. after SET_BLENAME) -> re-query everything
+  if (line.startsWith('Booting')) {
+    if (state.isConnected) onConnected();
+    return;
+  }
+
+  // ESP32-S3 only responses
+  if (line.startsWith('AUTO_MARGIN:')) {
+    const v = parseInt(line.substring(12));
+    if (!isNaN(v)) $('autoMarginInput').value = v;
+    return;
+  }
+  if (line.startsWith('SAMPLE:')) {
+    const v = line.substring(7).trim().toUpperCase();
+    if (v === 'PEAK' || v === 'SINGLE') $('sampleSelect').value = v;
+    return;
+  }
+  if (line.startsWith('COINC:')) {
+    const v = line.substring(6).trim().toUpperCase();
+    if (v === 'SLAVE' || v === 'OFF' || v === 'PAIR') $('coincSelect').value = v;
+    return;
+  }
+  if (line.startsWith('OLED:')) {
+    const v = line.substring(5).trim().toUpperCase();
+    if (v === 'ON' || v === 'OFF') $('oledSelect').value = v;
+    return;
+  }
+  if (line.startsWith('BLENAME:')) {
+    const v = line.substring(8).trim();
+    if (v) {
+      $('bleNameInput').value = v;
+      $('bleDeviceName').value = v;
+      try { localStorage.setItem('bleDeviceName', v); } catch (_) {}
+    }
+    return;
+  }
+  // "BTADDR:aa:bb:cc:dd:ee:ff" — 基板の BLE アドレス。USB 接続でも返ってくるので
+  // どの基板に繋がっているかの識別に使える。
+  if (line.startsWith('BTADDR:')) {
+    const v = line.substring(7).trim();
+    if (v) {
+      state.conn.btAddr = v.toUpperCase();
+      state.conn.btAddrTimedOut = false;
+      renderConnDetail();
+    }
+    return;
+  }
+  if (line.startsWith('RESET:')) {
+    $('espInfo').textContent = line;
+    return;
+  }
+
+  // Threshold response
+  if (line.startsWith('THRESH:')) {
+    const parts = line.substring(7).split(',');
+    if (parts.length === 2) {
+      const sig = parseInt(parts[0]);
+      const rst = parseInt(parts[1]);
+      $('threshSignal').value = sig;
+      $('threshReset').value = rst;
+      state.threshSig = sig;
+      state.threshRst = rst;
+      renderThreshInfo();
+      if (state.isConnected) $('btnAutoThresh').disabled = false;
+    }
+    return;
+  }
+
+  // Mode response
+  if (line.startsWith('MODE:')) {
+    const m = parseInt(line.substring(5));
+    if (m === 0 || m === 1) {
+      $('modeSelect').value = String(m);
+      state.mode = m;
+      renderModeInfo();
+      updateModeBadge(m);
+    }
+    return;
+  }
+
+  // Skip header lines
+  if (line.startsWith('###') || line.startsWith('#')) {
+    // ブートヘッダからもボードを拾っておく（GET_BOARD の保険）。
+    // 例: "### Board: ESP32-S3 (Nano) ADC:12bit V1-detector"
+    if (line.includes('Board:') && $('boardSelect').value === 'auto') {
+      if (/ESP32/i.test(line)) {
+        clearTimeout(state.boardProbeTimer);
+        setBoard('ESP32S3');
+      }
+    }
+    // Extract threshold info from headers
+    if (line.includes('Signal threshold:')) {
+      const val = parseInt(line.split(':').pop().trim());
+      if (!isNaN(val)) $('threshSignal').value = val;
+    }
+    if (line.includes('Reset threshold:')) {
+      const val = parseInt(line.split(':').pop().trim());
+      if (!isNaN(val)) $('threshReset').value = val;
+    }
+    return;
+  }
+
+  // Oscilloscope waveform line (ESP32-S3 firmware, scope mode)
+  //   WF,<evt>,<t_ms>,U,<npre>,<ntot>,<period_ns>,<v0>,<v1>,...
+  // 空白を含まないので下の split(/\s+/) では拾えない。ここで横取りする。
+  if (line.startsWith('WF,')) {
+    scopeOnLine(line);
+    return;
+  }
+  if (line.startsWith('SCOPE:')) {
+    scope.deviceOn = (line.substring(6).trim().toUpperCase() === 'ON');
+    return;
+  }
+  if (line.startsWith('SCOPE_RATE:')) {
+    const v = parseInt(line.substring(11));
+    if (!isNaN(v)) $('scopeRate').value = v;
+    return;
+  }
+
+  // Parse data line
+  const parts = line.split(/\s+/);
+  if (parts.length < 6) return;
+
+  const event = {
+    count: parseInt(parts[0]),
+    timestamp_ms: parseInt(parts[1]),
+    pc_timestamp: Date.now(),
+    adc: parseInt(parts[2]),
+    sipm_mv: parseFloat(parts[3]),
+    deadtime_ms: parseInt(parts[4]),
+    temp_c: parseFloat(parts[5]),
+    // データ行にモードは含まれない（6項目=互換性維持）ため、受信時点で判明している
+    // モード（state.mode: MODE:応答で更新）でタグ付けする。これにより各イベント行・
+    // エクスポートに、そのイベント取得時のMaster/Slaveが正しく記録される。
+    mode_flag: parts.length >= 7 ? parseInt(parts[6]) : state.mode
+  };
+
+  if (isNaN(event.count) || isNaN(event.adc)) return;
+
+  // バッジは原則 MODE: 応答（接続時のGET_MODE / SET_MODEのエコー）で駆動する。
+  // 現行ファームは6項目データ行のため mode_flag===state.mode となり下のブロックは何もしない。
+  // 将来ファームがデータ行に実モード(7項目目)を載せた場合のみ、ここでバッジを同期する。
+  if (event.mode_flag !== null && !isNaN(event.mode_flag) && event.mode_flag !== state.mode) {
+    state.mode = event.mode_flag;
+    updateModeBadge(state.mode);
+  }
+
+  state.events.push(event);
+
+  // 自動保存バッファに追加
+  if (state.autoSave.enabled) {
+    state.autoSave.pending.push(event);
+  }
+
+  // インクリメンタル統計更新
+  const s = state.stats;
+  s.sumTemp += event.temp_c;
+  s.sumTemp2 += event.temp_c * event.temp_c;
+  if (event.temp_c < s.minTemp) s.minTemp = event.temp_c;
+  if (event.temp_c > s.maxTemp) s.maxTemp = event.temp_c;
+  s.sumDead += event.deadtime_ms;
+  s.sumAdc += event.adc;
+  if (event.adc > s.maxAdc) s.maxAdc = event.adc;
+  s.sumSipm += event.sipm_mv;
+
+  // Update histogram bin
+  const binWidth = parseInt($('binWidth').value);
+  const numBins = Math.ceil((state.adcMax + 1) / binWidth);
+  const bin = Math.min(Math.floor(event.adc / binWidth), numBins - 1);
+  if (histogramChart.data.datasets[0].data.length === numBins) {
+    histogramChart.data.datasets[0].data[bin]++;
+  } else {
+    rebuildHistogram();
+  }
+
+  // Enable export buttons
+  $('btnExportDat').disabled = false;
+  $('btnExportCsv').disabled = false;
+
+  // Schedule chart/UI update (throttle)
+  if (!chartUpdatePending) {
+    chartUpdatePending = true;
+    requestAnimationFrame(() => {
+      updateUI();
+      chartUpdatePending = false;
+    });
+  }
+}
+
+// ========== UI Updates ==========
+function updateUI() {
+  updateTable();
+  updateStats();
+  histogramChart.update();
+  $('noDataMsg').style.display = state.events.length > 0 ? 'none' : '';
+}
+
+let lastTableLength = 0;
+
+function updateTable() {
+  const tbody = $('dataTableBody');
+  const events = state.events;
+  const maxRows = 100;
+
+  // 新しいイベントのみ追加
+  for (let i = lastTableLength; i < events.length; i++) {
+    const ev = events[i];
+    const ts = new Date(ev.pc_timestamp).toISOString().replace('T', ' ').substring(0, 23);
+    const row = tbody.insertRow(0);
+    const modeLabel = ev.mode_flag === 1 ? '⚡ Slave' : '🔵 Master';
+    row.innerHTML = `<td>${ev.count}</td>
+      <td>${ts}</td>
+      <td>${ev.timestamp_ms}</td>
+      <td>${ev.adc}</td>
+      <td>${ev.sipm_mv.toFixed(2)}</td>
+      <td>${ev.deadtime_ms}</td>
+      <td>${ev.temp_c.toFixed(1)}</td>
+      <td>${modeLabel}</td>`;
+  }
+  lastTableLength = events.length;
+
+  // 100行を超えたら末尾を削除
+  while (tbody.rows.length > maxRows) {
+    tbody.deleteRow(tbody.rows.length - 1);
+  }
+}
+
+function updateStats() {
+  const events = state.events;
+  const n = events.length;
+  $('statTotalEvents').textContent = n;
+  $('ds_total').textContent = n;
+
+  if (n === 0) return;
+
+  // Elapsed time
+  const elapsedMs = events[n - 1].timestamp_ms;
+  const elapsedStr = formatTime(elapsedMs);
+  $('statElapsed').textContent = elapsedStr;
+  $('elapsedTime').textContent = t('header.elapsed', { time: elapsedStr });
+  $('ds_elapsed').textContent = elapsedStr + ` (${(elapsedMs / 1000).toFixed(1)}s)`;
+
+  // Average rate
+  const elapsedSec = elapsedMs / 1000;
+  const rate = elapsedSec > 0 ? (n / elapsedSec) : 0;
+  $('statRate').textContent = rate.toFixed(3);
+  $('ds_rate').textContent = rate.toFixed(4) + ' cps';
+
+  // Rate std
+  const rateStd = elapsedSec > 0 ? (Math.sqrt(n) / elapsedSec) : 0;
+  $('ds_rateStd').textContent = rateStd.toFixed(4) + ' cps';
+
+  // インクリメンタル統計から計算（ループ不要）
+  const s = state.stats;
+  const avgTemp = s.sumTemp / n;
+  const tempStd = Math.sqrt(s.sumTemp2 / n - avgTemp * avgTemp);
+  const avgDead = s.sumDead / n;
+  const avgAdc = s.sumAdc / n;
+  const avgSipm = s.sumSipm / n;
+
+  $('statTemp').textContent = avgTemp.toFixed(1);
+  $('statDeadtime').textContent = avgDead.toFixed(0);
+  $('ds_temp').textContent = avgTemp.toFixed(2) + ' °C';
+  $('ds_tempStd').textContent = tempStd.toFixed(2) + ' °C';
+  $('ds_tempMax').textContent = s.maxTemp.toFixed(1) + ' °C';
+  $('ds_tempMin').textContent = s.minTemp.toFixed(1) + ' °C';
+  $('ds_deadtime').textContent = avgDead.toFixed(1) + ' ms';
+  $('ds_adcMean').textContent = avgAdc.toFixed(1);
+  $('ds_adcMax').textContent = s.maxAdc;
+  $('ds_sipmMean').textContent = avgSipm.toFixed(2) + ' mV';
+}
+
+function updateRawDisplay() {
+  const el = $('rawDataDisplay');
+  el.textContent = state.rawLines.join('\n');
+  el.scrollTop = el.scrollHeight;
+}
+
+// ========== Auto-Save ==========
+async function selectSaveFolder() {
+  if (!('showDirectoryPicker' in window)) {
+    alert(t('alert.fsApi'));
+    return;
+  }
+  try {
+    const dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+    const as = state.autoSave;
+    as.dirHandle = dirHandle;
+    as.enabled = true;
+    as.currentDate = null;  // 次回 flush 時にヘッダーを書かせる
+    as.lineCount = 0;
+    updateAutoSaveUI();
+  } catch (e) {
+    if (e.name !== 'AbortError') console.error('Folder select error:', e);
+  }
+}
+
+// ファイル末尾に追記する
+async function appendToFile(dirHandle, filename, content) {
+  const fileHandle = await dirHandle.getFileHandle(filename, { create: true });
+  const file = await fileHandle.getFile();
+  const writable = await fileHandle.createWritable({ keepExistingData: true });
+  await writable.seek(file.size);
+  await writable.write(content);
+  await writable.close();
+}
+
+// バッファをまとめてファイルに書き込む（1秒インターバルで呼ばれる）
+async function flushAutoSave() {
+  const as = state.autoSave;
+  if (!as.enabled || !as.dirHandle) return;
+
+  const today = new Date().toISOString().substring(0, 10);  // YYYY-MM-DD
+  const prefix = $('filePrefix').value || 'CosmicRay';
+  const format = $('autoSaveFormat').value;
+
+  // 日付が変わった（または初回）の場合はヘッダー行を書く
+  if (today !== as.currentDate) {
+    as.currentDate = today;
+    const comment = $('fileComment').value;
+    let headerDat = '';
+    if (comment) headerDat += '# ' + comment.replace(/\n/g, '\n# ') + '\n';
+    headerDat += datHeaderLine();
+    const headerCsv = csvHeaderLine();
+    try {
+      if (format === 'dat' || format === 'both') await appendToFile(as.dirHandle, `${prefix}_${today}.dat`, headerDat);
+      if (format === 'csv' || format === 'both') await appendToFile(as.dirHandle, `${prefix}_${today}.csv`, headerCsv);
+    } catch (e) {
+      console.error('Auto-save header write error:', e);
+    }
+  }
+
+  if (as.pending.length === 0) return;
+
+  const batch = as.pending.splice(0);  // バッファを取り出しクリア
+  let datLines = '';
+  let csvLines = '';
+  for (const ev of batch) {
+    const pcTs = new Date(ev.pc_timestamp).toISOString().replace('T', '-').replace(/:/g, '-').substring(0, 26);
+    datLines += `${ev.count}\t${pcTs}\t${ev.timestamp_ms}\t${ev.adc}\t${ev.sipm_mv.toFixed(6)}\t${ev.deadtime_ms}\t${ev.temp_c.toFixed(1)}\t${ev.mode_flag ?? 0}\n`;
+    csvLines += `${ev.count},${new Date(ev.pc_timestamp).toISOString()},${ev.timestamp_ms},${ev.adc},${ev.sipm_mv.toFixed(6)},${ev.deadtime_ms},${ev.temp_c.toFixed(1)},${ev.mode_flag ?? 0}\n`;
+  }
+
+  try {
+    if (format === 'dat' || format === 'both') await appendToFile(as.dirHandle, `${prefix}_${today}.dat`, datLines);
+    if (format === 'csv' || format === 'both') await appendToFile(as.dirHandle, `${prefix}_${today}.csv`, csvLines);
+    as.lineCount += batch.length;
+    updateAutoSaveUI();
+  } catch (e) {
+    console.error('Auto-save write error:', e);
+    $('autoSaveStatus').className = 'autosave-status error';
+    $('autoSaveStatus').textContent = t('autosave.writeError', { msg: e.message });
+  }
+}
+
+function updateAutoSaveUI() {
+  const as = state.autoSave;
+  const el = $('autoSaveStatus');
+  if (!as.enabled || !as.dirHandle) {
+    el.className = 'autosave-status idle';
+    el.textContent = t('autosave.notConfigured');
+    return;
+  }
+  const prefix = $('filePrefix').value || 'CosmicRay';
+  const format = $('autoSaveFormat').value;
+  const ext = format === 'both' ? '.dat / .csv' : '.' + format;
+  el.className = 'autosave-status active';
+  el.textContent = t('autosave.status', { file: `${prefix}_${as.currentDate || '...'}${ext}`, n: as.lineCount });
+}
+
+// State-derived text renderers: called both from the data paths and from
+// applyLanguage() so a language switch redraws the current state.
+function renderStatusText() {
+  const text = $('statusText');
+  if (!text) return;
+  if (!state.isConnected) {
+    text.textContent = t('common.notConnected');
+    text.title = '';
+    return;
+  }
+  text.textContent = state.transport === 'ble' ? t('conn.connectedBle') : t('conn.connectedUsb');
+  // ヘッダは狭いので、詳細（VID:PID / アドレス）はツールチップに載せる。
+  text.title = connDetailLines().join(' / ');
+}
+
+// 接続先を識別する行を、表示順に組み立てる。ヘッダのツールチップと
+// サイドバーの詳細ボックスで同じ内容を使う。
+function connDetailLines() {
+  const c = state.conn;
+  const hex4 = v => (v == null) ? null : v.toString(16).toUpperCase().padStart(4, '0');
+  const addr = c.btAddr ? c.btAddr
+             : (c.btAddrTimedOut ? t('conn.addrUnknown') : t('conn.addrFetching'));
+  const lines = [];
+  if (state.transport === 'ble') {
+    lines.push(t('conn.detailBle'));
+    if (c.bleName) lines.push(`${t('conn.deviceName')}: ${c.bleName}`);
+    lines.push(`${t('conn.address')}: ${addr}`);
+    // 実アドレスが取れないファームでも、ブラウザ側の識別子だけは出しておく。
+    if (!c.btAddr && c.bleId) lines.push(`${t('conn.browserId')}: ${c.bleId}`);
+  } else {
+    lines.push(t('conn.detailUsb'));
+    const vid = hex4(c.usbVendorId), pid = hex4(c.usbProductId);
+    if (vid && pid) lines.push(`${t('conn.vidpid')}: ${vid}:${pid}`);
+    // COM 番号は Web Serial API が公開していない（仕様上の制約）。
+    lines.push(`${t('conn.comPort')}: ${t('conn.comUnavailable')}`);
+    lines.push(`${t('conn.boardAddr')}: ${addr}`);
+  }
+  return lines;
+}
+
+function renderConnDetail() {
+  const el = $('connDetail');
+  if (!el) return;
+  if (!state.isConnected) { el.textContent = ''; return; }
+  el.textContent = '';
+  for (const line of connDetailLines()) {
+    const div = document.createElement('div');
+    div.textContent = line;
+    el.appendChild(div);
+  }
+  renderStatusText();
+}
+
+function renderThreshInfo() {
+  const el = $('threshInfo');
+  if (!el) return;
+  if (!state.isConnected) el.textContent = t('common.notConnected');
+  else if (state.threshSig != null) el.textContent = t('thresh.current', { sig: state.threshSig, rst: state.threshRst });
+  else el.textContent = t('thresh.fetching');
+}
+
+function renderModeInfo() {
+  const el = $('modeInfo');
+  if (!el) return;
+  if (!state.isConnected) el.textContent = t('common.notConnected');
+  else if (state.mode === 0 || state.mode === 1) el.textContent = t('mode.current', { mode: state.mode === 0 ? t('mode.masterName') : t('mode.slaveName') });
+  else el.textContent = t('mode.fetching');
+}
+
+function updateModeBadge(mode) {
+  const badge = $('modeBadge');
+  if (mode === 0) {
+    badge.className = 'mode-badge master';
+    badge.innerHTML = '&#x1f539; ' + t('badge.master');
+  } else if (mode === 1) {
+    badge.className = 'mode-badge slave';
+    badge.innerHTML = '&#x26a1; ' + t('badge.slave');
+  } else {
+    badge.className = 'mode-badge unknown';
+    badge.innerHTML = '&#x1f4e1; ' + t('badge.unknown');
+  }
+}
+
+function updateConnectionUI(connected) {
+  const dot = $('statusDot');
+  if (connected) {
+    dot.className = 'status-dot connected';
+    $('connectButtons').style.display = 'none';
+    $('connectionInfo').style.display = 'block';
+    $('btnSetThresh').disabled = false;
+    $('btnGetThresh').disabled = false;
+    $('btnAutoThresh').disabled = false;
+    $('btnSetMode').disabled = false;
+    $('btnGetMode').disabled = false;
+  } else {
+    dot.className = 'status-dot disconnected';
+    $('connectButtons').style.display = '';
+    $('connectionInfo').style.display = 'none';
+    $('btnSetThresh').disabled = true;
+    $('btnGetThresh').disabled = true;
+    $('btnAutoThresh').disabled = true;
+    $('btnSetMode').disabled = true;
+    $('btnGetMode').disabled = true;
+    state.mode = null;
+    state.threshSig = null;
+    state.threshRst = null;
+    state.conn = { usbVendorId: null, usbProductId: null, bleId: null, bleName: null, btAddr: null, btAddrTimedOut: false };
+    // 切断されたらオシロも止まる。次に繋いだとき scopeEnter() が改めて ON を送る。
+    // scope はこの関数より後ろで宣言されているが、updateConnectionUI() を呼ぶのは
+    // 接続/切断のハンドラだけなので、実行時には必ず初期化済み。
+    scope.deviceOn = false;
+    if (scope.active) scopeDraw();
+    updateModeBadge(null);
+  }
+  renderStatusText();
+  renderConnDetail();
+  renderThreshInfo();
+  renderModeInfo();
+}
+
+// ========== Rate Calculation ==========
+function updateRateChart() {
+  if (state.events.length === 0) return;
+
+  const now = Date.now();
+  const windowMs = 10000;
+  let recentCount = 0;
+  for (let i = state.events.length - 1; i >= 0; i--) {
+    if ((now - state.events[i].pc_timestamp) >= windowMs) break;
+    recentCount++;
+  }
+  const rate = recentCount / (windowMs / 1000);
+  const timeLabel = new Date().toLocaleTimeString('en-US');
+
+  state.rateHistory.push({ time: timeLabel, rate });
+
+  // Keep last 500 points
+  if (state.rateHistory.length > 500) state.rateHistory.shift();
+
+  rateChart.data.labels = state.rateHistory.map(r => r.time);
+  rateChart.data.datasets[0].data = state.rateHistory.map(r => r.rate);
+  rateChart.update();
+  $('rateDataCount').textContent = state.rateHistory.length;
+}
+
+// ========== File Export ==========
+function exportDat() {
+  const comment = $('fileComment').value;
+  const prefix = $('filePrefix').value || 'CosmicRay';
+  const dateStr = formatDateForFile(state.sessionStart || new Date());
+
+  let content = '';
+  if (comment) content += '# ' + comment.replace(/\n/g, '\n# ') + '\n';
+  content += datHeaderLine();
+
+  for (const ev of state.events) {
+    const pcTs = new Date(ev.pc_timestamp).toISOString().replace('T', '-').replace(/:/g, '-').substring(0, 26);
+    content += `${ev.count}\t${pcTs}\t${ev.timestamp_ms}\t${ev.adc}\t${ev.sipm_mv.toFixed(6)}\t${ev.deadtime_ms}\t${ev.temp_c.toFixed(1)}\t${ev.mode_flag ?? 0}\n`;
+  }
+
+  downloadFile(`${prefix}_${dateStr}.dat`, content);
+}
+
+function exportCsv() {
+  const prefix = $('filePrefix').value || 'CosmicRay';
+  const dateStr = formatDateForFile(state.sessionStart || new Date());
+
+  let content = csvHeaderLine();
+  for (const ev of state.events) {
+    content += `${ev.count},${new Date(ev.pc_timestamp).toISOString()},${ev.timestamp_ms},${ev.adc},${ev.sipm_mv.toFixed(6)},${ev.deadtime_ms},${ev.temp_c.toFixed(1)},${ev.mode_flag ?? 0}\n`;
+  }
+
+  downloadFile(`${prefix}_${dateStr}.csv`, content);
+}
+
+function downloadBlob(filename, blob) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function downloadFile(filename, content) {
+  downloadBlob(filename, new Blob([content], { type: 'text/plain;charset=utf-8' }));
+}
+
+// チャートを PNG で保存する。canvas の背景は透明なので、白で塗ってから
+// 重ねてから書き出す（そのまま出すと白背景のビューアで軸線が消える）。
+// 保存されるのは表示中のピクセル寸法 × devicePixelRatio。
+function saveChartPng(canvasId, baseName) {
+  const src = $(canvasId);
+  if (!src || !src.width || !src.height) return;
+  const out = document.createElement('canvas');
+  out.width = src.width;
+  out.height = src.height;
+  const ctx = out.getContext('2d');
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, out.width, out.height);
+  ctx.drawImage(src, 0, 0);
+  const prefix = $('filePrefix').value || 'CosmicRay';
+  const name = `${prefix}_${baseName}_${formatDateForFile()}.png`;
+  out.toBlob(blob => { if (blob) downloadBlob(name, blob); }, 'image/png');
+}
+
+// ========== Utilities ==========
+function formatTime(ms) {
+  const totalSec = Math.floor(ms / 1000);
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const s = totalSec % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
+function formatDateForFile(date) {
+  const d = date || new Date();
+  return d.getFullYear() + '-' +
+    String(d.getMonth() + 1).padStart(2, '0') + '-' +
+    String(d.getDate()).padStart(2, '0') + '_' +
+    String(d.getHours()).padStart(2, '0') + '-' +
+    String(d.getMinutes()).padStart(2, '0') + '-' +
+    String(d.getSeconds()).padStart(2, '0');
+}
+
+// ========== Oscilloscope ==========
+// タブを開いている間だけファームに SET_SCOPE:ON を送り、WF, 行を受けて描く。
+// Chart.js ではなく生 canvas を使うのは、毎イベント全体を描き直すため
+// （Chart.js のデータセット更新＋アニメーションは数 Hz でも重い）。
+const scope = {
+  active: false,     // タブが開いている
+  deviceOn: false,   // ファームが SCOPE:ON を返した
+  frozen: false,
+  traces: [],        // 新しいものほど後ろ
+  raw: [],           // 保存用の生 WF, 行
+  count: 0,
+  bad: 0,
+  stamps: [],        // レート計算用の受信時刻
+  drawPending: false,
+};
+
+function scopeOnLine(line) {
+  const p = line.split(',');
+  // 宣言された点数と実際の項目数が食い違う行は捨てる。
+  // USB CDC の送信が詰まると行が途中で切れることがあるため。
+  if (p.length < 7) { scope.bad++; scopeStats(); return; }
+  const kind = p[3];
+  const npre = +p[4], ntot = +p[5], periodNs = +p[6];
+  if (kind !== 'U' || !(ntot > 0) || !(npre >= 0) || npre >= ntot ||
+      p.length !== 7 + ntot || !(periodNs > 0)) {
+    scope.bad++; scopeStats(); return;
+  }
+
+  const v = new Float32Array(ntot);
+  for (let i = 0; i < ntot; i++) {
+    const x = +p[7 + i];
+    if (!isFinite(x)) { scope.bad++; scopeStats(); return; }
+    v[i] = x;
+  }
+
+  const dtUs = periodNs / 1000;
+  let base = 0;
+  for (let i = 0; i < npre; i++) base += v[i];
+  base = npre > 0 ? base / npre : v[0];
+
+  let peak = -Infinity, pi = 0;
+  for (let i = 0; i < ntot; i++) { const a = v[i] - base; if (a > peak) { peak = a; pi = i; } }
+
+  scope.count++;
+  scope.stamps.push(Date.now());
+  if (scope.stamps.length > 200) scope.stamps.shift();
+  scope.raw.push(line);
+  if (scope.raw.length > 2000) scope.raw.shift();
+
+  if (scope.frozen) { scopeStats(); return; }
+
+  scope.traces.push({ v, npre, dtUs, base, peak, tPeak: (pi - npre) * dtUs, ntot });
+  const keep = Math.max(1, (parseInt($('scopePersist').value) || 0) + 1);
+  while (scope.traces.length > keep) scope.traces.shift();
+
+  scopeStats();
+  if (!scope.drawPending) {
+    scope.drawPending = true;
+    requestAnimationFrame(() => { scope.drawPending = false; scopeDraw(); });
+  }
+}
+
+function scopeStats() {
+  const last = scope.traces[scope.traces.length - 1];
+  $('scopePeak').textContent  = last ? Math.round(last.peak) : '--';
+  $('scopeTPeak').textContent = last ? last.tPeak.toFixed(1) : '--';
+  $('scopeCount').textContent = scope.count;
+  $('scopeBad').textContent   = scope.bad;
+  const now = Date.now();
+  const recent = scope.stamps.filter(s => now - s < 5000);
+  $('scopeFps').textContent = (recent.length / 5).toFixed(1);
+}
+
+function scopeDraw() {
+  const cv = $('scopeCanvas');
+  if (!cv) return;
+  const ctx = cv.getContext('2d');
+  const W = cv.width, H = cv.height;
+  const padL = 64, padR = 16, padT = 14, padB = 40;
+  const pw = W - padL - padR, ph = H - padT - padB;
+
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#10262b';
+  ctx.fillRect(padL, padT, pw, ph);
+
+  const traces = scope.traces;
+  if (!traces.length) {
+    ctx.fillStyle = '#6f8b93';
+    ctx.font = '13px -apple-system, Segoe UI, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(state.isConnected ? t('scope.waiting') : t('scope.notConnected'),
+                 padL + pw / 2, padT + ph / 2);
+    ctx.textAlign = 'left';
+    return;
+  }
+
+  // 時間レンジは全トレース共通（ファームの pre/post は固定）
+  const ref = traces[traces.length - 1];
+  const t0 = -ref.npre * ref.dtUs;
+  const t1 = (ref.ntot - 1 - ref.npre) * ref.dtUs;
+
+  // 縦レンジ
+  let yLo, yHi;
+  if ($('scopeAutoY').checked) {
+    yLo = Infinity; yHi = -Infinity;
+    for (const tr of traces) {
+      for (let i = 0; i < tr.ntot; i++) {
+        if (tr.v[i] < yLo) yLo = tr.v[i];
+        if (tr.v[i] > yHi) yHi = tr.v[i];
+      }
+    }
+    const pad = Math.max(4, (yHi - yLo) * 0.08);
+    yLo -= pad; yHi += pad;
+  } else {
+    yLo = 0; yHi = state.adcMax;
+  }
+  if (!(yHi > yLo)) { yHi = yLo + 1; }
+
+  const xOf = us => padL + (us - t0) / (t1 - t0) * pw;
+  const yOf = a  => padT + (1 - (a - yLo) / (yHi - yLo)) * ph;
+
+  // グリッド
+  ctx.strokeStyle = 'rgba(255,255,255,0.07)';
+  ctx.lineWidth = 1;
+  for (let k = 1; k < 8; k++) {
+    const x = padL + pw * k / 8;
+    ctx.beginPath(); ctx.moveTo(x, padT); ctx.lineTo(x, padT + ph); ctx.stroke();
+  }
+  for (let k = 1; k < 5; k++) {
+    const y = padT + ph * k / 5;
+    ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(padL + pw, y); ctx.stroke();
+  }
+
+  // しきい値線
+  const drawLevel = (val, col, label) => {
+    if (val === null || val === undefined || isNaN(val)) return;
+    if (val < yLo || val > yHi) return;
+    ctx.strokeStyle = col;
+    ctx.setLineDash([5, 4]);
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(padL, yOf(val)); ctx.lineTo(padL + pw, yOf(val)); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = col;
+    ctx.font = '10px Consolas, monospace';
+    ctx.fillText(label, padL + 4, yOf(val) - 3);
+  };
+  drawLevel(state.threshSig, 'rgba(255,138,101,0.85)', 'SIGNAL');
+  drawLevel(state.threshRst, 'rgba(129,199,132,0.7)', 'RESET');
+
+  // t=0
+  ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+  ctx.setLineDash([4, 4]);
+  ctx.beginPath(); ctx.moveTo(xOf(0), padT); ctx.lineTo(xOf(0), padT + ph); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // 波形。古いものほど薄く、最新だけ明るい黄緑。
+  for (let k = 0; k < traces.length; k++) {
+    const tr = traces[k];
+    const newest = (k === traces.length - 1);
+    const age = traces.length > 1 ? k / (traces.length - 1) : 1;
+    ctx.strokeStyle = newest ? '#b2ff59' : `rgba(77,208,225,${(0.08 + 0.30 * age).toFixed(3)})`;
+    ctx.lineWidth = newest ? 2 : 1;
+    ctx.beginPath();
+    for (let i = 0; i < tr.ntot; i++) {
+      const x = xOf((i - tr.npre) * tr.dtUs), y = yOf(tr.v[i]);
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  }
+
+  // 軸
+  ctx.strokeStyle = '#90a4ae';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(padL, padT, pw, ph);
+  ctx.fillStyle = '#78909c';
+  ctx.font = '11px -apple-system, Segoe UI, sans-serif';
+  ctx.textAlign = 'center';
+  for (let k = 0; k <= 8; k++) {
+    const us = t0 + (t1 - t0) * k / 8;
+    ctx.fillText(us.toFixed(0), padL + pw * k / 8, padT + ph + 16);
+  }
+  ctx.fillText('time from trigger [µs]', padL + pw / 2, H - 8);
+  ctx.textAlign = 'right';
+  for (let k = 0; k <= 5; k++) {
+    const a = yLo + (yHi - yLo) * (1 - k / 5);
+    ctx.fillText(a.toFixed(0), padL - 6, padT + ph * k / 5 + 4);
+  }
+  ctx.textAlign = 'left';
+  ctx.fillText('ADC', 6, padT + 10);
+}
+
+function scopeEnter() {
+  scope.active = true;
+  $('scopeBleWarn').style.display = (state.transport === 'ble') ? '' : 'none';
+  // ESP32-S3 以外（Arduino Nano 版）は SET_SCOPE: を黙って無視する
+  $('scopeUnsupported').style.display =
+    (state.isConnected && state.board !== 'ESP32S3') ? '' : 'none';
+  if (state.isConnected) {
+    sendCommand('SET_SCOPE_RATE:' + (parseInt($('scopeRate').value) || 3));
+    sendCommand('SET_SCOPE:ON');
+  }
+  scopeDraw();
+}
+
+function scopeLeave() {
+  scope.active = false;
+  // 計数を再開させる。接続が生きていなければ何も送れないが、
+  // ファーム側は再起動時に必ず OFF なので取り残されることは無い。
+  if (state.isConnected) sendCommand('SET_SCOPE:OFF');
+}
+
+$('scopeRate').addEventListener('change', () => {
+  const v = Math.min(20, Math.max(1, parseInt($('scopeRate').value) || 3));
+  $('scopeRate').value = v;
+  if (state.isConnected && scope.active) sendCommand('SET_SCOPE_RATE:' + v);
+});
+$('scopePersist').addEventListener('change', scopeDraw);
+$('scopeAutoY').addEventListener('change', scopeDraw);
+$('scopeFreeze').addEventListener('click', () => {
+  scope.frozen = !scope.frozen;
+  $('scopeFreeze').textContent = t(scope.frozen ? 'scope.unfreeze' : 'scope.freeze');
+});
+$('scopeClear').addEventListener('click', () => {
+  scope.traces = []; scope.raw = []; scope.count = 0; scope.bad = 0; scope.stamps = [];
+  scopeStats(); scopeDraw();
+});
+$('scopeSave').addEventListener('click', () => {
+  if (!scope.raw.length) return;
+  const hdr = `#WF ver=1 mode=DMA source=index.html thr=${state.threshSig} rst=${state.threshRst}`;
+  const blob = new Blob([hdr + '\n' + scope.raw.join('\n') + '\n'], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `scope_${formatDateForFile()}.wfm`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+});
+
+// タブを開いたまま切断された場合に備えて表示を更新する
+window.addEventListener('beforeunload', () => {
+  if (scope.active && state.isConnected) sendCommand('SET_SCOPE:OFF');
+});
+
+// ========== Tabs ==========
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    const prev = document.querySelector('.tab.active');
+    const prevTarget = prev ? prev.dataset.tab : null;
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    const target = tab.dataset.tab;
+    document.querySelectorAll('[id^="tab-"]').forEach(el => el.style.display = 'none');
+    document.getElementById('tab-' + target).style.display = '';
+
+    // オシロタブは開いている間だけファームに波形を吐かせる。
+    // 出るときに必ず止めないと、計数が止まったままになる。
+    if (prevTarget === 'scope' && target !== 'scope') scopeLeave();
+    if (target === 'scope' && prevTarget !== 'scope') scopeEnter();
+  });
+});
+
+// ========== Event Listeners ==========
+$('btnConnectUSB').addEventListener('click', connectSerial);
+$('btnConnectBLE').addEventListener('click', connectBLE);
+$('btnDisconnect').addEventListener('click', disconnect);
+
+$('btnSetThresh').addEventListener('click', () => {
+  const sig = parseInt($('threshSignal').value);
+  const rst = parseInt($('threshReset').value);
+  if (isNaN(sig) || isNaN(rst) || sig <= rst || sig > state.adcMax || rst < 0) {
+    alert(t('alert.threshRange', { max: state.adcMax }));
+    return;
+  }
+  sendCommand(`SET_THRESH:${sig},${rst}`);
+});
+
+$('btnGetThresh').addEventListener('click', () => {
+  sendCommand('GET_THRESH');
+});
+
+$('btnAutoThresh').addEventListener('click', () => {
+  $('threshInfo').textContent = t('thresh.calibrating');
+  $('btnAutoThresh').disabled = true;
+  sendCommand('AUTO_THRESH');
+  // Re-enable after 3s as fallback
+  setTimeout(() => { $('btnAutoThresh').disabled = !state.isConnected; }, 3000);
+});
+
+$('btnSetMode').addEventListener('click', () => {
+  sendCommand(`SET_MODE:${$('modeSelect').value}`);
+});
+
+$('btnGetMode').addEventListener('click', () => {
+  sendCommand('GET_MODE');
+});
+
+// ---- 接続方式 / ボード選択 ----
+
+$('boardSelect').addEventListener('change', () => {
+  const v = $('boardSelect').value;
+  if (v === 'auto') {
+    if (state.isConnected) probeBoard();
+  } else {
+    clearTimeout(state.boardProbeTimer);
+    setBoard(v);
+  }
+});
+
+// ---- ESP32-S3 専用コントロール ----
+$('btnSetAutoMargin').addEventListener('click', () => {
+  const m = parseInt($('autoMarginInput').value);
+  if (isNaN(m) || m < 0 || m > state.adcMax) return;
+  sendCommand(`SET_AUTO_MARGIN:${m}`);
+});
+
+$('btnGetAutoMargin').addEventListener('click', () => sendCommand('GET_AUTO_MARGIN'));
+
+$('sampleSelect').addEventListener('change', () => {
+  sendCommand(`SET_SAMPLE:${$('sampleSelect').value}`);
+});
+
+$('coincSelect').addEventListener('change', () => {
+  sendCommand(`SET_COINC:${$('coincSelect').value}`);
+});
+
+$('oledSelect').addEventListener('change', () => {
+  sendCommand(`SET_OLED:${$('oledSelect').value}`);
+});
+
+$('btnSetBleName').addEventListener('click', () => {
+  const name = ($('bleNameInput').value || '').trim();
+  if (!name || name.length > 24 || !/^[\x20-\x7E]+$/.test(name)) {
+    alert('BLE name must be 1-24 printable ASCII characters.');
+    return;
+  }
+  sendCommand(`SET_BLENAME:${name}`);
+});
+
+$('btnResetCounter').addEventListener('click', () => {
+  sendCommand('RESET');
+});
+
+$('btnSelectFolder').addEventListener('click', selectSaveFolder);
+$('btnExportDat').addEventListener('click', exportDat);
+$('btnExportCsv').addEventListener('click', exportCsv);
+$('btnSaveHistPng').addEventListener('click', () => saveChartPng('histogramChart', 'histogram'));
+$('btnSaveRatePng').addEventListener('click', () => saveChartPng('rateChart', 'rate'));
+
+$('btnClearData').addEventListener('click', () => {
+  if (state.events.length > 0 && !confirm(t('confirm.clear'))) return;
+  state.events = [];
+  state.rateHistory = [];
+  state.rawLines = [];
+  state.stats = {
+    sumTemp: 0, sumTemp2: 0, minTemp: Infinity, maxTemp: -Infinity,
+    sumDead: 0, sumAdc: 0, maxAdc: 0, sumSipm: 0
+  };
+  lastTableLength = 0;
+  $('dataTableBody').innerHTML = '';
+  $('rawDataDisplay').textContent = t('raw.waiting');
+  $('noDataMsg').style.display = '';
+  $('btnExportDat').disabled = true;
+  $('btnExportCsv').disabled = true;
+  rebuildHistogram();
+  rateChart.data.labels = [];
+  rateChart.data.datasets[0].data = [];
+  rateChart.update();
+  updateStats();
+});
+
+$('binWidth').addEventListener('change', rebuildHistogram);
+$('histLogScale').addEventListener('change', applyHistScale);
+
+// ========== Initialization ==========
+document.addEventListener('DOMContentLoaded', () => {
+  currentLang = detectLanguage();
+  // 機種を選ぶ画面（index.html）で次回もこのページを開くよう、v1 を覚えておく。
+  try { localStorage.setItem('detectorModel', 'v1'); } catch (_) {}
+
+  document.querySelectorAll('.lang-switch button').forEach(btn => {
+    btn.addEventListener('click', () => setLanguage(btn.dataset.lang));
+  });
+
+  if (!('serial' in navigator)) {
+    $('serialWarning').style.display = '';
+  }
+
+  // 前回使った BLE デバイス名を復元
+  try {
+    const savedName = localStorage.getItem('bleDeviceName');
+    if (savedName) {
+      $('bleDeviceName').value = savedName;
+      $('bleNameInput').value = savedName;
+    }
+  } catch (_) {}
+
+  // Web Bluetooth 非対応ブラウザではボタンを無効化し、理由を出す。
+  // （file:// で開いた場合も Chrome は bluetooth を出さないことがある）
+  if (!('bluetooth' in navigator)) {
+    $('btnConnectBLE').disabled = true;
+    $('bleHint').style.display = '';
+    $('bleHint').textContent = t('warn.noBle');
+  }
+
+  // 未接続時の既定は Arduino Nano(10bit)。接続後 probeBoard() が上書きする。
+  setBoard('NANO');
+  state.board = null;   // 「まだ判別していない」状態に戻す（表示だけ 10bit 既定）
+  updateBoardBadge();
+
+  applyLanguage();   // before initCharts so a CDN failure can't block localization
+  initCharts();      // chart axis titles use t() at creation
+
+  // Update rate chart every 10 seconds
+  setInterval(updateRateChart, 10000);
+
+  // Auto-save flush every 1 second
+  setInterval(flushAutoSave, 1000);
+});
+</script>
+</body>
+</html>

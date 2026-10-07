@@ -257,10 +257,13 @@ input::placeholder, textarea::placeholder { color: var(--ink-4); }
 
 /* ===== Page grid ===== */
 .page { display: grid; grid-template-columns: minmax(0, 1fr) var(--rail-w); align-items: start; }
+body[data-view="model"] .page,
 body[data-view="connect"] .page,
 body[data-view="scope"] .page { grid-template-columns: minmax(0, 1fr); }
+body[data-view="model"] .rail,
 body[data-view="connect"] .rail,
 body[data-view="scope"] .rail,
+body[data-view="model"] .save-fab,
 body[data-view="connect"] .save-fab,
 body[data-view="scope"] .save-fab { display: none; }
 .col-main { min-width: 0; }
@@ -280,13 +283,41 @@ body[data-view="scope"] .save-fab { display: none; }
 .msg .icon-btn { width: 26px; height: 26px; margin: -2px -4px 0 0; }
 
 /* ===== 1. Connect view ===== */
-.view-connect {
+.view-connect, .view-model {
   padding: 56px 32px 40px;
   background-image: repeating-linear-gradient(0deg, transparent 0 31px, rgba(42, 39, 48, .045) 31px 32px);
   min-height: calc(100vh - var(--head-h) - var(--msgs-h) - 60px);
 }
-.view-connect > * { max-width: 1060px; margin-left: auto; margin-right: auto; }
+.view-connect > *, .view-model > * { max-width: 1060px; margin-left: auto; margin-right: auto; }
 .eyebrow { font-size: 13px; color: var(--ink-3); letter-spacing: .06em; }
+.model-change { margin-left: 14px; letter-spacing: 0; }
+
+/* ===== 0. Model chooser: the case is what people recognise ===== */
+.models { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; margin-top: 40px; }
+.model {
+  display: flex; flex-direction: column; gap: 4px; text-align: left;
+  padding: 0 22px 20px; border: 1px solid var(--rule-strong); border-radius: 6px;
+  background: var(--field); cursor: pointer; transition: border-color .15s, transform .15s;
+}
+button.model:hover { border-color: var(--ink); }
+button.model:hover img { transform: translateY(-3px); }
+.model-fig {
+  display: block; margin: 0 -22px 6px; aspect-ratio: 4 / 3;
+  background: radial-gradient(ellipse 60% 22% at 50% 86%, rgba(42, 39, 48, .13), transparent 70%), var(--paper-2);
+  border-bottom: 1px solid var(--rule); border-radius: 6px 6px 0 0; overflow: hidden;
+}
+.model-fig img { display: block; width: 100%; height: 100%; object-fit: contain; transition: transform .2s ease; }
+.model-name { display: flex; align-items: center; gap: 10px; font-family: var(--f-num); font-size: 24px; font-weight: 500; }
+.model-desc { font-size: 13.5px; color: var(--ink-3); }
+.model-last, .model-tag {
+  font-family: var(--f-ui); font-size: 11.5px; font-weight: 500; letter-spacing: .04em;
+  padding: 1px 8px; border-radius: 999px;
+}
+.model-last { background: var(--signal-pale); color: var(--signal-ink); }
+.model-tag { border: 1px solid var(--rule-strong); color: var(--ink-3); }
+.model-soon { cursor: default; border-style: dashed; }
+.model-soon .model-fig img { opacity: .55; filter: saturate(.5); }
+.model-soon .model-name { color: var(--ink-3); }
 .hero-title { font-family: var(--f-disp); font-weight: 700; font-size: 46px; line-height: 1.25; margin: 8px 0 12px; letter-spacing: .02em; }
 .hero-lead { font-size: 16px; color: var(--ink-2); max-width: 36em; }
 
@@ -425,6 +456,8 @@ table.events tbody tr:hover { background: var(--paper-2); }
 }
 .foot a { color: var(--ink-2); }
 body[data-view="scope"] .foot { display: none; }
+body[data-view="model"] .foot-v2only,
+body[data-view="model"] .brand-ver { display: none; }
 
 /* ===== Save rail ===== */
 .rail {
@@ -620,8 +653,18 @@ body[data-view="scope"] .msg .i { color: var(--night-ink-2); }
   .topbar-row { flex-wrap: wrap; row-gap: 6px; padding: 8px 16px; }
   .status { border-left: 0; padding-left: 0; }
   .choices, .steps { grid-template-columns: minmax(0, 1fr); }
+  .models { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
   .hero-title { font-size: 36px; }
-  .view-connect { padding: 32px 16px; }
+  .view-connect, .view-model { padding: 32px 16px; }
+}
+
+/* Phones: model cards turn sideways so all three fit with less scrolling */
+@media (max-width: 600px) {
+  .models { grid-template-columns: minmax(0, 1fr); gap: 12px; margin-top: 28px; }
+  .model { display: grid; grid-template-columns: 42% minmax(0, 1fr); grid-template-rows: auto 1fr; column-gap: 14px; row-gap: 2px; padding: 0 14px 0 0; }
+  .model-fig { grid-row: 1 / 3; margin: 0; border-bottom: 0; border-right: 1px solid var(--rule); border-radius: 6px 0 0 6px; }
+  .model-name { margin-top: 12px; font-size: 20px; }
+  .model-desc { font-size: 12.5px; padding-bottom: 12px; }
 }
 
 /* Tablet portrait and below: the rail becomes a sheet opened from a fixed Save button */
@@ -654,4 +697,6 @@ body[data-view="scope"] .msg .i { color: var(--night-ink-2); }
 @media (prefers-reduced-motion: reduce) {
   .live.on.ping::after, .live.retry { animation: none; }
   .drawer, .rail, .switch, .switch .knob { transition: none; }
+  .model-fig img { transition: none; }
+  button.model:hover img { transform: none; }
 }
