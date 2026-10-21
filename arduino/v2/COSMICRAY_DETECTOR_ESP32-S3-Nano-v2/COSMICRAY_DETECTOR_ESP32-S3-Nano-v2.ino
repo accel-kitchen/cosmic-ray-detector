@@ -60,6 +60,13 @@ const int COIN_OUT_PIN = 10;  // D7
 const int DIG_IN_PINS[3] = { 9, 8, 7 };    // D6, D5, D4
 const int ANA_IN_PINS[3] = { 2, 3, 13 };   // A1, A2, A6
 const int LED_PIN      = 6;   // D3 (検出表示LED)
+// 振動モーター (A7)。D13 は microSD の SCK なので使えない ── モーターを載せると
+// SPI 波形が潰れて SD ログが壊れ、逆に SD アクセスのたびにモーターが唸る。
+// v2 基板で未接続なヘッダピンは A3(GPIO4) と A7(GPIO14) の 2 本だけで、
+// A7 は ADC2 側なのでオシロモードが占有する ADC1 と一切干渉しない。
+// 注意: 1027 コイン型の定格電流(~75-90mA)は GPIO の絶対最大定格 40mA を超える。
+// トランジスタ/MOSFET + 還流ダイオードで駆動すること (MANUAL.html 参照)。
+const int VIB_PIN      = 14;  // A7 (振動モーター)
 static constexpr int SD_SPI_CS_PIN = 18;         // D9  / CS  -> microSD (J8, CS2)
 static constexpr int SD_SPI_UNUSED_CS_PIN = 21;  // D10 / CS1 (keep deasserted)
 static constexpr int SD_SPI_MOSI_PIN = 38;       // D11 / COPI
@@ -86,6 +93,16 @@ static constexpr int ADC_MAX  = (1 << ADC_BITS) - 1;   // 4095
 static constexpr int PWM_BITS = 8;
 static constexpr int PWM_MAX  = (1 << PWM_BITS) - 1;   // 255
 static constexpr uint32_t PWM_FREQ_HZ = 40000;
+// コンパレータしきい値(D2 PWM)の自動較正パラメータ（AUTO_PWM）。
+// duty を上げるとノイズ山を越えた所で comp_rate が急落する。最初に target 以下へ
+// 落ちる点（ニー）にマージンを足して採用する。DIGITAL/DUAL トリガで使う。
+static constexpr uint32_t AUTO_PWM_TARGET_DEFAULT = 50;   // [edges/s] これ以下なら「静か」
+static constexpr int      AUTO_PWM_STEP           = 8;    // duty 掃引の刻み
+static constexpr uint32_t AUTO_PWM_SETTLE_MS      = 80;   // PWM の RC 平滑待ち
+static constexpr uint32_t AUTO_PWM_WINDOW_MS      = 120;  // エッジ計数窓
+static constexpr int      AUTO_PWM_MARGIN_STEPS   = 2;    // ニーからの安全マージン
+static constexpr uint32_t AUTO_PWM_NOISE_FLOOR    = 500;  // [/s] 未満ならノイズ山が見えていない
+static constexpr int      PWM_DUTY_DEFAULT        = 96;   // 較正前フォールバック
 static constexpr int LEGACY_ADC_BITS = 10;
 static constexpr int LEGACY_ADC_MAX  = (1 << LEGACY_ADC_BITS) - 1;  // 1023
 // Display refresh interval.
@@ -124,6 +141,16 @@ unsigned int  beepFreqMaxHz = 4000;   // 波高=ADC最大時
 unsigned long beepMs = 25;             // 鳴動時間
 static constexpr unsigned int BEEP_FREQ_LIMIT_HZ = 20000;  // 設定上限
 static constexpr unsigned long LED_BLINK_MS = 20;
+
+// 振動モーター: 波高(エネルギー)に応じて「振動時間」を変える。
+// ブザーが音程を log(エネルギー) にマップしているのと同じ考え方で、
+// 触覚も刺激の対数に比例して感じる(Weber-Fechner)ため、線形マップだと
+// 大多数の低エネ事象が同じ長さに潰れて区別が付かない。幾何補間なら
+// 「エネルギー2倍 = 常に一定倍の振動時間」になり、大きい事象が手に伝わる。
+// SET_VIB_MS:<min>,<max> で調整でき Preferences に保存される。
+unsigned int vibMinMs = 20;    // 波高=しきい値時 ("こつっ")
+unsigned int vibMaxMs = 120;   // 波高=ADC最大時 ("ぶるっ")
+static constexpr unsigned int VIB_MS_LIMIT = 500;  // 設定上限
 
 enum TriggerMode : uint8_t {
   TRIGGER_MODE_DIGITAL_ONLY = 0,
@@ -180,8 +207,10 @@ bool sdEnabled   = true;
 bool extEnabled  = true;
 bool oledEnabled = true;
 bool buzzerEnabled = true;
+bool vibEnabled = true;
 unsigned long lastTempReadMs = 0;
 unsigned long ledOffMs = 0;
+unsigned long vibOffMs = 0;
 unsigned long coinOffUs = 0;
 
 // ==========================================
@@ -204,6 +233,12 @@ unsigned long coinOffUs = 0;
 bool     scopeOn   = false;
 uint32_t scopeRate = 3;
 static constexpr uint32_t SCOPE_RATE_MAX = 20;
+// オシロ中にコマンドがこの時間まったく来なければ、自分で OFF に戻して計数を再開する。
+// ダッシュボードが SET_SCOPE:OFF を送れずに閉じても（タブを閉じた、PC が寝た、
+// ケーブルを抜いた）夜通し計数が止まったままにならないための安全装置。
+// ダッシュボードはオシロタブを開いている間 15 秒ごとに GET_SCOPE を送る。
+static constexpr unsigned long SCOPE_IDLE_TIMEOUT_MS = 60000;
+unsigned long lastCommandMs = 0;
 
 static constexpr int SCOPE_PRE  = 32;
 static constexpr int SCOPE_POST = 128;
@@ -232,16 +267,55 @@ unsigned long scopeLastEmitMs = 0;
 
 // ISR フラグ
 volatile bool triggerFlag = false;
+volatile uint32_t compEdgeCount = 0;  // コンパレータ端の総数（onTriggerISR で加算、AUTO_PWM で使用）
 static bool triggerIsrAttached = false;  // tracks whether the TRIGGER_IN ISR is currently attached
 
-// BLEコマンドバッファ
-static char bleCmdBuffer[32];
-static int bleCmdIndex = 0;
+// ==========================================
+//   コマンド行の組み立て (Serial / BLE 共通)
+// ==========================================
+// 47 文字 + NUL。以前は 31 文字で、"SET_BLENAME:" (12) を引くと名前は 19 文字までしか
+// 入らず、それより長い名前は黙って切り詰めて保存されていた。
+static constexpr size_t CMD_BUF_SIZE = 48;
+
+enum CmdFeedResult : uint8_t { CMD_NONE, CMD_READY, CMD_TOO_LONG };
+
+struct CmdLine {
+  char   buf[CMD_BUF_SIZE];
+  size_t len;
+  bool   overflow;
+};
+
+// 1 文字ずつ渡し、改行で行が確定したら CMD_READY（buf に NUL 終端のコマンド）。
+// 長すぎた行は CMD_TOO_LONG で丸ごと捨てる。途中で切ったコマンドを実行すると、
+// 切り詰めた BLE 名を保存して再起動する、といった事故になるため。
+CmdFeedResult cmdFeed(CmdLine& l, char c) {
+  if (c == '\n' || c == '\r') {
+    const CmdFeedResult r = l.overflow ? CMD_TOO_LONG : (l.len > 0 ? CMD_READY : CMD_NONE);
+    l.buf[l.len] = '\0';
+    l.len = 0;
+    l.overflow = false;
+    return r;
+  }
+  if (l.len < CMD_BUF_SIZE - 1) l.buf[l.len++] = c;
+  else l.overflow = true;
+  return CMD_NONE;
+}
+
+// BLE の受信コールバックは BLE スタックのタスクで走る。そこから executeCommand() を
+// 直接呼ぶと、SET_SCOPE:ON（ADC1 を DMA に渡す）や AUTO_PWM が loop() 側の
+// analogRead / 計数処理と同時に走ってしまう。コールバックでは確定した行を
+// キューに積むだけにし、実行は loop() の processBleCommands() で行う。
+static constexpr UBaseType_t BLE_CMD_QUEUE_LEN = 8;
+static QueueHandle_t bleCmdQueue = nullptr;
+static CmdLine bleCmdLine = {};   // BLE タスクだけが触る
 
 // ==========================================
 //   プロトタイプ / Function prototypes
 // ==========================================
+void runCommand(const char* cmd);
 void executeCommand(const char* cmd);
+void processBleCommands();
+void printCmdTooLong();
 void dualPrint(const char* str);
 void dualPrintln(const char* str);
 void bleSend(const char* data, size_t len);
@@ -257,13 +331,19 @@ void printTriggerMode();
 void printSdStatus();
 void printExtStatus();
 void printOledStatus();
+void printVibStatus();
+void printVibMs();
 void printBleName();
+void printBtAddr();
 void printAutoMargin();
 void applySdEnable();
 void applyOledEnable();
 void calibrateThreshold(int samples, int sigOffset);
 void applyThresholdPwm();
 void applyTriggerMode();
+uint32_t measureCompRate(uint32_t windowMs);
+int autoPwm(uint32_t targetRate);
+void printPwm();
 void updateBme();
 void updateDisplay();
 void OpeningScreen();
@@ -283,30 +363,44 @@ uint64_t micros64();
 // ==========================================
 //   BLE Callbacks
 // ==========================================
+// 接続の切り替わりで、組み立て途中のコマンド行を捨てる。残しておくと、20 バイトの
+// 区切りで切れた前の接続の行に次の接続の最初のコマンドがつながり、
+// "SET_BLENAME:LabStatiGET_BLENAME" のような有効な行になってしまう。
+// どちらのコールバックも onWrite と同じ BLE タスクで走るので競合しない。
+static void resetBleCmdLine() {
+  bleCmdLine.len = 0;
+  bleCmdLine.overflow = false;
+}
+
 class MyServerCallbacks : public BLEServerCallbacks {
   void onConnect(BLEServer* pServer) override {
+    resetBleCmdLine();
     bleDeviceConnected = true;
   }
   void onDisconnect(BLEServer* pServer) override {
     bleDeviceConnected = false;
+    resetBleCmdLine();
   }
 };
 
 class MyRXCallbacks : public BLECharacteristicCallbacks {
   void onWrite(BLECharacteristic* pCharacteristic) override {
-    const char* rxData = pCharacteristic->getValue().c_str();
-    size_t rxLen = strlen(rxData);
+    // コア 3.x の getValue() は String を値で返す。getValue().c_str() と書くと
+    // 一時オブジェクトが文の終わりで解放され、解放済みの領域を読むことになる。
+    // 必ず変数に受けてから使う。長さも strlen ではなく length() で取る。
+    String rx = pCharacteristic->getValue();
+    const size_t rxLen = rx.length();
     for (size_t i = 0; i < rxLen; i++) {
-      char c = rxData[i];
-      if (c == '\n' || c == '\r') {
-        if (bleCmdIndex > 0) {
-          bleCmdBuffer[bleCmdIndex] = '\0';
-          executeCommand(bleCmdBuffer);
-          bleCmdIndex = 0;
-        }
-      } else if (bleCmdIndex < 31) {
-        bleCmdBuffer[bleCmdIndex++] = c;
+      const CmdFeedResult r = cmdFeed(bleCmdLine, rx[i]);
+      if (r == CMD_NONE) continue;
+      char item[CMD_BUF_SIZE];
+      if (r == CMD_READY) {
+        memcpy(item, bleCmdLine.buf, CMD_BUF_SIZE);
+      } else {
+        item[0] = '\0';  // 空文字列 = 長すぎて捨てた行（loop 側でエラーを返す）
       }
+      // 満杯なら捨てる。loop() が AUTO_PWM などで長く止まっているときだけ起きる。
+      if (bleCmdQueue) xQueueSend(bleCmdQueue, item, 0);
     }
   }
 };
@@ -453,14 +547,33 @@ void printBootHeader() {
   printSdStatus();
   printExtStatus();
   printOledStatus();
+  printVibStatus();
 
-  dualPrintln("### Event Time[us] ADC[0-4095] Deadtime[us] Temp[C] Hum[%%] Press[hPa] Dig1 Dig2 Dig3 Ana1 Ana2 Ana3");
+  // printf を通らないので % は 1 つで書く（"%%" だとそのまま "%%" と出る）。
+  dualPrintln("### Event Time[us] ADC[0-4095] Deadtime[us] Temp[C] Hum[%] Press[hPa] Dig1 Dig2 Dig3 Ana1 Ana2 Ana3");
   dualPrintln(hdr1);
 }
 
 // ==========================================
 // Command handling (Serial / BLE)
 // ==========================================
+// Serial / BLE のコマンドはすべてここを通す。
+// コマンドを実行している間は検出ループが回らない（BLE の応答は 20 バイトごとに
+// 3 ms 待つので数 ms、AUTO_THRESH は約 1 秒、AUTO_PWM は約 7 秒）。その時間を
+// まとめてデッドタイムに計上する。個々のコマンドの中では計上しない。
+// 例外: オシロ中（前後どちらか）は滞在時間ごと scopeSetOn() が計上するので足さない。
+//       RESET は計上の起点そのものを作り直すので足さない。
+void runCommand(const char* cmd) {
+  // どのコマンドもオシロの無操作タイマーを延長する（GET_SCOPE はその keepalive）。
+  lastCommandMs = millis();
+  const bool scopeBefore = scopeOn;
+  const uint64_t t0 = micros64();
+  executeCommand(cmd);
+  if (!scopeBefore && !scopeOn && strcmp(cmd, "RESET") != 0) {
+    total_deadtime_us += micros64() - t0;
+  }
+}
+
 void executeCommand(const char* cmd) {
   if (strncmp(cmd, "SET_THRESH:", 11) == 0) {
     int sig;
@@ -474,6 +587,26 @@ void executeCommand(const char* cmd) {
     printThresholds();
   } else if (strcmp(cmd, "GET_THRESH") == 0) {
     printThresholds();
+  } else if (strncmp(cmd, "SET_PWM:", 8) == 0) {
+    // コンパレータしきい値の duty を直接設定（0..255）
+    int d;
+    if (sscanf(cmd + 8, "%d", &d) == 1) {
+      if (d < 0) d = 0;
+      if (d > PWM_MAX) d = PWM_MAX;
+      pwmDuty = d;
+      applyThresholdPwm();
+      saveThresholds();
+    }
+    printPwm();
+  } else if (strcmp(cmd, "GET_PWM") == 0) {
+    printPwm();
+  } else if (strncmp(cmd, "AUTO_PWM", 8) == 0) {
+    // コンパレータしきい値の自動較正。AUTO_PWM または AUTO_PWM:<target/s>
+    uint32_t target = AUTO_PWM_TARGET_DEFAULT;
+    if (cmd[8] == ':') { long t = atol(cmd + 9); if (t >= 0) target = (uint32_t)t; }
+    autoPwm(target);
+    saveThresholds();
+    printPwm();
   } else if (strcmp(cmd, "AUTO_THRESH") == 0) {
     dualPrintln("### Auto-calibrating threshold...");
     calibrateThreshold(100, autoMargin);
@@ -498,6 +631,9 @@ void executeCommand(const char* cmd) {
     count = 0;
     start_time_us = micros64();
     total_deadtime_us = 0ULL;
+    // オシロ中の RESET: 閉じたときに計上する滞在時間を RESET 以降の分にする。
+    // そのままだと RESET 前の滞在まで足され、デッドタイムが経過時間を超える。
+    if (scopeOn) scopeEnterUs = start_time_us;
     dualPrintln("RESET:OK");
   } else if (strcmp(cmd, "GET_AUTO_MARGIN") == 0) {
     printAutoMargin();
@@ -522,6 +658,9 @@ void executeCommand(const char* cmd) {
     saveThresholds();
     applyTriggerMode();
     printTriggerMode();
+    if (triggerMode != TRIGGER_MODE_ANALOG_ONLY) {
+      dualPrintln("### Tip: run AUTO_PWM to calibrate the comparator threshold for digital triggering.");
+    }
   } else if (strcmp(cmd, "GET_MODE") == 0) {
     printTriggerMode();
   } else if (strncmp(cmd, "SET_SD:", 7) == 0) {
@@ -566,6 +705,46 @@ void executeCommand(const char* cmd) {
     printBuzzerStatus();
   } else if (strcmp(cmd, "GET_BUZZER") == 0) {
     printBuzzerStatus();
+  } else if (strncmp(cmd, "SET_VIB:", 8) == 0) {
+    // "SET_VIB:" と "SET_VIB_MS:" は 8 文字目が ':' と '_' で分かれるので
+    // strncmp の判定順に依存しない。
+    if (strcmp(cmd + 8, "ON") == 0) {
+      vibEnabled = true;
+    } else if (strcmp(cmd + 8, "OFF") == 0) {
+      vibEnabled = false;
+      digitalWrite(VIB_PIN, LOW);  // 鳴動中に切られたら即止める
+      vibOffMs = 0;
+    }
+    saveThresholds();
+    printVibStatus();
+  } else if (strcmp(cmd, "GET_VIB") == 0) {
+    printVibStatus();
+  } else if (strncmp(cmd, "SET_VIB_MS:", 11) == 0) {
+    // SET_VIB_MS:<min_ms>,<max_ms>  波高→振動時間の対数レンジ
+    int vmin = 0, vmax = 0;
+    if (sscanf(cmd + 11, "%d,%d", &vmin, &vmax) == 2 &&
+        vmin >= 1 && vmax > vmin && vmax <= (int)VIB_MS_LIMIT) {
+      vibMinMs = (unsigned int)vmin;
+      vibMaxMs = (unsigned int)vmax;
+      saveThresholds();
+    }
+    printVibMs();
+  } else if (strcmp(cmd, "GET_VIB_MS") == 0) {
+    printVibMs();
+  } else if (strcmp(cmd, "VIB_TEST") == 0) {
+    // 短(min)→中(幾何中点)→長(max) を順に振動させて強弱を手で確認する。
+    // BEEP_TEST と違い tone() のようなキューが無いので delay() で待つ。
+    // 待った分のデッドタイムは runCommand() が計上する。
+    unsigned int mid = (unsigned int)(sqrtf((float)vibMinMs * (float)vibMaxMs) + 0.5f);
+    const unsigned int durs[3] = { vibMinMs, mid, vibMaxMs };
+    for (int i = 0; i < 3; i++) {
+      digitalWrite(VIB_PIN, HIGH);
+      delay(durs[i]);
+      digitalWrite(VIB_PIN, LOW);
+      delay(200);  // 区切りが分かるよう間を空ける
+    }
+    vibOffMs = 0;
+    printVibMs();
   } else if (strncmp(cmd, "SET_BEEP:", 9) == 0) {
     // SET_BEEP:<min_hz>,<max_hz>[,<ms>]  波高→音程の対数レンジと鳴動時間
     int fmin = 0, fmax = 0, ms = -1;
@@ -601,6 +780,8 @@ void executeCommand(const char* cmd) {
     printScopeRate();
   } else if (strcmp(cmd, "GET_BLENAME") == 0) {
     printBleName();
+  } else if (strcmp(cmd, "GET_BTADDR") == 0) {
+    printBtAddr();
   } else if (strncmp(cmd, "SET_BLENAME:", 12) == 0) {
     const char* newName = cmd + 12;
     size_t len = strlen(newName);
@@ -624,22 +805,33 @@ void executeCommand(const char* cmd) {
   }
 }
 
+void printCmdTooLong() {
+  char buf[64];
+  snprintf(buf, sizeof(buf), "### ERROR: command too long (max %u chars), ignored.",
+           (unsigned)(CMD_BUF_SIZE - 1));
+  dualPrintln(buf);
+}
+
 // Serial command processing
 void processSerialCommand() {
-  static char cmdBuffer[32];
-  static int cmdIndex = 0;
+  static CmdLine line = {};
 
   while (Serial.available()) {
-    char c = Serial.read();
-    if (c == '\n' || c == '\r') {
-      if (cmdIndex > 0) {
-        cmdBuffer[cmdIndex] = '\0';
-        executeCommand(cmdBuffer);
-        cmdIndex = 0;
-      }
-    } else if (cmdIndex < 31) {
-      cmdBuffer[cmdIndex++] = c;
+    switch (cmdFeed(line, (char)Serial.read())) {
+      case CMD_READY:    runCommand(line.buf);     break;
+      case CMD_TOO_LONG: printCmdTooLong();        break;
+      default: break;
     }
+  }
+}
+
+// BLE で届いたコマンドを loop() の文脈で実行する（MyRXCallbacks の説明を参照）。
+void processBleCommands() {
+  if (!bleCmdQueue) return;
+  char item[CMD_BUF_SIZE];
+  while (xQueueReceive(bleCmdQueue, item, 0) == pdTRUE) {
+    if (item[0] == '\0') printCmdTooLong();
+    else runCommand(item);
   }
 }
 
@@ -656,6 +848,10 @@ void loadThresholds() {
   extEnabled  = prefs.getUChar("ext_en",  1) != 0;
   oledEnabled = prefs.getUChar("oled_en", 1) != 0;
   buzzerEnabled = prefs.getUChar("buzz_en", 1) != 0;
+  vibEnabled  = prefs.getUChar("vib_en",  1) != 0;
+  pwmDuty = prefs.getInt("pwm_duty", PWM_DUTY_DEFAULT);
+  if (pwmDuty < 0) pwmDuty = 0;
+  if (pwmDuty > PWM_MAX) pwmDuty = PWM_MAX;
   beepFreqMinHz = prefs.getUInt("beep_fmin", beepFreqMinHz);
   beepFreqMaxHz = prefs.getUInt("beep_fmax", beepFreqMaxHz);
   beepMs        = prefs.getULong("beep_ms",  beepMs);
@@ -663,6 +859,10 @@ void loadThresholds() {
   if (beepFreqMinHz < 50 || beepFreqMinHz > BEEP_FREQ_LIMIT_HZ) beepFreqMinHz = 500;
   if (beepFreqMaxHz <= beepFreqMinHz || beepFreqMaxHz > BEEP_FREQ_LIMIT_HZ) beepFreqMaxHz = 4000;
   if (beepMs < 1 || beepMs > 500) beepMs = 25;
+  vibMinMs = prefs.getUInt("vib_min", vibMinMs);
+  vibMaxMs = prefs.getUInt("vib_max", vibMaxMs);
+  if (vibMinMs < 1 || vibMinMs > VIB_MS_LIMIT) vibMinMs = 20;
+  if (vibMaxMs <= vibMinMs || vibMaxMs > VIB_MS_LIMIT) vibMaxMs = 120;
   String storedBleName = prefs.getString("ble_name", "CosmicRay");
   strncpy(bleName, storedBleName.c_str(), BLE_NAME_MAX);
   bleName[BLE_NAME_MAX] = '\0';
@@ -688,9 +888,13 @@ void saveThresholds() {
   prefs.putUChar("ext_en",  extEnabled  ? 1 : 0);
   prefs.putUChar("oled_en", oledEnabled ? 1 : 0);
   prefs.putUChar("buzz_en", buzzerEnabled ? 1 : 0);
+  prefs.putUChar("vib_en",  vibEnabled  ? 1 : 0);
+  prefs.putInt("pwm_duty", pwmDuty);
   prefs.putUInt("beep_fmin", beepFreqMinHz);
   prefs.putUInt("beep_fmax", beepFreqMaxHz);
   prefs.putULong("beep_ms",  beepMs);
+  prefs.putUInt("vib_min", vibMinMs);
+  prefs.putUInt("vib_max", vibMaxMs);
   prefs.putString("ble_name", bleName);
   prefs.putInt("auto_margin", autoMargin);
   prefs.end();
@@ -728,6 +932,16 @@ void printBuzzerStatus() {
   dualPrintln(buzzerEnabled ? "BUZZER:ON" : "BUZZER:OFF");
 }
 
+void printVibStatus() {
+  dualPrintln(vibEnabled ? "VIB:ON" : "VIB:OFF");
+}
+
+void printVibMs() {
+  char buf[32];
+  snprintf(buf, sizeof(buf), "VIBMS:%u,%u", vibMinMs, vibMaxMs);
+  dualPrintln(buf);
+}
+
 void printBeep() {
   char buf[48];
   snprintf(buf, sizeof(buf), "BEEP:%u,%u,%lu",
@@ -738,6 +952,17 @@ void printBeep() {
 void printBleName() {
   char buf[48];
   snprintf(buf, sizeof(buf), "BLENAME:%s", bleName);
+  dualPrintln(buf);
+}
+
+// 自分の BLE アドレス（基板ごとに固有）を返す。BLE 接続時のアドレス表示に加え、
+// USB 接続でも同じ値が返るので「どの基板に繋がっているか」の判別に使える。
+// Web Serial は COM 番号を公開しないため、USB 側の識別子はこれが頼りになる。
+void printBtAddr() {
+  char buf[40];
+  // BLEAddress::toString() の戻り値はコアの版で std::string / String と異なるが、
+  // どちらも c_str() を持つのでこの書き方なら両対応できる。
+  snprintf(buf, sizeof(buf), "BTADDR:%s", BLEDevice::getAddress().toString().c_str());
   dualPrintln(buf);
 }
 
@@ -824,7 +1049,12 @@ void calibrateThreshold(int samples, int margin) {
 }
 
 void applyThresholdPwm() {
-  pwmDuty = (SIGNAL_THRESHOLD * PWM_MAX * 2) / ADC_MAX;
+  // コンパレータしきい値(D2 PWM)を現在の pwmDuty で出力する。
+  // 以前は pwmDuty = SIGNAL_THRESHOLD*PWM_MAX*2/ADC_MAX と SIGNAL_THRESHOLD から
+  // 導いていたが、コンパレータ(アンプ出力を見る)と A0(ピークホールド)はスケールが
+  // 異なり、この換算はしきい値をノイズ帯へ落としていた（実測: ノイズ知は duty ~40、
+  // 換算だと threshold 90 -> duty 11 でノイズの中）。duty は AUTO_PWM / SET_PWM で
+  // SIGNAL_THRESHOLD とは独立に決める。
   if (pwmDuty < 0) pwmDuty = 0;
   if (pwmDuty > PWM_MAX) pwmDuty = PWM_MAX;
   analogWrite(PWM_THRESH, pwmDuty);
@@ -841,6 +1071,93 @@ void applyTriggerMode() {
     attachInterrupt(digitalPinToInterrupt(TRIGGER_IN), onTriggerISR, RISING);
     triggerIsrAttached = true;
   }
+}
+
+// ==========================================
+// コンパレータしきい値(D2 PWM)の自動較正
+// ==========================================
+uint32_t measureCompRate(uint32_t windowMs) {
+  const uint32_t e0 = compEdgeCount;
+  delay(windowMs);
+  const uint32_t e1 = compEdgeCount;
+  return (uint32_t)(((uint64_t)(e1 - e0) * 1000ULL) / windowMs);
+}
+
+// duty を掃引してノイズ山を検出し、その上側で最初に comp_rate<=target になる点に
+// マージンを足して採用する。DIGITAL/DUAL トリガを使う前に一度実行する
+// （ANALOG_ONLY はコンパレータを使わないので影響なし）。
+int autoPwm(uint32_t targetRate) {
+  // 掃引中はトリガモードに関わらずエッジを数えたいので一時的に ISR を張る。
+  const bool wasAttached = triggerIsrAttached;
+  if (!wasAttached) {
+    attachInterrupt(digitalPinToInterrupt(TRIGGER_IN), onTriggerISR, RISING);
+    triggerIsrAttached = true;
+  }
+
+  int      dutyArr[40];
+  uint32_t rateArr[40];
+  int      n = 0;
+  uint32_t peakRate = 0;
+  int      peakIdx  = 0;
+
+  dualPrintln("### AUTO_PWM sweep: duty,comp_rate[/s]");
+  for (int d = 0; d <= PWM_MAX && n < 40; d += AUTO_PWM_STEP) {
+    pwmDuty = d;
+    analogWrite(PWM_THRESH, pwmDuty);
+    delay(AUTO_PWM_SETTLE_MS);
+    const uint32_t rate = measureCompRate(AUTO_PWM_WINDOW_MS);
+    dutyArr[n] = d;
+    rateArr[n] = rate;
+    if (rate > peakRate) { peakRate = rate; peakIdx = n; }
+    char b[48];
+    snprintf(b, sizeof(b), "### %3d,%lu", d, (unsigned long)rate);
+    dualPrintln(b);
+    n++;
+  }
+
+  int chosen = -1;
+  if (peakRate < AUTO_PWM_NOISE_FLOOR) {
+    // ノイズ山が立たない = コンパレータが一度もチャタらなかった。
+    // 入力未接続 or D2->コンパレータのしきい値経路を疑う。既定値へ。
+    dualPrintln("### AUTO_PWM: no noise ridge (comparator never chattered). "
+                "check D2->comparator path or input; using default duty.");
+    chosen = (PWM_DUTY_DEFAULT <= PWM_MAX) ? PWM_DUTY_DEFAULT : PWM_MAX;
+  } else {
+    for (int i = peakIdx; i < n; i++) {
+      if (rateArr[i] <= targetRate) { chosen = dutyArr[i]; break; }
+    }
+    if (chosen < 0) {
+      chosen = PWM_MAX;
+      dualPrintln("### AUTO_PWM: never dropped below target; using PWM_MAX.");
+    } else {
+      chosen += AUTO_PWM_MARGIN_STEPS * AUTO_PWM_STEP;
+      if (chosen > PWM_MAX) chosen = PWM_MAX;
+    }
+  }
+
+  pwmDuty = chosen;
+  analogWrite(PWM_THRESH, pwmDuty);
+  delay(AUTO_PWM_SETTLE_MS);
+  const uint32_t finalRate = measureCompRate(AUTO_PWM_WINDOW_MS);
+
+  char b[128];
+  snprintf(b, sizeof(b),
+           "### AUTO_PWM done: duty=%d comp_rate=%lu/s (noise peak=%lu/s, target<=%lu/s)",
+           chosen, (unsigned long)finalRate, (unsigned long)peakRate, (unsigned long)targetRate);
+  dualPrintln(b);
+
+  // トリガモードに応じた ISR 状態へ戻す（掃引で溜まった triggerFlag も落とす）
+  applyTriggerMode();
+  triggerFlag = false;
+  // 較正の所要時間（約 7 秒）のデッドタイムは runCommand() が計上する。
+  // オシロ中に実行された場合は滞在時間に含まれるので二重には足さない。
+  return chosen;
+}
+
+void printPwm() {
+  char buf[24];
+  snprintf(buf, sizeof(buf), "PWM:%d", pwmDuty);
+  dualPrintln(buf);
 }
 
 void updateBme() {
@@ -868,12 +1185,16 @@ int scaleAdcValue(int value, int fromBits, int toBits) {
 // ==========================================
 void IRAM_ATTR onTriggerISR() {
   triggerFlag = true;
+  compEdgeCount++;
 }
 
 // ==========================================
 // BLE initialization
 // ==========================================
 void initBLE() {
+  // 受信コールバックが登録される前に作っておく。
+  bleCmdQueue = xQueueCreate(BLE_CMD_QUEUE_LEN, CMD_BUF_SIZE);
+
   BLEDevice::init(bleName);
   pServer = BLEDevice::createServer();
   pServer->setCallbacks(new MyServerCallbacks());
@@ -948,6 +1269,8 @@ void setup() {
   digitalWrite(BUZZER_PIN, LOW);
   pinMode(LED_PIN, OUTPUT);
   digitalWrite(LED_PIN, LOW);
+  pinMode(VIB_PIN, OUTPUT);
+  digitalWrite(VIB_PIN, LOW);
 
   for (int i = 0; i < 3; i++) {
     pinMode(DIG_IN_PINS[i], INPUT);
@@ -997,10 +1320,18 @@ void setup() {
 // ==========================================
 void loop() {
   unsigned long now = millis();
+  // micros() の 32 ビットの桁上がり（約 71.6 分ごと）を取りこぼさないよう、毎周呼ぶ。
+  // イベントも OLED 更新も無い状態（オシロ中で OLED OFF など）が続いても時刻が巻き戻らない。
+  micros64();
 
   if (ledOffMs && now >= ledOffMs) {
     digitalWrite(LED_PIN, LOW);
     ledOffMs = 0;
+  }
+
+  if (vibOffMs && (long)(now - vibOffMs) >= 0) {
+    digitalWrite(VIB_PIN, LOW);
+    vibOffMs = 0;
   }
 
   if (coinOffUs && (int32_t)(micros() - coinOffUs) >= 0) {
@@ -1009,16 +1340,30 @@ void loop() {
   }
 
   processSerialCommand();
+  processBleCommands();
+
+  // オシロの安全装置: 無操作が続いたら OFF に戻して計数を再開する。
+  if (scopeOn && (millis() - lastCommandMs) >= SCOPE_IDLE_TIMEOUT_MS) {
+    dualPrintln("### SCOPE: no command for 60 s, turning the scope OFF to resume counting.");
+    scopeSetOn(false);
+  }
 
   if (bmeReady && (lastTempReadMs == 0 || now - lastTempReadMs >= TEMP_READ_INTERVAL_MS)) {
     lastTempReadMs = now;
     updateBme();
   }
 
+  // 切断から 500 ms 置いて広告を再開する。以前は delay(500) で待っていたが、その間は
+  // 検出ループが止まるのにデッドタイムに入っていなかった。待たずに時刻だけ覚えておく。
+  static unsigned long bleAdvRestartAtMs = 0;
   if (!bleDeviceConnected && bleOldDeviceConnected) {
-    delay(500);
-    BLEDevice::startAdvertising();
+    bleAdvRestartAtMs = now + 500;
+    if (bleAdvRestartAtMs == 0) bleAdvRestartAtMs = 1;  // 0 は「予定なし」の印
     bleOldDeviceConnected = false;
+  }
+  if (bleAdvRestartAtMs && (long)(now - bleAdvRestartAtMs) >= 0) {
+    bleAdvRestartAtMs = 0;
+    if (!bleDeviceConnected) BLEDevice::startAdvertising();
   }
   if (bleDeviceConnected && !bleOldDeviceConnected) {
     bleOldDeviceConnected = true;
@@ -1285,6 +1630,10 @@ bool scopeSetOn(bool on) {
   // 見ていた時間は測定していない時間なので、正直にデッドタイムへ計上する。
   // これをやらないとオシロを開いた回数だけ計数率が下がって見える。
   total_deadtime_us += micros64() - scopeEnterUs;
+  // DIGITAL / DUAL ではオシロ中もコンパレータの割り込みが triggerFlag を立てている。
+  // 残したままだと、次の loop() がホールドを放電した直後のベースラインを
+  // 1 件のイベントとして数えてしまう（DIGITAL はしきい値の再確認をしない）。
+  triggerFlag = false;
   dualPrintln("### SCOPE: OFF - counting resumed.");
   printScope();
   return true;
@@ -1337,17 +1686,39 @@ void handleTriggerEvent(bool fromDigitalTrigger) {
   //   f = fmin * (fmax/fmin)^x                          … 幾何補間
   // これで「エネルギーが r 倍 = 常に同じ音程差」になり、線形マップのように
   // 大多数の低エネ事象が最低音域へ潰れることがない。
-  unsigned int beepFreq = beepFreqMinHz;              // 退避値(しきい値時)
+  // 正規化した対数エネルギー x はブザー(音程)と振動モーター(時間)で共用する。
+  // logf() はイベント経路上にいるので二度計算しない。
   int thr = (SIGNAL_THRESHOLD > 1) ? SIGNAL_THRESHOLD : 1;
-  if (adc > thr && ADC_MAX > thr && beepFreqMaxHz > beepFreqMinHz) {
-    float x = (logf((float)adc) - logf((float)thr)) /
-              (logf((float)ADC_MAX) - logf((float)thr));
+  float x = 0.0f;                                     // 0=しきい値, 1=ADC最大
+  if (adc > thr && ADC_MAX > thr) {
+    x = (logf((float)adc) - logf((float)thr)) /
+        (logf((float)ADC_MAX) - logf((float)thr));
     if (x < 0.0f) x = 0.0f; else if (x > 1.0f) x = 1.0f;
+  }
+
+  unsigned int beepFreq = beepFreqMinHz;              // 退避値(しきい値時)
+  if (beepFreqMaxHz > beepFreqMinHz) {
     beepFreq = (unsigned int)(beepFreqMinHz *
                expf(x * logf((float)beepFreqMaxHz / (float)beepFreqMinHz)) + 0.5f);
   }
   if (buzzerEnabled) {
     tone(BUZZER_PIN, beepFreq, beepMs);
+  }
+
+  // 振動モーター: 同じ x を振動「時間」へ幾何補間する。ON にするだけで
+  // 停止は loop() に任せるノンブロッキング方式(LED 点滅と同型)なので、
+  // ブザーと同様に測定デッドタイムを増やさない。
+  if (vibEnabled) {
+    unsigned int vibDur = vibMinMs;
+    if (vibMaxMs > vibMinMs) {
+      vibDur = (unsigned int)(vibMinMs *
+               expf(x * logf((float)vibMaxMs / (float)vibMinMs)) + 0.5f);
+    }
+    digitalWrite(VIB_PIN, HIGH);
+    // 連発時は先に入っている停止予定を「縮めない」。短い事象が直前の
+    // 長い振動を途中で切ってしまうのを防ぐ。
+    unsigned long vibOff = millis() + vibDur;
+    if (!vibOffMs || (long)(vibOff - vibOffMs) > 0) vibOffMs = vibOff;
   }
 
   digitalWrite(TRIG_RESET, HIGH);
@@ -1431,7 +1802,8 @@ void updateDisplay() {
   }
   display.display();
 
-  total_deadtime_us += micros() - OLED_t1 + 73UL;
+  // オシロ中は滞在時間ごとデッドタイムに入るので、ここで足すと二重になる。
+  if (!scopeOn) total_deadtime_us += micros() - OLED_t1 + 73UL;
 }
 
 // ==========================================

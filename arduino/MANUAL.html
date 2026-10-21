@@ -167,6 +167,7 @@
     <li><a href="#logformat">ログ出力フォーマット</a></li>
     <li><a href="#commands">コマンドリファレンス</a></li>
     <li><a href="#ble">BLE 接続方法</a></li>
+    <li><a href="#serverupload">サーバーへのデータ送信</a></li>
     <li><a href="#troubleshoot">トラブルシューティング</a></li>
     <li><a href="#glossary">用語集</a></li>
   </ol>
@@ -249,6 +250,7 @@ SiPM で受けたパルスをアンプ・ピークホールド回路で増幅し
     <tr><td>23</td><td>A4</td><td>SDA</td><td class="pin-dir-bi">I²C</td><td>OLED + BME280</td></tr>
     <tr><td>24</td><td>A5</td><td>SCL</td><td class="pin-dir-bi">I²C</td><td>OLED + BME280</td></tr>
     <tr><td>25</td><td>A6</td><td>ANA_IN3</td><td class="pin-dir-in">IN (ADC)</td><td>外部検出器 3 (アナログ)</td></tr>
+    <tr><td>26</td><td>A7</td><td>(Vibration)</td><td class="pin-dir-out">OUT</td><td><strong>振動モーター</strong>駆動 (基板未接続・後付け)</td></tr>
   </tbody>
 </table>
 
@@ -272,7 +274,7 @@ SiPM で受けたパルスをアンプ・ピークホールド回路で増幅し
 
   外部検出器1-3 ─ DIG_IN1-3 (D6/D5/D4) / ANA_IN1-3 (A1/A2/A6)
 
-  コインシデンス成立 → D7 (COIN_OUT) パルス & D1 (ブザー) 鳴動
+  コインシデンス成立 → D7 (COIN_OUT) パルス & D1 (ブザー) 鳴動 & A7 (振動モーター) 振動
 </pre>
 
 <h2 id="setup">4. 開発環境のセットアップ</h2>
@@ -343,28 +345,29 @@ Temp:24.3C
   <li><strong>Cnt:</strong> 累積イベント数</li>
   <li><strong>T:</strong> 経過時間 (HH:MM:SS)</li>
   <li><strong>Rate:</strong> 平均レート ± 統計誤差 [cps]</li>
-  <li><strong>Thr / Duty:</strong> 現在の閾値 (0-1023) と対応する PWM Duty (0-255)</li>
+  <li><strong>Thr / Duty:</strong> 現在の閾値 (0-4095) と対応する PWM Duty (0-255)</li>
   <li><strong>Temp:</strong> BME280 の温度 [°C]</li>
 </ul>
 
 <h2 id="logformat">7. ログ出力フォーマット</h2>
 <p>トリガーイベントが発生するごとに、シリアル + BLE の両方に 1 行ログが出力されます。</p>
 <pre>
-### Event Time[ms] ADC[0-1023] SiPM[mV] Deadtime[ms] Temp[C] Dig1 Dig2 Dig3 Ana1 Ana2 Ana3
-42 18732 485 732.15 1203 24.3 1 0 1 612 28 701
+### Event Time[us] ADC[0-4095] Deadtime[us] Temp[C] Hum[%] Press[hPa] Dig1 Dig2 Dig3 Ana1 Ana2 Ana3
+42 18732450 1940 1203000 24.3 48.2 1013.2 1 0 1 2448 112 2804
 </pre>
 
 <table>
   <thead><tr><th>カラム</th><th>意味</th><th>範囲</th></tr></thead>
   <tbody>
     <tr><td>Event</td><td>累積イベント番号</td><td>1, 2, 3, ...</td></tr>
-    <tr><td>Time[ms]</td><td>起動からの経過時間</td><td>ms</td></tr>
-    <tr><td>ADC</td><td>自検出器ピークホールド値</td><td>0-1023</td></tr>
-    <tr><td>SiPM[mV]</td><td>ADC から 11 次多項式で換算した電圧</td><td>mV</td></tr>
-    <tr><td>Deadtime[ms]</td><td>累積デッドタイム</td><td>ms</td></tr>
+    <tr><td>Time[us]</td><td>起動からの経過時間</td><td>µs (マイクロ秒)</td></tr>
+    <tr><td>ADC</td><td>自検出器ピークホールド値</td><td>0-4095</td></tr>
+    <tr><td>Deadtime[us]</td><td>累積デッドタイム</td><td>µs (マイクロ秒)</td></tr>
     <tr><td>Temp[C]</td><td>BME280 温度 (2 秒毎に更新)</td><td>°C</td></tr>
+    <tr><td>Hum[%]</td><td>BME280 湿度 (2 秒毎に更新)</td><td>%RH</td></tr>
+    <tr><td>Press[hPa]</td><td>BME280 気圧 (2 秒毎に更新)</td><td>hPa</td></tr>
     <tr><td><span class="badge new">新</span>Dig1-3</td><td>外部検出器 1-3 のデジタル値</td><td>0 / 1</td></tr>
-    <tr><td><span class="badge new">新</span>Ana1-3</td><td>外部検出器 1-3 のアナログ値</td><td>0-1023</td></tr>
+    <tr><td><span class="badge new">新</span>Ana1-3</td><td>外部検出器 1-3 のアナログ値</td><td>0-4095</td></tr>
   </tbody>
 </table>
 
@@ -377,6 +380,8 @@ Temp:24.3C
 <h2 id="commands">8. コマンドリファレンス</h2>
 <p>シリアル (9600 bps) または BLE RX 特性への書き込みでコマンドを送ります。<strong>改行 (LF または CR) で確定</strong>します。</p>
 
+<h3>8.1 閾値・トリガー設定</h3>
+
 <div class="cmd-card">
   <div class="syntax">GET_THRESH</div>
   <p>現在の閾値と PWM Duty を <code>THRESH:&lt;sig&gt; DUTY:&lt;duty&gt;</code> の形式で返します。</p>
@@ -384,26 +389,157 @@ Temp:24.3C
 
 <div class="cmd-card">
   <div class="syntax">SET_THRESH:&lt;signal&gt;</div>
-  <p>閾値を 0-1023 の範囲で設定し、即座に PWM Duty に反映・Preferences に保存します。</p>
-  <p>例: <code>SET_THRESH:100</code> → Duty ≒ 25</p>
+  <p>ANALOG モードの信号閾値を 0-4095 の範囲で設定し、Preferences に保存します。例: <code>SET_THRESH:1200</code>。</p>
   <div class="callout warn" style="margin: .5rem 0;">
     <strong>v1 から仕様変更</strong>: カンマ区切りの 2 引数 (<code>SET_THRESH:sig,rst</code>) は廃止。
     RESET_THRESHOLD はハードウェアコンパレータが担当するため不要です。
   </div>
+  <div class="callout info" style="margin: .5rem 0;">
+    この閾値は ANALOG モードのソフト判定用です。DIGITAL / DUAL モードのコンパレータ閾値は
+    <code>SET_PWM</code> / <code>AUTO_PWM</code> で<strong>独立</strong>に設定します (旧 ×2 換算式は廃止)。
+  </div>
 </div>
 
 <div class="cmd-card">
-  <div class="syntax">AUTO_THRESH</div>
-  <p>A0 (ANA_OUT) のノイズフロアを 100 サンプル測定し、<strong>最小値 + 40</strong> を閾値として自動設定します。
+  <div class="syntax">AUTO_THRESH / AUTO_THRESH:&lt;margin&gt;</div>
+  <p>A0 (ANA_OUT) のノイズフロアを 100 サンプル測定し、<strong>最小値 + マージン</strong> を信号閾値として自動設定します。
   ダーク環境で一度実行してください。</p>
+  <ul>
+    <li><code>AUTO_THRESH</code> … 現在のマージン (既定 40) で再校正します。</li>
+    <li><code>AUTO_THRESH:&lt;margin&gt;</code> … マージンを指定値に設定してから再校正します (例 <code>AUTO_THRESH:60</code>)。設定値は Preferences に保存されます。</li>
+  </ul>
 </div>
 
 <div class="cmd-card">
-  <div class="syntax">SET_SD:ON|OFF / SET_EXT:ON|OFF / SET_OLED:ON|OFF / SET_BUZZER:ON|OFF</div>
+  <div class="syntax">GET_AUTO_MARGIN / SET_AUTO_MARGIN:&lt;n&gt;</div>
+  <p><code>AUTO_THRESH</code> がノイズフロアに上乗せするマージンを取得・設定します。応答は <code>AUTO_MARGIN:&lt;n&gt;</code> (既定 40)。Preferences に保存されます。</p>
+</div>
+
+<div class="cmd-card">
+  <div class="syntax">GET_MODE / SET_MODE:DIGITAL|DUAL|ANALOG</div>
+  <p>計測モードを取得・設定します。応答は <code>MODE:ANALOG|DUAL|DIGITAL</code>。</p>
+  <ul>
+    <li><strong>ANALOG</strong> (既定) … A0 のピークホールド値をソフトでポーリングして判定します。</li>
+    <li><strong>DIGITAL / DUAL</strong> … 外部コンパレータ出力 (D0) の割込でトリガーします。</li>
+  </ul>
+</div>
+
+<h3>8.2 コンパレータ閾値 (PWM)</h3>
+<p>DIGITAL / DUAL モードでコンパレータ (D0) が使うトリガー閾値です。D2 の PWM Duty で生成します。ANALOG モードでは使用しません。</p>
+
+<div class="cmd-card">
+  <div class="syntax">GET_PWM / SET_PWM:&lt;0-255&gt;</div>
+  <p>コンパレータ閾値の PWM Duty を取得・設定します。応答は <code>PWM:&lt;duty&gt;</code>。</p>
+</div>
+
+<div class="cmd-card">
+  <div class="syntax">AUTO_PWM / AUTO_PWM:&lt;target_edges_per_s&gt;</div>
+  <p>コンパレータ閾値 (D2 の PWM) を自動校正します。Duty を掃引してノイズの尾根 (ridge) のすぐ上の点を探し、
+  完了後に <code>PWM:&lt;duty&gt;</code> を出力します。任意で目標エッジレート (回/秒) を
+  <code>AUTO_PWM:&lt;target_edges_per_s&gt;</code> のように指定できます。
+  <strong>DIGITAL / DUAL トリガーを使う前に一度実行</strong>してください。</p>
+  <div class="callout info" style="margin: .5rem 0;">
+    コンパレータ閾値は <code>SET_THRESH</code> (SIGNAL_THRESHOLD) から<strong>独立</strong>しました
+    (旧バージョンの誤った ×2 換算式は廃止)。ANALOG モードでは使用しません。
+  </div>
+</div>
+
+<h3>8.3 オシロスコープ / 波形ストリーミング</h3>
+
+<div class="cmd-card">
+  <div class="syntax">SET_SCOPE:ON|OFF / GET_SCOPE</div>
+  <p>波形ストリーミング (オシロスコープ) モードを ON/OFF します。応答は <code>SCOPE:ON</code> / <code>SCOPE:OFF</code>。</p>
+  <div class="callout warn" style="margin: .5rem 0;">
+    SCOPE が ON の間は<strong>計測 (カウント) は一時停止</strong>します。
+  </div>
+</div>
+
+<div class="cmd-card">
+  <div class="syntax">SET_SCOPE_RATE:&lt;n&gt; / GET_SCOPE_RATE</div>
+  <p>波形ストリーミングのサンプルレートを取得・設定します。応答は <code>SCOPE_RATE:&lt;n&gt;</code>。</p>
+</div>
+
+<h3>8.4 ブザー音</h3>
+
+<div class="cmd-card">
+  <div class="syntax">GET_BEEP / SET_BEEP:&lt;min_hz&gt;,&lt;max_hz&gt;,&lt;ms&gt;</div>
+  <p>検出時のビープ音を取得・設定します。応答は <code>BEEP:&lt;min&gt;,&lt;max&gt;,&lt;ms&gt;</code> (既定 <code>500,4000,25</code>)。</p>
+  <p>各イベントは<strong>パルス高 (エネルギー) を対数的にピッチへマッピング</strong>して鳴ります。
+  閾値付近 (低エネルギー) で <code>min_hz</code>、ADC 最大値 (高エネルギー) で <code>max_hz</code> になります。</p>
+  <p>制約: <code>min ≥ 50</code>、<code>max &gt; min</code>、<code>max ≤ 20000</code>、<code>ms は 1–500</code>。</p>
+  <div class="callout ok" style="margin: .5rem 0;">
+    ビープはノンブロッキングで鳴るため、<strong>計測デッドタイムを増やしません</strong>。
+  </div>
+</div>
+
+<div class="cmd-card">
+  <div class="syntax">BEEP_TEST</div>
+  <p>min / 中間 / max のテストトーンを順に鳴らし、設定を確認します。</p>
+</div>
+
+<h3>8.5 振動モーター</h3>
+
+<div class="callout warn" style="margin: .5rem 0;">
+  <strong>配線: GPIO 直結は不可</strong>
+  振動モーターは <strong>A7 (GPIO14)</strong> で駆動します。基板上は未接続の空きピンなので後付け配線が必要です。
+  <strong>D13 は使えません</strong> — microSD の SCK と共用なので、モーターを繋ぐと SPI 波形が潰れて SD ログが壊れ、
+  逆に SD アクセスのたびにモーターが唸ります。<br>
+  1027 コイン型 (10&times;2.7mm) の定格電流は概ね 75〜90mA、起動時はさらに大きく、
+  <strong>ESP32-S3 GPIO の絶対最大定格 40mA を超えます</strong>。直結せず、
+  A7 &rarr; 1k&Omega; &rarr; NPN (2N3904 / S8050) または N-ch MOSFET (2N7002) のベース/ゲート、
+  モーターと並列に<strong>還流ダイオード (1N4148)</strong>、端子間に 0.1&micro;F を入れてください。
+  ブラシノイズと電流スパイクは SiPM 前段の誤トリガ源にもなります。
+</div>
+
+<div class="cmd-card">
+  <div class="syntax">SET_VIB:ON|OFF / GET_VIB</div>
+  <p>検出時の振動を ON/OFF します。応答は <code>VIB:ON</code> / <code>VIB:OFF</code>。
+  Preferences に保存されるので次回起動時も維持されます (既定 ON)。
+  OFF にすると鳴動中でも即座に停止します。</p>
+</div>
+
+<div class="cmd-card">
+  <div class="syntax">GET_VIB_MS / SET_VIB_MS:&lt;min_ms&gt;,&lt;max_ms&gt;</div>
+  <p>振動の長さを取得・設定します。応答は <code>VIBMS:&lt;min&gt;,&lt;max&gt;</code> (既定 <code>20,120</code>)。</p>
+  <p>ブザーがピッチを変えるのと同じ考え方で、各イベントは<strong>パルス高 (エネルギー) を対数的に
+  振動時間へマッピング</strong>します。閾値付近 (低エネルギー) で <code>min_ms</code>、
+  ADC 最大値 (高エネルギー) で <code>max_ms</code>。大きい事象ほど長く「ぶるっ」と来ます。</p>
+  <p>制約: <code>min ≥ 1</code>、<code>max &gt; min</code>、<code>max ≤ 500</code>。</p>
+  <div class="callout ok" style="margin: .5rem 0;">
+    振動の停止は <code>loop()</code> 側で行うノンブロッキング方式なので、
+    ビープと同様に<strong>計測デッドタイムを増やしません</strong>。
+  </div>
+</div>
+
+<div class="cmd-card">
+  <div class="syntax">VIB_TEST</div>
+  <p>min / 中間 / max の長さで順に振動させ、設定を確認します。
+  <code>BEEP_TEST</code> と違い待ち時間の間ブロックしますが、
+  その分は<strong>デッドタイムに計上される</strong>ので計数率は狂いません。</p>
+</div>
+
+<h3>8.6 機能 ON/OFF</h3>
+
+<div class="cmd-card">
+  <div class="syntax">SET_SD:ON|OFF / SET_EXT:ON|OFF / SET_OLED:ON|OFF / SET_BUZZER:ON|OFF / SET_VIB:ON|OFF</div>
   <p>各機能をランタイムで ON/OFF し、Preferences に保存します (次回起動時も維持)。
-  <code>SET_BUZZER:OFF</code> で<strong>検出時のビープ音</strong>を消せます。デフォルトは全て ON。</p>
-  <p>状態取得は <code>GET_SD</code> / <code>GET_EXT</code> / <code>GET_OLED</code> / <code>GET_BUZZER</code>。
-  応答は <code>SD:ON</code> / <code>BUZZER:OFF</code> のような形式で返ります。</p>
+  <code>SET_BUZZER:OFF</code> で<strong>検出時のビープ音</strong>を、
+  <code>SET_VIB:OFF</code> で<strong>検出時の振動</strong>を消せます。デフォルトは全て ON。</p>
+  <p>状態取得は <code>GET_SD</code> / <code>GET_EXT</code> / <code>GET_OLED</code> / <code>GET_BUZZER</code> / <code>GET_VIB</code>。
+  応答は <code>SD:ON</code> / <code>BUZZER:OFF</code> / <code>VIB:ON</code> のような形式で返ります。</p>
+  <p>ダッシュボードの「機能スイッチ」パネルからも同じ操作ができます。</p>
+</div>
+
+<h3>8.7 システム</h3>
+
+<div class="cmd-card">
+  <div class="syntax">GET_BLENAME / SET_BLENAME:&lt;name&gt;</div>
+  <p>BLE デバイス名を取得・変更します。応答は <code>BLENAME:&lt;name&gt;</code>。Preferences に保存され、<strong>再起動後に反映</strong>されます。</p>
+</div>
+
+<div class="cmd-card">
+  <div class="syntax">RESET</div>
+  <p>カウンタとデッドタイムをゼロに戻します。応答は <code>RESET:OK</code>。</p>
 </div>
 
 <h2 id="ble">9. BLE 接続方法</h2>
@@ -437,7 +573,147 @@ Temp:24.3C
   結合されるので気にする必要はありません。
 </div>
 
-<h2 id="troubleshoot">10. トラブルシューティング</h2>
+<h2 id="serverupload">10. サーバーへのデータ送信</h2>
+
+<p>
+ダッシュボード (<code>v2/index.html</code>) のサイドバー「サーバーへ送信」から、測定イベントを
+測定サーバー (<code>cosmicray-server</code>) へリアルタイム送信できます。
+</p>
+
+<div class="callout warn">
+  <strong>正本はローカル保存です</strong>
+  サーバー送信はミラー (複製) であり、記録の正本ではありません。
+  通信が切れている間もデータを失わないよう、<strong>「保存フォルダを選択」による自動保存を必ず併用してください</strong>。
+  送信キューが上限 (50,000 件) を超えた場合、古いものから破棄されます (破棄件数は画面に表示されます)。
+  破棄されたイベントもメモリとローカルファイルには残っており、「未送信データを再送」で送り直せます。
+</div>
+
+<h3>10.1 ページの開き方 (重要)</h3>
+<p>
+ブラウザのセキュリティ制約により、<strong>ページをどの方法で開いたかによって送信できるかどうかが決まります</strong>。
+</p>
+<table>
+  <thead><tr><th>ページの開き方</th><th>USB / BLE 接続</th><th><code>http://</code> のサーバーへ送信</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><code>file://</code> (ファイルを直接開く)</td>
+      <td>可</td>
+      <td>可 (ただし Chrome のバージョンによる。事前確認を推奨)</td>
+    </tr>
+    <tr>
+      <td><code>http://localhost:ポート</code> (ローカルの簡易サーバー経由)</td>
+      <td>可</td>
+      <td><strong>可 — 推奨</strong></td>
+    </tr>
+    <tr>
+      <td><code>https://</code> (Web サイトに置いたページ)</td>
+      <td>可</td>
+      <td><strong>不可</strong></td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="callout danger">
+  <strong><code>https://</code> のページからは <code>http://</code> のサーバーへ送信できません</strong>
+  ブラウザが「混在コンテンツ」として遮断するためで、サーバー側の設定では解決できません。
+  Web サイトからダッシュボードを配布したい場合は、サーバー側を <code>https://</code> 化する必要があります。
+</div>
+
+<p>
+最も確実なのは <code>http://localhost</code> で開く方法です。<code>arduino/v2/</code> フォルダで
+簡易サーバーを起動し、<code>http://localhost:8000/index.html</code> にアクセスしてください。
+</p>
+<pre><code># Python が入っていれば追加インストール不要
+python -m http.server 8000</code></pre>
+
+<h3>10.2 送信の開始手順</h3>
+<ol>
+  <li><strong>サーバー URL</strong> を入力 (例: <code>http://accel-kitchen.com:3000</code>)</li>
+  <li><strong>観測局 ID</strong> と <strong>パスワード</strong> を入力。この ID がサーバー上の保存先ディレクトリ名になります</li>
+  <li>必要に応じて<strong>装置ラベル</strong> (1 サイトに複数台ある場合の識別用) と<strong>緯度・経度</strong>を入力</li>
+  <li><strong>送信レート</strong>を選択。回線が細い場合や計数率が高い場合は「10 件に 1 件」などに間引けます
+      (間引いてもローカル保存は全件のままです)</li>
+  <li><strong>「ログイン」</strong> を押す。成功すると観測局ディレクトリがサーバー側に用意されます</li>
+  <li><strong>「送信開始」</strong> を押す。以降、受信したイベントが 1 秒ごとにまとめて送信されます</li>
+</ol>
+
+<h3>10.3 画面表示の見方</h3>
+<table>
+  <thead><tr><th>表示</th><th>意味</th></tr></thead>
+  <tbody>
+    <tr><td>未設定</td><td>URL / ID 未入力、または未ログイン</td></tr>
+    <tr><td>ログイン中 — 送信停止中</td><td>認証済み。「送信開始」待ち</td></tr>
+    <tr><td>送信中 — 送信済 N 件 / 待機 N 件</td><td>正常動作中</td></tr>
+    <tr><td>再試行 N 回目 (M 秒後)</td><td>通信失敗。1→2→4…最大 60 秒間隔で自動再試行 (回数制限なし、データは保持)</td></tr>
+    <tr><td>未送信 N 件 — 回線が追いつきません</td><td>キューが滞留。送信レートを下げてください</td></tr>
+    <tr><td>オフライン</td><td>ネットワーク切断。復帰時に自動再開</td></tr>
+    <tr><td>認証に失敗しました</td><td>再ログインが必要</td></tr>
+    <tr><td>送信キュー上限超過</td><td>古いイベントを破棄。ローカルには保存済み</td></tr>
+  </tbody>
+</table>
+<p>
+カウンタ行の <code>送信 / 待機 / 間引き / 破棄 / 拒否</code> は、
+<strong>間引き (意図的)</strong> と <strong>破棄 (上限超過)</strong> を区別して表示します。
+</p>
+
+<h3>10.4 送信される項目と、送信されない項目</h3>
+<div class="callout warn">
+  <strong>現行 API では一部の測定値が送信されません</strong>
+  サーバー側の取り込み形式が CosmicWatch 用のため、<strong>湿度・気圧・Dig1〜3・Ana1〜3 は送信されません</strong>。
+  これらが必要な場合はローカル保存ファイル (<code>.dat</code> / <code>.csv</code>) を使用してください。
+  画面にも送信中は同じ注意が表示されます。
+</div>
+<table>
+  <thead><tr><th>サーバー側の項目</th><th>本機の値</th><th>備考</th></tr></thead>
+  <tbody>
+    <tr><td><code>event</code></td><td>Event (通し番号)</td><td>&mdash;</td></tr>
+    <tr><td><code>timestamp</code></td><td>PC の壁時計 + デバイスの µs 時計</td><td>ローカル時刻。デバイスの時計で間隔精度を保持</td></tr>
+    <tr><td><code>time</code></td><td>Time[us]</td><td>起動からの経過</td></tr>
+    <tr><td><code>adc</code></td><td>ADC (0&ndash;4095)</td><td>&mdash;</td></tr>
+    <tr><td><code>vol</code></td><td>ADC から換算した電圧 [mV]</td><td><strong>計算値であり実測値ではありません</strong></td></tr>
+    <tr><td><code>deadtime</code></td><td>Deadtime[us] &divide; 1000</td><td>ms に換算して送信</td></tr>
+    <tr><td><code>temp</code></td><td>Temp[C]</td><td>&mdash;</td></tr>
+  </tbody>
+</table>
+
+<h3>10.5 パスワードの扱い</h3>
+<div class="callout danger">
+  <strong>「この PC にパスワードを保存する」は共用 PC で使わないでください</strong>
+  チェックを入れるとブラウザ内に<strong>平文で</strong>保存されます。
+  さらに <code>file://</code> でページを開いている場合、Chrome は<strong>すべてのローカル HTML ファイルで
+  保存領域を共有する</strong>ため、他のローカルページからも読み取れる状態になります。
+</div>
+<p>
+既定ではパスワードは保存されず、タブを開いている間だけメモリ上に保持されます
+(夜間の連続測定中に認証が切れても自動で再ログインできるようにするためです)。
+測定終了後は<strong>「ログアウト」</strong>で認証情報を消去してください。
+</p>
+
+<h3>10.6 うまく送信できないとき</h3>
+<details>
+  <summary>「サーバーに接続できません」と出る</summary>
+  <ul>
+    <li>ページを <code>https://</code> で開いていないか確認 (10.1 の表を参照)。<code>http://localhost</code> で開き直すのが確実です</li>
+    <li>サーバー URL の綴りとポート番号 (既定 <code>3000</code>) を確認</li>
+    <li>サーバー側で CORS 設定が有効になっているか管理者に確認</li>
+  </ul>
+</details>
+<details>
+  <summary>ログインは通るのに送信でエラーになる</summary>
+  <ul>
+    <li>観測局 ID が自分のアカウント ID と一致しているか確認。他人の ID には送信できません</li>
+    <li>「拒否」件数が増える場合はサーバー側のバリデーションで弾かれています。管理者に相談してください</li>
+  </ul>
+</details>
+<details>
+  <summary>「未送信」件数が増え続ける</summary>
+  <ul>
+    <li>回線速度に対して計数率が高すぎます。<strong>送信レート</strong>を「10 件に 1 件」以下に下げてください</li>
+    <li>ローカル保存は全件継続されるので、測定データそのものは失われません</li>
+  </ul>
+</details>
+
+<h2 id="troubleshoot">11. トラブルシューティング</h2>
 
 <details>
   <summary>シリアルに何も出ない / "Booting" が表示されない</summary>
@@ -497,7 +773,7 @@ Temp:24.3C
   </ul>
 </details>
 
-<h2 id="glossary">11. 用語集</h2>
+<h2 id="glossary">12. 用語集</h2>
 <dl>
   <dt><strong>SiPM</strong></dt>
   <dd>Silicon Photomultiplier。半導体光電子増倍管。微弱な光 (宇宙線のチェレンコフ/シンチレーション光) を検出する素子。</dd>

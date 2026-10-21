@@ -511,6 +511,7 @@ void printThresholds();
 void printMode();
 void printBoard();
 void printBleName();
+void printBtAddr();
 void printAutoMargin();
 void printOledStatus();
 void printCoincMode();
@@ -872,6 +873,9 @@ void executeCommand(const char* cmd) {
   } else if (strcmp(cmd, "GET_BLENAME") == 0) {
     printBleName();
 
+  } else if (strcmp(cmd, "GET_BTADDR") == 0) {
+    printBtAddr();
+
   } else if (strncmp(cmd, "SET_BLENAME:", 12) == 0) {
     const char* newName = cmd + 12;
     size_t len = strlen(newName);
@@ -994,6 +998,17 @@ void printBoard() {
 void printBleName() {
   char buf[48];
   snprintf(buf, sizeof(buf), "BLENAME:%s", bleName);
+  dualPrintln(buf);
+}
+
+// 自分の BLE アドレス（基板ごとに固有）を返す。BLE 接続時のアドレス表示に加え、
+// USB 接続でも同じ値が返るので「どの基板に繋がっているか」の判別に使える。
+// Web Serial は COM 番号を公開しないため、USB 側の識別子はこれが頼りになる。
+void printBtAddr() {
+  char buf[40];
+  // BLEAddress::toString() の戻り値はコアの版で std::string / String と異なるが、
+  // どちらも c_str() を持つのでこの書き方なら両対応できる。
+  snprintf(buf, sizeof(buf), "BTADDR:%s", BLEDevice::getAddress().toString().c_str());
   dualPrintln(buf);
 }
 

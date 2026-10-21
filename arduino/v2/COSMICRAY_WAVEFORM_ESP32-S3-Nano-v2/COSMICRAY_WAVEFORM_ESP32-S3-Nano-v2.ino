@@ -365,10 +365,26 @@ static inline uint64_t widen32(uint32_t ev32) {
   return now64 - (uint64_t)(uint32_t)(now32 - ev32);
 }
 
-// 時刻 -> サンプル通番
+// 実効サンプルレート（公称 sampleFreqHz と実 ADC クロックの数 ppm ずれを補正）。
+// dmaT0Us からの経過と dmaWritten から推定する。実測で公称 83333Hz に対し約 4ppm
+// (0.335 サンプル/秒) ずれ、COMP の時刻→通番換算が長時間で狂って settle が偽増加
+// していた。起動直後は「ドライバの取り出し遅延」で過小評価になるので、十分な経過(3s)と
+// サンプル数が溜まるまでは公称値を使う（再アンカー直後は公称でも正確）。返り値は fs*1000。
+static inline uint64_t effFreqHzX1000() {
+  const uint64_t nominal = (uint64_t)sampleFreqHz * 1000ULL;
+  const uint64_t now = micros64();
+  if (now <= dmaT0Us) return nominal;
+  const uint64_t elapsedUs = now - dmaT0Us;
+  if (elapsedUs < 3000000ULL || dmaWritten < (uint64_t)sampleFreqHz * 3ULL) return nominal;
+  // fs_actual*1000 = dmaWritten / elapsed[s] * 1000 = dmaWritten * 1e9 / elapsedUs
+  return (dmaWritten * 1000000000ULL) / elapsedUs;
+}
+
+// 時刻 -> サンプル通番（実効レートでドリフト補正）
 static inline uint64_t indexFromUs(uint64_t us) {
   if (us <= dmaT0Us) return 0;
-  return ((us - dmaT0Us) * (uint64_t)sampleFreqHz) / 1000000ULL;
+  // index = (us - dmaT0Us) * fs / 1e6 = (us - dmaT0Us) * (fs*1000) / 1e9
+  return ((us - dmaT0Us) * effFreqHzX1000()) / 1000000000ULL;
 }
 
 bool dmaStart() {
@@ -789,15 +805,18 @@ void printStat() {
   const float compRate = (dtMs > 0) ? ((edgesNow - lastStatCompEdges) * 1000.0f / dtMs) : 0.0f;
   lastStatCompEdges = edgesNow;
 
-  char buf[240];
+  // fs_act = ドリフト補正後の実効サンプルレート[Hz]。公称(fs_hz)からの差でクロック誤差が見える。
+  char buf[256];
   snprintf(buf, sizeof(buf),
            "#WFSTAT evt=%lu rate=%.1f ovf=%lu drop=%lu noise=%lu up_s=%lu run=%d "
-           "comp_edges=%lu comp_rate=%.1f settle_us=%.1f settle_mean_us=%.1f settle_n=%lu",
+           "comp_edges=%lu comp_rate=%.1f settle_us=%.1f settle_mean_us=%.1f settle_n=%lu "
+           "fs_act=%lu",
            (unsigned long)evtCount, rate, (unsigned long)ovfCount,
            (unsigned long)dropCount, (unsigned long)noiseCount,
            (unsigned long)up, running ? 1 : 0,
            (unsigned long)edgesNow, compRate, lastSettleTenths / 10.0f,
-           settleMean, (unsigned long)settleN);
+           settleMean, (unsigned long)settleN,
+           (unsigned long)(effFreqHzX1000() / 1000ULL));
   Serial.println(buf);
 }
 

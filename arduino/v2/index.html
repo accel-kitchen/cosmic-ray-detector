@@ -77,6 +77,7 @@
       color: #555;
     }
     .btn-ble { background: #4a90d9; color: #fff; }
+    .btn-demo { background: #7e57c2; color: #fff; }
     .btn-sm { padding: 6px 12px; font-size: 12px; }
     .btn-group { display: flex; gap: 8px; }
     .btn-group .btn { flex: 1; }
@@ -190,6 +191,8 @@
     }
     .status-dot.connected { background: #2ecc71; }
     .status-dot.disconnected { background: #e74c3c; }
+    .status-dot.demo { background: #7e57c2; }
+    .status-dot.reconnecting { background: #f39c12; }
 
     /* Content area */
     .content {
@@ -249,7 +252,13 @@
       font-weight: 600;
       margin-bottom: 12px;
       color: #444;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex: none;
     }
+    /* .btn は width:100% なので、見出しの右端に置くぶんだけ上書きする */
+    .chart-save { width: auto; flex: none; margin-left: auto; }
     .chart-wrapper {
       position: relative;
       flex: 1 1 auto;
@@ -435,6 +444,59 @@
       color: #856404;
       border: 1px solid #ffc107;
     }
+    .alert-demo {
+      background: #f3e9ff;
+      color: #4a289a;
+      border: 1px solid #b39ddb;
+    }
+    .alert-error {
+      background: #fdecea;
+      color: #a3281a;
+      border: 1px solid #f5b7b1;
+    }
+    .alert-dismissible {
+      position: relative;
+      padding-right: 36px;
+      white-space: pre-line;
+    }
+    .alert-close {
+      position: absolute;
+      top: 6px;
+      right: 8px;
+      border: none;
+      background: none;
+      font-size: 18px;
+      line-height: 1;
+      color: inherit;
+      cursor: pointer;
+      opacity: 0.7;
+    }
+    .alert-close:hover { opacity: 1; }
+
+    /* Collapsible "advanced settings" group in the sidebar */
+    .sidebar details.advanced > summary {
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      color: #555;
+      padding: 8px 0;
+      border-top: 1px solid #eee;
+      list-style-position: inside;
+    }
+    .sidebar details.advanced[open] > summary { margin-bottom: 14px; }
+    .sidebar details.advanced > .sidebar-section + .sidebar-section { margin-top: 20px; }
+
+    /* Demo mode controls */
+    .demo-range { width: 100%; accent-color: #7e57c2; }
+    .demo-check {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 10px;
+      font-size: 12px;
+      color: #555;
+      cursor: pointer;
+    }
 
     /* Mode Badge */
     .mode-badge {
@@ -451,6 +513,7 @@
     .mode-badge.digital { background: #e0f7f4; color: #007a6e; border-color: #80d9cd; }
     .mode-badge.dual    { background: #efe7fb; color: #4a289a; border-color: #c3b2ec; }
     .mode-badge.analog  { background: #fff0dc; color: #a0500b; border-color: #f5b874; }
+    .mode-badge.scope-paused { background: #fdecea; color: #a3281a; border-color: #f1948a; }
 
     /* Auto-Save status */
     .autosave-status {
@@ -462,7 +525,27 @@
     }
     .autosave-status.idle    { background: #f5f5f5; color: #999; }
     .autosave-status.active  { background: #e6f9f7; color: #007a6e; border: 1px solid #b2e8e3; }
+    .autosave-status.warn    { background: #fff8e1; color: #a06800; border: 1px solid #ffe0a3; }
     .autosave-status.error   { background: #fdecea; color: #c0392b; border: 1px solid #f5b7b1; }
+    .autosave-status { white-space: pre-line; }
+
+    /* Server Upload */
+    .upload-counters {
+      font-size: 11px;
+      color: #777;
+      margin-top: 4px;
+      line-height: 1.6;
+    }
+    .checkbox-line {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: #555;
+      margin-bottom: 10px;
+      cursor: pointer;
+    }
+    .checkbox-line input { width: auto; margin: 0; }
 
     /* Footer */
     .footer {
@@ -527,16 +610,110 @@
     </div>
   </div>
 
-  <!-- Notes -->
+  <!-- Connection -->
   <div class="sidebar-section">
-    <h3><span class="icon">&#x1f4cb;</span> <span data-i18n="notes.title">Notes &amp; Tips</span></h3>
-    <ul>
-      <li data-i18n="notes.chrome">Works on Chrome / Edge</li>
-      <li data-i18n="notes.usb">USB: Web Serial API (9600 bps)</li>
-      <li data-i18n="notes.ble">BLE: Web Bluetooth API</li>
-      <li data-i18n="notes.https">BLE requires HTTPS or localhost</li>
-      <li data-i18n="notes.adc">ADC range is 0&ndash;4095 (12-bit)</li>
-    </ul>
+    <h3><span class="icon">&#x1f50c;</span> <span data-i18n="conn.title">Connect to CosmicRay</span></h3>
+    <div class="input-group" id="baudRateGroup">
+      <label data-i18n="conn.baud">Baud Rate (USB)</label>
+      <select id="baudRate">
+        <option value="9600" selected>9600</option>
+        <option value="115200">115200</option>
+      </select>
+    </div>
+    <div class="input-group">
+      <label data-i18n="conn.bleName">Bluetooth Device Name</label>
+      <input type="text" id="bleName" value="CosmicRay" maxlength="19" placeholder="CosmicRay">
+    </div>
+    <div id="connectButtons">
+      <button class="btn btn-primary" id="btnConnectUSB">&#x1f50c; <span data-i18n="conn.connectUsb">Connect USB</span></button>
+      <div style="height:6px"></div>
+      <button class="btn btn-ble" id="btnConnectBLE">&#x1f4f6; <span data-i18n="conn.connectBle">Connect Bluetooth</span></button>
+      <div style="height:6px"></div>
+      <button class="btn btn-demo" id="btnConnectDemo">&#x1f9ea; <span data-i18n="demo.connect">Demo Mode (no hardware)</span></button>
+    </div>
+    <div id="connectionInfo" style="display:none;margin-top:8px;">
+      <div class="thresh-current" id="connDetail" style="margin-top:0;margin-bottom:8px;"></div>
+      <button class="btn btn-warning" id="btnPauseLog">&#x23f8;&#xfe0f; Stop Logging</button>
+      <div style="height:6px"></div>
+      <button class="btn btn-danger" id="btnDisconnect">&#x26a0; <span data-i18n="conn.disconnect">Disconnect</span></button>
+      <div id="logPausedInfo" class="thresh-current" style="margin-top:6px;display:none;">&#x23f8;&#xfe0f; <span data-i18n="conn.pausedInfo">Logging paused &mdash; incoming events are ignored (device keeps measuring).</span></div>
+    </div>
+    <div style="margin-top:10px;">
+      <button class="btn btn-outline btn-sm" id="btnSetBleName" disabled>&#x1f4dd; <span data-i18n="conn.renameReboot">Rename &amp; Reboot</span></button>
+      <div class="thresh-current" id="bleNameInfo" style="margin-top:6px;">1&ndash;19 printable ASCII. Device reboots on save.</div>
+    </div>
+  </div>
+
+  <!-- Demo Mode -->
+  <div class="sidebar-section" id="demoSection" style="display:none;">
+    <h3><span class="icon">&#x1f9ea;</span> <span data-i18n="demo.title">Demo Mode</span></h3>
+    <p data-i18n="demo.desc">A virtual detector feeds synthetic events through the same path as a real board.</p>
+    <div class="mode-select" id="demoScenario">
+      <button type="button" data-scenario="background" class="active" data-i18n="demo.scBackground">Background</button>
+      <button type="button" data-scenario="source" data-i18n="demo.scSource">Source</button>
+      <button type="button" data-scenario="shower" data-i18n="demo.scShower">Showers</button>
+    </div>
+    <div class="thresh-current" id="demoScenarioInfo"></div>
+    <div style="height:10px"></div>
+    <div class="input-group">
+      <label id="demoRateLabel">Trigger rate</label>
+      <input type="range" class="demo-range" id="demoRate" min="0" max="100" step="1" value="50">
+    </div>
+    <button class="btn btn-outline btn-sm" id="btnDemoBurst">&#x1f4a5; <span data-i18n="demo.burst">Inject a burst</span></button>
+    <label class="demo-check"><input type="checkbox" id="demoSound"> <span id="demoSoundLabel">Buzzer sound</span></label>
+    <div class="thresh-current" id="demoInfo"></div>
+  </div>
+
+  <!-- Threshold Control -->
+  <div class="sidebar-section">
+    <h3><span class="icon">&#x2699;</span> <span data-i18n="thresh.title">Threshold Control</span></h3>
+    <div class="input-group">
+      <label data-i18n="thresh.signalLabel">Signal Threshold (0&ndash;4095, 12-bit)</label>
+      <input type="number" id="threshSignal" min="0" max="4095" value="120">
+    </div>
+    <div class="btn-group">
+      <button class="btn btn-primary btn-sm" id="btnSetThresh" disabled data-i18n="common.set">Set</button>
+      <button class="btn btn-outline btn-sm" id="btnGetThresh" disabled data-i18n="common.get">Get</button>
+    </div>
+    <div style="height:6px"></div>
+    <div class="input-group">
+      <label data-i18n="thresh.marginLabel">Auto Calibrate Margin (above sampled max)</label>
+      <input type="number" id="autoMargin" min="0" max="4095" value="50">
+    </div>
+    <button class="btn btn-secondary" id="btnAutoThresh" disabled>&#x1f50d; <span data-i18n="thresh.autoCal">Auto Calibrate</span></button>
+    <div class="thresh-current" id="threshInfo">Not connected</div>
+
+    <!-- コンパレータしきい値（D2 PWM）。Digital / Dual モードのトリガはこちらで決まる。
+         ファームでは SIGNAL_THRESHOLD と独立（SET_PWM / GET_PWM / AUTO_PWM[:target]）。 -->
+    <div style="height:14px"></div>
+    <div class="input-group">
+      <label data-i18n="pwm.label">Comparator Threshold (PWM Duty 0&ndash;255)</label>
+      <input type="number" id="pwmDuty" min="0" max="255" value="96">
+    </div>
+    <p data-i18n="pwm.desc">Used by Digital / Dual trigger. Run Auto PWM once after switching to those modes.</p>
+    <div class="btn-group">
+      <button class="btn btn-primary btn-sm" id="btnSetPwm" disabled data-i18n="common.set">Set</button>
+      <button class="btn btn-outline btn-sm" id="btnGetPwm" disabled data-i18n="common.get">Get</button>
+    </div>
+    <div style="height:6px"></div>
+    <div class="input-group">
+      <label data-i18n="pwm.targetLabel">Auto PWM target (comparator edges/s)</label>
+      <input type="number" id="pwmTarget" min="0" max="100000" value="50">
+    </div>
+    <button class="btn btn-secondary" id="btnAutoPwm" disabled>&#x1f50d; <span data-i18n="pwm.auto">Auto PWM</span></button>
+    <div class="thresh-current" id="pwmInfo">Not connected</div>
+  </div>
+
+  <!-- Trigger Mode -->
+  <div class="sidebar-section">
+    <h3><span class="icon">&#x1f500;</span> <span data-i18n="trigger.title">Trigger Mode</span></h3>
+    <p data-i18n="trigger.desc">Digital: ISR on D0 edge. Dual: ISR + ADC re-check. Analog: A0 polling only.</p>
+    <div class="mode-select" id="modeSelect">
+      <button type="button" data-mode="DIGITAL" disabled>Digital</button>
+      <button type="button" data-mode="DUAL"    disabled>Dual</button>
+      <button type="button" data-mode="ANALOG"  disabled>Analog</button>
+    </div>
+    <div class="thresh-current" id="modeInfo">Not connected</div>
   </div>
 
   <!-- Auto-Save -->
@@ -568,64 +745,124 @@
     <div id="exportStatus" style="display:none; font-size:12px; color:#007a6e; margin-top:8px;"></div>
     <div class="alert alert-warning" id="memWarning" style="display:none; margin-top:10px;"></div>
     <div style="height:6px"></div>
-    <button class="btn btn-secondary" id="btnClearData">&#x1f5d1; <span data-i18n="file.clearData">Clear Data</span></button>
+    <button class="btn btn-secondary" id="btnClearData">&#x1f5d1; <span data-i18n="file.clearData">Clear Data &amp; Reset Counter</span></button>
+    <div class="thresh-current" data-i18n="file.clearHint">Also sends RESET: the detector's event counter and elapsed time restart from 0.</div>
   </div>
 
-  <!-- Connection -->
+  <!-- Advanced settings (collapsed by default; open state remembered) -->
+  <details class="advanced" id="sidebarAdvanced">
+    <summary><span data-i18n="advanced.title">Advanced settings</span></summary>
+
+  <!-- Server Upload -->
   <div class="sidebar-section">
-    <h3><span class="icon">&#x1f50c;</span> <span data-i18n="conn.title">Connect to CosmicRay</span></h3>
-    <div class="input-group" id="baudRateGroup">
-      <label data-i18n="conn.baud">Baud Rate (USB)</label>
-      <select id="baudRate">
-        <option value="9600" selected>9600</option>
-        <option value="115200">115200</option>
+    <h3><span class="icon">&#x2601;&#xfe0f;</span> <span data-i18n="upload.title">Server Upload</span></h3>
+    <p data-i18n="upload.desc">Send events to a measurement server in real time. Auto-Save on this PC remains the primary record.</p>
+
+    <div class="input-group">
+      <label data-i18n="upload.server">Server URL</label>
+      <input type="url" id="uploadServer" placeholder="https://server.example.com" data-i18n-placeholder="upload.serverPlaceholder">
+    </div>
+
+    <div class="input-row">
+      <div class="input-group">
+        <label data-i18n="upload.stationId">Station ID</label>
+        <input type="text" id="uploadStationId" autocomplete="username" maxlength="64">
+      </div>
+      <div class="input-group">
+        <label data-i18n="upload.password">Password</label>
+        <input type="password" id="uploadPassword" autocomplete="current-password">
+      </div>
+    </div>
+
+    <label class="checkbox-line">
+      <input type="checkbox" id="uploadRemember">
+      <span data-i18n="upload.remember">Remember password on this PC</span>
+    </label>
+    <div class="alert alert-warning" id="uploadRememberWarn" style="display:none;" data-i18n="upload.rememberWarn">Stored unencrypted in this browser. Do not use on a shared PC.</div>
+
+    <div class="input-group">
+      <label data-i18n="upload.deviceLabel">Device Label</label>
+      <input type="text" id="uploadDeviceLabel" placeholder="det-A" maxlength="32" data-i18n-placeholder="upload.deviceLabelPlaceholder">
+    </div>
+
+    <div class="input-row">
+      <div class="input-group">
+        <label data-i18n="upload.lat">Latitude</label>
+        <input type="number" id="uploadLat" step="0.000001" min="-90" max="90">
+      </div>
+      <div class="input-group">
+        <label data-i18n="upload.lon">Longitude</label>
+        <input type="number" id="uploadLon" step="0.000001" min="-180" max="180">
+      </div>
+    </div>
+
+    <div class="input-group">
+      <label data-i18n="upload.decimate">Upload Rate</label>
+      <select id="uploadDecimate">
+        <option value="1" data-i18n="upload.decAll">All events</option>
+        <option value="10" data-i18n="upload.dec10">1 of every 10</option>
+        <option value="100" data-i18n="upload.dec100">1 of every 100</option>
       </select>
     </div>
-    <div class="input-group">
-      <label data-i18n="conn.bleName">Bluetooth Device Name</label>
-      <input type="text" id="bleName" value="CosmicRay" maxlength="24" placeholder="CosmicRay">
-    </div>
-    <div id="connectButtons">
-      <button class="btn btn-primary" id="btnConnectUSB">&#x1f50c; <span data-i18n="conn.connectUsb">Connect USB</span></button>
-      <div style="height:6px"></div>
-      <button class="btn btn-ble" id="btnConnectBLE">&#x1f4f6; <span data-i18n="conn.connectBle">Connect Bluetooth</span></button>
-    </div>
-    <div id="connectionInfo" style="display:none;margin-top:8px;">
-      <button class="btn btn-warning" id="btnPauseLog">&#x23f8;&#xfe0f; Stop Logging</button>
-      <div style="height:6px"></div>
-      <button class="btn btn-danger" id="btnDisconnect">&#x26a0; <span data-i18n="conn.disconnect">Disconnect</span></button>
-      <div id="logPausedInfo" class="thresh-current" style="margin-top:6px;display:none;">&#x23f8;&#xfe0f; <span data-i18n="conn.pausedInfo">Logging paused &mdash; incoming events are ignored (device keeps measuring).</span></div>
-    </div>
-    <div style="margin-top:10px;">
-      <button class="btn btn-outline btn-sm" id="btnSetBleName" disabled>&#x1f4dd; <span data-i18n="conn.renameReboot">Rename &amp; Reboot</span></button>
-      <div class="thresh-current" id="bleNameInfo" style="margin-top:6px;">1&ndash;24 printable ASCII. Device reboots on save.</div>
-    </div>
-  </div>
 
-  <!-- Chart Refresh -->
-  <div class="sidebar-section">
-    <h3><span class="icon">&#x1f504;</span> <span data-i18n="refresh.title">Chart Refresh</span></h3>
-    <p data-i18n="refresh.desc">Histogram &amp; rate chart update interval.</p>
-    <div class="mode-select four" id="refreshSelect">
-      <button type="button" data-interval="1000">1s</button>
-      <button type="button" data-interval="3000" class="active">3s</button>
-      <button type="button" data-interval="10000">10s</button>
-      <button type="button" data-interval="manual" data-i18n="refresh.manual">Manual</button>
-    </div>
+    <button class="btn btn-primary" id="btnUploadLogin">&#x1f511; <span data-i18n="upload.login">Log In</span></button>
     <div style="height:6px"></div>
-    <button class="btn btn-outline btn-sm" id="btnRefreshNow" disabled>&#x1f504; <span data-i18n="refresh.now">Refresh Now</span></button>
+    <button class="btn btn-primary" id="btnUploadStart" disabled>&#x2601;&#xfe0f; <span data-i18n="upload.start">Start Upload</span></button>
+    <div style="height:6px"></div>
+    <button class="btn btn-outline" id="btnUploadStop" disabled>&#x23f8; <span data-i18n="upload.stop">Stop Upload</span></button>
+    <div style="height:6px"></div>
+    <button class="btn btn-outline btn-sm" id="btnUploadResend" disabled>&#x1f501; <span data-i18n="upload.resend">Re-send Buffered Events</span></button>
+    <div style="height:6px"></div>
+    <button class="btn btn-outline btn-sm" id="btnUploadLogout" disabled>&#x1f6aa; <span data-i18n="upload.logout">Log Out</span></button>
+
+    <div class="autosave-status idle" id="uploadStatus">Not configured</div>
+    <div class="upload-counters" id="uploadCounters"></div>
   </div>
 
-  <!-- Trigger Mode -->
+  <!-- Beep / Buzzer Pitch -->
   <div class="sidebar-section">
-    <h3><span class="icon">&#x1f500;</span> <span data-i18n="trigger.title">Trigger Mode</span></h3>
-    <p data-i18n="trigger.desc">Digital: ISR on D0 edge. Dual: ISR + ADC re-check. Analog: A0 polling only.</p>
-    <div class="mode-select" id="modeSelect">
-      <button type="button" data-mode="DIGITAL" disabled>Digital</button>
-      <button type="button" data-mode="DUAL"    disabled>Dual</button>
-      <button type="button" data-mode="ANALOG"  disabled>Analog</button>
+    <h3><span class="icon">&#x1f3b5;</span> <span data-i18n="beep.title">Beep</span></h3>
+    <p data-i18n="beep.desc">Buzzer pitch by pulse energy (logarithmic): Min = pitch at threshold, Max = pitch at ADC max.</p>
+    <div class="input-row">
+      <div class="input-group">
+        <label data-i18n="beep.minLabel">Min Hz</label>
+        <input type="number" id="beepMin" min="50" max="20000" step="1" value="500">
+      </div>
+      <div class="input-group">
+        <label data-i18n="beep.maxLabel">Max Hz</label>
+        <input type="number" id="beepMax" min="50" max="20000" step="1" value="4000">
+      </div>
+      <div class="input-group">
+        <label data-i18n="beep.msLabel">Duration ms</label>
+        <input type="number" id="beepMs" min="1" max="500" step="1" value="25">
+      </div>
     </div>
-    <div class="thresh-current" id="modeInfo">Not connected</div>
+    <div class="btn-group">
+      <button class="btn btn-primary btn-sm" id="btnSetBeep" disabled data-i18n="common.set">Set</button>
+      <button class="btn btn-outline btn-sm" id="btnTestBeep" disabled data-i18n="beep.test">Test</button>
+    </div>
+    <div class="thresh-current" id="beepInfo">Not connected</div>
+  </div>
+
+  <!-- Vibration motor -->
+  <div class="sidebar-section">
+    <h3><span class="icon">&#x1f4f3;</span> <span data-i18n="vib.title">Vibration</span></h3>
+    <p data-i18n="vib.desc">Vibration length by pulse energy (logarithmic): Min = length at threshold, Max = length at ADC max.</p>
+    <div class="input-row">
+      <div class="input-group">
+        <label data-i18n="vib.minLabel">Min ms</label>
+        <input type="number" id="vibMin" min="1" max="500" step="1" value="20">
+      </div>
+      <div class="input-group">
+        <label data-i18n="vib.maxLabel">Max ms</label>
+        <input type="number" id="vibMax" min="1" max="500" step="1" value="120">
+      </div>
+    </div>
+    <div class="btn-group">
+      <button class="btn btn-primary btn-sm" id="btnSetVib" disabled data-i18n="common.set">Set</button>
+      <button class="btn btn-outline btn-sm" id="btnTestVib" disabled data-i18n="vib.test">Test</button>
+    </div>
+    <div class="thresh-current" id="vibInfo">Not connected</div>
   </div>
 
   <!-- Feature Toggles -->
@@ -661,27 +898,43 @@
         <button type="button" data-val="OFF" disabled data-i18n="common.off">Off</button>
       </div>
     </div>
+    <div class="feature-row">
+      <label data-i18n="feat.vib">Vibration</label>
+      <div class="mode-select two" id="featVIB" data-feature="VIB">
+        <button type="button" data-val="ON"  disabled data-i18n="common.on">On</button>
+        <button type="button" data-val="OFF" disabled data-i18n="common.off">Off</button>
+      </div>
+    </div>
     <div class="thresh-current" id="featInfo">Not connected</div>
   </div>
 
-  <!-- Threshold Control -->
+  <!-- Chart Refresh -->
   <div class="sidebar-section">
-    <h3><span class="icon">&#x2699;</span> <span data-i18n="thresh.title">Threshold Control</span></h3>
-    <div class="input-group">
-      <label data-i18n="thresh.signalLabel">Signal Threshold (0&ndash;4095, 12-bit)</label>
-      <input type="number" id="threshSignal" min="0" max="4095" value="120">
-    </div>
-    <div class="btn-group">
-      <button class="btn btn-primary btn-sm" id="btnSetThresh" disabled data-i18n="common.set">Set</button>
-      <button class="btn btn-outline btn-sm" id="btnGetThresh" disabled data-i18n="common.get">Get</button>
+    <h3><span class="icon">&#x1f504;</span> <span data-i18n="refresh.title">Chart Refresh</span></h3>
+    <p data-i18n="refresh.desc">Histogram &amp; rate chart update interval.</p>
+    <div class="mode-select four" id="refreshSelect">
+      <button type="button" data-interval="1000">1s</button>
+      <button type="button" data-interval="3000" class="active">3s</button>
+      <button type="button" data-interval="10000">10s</button>
+      <button type="button" data-interval="manual" data-i18n="refresh.manual">Manual</button>
     </div>
     <div style="height:6px"></div>
-    <div class="input-group">
-      <label data-i18n="thresh.marginLabel">Auto Calibrate Margin (above sampled max)</label>
-      <input type="number" id="autoMargin" min="0" max="4095" value="50">
-    </div>
-    <button class="btn btn-secondary" id="btnAutoThresh" disabled>&#x1f50d; <span data-i18n="thresh.autoCal">Auto Calibrate</span></button>
-    <div class="thresh-current" id="threshInfo">Not connected</div>
+    <button class="btn btn-outline btn-sm" id="btnRefreshNow" disabled>&#x1f504; <span data-i18n="refresh.now">Refresh Now</span></button>
+  </div>
+  </details>
+
+  <!-- Notes -->
+  <div class="sidebar-section">
+    <h3><span class="icon">&#x1f4cb;</span> <span data-i18n="notes.title">Notes &amp; Tips</span></h3>
+    <ul>
+      <li data-i18n="notes.chrome">Works on Chrome / Edge</li>
+      <li data-i18n="notes.usb">USB: Web Serial API (9600 bps)</li>
+      <li data-i18n="notes.ble">BLE: Web Bluetooth API</li>
+      <li data-i18n="notes.https">BLE requires HTTPS or localhost</li>
+      <li data-i18n="notes.adc">ADC range is 0&ndash;4095 (12-bit)</li>
+      <li data-i18n="notes.v2only">For the v2 board only. v1 boards need v1/index.html (the columns differ).</li>
+      <li data-i18n="notes.csv">Saved .csv files start with # metadata lines (pandas: read_csv(..., comment='#')).</li>
+    </ul>
   </div>
 </aside>
 
@@ -692,6 +945,7 @@
     <h1>&#x1f4ca; <span data-i18n="header.title">Data Analysis</span></h1>
     <div class="header-right">
       <span id="elapsedTime">Elapsed: --:--:--</span>
+      <span id="scopeBadge" class="mode-badge scope-paused" style="display:none;"></span>
       <span id="modeBadge" class="mode-badge unknown">&#x1f4e1; Mode: --</span>
       <span><span class="status-dot disconnected" id="statusDot"></span> <span id="statusText">Not connected</span></span>
       <div class="lang-switch" role="group" aria-label="Language">
@@ -704,6 +958,15 @@
   <!-- Content -->
   <div class="content">
     <div id="apiWarning" class="alert alert-warning" style="display:none;"></div>
+    <div id="connError" class="alert alert-error alert-dismissible" style="display:none;">
+      <button type="button" class="alert-close" id="connErrorClose" aria-label="Close">&times;</button>
+      <span id="connErrorText"></span>
+    </div>
+    <div id="pageNotice" class="alert alert-warning alert-dismissible" style="display:none;">
+      <button type="button" class="alert-close" id="pageNoticeClose" aria-label="Close">&times;</button>
+      <span id="pageNoticeText"></span>
+    </div>
+    <div id="demoBanner" class="alert alert-demo" style="display:none;"></div>
 
     <!-- Tabs -->
     <div class="tabs">
@@ -717,7 +980,9 @@
       <!-- Charts -->
       <div class="charts-row">
         <div class="chart-container">
-          <h3>&#x1f4ca; <span data-i18n="chart.histTitle">ADC Energy Histogram</span></h3>
+          <h3>&#x1f4ca; <span data-i18n="chart.histTitle">ADC Energy Histogram</span>
+            <button class="btn btn-outline btn-sm chart-save" id="btnSaveHistPng">&#x1f5bc; <span data-i18n="chart.savePng">Save PNG</span></button>
+          </h3>
           <div class="chart-wrapper">
             <canvas id="histogramChart"></canvas>
           </div>
@@ -732,10 +997,16 @@
                 <option value="128">128</option>
               </select>
             </label>
+            <label style="font-size:12px;color:#888;margin-left:12px;">
+              <input type="checkbox" id="histLogScale" style="vertical-align:-1px;margin-right:4px;">
+              <span data-i18n="chart.logScale">Log scale (Y)</span>
+            </label>
           </div>
         </div>
         <div class="chart-container">
-          <h3>&#x1f4c8; <span data-i18n="chart.rateTitle">Count Rate Over Time</span></h3>
+          <h3>&#x1f4c8; <span data-i18n="chart.rateTitle">Count Rate Over Time</span>
+            <button class="btn btn-outline btn-sm chart-save" id="btnSaveRatePng">&#x1f5bc; <span data-i18n="chart.savePng">Save PNG</span></button>
+          </h3>
           <div class="chart-wrapper">
             <canvas id="rateChart"></canvas>
           </div>
@@ -832,16 +1103,20 @@
     <!-- このタブを開いている間だけファームに SET_SCOPE:ON を送り、波形を流させる。
          ファーム側はオシロ中 ADC1 を DMA に渡すため計数を止める（滞在時間はデッドタイムに計上）。
          V2 の A0 はアンプの生出力ではなくピークホールドの出力なので、
-         見えるのは「整定 -> ドループ -> リセット」という階段状の波形になる。 -->
+         見えるのは「整定 -> ドループ -> リセット」という階段状の波形になる。
+         v2 本番ファーム専用。波形ファーム（COSMICRAY_WAVEFORM_*）は SET_SCOPE を知らないので wave_plotter.html を使う。 -->
     <div id="tab-scope" style="display:none;">
       <div class="card">
         <h3>&#x1f4c9; <span data-i18n="scope.title">Oscilloscope</span></h3>
         <p style="font-size:12px;color:#888;margin-bottom:10px;" data-i18n="scope.desc">
-          While this tab is open the detector stops counting and streams raw waveforms (12 us/sample).
-          The time spent here is added to deadtime, so the count rate stays correct.
+          While this tab is open the detector stops counting and streams the peak-hold waveform on A0 (12 us/sample).
+          The time spent here is added to deadtime by the firmware, and the page divides by live time, so the count rate stays correct.
         </p>
         <p style="font-size:12px;color:#888;margin-bottom:10px;" data-i18n="scope.holdNote">
           A0 is the peak-hold output, not the raw amplifier pulse. Expect settle -> droop -> reset.
+        </p>
+        <p style="font-size:12px;color:#888;margin-bottom:10px;" data-i18n="scope.fwNote">
+          For the v2 detector firmware only. The waveform firmware (COSMICRAY_WAVEFORM_*) does not understand SET_SCOPE; use wave_plotter.html with it.
         </p>
         <div id="scopeBleWarn" class="alert alert-warning" style="display:none;" data-i18n="scope.bleWarn">
           Over Bluetooth each waveform takes several notifications. Keep the rate low.
@@ -865,8 +1140,8 @@
           <button class="btn btn-secondary btn-sm" id="scopeClear" data-i18n="scope.clear">Clear</button>
           <button class="btn btn-outline btn-sm" id="scopeSave" data-i18n="scope.save">Save .wfm</button>
         </div>
-        <div style="width:100%;overflow-x:auto;">
-          <canvas id="scopeCanvas" width="1120" height="440" style="display:block;max-width:100%;"></canvas>
+        <div id="scopeWrap" style="width:100%;">
+          <canvas id="scopeCanvas" style="display:block;width:100%;height:440px;"></canvas>
         </div>
         <div class="stats-row" style="margin-top:14px;">
           <div class="stat-card">
@@ -907,6 +1182,8 @@
               <tr><td data-i18n="stats.elapsed">Measurement Time</td><td id="ds_elapsed">--</td></tr>
               <tr><td data-i18n="stats.rate">Avg. Count Rate (cps)</td><td id="ds_rate">--</td></tr>
               <tr><td data-i18n="stats.rateStd">Count Rate Std Dev</td><td id="ds_rateStd">--</td></tr>
+              <tr><td data-i18n="stats.devCounts">Detector Counts (since Clear Data)</td><td id="ds_devCounts">--</td></tr>
+              <tr><td data-i18n="stats.liveTime">Live Time (elapsed &minus; deadtime)</td><td id="ds_liveTime">--</td></tr>
               <tr><td data-i18n="stats.temp">Avg. Temperature (&deg;C)</td><td id="ds_temp">--</td></tr>
               <tr><td data-i18n="stats.tempStd">Temp. Std Dev</td><td id="ds_tempStd">--</td></tr>
               <tr><td data-i18n="stats.tempRange">Max / Min Temperature (&deg;C)</td><td id="ds_tempRange">--</td></tr>
@@ -948,6 +1225,9 @@ const I18N = {
     'notes.ble': 'BLE: Web Bluetooth API',
     'notes.https': 'BLE requires HTTPS or localhost',
     'notes.adc': 'ADC range is 0–4095 (12-bit)',
+    'notes.v2only': 'For the v2 board only. v1 boards need v1/index.html (the columns differ).',
+    'notes.csv': "Saved .csv files start with # metadata lines (pandas: read_csv(..., comment='#')).",
+    'advanced.title': 'Advanced settings',
     'autosave.title': 'Auto-Save',
     'autosave.desc': 'Select a folder to automatically save data as it arrives. Requires Chrome / Edge.',
     'autosave.format': 'Save Format',
@@ -958,12 +1238,53 @@ const I18N = {
     'autosave.notConfigured': 'Not configured',
     'autosave.status': 'Saving: {file}\nWritten: {n} events',
     'autosave.writeError': 'Write error: {msg}',
+    'autosave.slow': 'Large file: writing every {sec} s to keep the PC responsive',
+    'autosave.pending': 'Not yet written: {n} events (lost if the tab is closed right now)',
+    'upload.title': 'Server Upload',
+    'upload.desc': 'Send events to a measurement server in real time. Auto-Save on this PC remains the primary record.',
+    'upload.server': 'Server URL',
+    'upload.serverPlaceholder': 'https://server.example.com',
+    'upload.stationId': 'Station ID',
+    'upload.password': 'Password',
+    'upload.remember': 'Remember password on this PC',
+    'upload.rememberWarn': 'Stored unencrypted in this browser. Do not use on a shared PC.',
+    'upload.deviceLabel': 'Device Label',
+    'upload.deviceLabelPlaceholder': 'det-A',
+    'upload.lat': 'Latitude',
+    'upload.lon': 'Longitude',
+    'upload.decimate': 'Upload Rate',
+    'upload.decAll': 'All events',
+    'upload.dec10': '1 of every 10',
+    'upload.dec100': '1 of every 100',
+    'upload.login': 'Log In',
+    'upload.logout': 'Log Out',
+    'upload.start': 'Start Upload',
+    'upload.stop': 'Stop Upload',
+    'upload.resend': 'Re-send Buffered Events',
+    'upload.stNotConfigured': 'Not configured',
+    'upload.stLoggingIn': 'Logging in…',
+    'upload.stReady': 'Logged in as {id} — upload stopped',
+    'upload.stActive': 'Uploading ({mode}) — sent {sent}, queued {queued}',
+    'upload.stRetrying': 'Retry {attempt} in {sec}s — {msg}',
+    'upload.stBacklog': 'Backlog {queued} events — network cannot keep up. Consider lowering the upload rate.',
+    'upload.stOffline': 'Offline — {queued} events queued',
+    'upload.stAuthError': 'Authentication failed — log in again',
+    'upload.stRejected': '{n} events rejected by the server',
+    'upload.stDropped': 'Queue overflow — {n} events not uploaded (still saved locally)',
+    'upload.counters': 'sent {sent} / queued {queued} / skipped {skipped} / dropped {dropped} / rejected {rejected}',
+    'upload.legacyMode': 'Legacy API: humidity, pressure and Dig/Ana channels are NOT uploaded.',
+    'upload.loginFail': 'Login failed: {msg}',
+    'upload.needFields': 'Server URL, Station ID and Password are required.',
+    'upload.badUrl': 'Server URL is not valid.',
+    'upload.corsHint': 'Could not reach the server. Check the URL and the network. A page opened over https:// cannot reach an http:// server (mixed content): the server should use https://.',
+    'upload.insecure': 'Warning: this server URL is http://, so the password and data travel unencrypted. Use an https:// server.',
     'file.title': 'File Settings',
     'file.commentDesc': 'Add a comment (written into the file header on download)',
     'file.commentPlaceholder': 'Measurement notes...',
     'file.downloadDat': 'Download (.dat)',
     'file.downloadCsv': 'Download (.csv)',
-    'file.clearData': 'Clear Data',
+    'file.clearData': 'Clear Data & Reset Counter',
+    'file.clearHint': "Also sends RESET: the detector's event counter and elapsed time restart from 0.",
     'conn.title': 'Connect to CosmicRay',
     'conn.baud': 'Baud Rate (USB)',
     'conn.bleName': 'Bluetooth Device Name',
@@ -974,12 +1295,26 @@ const I18N = {
     'conn.disconnect': 'Disconnect',
     'conn.pausedInfo': 'Logging paused — incoming events are ignored (device keeps measuring).',
     'conn.renameReboot': 'Rename & Reboot',
-    'conn.bleNameHint': '1–24 printable ASCII. Device reboots on save.',
+    'conn.bleNameHint': '1–19 printable ASCII. Device reboots on save.',
     'conn.bleNameCurrent': 'Device BLE name: {name}',
     'conn.bleNameSaving': 'Saving "{name}" and rebooting...',
     'conn.connectedUsb': 'Connected (USB)',
     'conn.connectedBle': 'Connected (BLE)',
+    'conn.reconnecting': 'Reconnecting (BLE)… attempt {n}',
+    'conn.reconnectWait': 'BLE link lost — retry {n} in {sec} s',
+    'conn.reconnectInfo': 'The BLE link dropped. Retrying automatically; Auto-Save continues in the same file. Press Disconnect to stop.',
     'conn.pausedSuffix': ' — Logging paused',
+    'conn.detailUsb': 'USB serial',
+    'conn.detailBle': 'Bluetooth LE',
+    'conn.vidpid': 'VID:PID',
+    'conn.comPort': 'COM port',
+    'conn.comUnavailable': 'not exposed by the browser',
+    'conn.deviceName': 'Device name',
+    'conn.address': 'Address',
+    'conn.boardAddr': 'Board address',
+    'conn.addrFetching': 'querying...',
+    'conn.addrUnknown': 'unavailable (older firmware)',
+    'conn.browserId': 'Browser ID',
     'refresh.title': 'Chart Refresh',
     'refresh.desc': 'Histogram & rate chart update interval.',
     'refresh.manual': 'Manual',
@@ -992,15 +1327,40 @@ const I18N = {
     'feat.ext': 'External Channels',
     'feat.oled': 'OLED Display',
     'feat.buzzer': 'Buzzer Sound',
+    'feat.vib': 'Vibration',
     'feat.fetching': 'Connected. Fetching toggles...',
-    'feat.status': 'SD: {sd}  EXT: {ext}  OLED: {oled}  Buzzer: {buzzer}',
+    'feat.status': 'SD: {sd}  EXT: {ext}  OLED: {oled}  Buzzer: {buzzer}  Vib: {vib}',
+    'beep.title': 'Beep',
+    'beep.desc': 'Buzzer pitch by pulse energy (logarithmic): Min = pitch at threshold, Max = pitch at ADC max.',
+    'beep.minLabel': 'Min Hz',
+    'beep.maxLabel': 'Max Hz',
+    'beep.msLabel': 'Duration ms',
+    'beep.test': 'Test',
+    'beep.current': 'Beep: {min}–{max} Hz, {ms} ms',
+    'vib.title': 'Vibration',
+    'vib.desc': 'Vibration length by pulse energy (logarithmic): Min = length at threshold, Max = length at ADC max.',
+    'vib.minLabel': 'Min ms',
+    'vib.maxLabel': 'Max ms',
+    'vib.test': 'Test',
+    'vib.current': 'Vibration: {min}–{max} ms',
+    'beep.fetching': 'Connected. Fetching beep settings...',
+    'vib.fetching': 'Connected. Fetching vibration settings...',
+    'beep.range': 'Beep: Min ≥ 50, Max > Min and ≤ 20000, Duration 1–500 ms.',
+    'vib.range': 'Vibration: Min ≥ 1, Max > Min and ≤ 500 ms.',
     'thresh.title': 'Threshold Control',
     'thresh.signalLabel': 'Signal Threshold (0–4095, 12-bit)',
     'thresh.marginLabel': 'Auto Calibrate Margin (above sampled max)',
     'thresh.autoCal': 'Auto Calibrate',
-    'thresh.current': 'Signal threshold: {sig} / 4095   (PWM Duty: {duty} / 1023)',
+    'thresh.current': 'Signal threshold: {sig} / 4095   (PWM Duty: {duty} / 255)',
     'thresh.fetching': 'Connected. Fetching thresholds...',
     'thresh.calibrating': 'Auto-calibrating threshold (margin={m})...',
+    'pwm.label': 'Comparator Threshold (PWM Duty 0–255)',
+    'pwm.desc': 'Used by Digital / Dual trigger. Run Auto PWM once after switching to those modes.',
+    'pwm.targetLabel': 'Auto PWM target (comparator edges/s)',
+    'pwm.auto': 'Auto PWM',
+    'pwm.current': 'Comparator PWM duty: {duty} / 255',
+    'pwm.fetching': 'Connected. Fetching PWM duty...',
+    'pwm.calibrating': 'Sweeping the comparator threshold (target ≤ {target}/s, about 8 s)...',
     'mode.current': 'Current mode: {mode}',
     'mode.fetching': 'Connected. Fetching mode...',
     'mode.switching': 'Switching to {mode}...',
@@ -1016,8 +1376,11 @@ const I18N = {
     'tabs.analysis': 'Analysis',
     'tabs.scope': 'Oscilloscope',
     'scope.title': 'Oscilloscope',
-    'scope.desc': 'While this tab is open the detector stops counting and streams raw waveforms (12 us/sample). The time spent here is added to deadtime, so the count rate stays correct.',
+    'scope.desc': 'While this tab is open the detector stops counting and streams the peak-hold waveform on A0 (12 us/sample). The time spent here is added to deadtime by the firmware, and the page divides by live time, so the count rate stays correct. Left without any input for 10 minutes, the page returns to Analysis and counting resumes.',
     'scope.holdNote': 'A0 is the peak-hold output, not the raw amplifier pulse. Expect settle -> droop -> reset.',
+    'scope.fwNote': 'For the v2 detector firmware only. The waveform firmware (COSMICRAY_WAVEFORM_*) does not understand SET_SCOPE; use wave_plotter.html with it.',
+    'scope.countingPaused': 'Counting paused (oscilloscope)',
+    'scope.countingPausedFor': 'Counting paused (oscilloscope) {time}',
     'scope.bleWarn': 'Over Bluetooth each waveform takes several notifications. Keep the rate low.',
     'scope.rate': 'Rate limit [/s]',
     'scope.persist': 'Persistence',
@@ -1037,7 +1400,9 @@ const I18N = {
     'chart.histTitle': 'ADC Energy Histogram',
     'chart.rateTitle': 'Count Rate Over Time',
     'chart.binWidth': 'ADC Bin Width:',
+    'chart.logScale': 'Log scale (Y)',
     'chart.dataPoints': 'Data points:',
+    'chart.savePng': 'Save PNG',
     'chart.xAdc': 'ADC Value (0-4095)',
     'chart.yCount': 'Count',
     'chart.xTime': 'Time',
@@ -1072,6 +1437,8 @@ const I18N = {
     'stats.elapsed': 'Measurement Time',
     'stats.rate': 'Avg. Count Rate (cps)',
     'stats.rateStd': 'Count Rate Std Dev',
+    'stats.devCounts': 'Detector Counts (since Clear Data)',
+    'stats.liveTime': 'Live Time (elapsed − deadtime)',
     'stats.temp': 'Avg. Temperature (°C)',
     'stats.tempStd': 'Temp. Std Dev',
     'stats.tempRange': 'Max / Min Temperature (°C)',
@@ -1090,14 +1457,44 @@ const I18N = {
     'export.error': 'Export error: {msg}',
     'alert.threshRange': 'Signal threshold must be an integer in 0–{max}.',
     'alert.marginRange': 'Margin must be an integer in 0–{max}.',
-    'alert.bleName': 'BLE name must be 1-24 printable ASCII characters.',
+    'alert.bleName': 'BLE name must be 1-19 printable ASCII characters.',
+    'alert.pwmRange': 'PWM duty must be an integer in 0–255.',
+    'alert.pwmTarget': 'Auto PWM target must be a non-negative integer.',
     'alert.fsApi': 'File System Access API is not supported. Please use Chrome or Edge.',
     'confirm.rename': 'Rename BLE device to "{name}" and reboot?',
-    'confirm.clear': 'Clear all data and reset detector count?',
+    'confirm.clear': "Clear all data on this page?\n\nThis also sends RESET to the detector: its event counter, elapsed time and deadtime restart from 0. Files already saved are not touched.",
+    'notice.boardChanged': 'A different board is connected ({prev} -> {now}). The rate, elapsed time and counts on this page still include the previous board. Press "Clear Data & Reset Counter" to start a clean measurement.',
+    'notice.scopeIdle': 'The oscilloscope tab was left alone for {min} minutes, so the page went back to Analysis and the detector is counting again.',
+    'err.usbOpen': 'Could not open the serial port ({msg}). Close any other program using it (Arduino IDE Serial Monitor, another browser tab) and try again.',
+    'err.usb': 'USB connection failed: {msg}',
+    'err.usbLost': 'USB connection lost: {msg}',
+    'err.ble': 'Bluetooth connection failed: {msg}',
+    'err.bleNetwork': 'Could not connect to the Bluetooth device ({msg}). Check that it is powered, in range and not connected to another app.',
+    'err.security': 'The browser blocked access ({msg}). Bluetooth needs https:// or localhost.',
     'warn.noSerial': 'Web Serial API is not available (USB connection disabled).',
     'warn.noBle': 'Web Bluetooth API is not available (Bluetooth connection disabled).',
     'warn.useChrome': 'Please use Chrome or Edge.',
     'warn.memCap': 'Memory cap ({n} events) reached; oldest data is being dropped from memory. Use Auto-Save (Select Save Folder) to keep every event, or Download and Clear periodically.',
+    'demo.connect': 'Demo Mode (no hardware)',
+    'demo.title': 'Demo Mode',
+    'demo.desc': 'A virtual detector feeds synthetic events through the same path as a real board, so the charts, the oscilloscope and the log all move the way they would in a real run.',
+    'demo.banner': 'DEMO MODE \u2014 every number on this page is synthetic data generated in your browser, not a measurement. Saved files get a "DEMO_" prefix, and server upload stays disabled.',
+    'demo.scBackground': 'Background',
+    'demo.scSource': 'Source',
+    'demo.scShower': 'Showers',
+    'demo.sc.background': 'Cosmic-ray muons (Landau peak near ADC 1150) on top of an environmental gamma continuum falling away from the threshold.',
+    'demo.sc.source': 'A check source in front of the scintillator: photopeak near ADC 760 with a Compton shelf below it, at roughly 6x the rate.',
+    'demo.sc.shower': 'Air showers keep arriving: the rate jumps for a few seconds, the three external detectors fire together, and pulses reach saturation.',
+    'demo.rate': 'Trigger rate: {r} cps',
+    'demo.burst': 'Inject a burst',
+    'demo.sound': 'Buzzer sound (Web Audio)',
+    'demo.info': '\u03bb \u2248 {lam} cps \u00b7 {n} events generated \u00b7 {temp} \u00b0C / {press} hPa',
+    'demo.infoScope': 'Scope is open, so counting is paused \u2014 the real firmware does the same.',
+    'demo.infoBurst': 'Burst in progress \u2014 watch the rate chart and the coincidence cells.',
+    'demo.connected': 'Connected (Demo)',
+    'demo.detail': 'Demo mode (virtual detector)',
+    'demo.detailNote': 'Synthetic data \u2014 no hardware attached',
+    'demo.uploadBlocked': 'Demo data cannot be uploaded: synthetic events must never reach the measurement server. Disconnect the demo and connect a real detector first.',
   },
   ja: {
     'app.title': 'CosmicRay Recorder v2',
@@ -1108,6 +1505,9 @@ const I18N = {
     'notes.ble': 'BLE: Web Bluetooth API',
     'notes.https': 'BLE は HTTPS または localhost が必要',
     'notes.adc': 'ADC 範囲は 0〜4095 (12ビット)',
+    'notes.v2only': 'v2 基板専用です。v1 基板には v1/index.html を使ってください（列の並びが違います）。',
+    'notes.csv': "保存した .csv の先頭には # で始まるメタデータ行があります（pandas: read_csv(..., comment='#')）。",
+    'advanced.title': '詳細設定',
     'autosave.title': '自動保存',
     'autosave.desc': 'フォルダを選択すると、受信したデータを自動的に保存します。Chrome / Edge が必要です。',
     'autosave.format': '保存形式',
@@ -1118,12 +1518,53 @@ const I18N = {
     'autosave.notConfigured': '未設定',
     'autosave.status': '保存先: {file}\n書き込み済み: {n} イベント',
     'autosave.writeError': '書き込みエラー: {msg}',
+    'autosave.slow': 'ファイルが大きいため {sec} 秒ごとに書き込んでいます（PC の負荷を抑えるため）',
+    'autosave.pending': '未保存 {n} 件（今タブを閉じると失われます）',
+    'upload.title': 'サーバーへ送信',
+    'upload.desc': '測定データをサーバーへリアルタイム送信します。正本はこの PC の自動保存です。',
+    'upload.server': 'サーバー URL',
+    'upload.serverPlaceholder': 'https://server.example.com',
+    'upload.stationId': '観測局 ID',
+    'upload.password': 'パスワード',
+    'upload.remember': 'この PC にパスワードを保存する',
+    'upload.rememberWarn': 'ブラウザ内に平文で保存されます。共用 PC では使用しないでください。',
+    'upload.deviceLabel': '装置ラベル',
+    'upload.deviceLabelPlaceholder': 'det-A',
+    'upload.lat': '緯度',
+    'upload.lon': '経度',
+    'upload.decimate': '送信レート',
+    'upload.decAll': '全イベント',
+    'upload.dec10': '10 件に 1 件',
+    'upload.dec100': '100 件に 1 件',
+    'upload.login': 'ログイン',
+    'upload.logout': 'ログアウト',
+    'upload.start': '送信開始',
+    'upload.stop': '送信停止',
+    'upload.resend': '未送信データを再送',
+    'upload.stNotConfigured': '未設定',
+    'upload.stLoggingIn': 'ログイン中…',
+    'upload.stReady': '{id} でログイン中 — 送信停止中',
+    'upload.stActive': '送信中（{mode}）— 送信済 {sent} 件 / 待機 {queued} 件',
+    'upload.stRetrying': '再試行 {attempt} 回目（{sec} 秒後）— {msg}',
+    'upload.stBacklog': '未送信 {queued} 件 — 回線が追いつきません。送信レートを下げてください。',
+    'upload.stOffline': 'オフライン — {queued} 件を保留中',
+    'upload.stAuthError': '認証に失敗しました — 再ログインしてください',
+    'upload.stRejected': 'サーバーに拒否されたイベント {n} 件',
+    'upload.stDropped': '送信キュー上限超過 — {n} 件は未送信（ローカルには保存済み）',
+    'upload.counters': '送信 {sent} / 待機 {queued} / 間引き {skipped} / 破棄 {dropped} / 拒否 {rejected}',
+    'upload.legacyMode': '旧 API モード: 湿度・気圧・デジタル/アナログ各 ch は送信されません。',
+    'upload.loginFail': 'ログイン失敗: {msg}',
+    'upload.needFields': 'サーバー URL・観測局 ID・パスワードは必須です。',
+    'upload.badUrl': 'サーバー URL が不正です。',
+    'upload.corsHint': 'サーバーに接続できません。URL とネットワークを確認してください。https:// で開いたページからは http:// のサーバーへ送信できません（混在コンテンツ）。サーバーを https:// にしてください。',
+    'upload.insecure': '注意: サーバー URL が http:// のため、パスワードとデータが暗号化されずに送られます。https:// のサーバーを使ってください。',
     'file.title': 'ファイル設定',
     'file.commentDesc': 'コメントを追加（ダウンロード時にファイルヘッダへ書き込まれます）',
     'file.commentPlaceholder': '測定メモ...',
     'file.downloadDat': 'ダウンロード (.dat)',
     'file.downloadCsv': 'ダウンロード (.csv)',
-    'file.clearData': 'データを消去',
+    'file.clearData': 'データを消去（基板カウンタもリセット）',
+    'file.clearHint': '基板にも RESET を送ります。基板のイベント番号と経過時間が 0 からやり直しになります。',
     'conn.title': 'CosmicRay に接続',
     'conn.baud': 'ボーレート (USB)',
     'conn.bleName': 'Bluetooth デバイス名',
@@ -1134,12 +1575,26 @@ const I18N = {
     'conn.disconnect': '切断',
     'conn.pausedInfo': '記録停止中 — 受信イベントは無視されます（デバイスは測定を続けます）。',
     'conn.renameReboot': '名前変更して再起動',
-    'conn.bleNameHint': '印字可能な ASCII 1〜24文字。保存時にデバイスが再起動します。',
+    'conn.bleNameHint': '印字可能な ASCII 1〜19文字。保存時にデバイスが再起動します。',
     'conn.bleNameCurrent': 'デバイスの BLE 名: {name}',
     'conn.bleNameSaving': '"{name}" を保存して再起動中...',
     'conn.connectedUsb': '接続中 (USB)',
     'conn.connectedBle': '接続中 (BLE)',
+    'conn.reconnecting': '再接続中 (BLE)… {n} 回目',
+    'conn.reconnectWait': 'BLE が切断 — {sec} 秒後に {n} 回目の再接続',
+    'conn.reconnectInfo': 'BLE の接続が切れました。自動で再接続を試みています。自動保存は同じファイルに続けて書きます。やめるときは「切断」を押してください。',
     'conn.pausedSuffix': ' — 記録停止中',
+    'conn.detailUsb': 'USB シリアル',
+    'conn.detailBle': 'Bluetooth LE',
+    'conn.vidpid': 'VID:PID',
+    'conn.comPort': 'COM ポート',
+    'conn.comUnavailable': 'ブラウザからは取得不可',
+    'conn.deviceName': 'デバイス名',
+    'conn.address': 'アドレス',
+    'conn.boardAddr': '基板アドレス',
+    'conn.addrFetching': '取得中...',
+    'conn.addrUnknown': '取得不可 (旧ファーム)',
+    'conn.browserId': 'ブラウザ ID',
     'refresh.title': 'チャート更新',
     'refresh.desc': 'ヒストグラムとレートチャートの更新間隔。',
     'refresh.manual': '手動',
@@ -1152,15 +1607,40 @@ const I18N = {
     'feat.ext': '外部チャンネル',
     'feat.oled': 'OLED 表示',
     'feat.buzzer': 'ブザー音',
+    'feat.vib': '振動',
     'feat.fetching': '接続しました。設定を取得中...',
-    'feat.status': 'SD: {sd}  EXT: {ext}  OLED: {oled}  ブザー: {buzzer}',
+    'feat.status': 'SD: {sd}  EXT: {ext}  OLED: {oled}  ブザー: {buzzer}  振動: {vib}',
+    'beep.title': 'ブザー音',
+    'beep.desc': 'パルスのエネルギーで音程を変えます（対数）。Min = しきい値での音程、Max = ADC 最大での音程。',
+    'beep.minLabel': '最低 Hz',
+    'beep.maxLabel': '最高 Hz',
+    'beep.msLabel': '長さ ms',
+    'beep.test': 'テスト',
+    'beep.current': 'ブザー音: {min}〜{max} Hz, {ms} ms',
+    'vib.title': '振動',
+    'vib.desc': 'パルスのエネルギーで振動の長さを変えます（対数）。Min = しきい値での長さ、Max = ADC 最大での長さ。',
+    'vib.minLabel': '最短 ms',
+    'vib.maxLabel': '最長 ms',
+    'vib.test': 'テスト',
+    'vib.current': '振動: {min}〜{max} ms',
+    'beep.fetching': '接続しました。ブザー音設定を取得中...',
+    'vib.fetching': '接続しました。振動設定を取得中...',
+    'beep.range': 'ブザー音: 最低 ≥ 50、最高 > 最低 かつ ≤ 20000、長さ 1〜500 ms。',
+    'vib.range': '振動: 最短 ≥ 1、最長 > 最短 かつ ≤ 500 ms。',
     'thresh.title': 'しきい値制御',
     'thresh.signalLabel': '信号しきい値 (0〜4095, 12ビット)',
     'thresh.marginLabel': '自動校正マージン（測定最大値への上乗せ）',
     'thresh.autoCal': '自動校正',
-    'thresh.current': '信号しきい値: {sig} / 4095   (PWM Duty: {duty} / 1023)',
+    'thresh.current': '信号しきい値: {sig} / 4095   (PWM Duty: {duty} / 255)',
     'thresh.fetching': '接続しました。しきい値を取得中...',
     'thresh.calibrating': 'しきい値を自動校正中 (マージン={m})...',
+    'pwm.label': 'コンパレータしきい値 (PWM Duty 0〜255)',
+    'pwm.desc': 'Digital / Dual モードのトリガに使います。これらのモードに切り替えたら一度 Auto PWM を実行してください。',
+    'pwm.targetLabel': 'Auto PWM の目標（コンパレータの反応回数/秒）',
+    'pwm.auto': 'Auto PWM',
+    'pwm.current': 'コンパレータ PWM Duty: {duty} / 255',
+    'pwm.fetching': '接続しました。PWM Duty を取得中...',
+    'pwm.calibrating': 'コンパレータのしきい値を掃引中（目標 ≤ {target}/秒、約 8 秒）...',
     'mode.current': '現在のモード: {mode}',
     'mode.fetching': '接続しました。モードを取得中...',
     'mode.switching': '{mode} に切り替え中...',
@@ -1176,8 +1656,11 @@ const I18N = {
     'tabs.analysis': '解析',
     'tabs.scope': 'オシロスコープ',
     'scope.title': 'オシロスコープ',
-    'scope.desc': 'このタブを開いている間、検出器は計数を止めて生波形を流します（12µs/点）。滞在時間はデッドタイムに計上されるので、計数率は正しいままです。',
+    'scope.desc': 'このタブを開いている間、検出器は計数を止めて A0（ピークホールド出力）の波形を流します（12µs/点）。滞在時間はファームがデッドタイムに計上し、ページはライブタイムで割るので、計数率は正しいままです。10 分間操作がなければ、解析タブに戻って計数を再開します。',
     'scope.holdNote': 'A0 はアンプの生出力ではなく【ピークホールドの出力】です。整定 → ドループ → リセット という階段状の波形になります。',
+    'scope.fwNote': 'v2 本番ファーム専用です。波形ファーム（COSMICRAY_WAVEFORM_*）は SET_SCOPE を受け付けないので、wave_plotter.html を使ってください。',
+    'scope.countingPaused': '計数停止中（オシロ）',
+    'scope.countingPausedFor': '計数停止中（オシロ） {time}',
     'scope.bleWarn': 'Bluetooth では 1 波形が複数の通知に割れます。レートは低めにしてください。',
     'scope.rate': 'レート上限 [/s]',
     'scope.persist': '残光',
@@ -1197,7 +1680,9 @@ const I18N = {
     'chart.histTitle': 'ADC エネルギーヒストグラム',
     'chart.rateTitle': 'カウントレートの推移',
     'chart.binWidth': 'ADC ビン幅:',
+    'chart.logScale': 'Y軸 対数表示',
     'chart.dataPoints': 'データ点数:',
+    'chart.savePng': 'PNG 保存',
     'chart.xAdc': 'ADC 値 (0-4095)',
     'chart.yCount': 'カウント',
     'chart.xTime': '時刻',
@@ -1232,6 +1717,8 @@ const I18N = {
     'stats.elapsed': '測定時間',
     'stats.rate': '平均カウントレート (cps)',
     'stats.rateStd': 'カウントレート標準偏差',
+    'stats.devCounts': '検出器の計数（データ消去以降）',
+    'stats.liveTime': 'ライブタイム（経過時間 − デッドタイム）',
     'stats.temp': '平均温度 (°C)',
     'stats.tempStd': '温度標準偏差',
     'stats.tempRange': '最高 / 最低温度 (°C)',
@@ -1250,14 +1737,44 @@ const I18N = {
     'export.error': 'エクスポートエラー: {msg}',
     'alert.threshRange': '信号しきい値は 0〜{max} の整数で入力してください。',
     'alert.marginRange': 'マージンは 0〜{max} の整数で入力してください。',
-    'alert.bleName': 'BLE 名は印字可能な ASCII 1〜24文字で入力してください。',
+    'alert.bleName': 'BLE 名は印字可能な ASCII 1〜19文字で入力してください。',
+    'alert.pwmRange': 'PWM Duty は 0〜255 の整数で入力してください。',
+    'alert.pwmTarget': 'Auto PWM の目標は 0 以上の整数で入力してください。',
     'alert.fsApi': 'File System Access API に対応していません。Chrome または Edge をご利用ください。',
     'confirm.rename': 'BLE デバイス名を "{name}" に変更して再起動しますか?',
-    'confirm.clear': '全データを消去し、検出器のカウントをリセットしますか?',
+    'confirm.clear': 'このページのデータをすべて消去しますか?\n\n検出器にも RESET を送るので、基板のイベント番号・経過時間・デッドタイムも 0 からやり直しになります。保存済みのファイルは消えません。',
+    'notice.boardChanged': '別の基板につながりました（{prev} → {now}）。このページの計数率・経過時間・件数には前の基板の分も含まれています。測り直すときは「データを消去（基板カウンタもリセット）」を押してください。',
+    'notice.scopeIdle': 'オシロのタブが {min} 分間操作されなかったので、解析タブに戻して計数を再開しました。',
+    'err.usbOpen': 'シリアルポートを開けませんでした（{msg}）。ポートを使っている他のアプリ（Arduino IDE のシリアルモニタ、別のブラウザタブなど）を閉じてから、もう一度試してください。',
+    'err.usb': 'USB 接続に失敗しました: {msg}',
+    'err.usbLost': 'USB 接続が切れました: {msg}',
+    'err.ble': 'Bluetooth 接続に失敗しました: {msg}',
+    'err.bleNetwork': 'Bluetooth デバイスに接続できませんでした（{msg}）。電源が入っているか、近くにあるか、他のアプリと接続中でないかを確認してください。',
+    'err.security': 'ブラウザがアクセスを拒否しました（{msg}）。Bluetooth は https:// か localhost で開いたページでしか使えません。',
     'warn.noSerial': 'Web Serial API が利用できません（USB 接続は無効）。',
     'warn.noBle': 'Web Bluetooth API が利用できません（Bluetooth 接続は無効）。',
     'warn.useChrome': 'Chrome または Edge をご利用ください。',
     'warn.memCap': 'メモリ上限 ({n} 件) に達したため、古いデータをメモリから破棄しています。全件を残すにはフォルダ自動保存 (保存フォルダを選択) を使うか、こまめにダウンロードしてからデータを消去してください。',
+    'demo.connect': 'デモモード（実機不要）',
+    'demo.title': 'デモモード',
+    'demo.desc': '仮想検出器が合成イベントを作り、実機とまったく同じ経路で流し込みます。グラフもオシロもログも、実測しているときと同じように動きます。',
+    'demo.banner': 'デモモード \u2014 この画面の数値はすべてブラウザ内で生成した合成データで、実測値ではありません。保存ファイル名には "DEMO_" が付き、サーバ送信は無効になります。',
+    'demo.scBackground': '通常',
+    'demo.scSource': '線源あり',
+    'demo.scShower': 'シャワー',
+    'demo.sc.background': '宇宙線ミューオン（ADC 1150 付近の Landau ピーク）と、しきい値から落ちていく環境ガンマの連続成分。',
+    'demo.sc.source': 'シンチレータの前に線源を置いた状態。ADC 760 付近の光電ピークとその下のコンプトンの棚が出て、レートは約 6 倍。',
+    'demo.sc.shower': '空気シャワーが次々に来る状態。数秒間レートが跳ね上がり、外部検出器 3 台が揃って鳴り、波高が飽和まで届く。',
+    'demo.rate': 'トリガレート: {r} cps',
+    'demo.burst': 'バーストを注入',
+    'demo.sound': 'ブザー音を再現 (Web Audio)',
+    'demo.info': '\u03bb \u2248 {lam} cps ・ 生成 {n} イベント ・ {temp} \u00b0C / {press} hPa',
+    'demo.infoScope': 'オシロ表示中は計数停止（実機のファームと同じ挙動）。',
+    'demo.infoBurst': 'バースト発生中 \u2014 レートグラフと同時計数の欄を見てください。',
+    'demo.connected': '接続中（デモ）',
+    'demo.detail': 'デモモード（仮想検出器）',
+    'demo.detailNote': '合成データ \u2014 実機は接続されていません',
+    'demo.uploadBlocked': 'デモのデータはアップロードできません。合成イベントを測定サーバに送らないためです。デモを切断し、実機を接続してから開始してください。',
   },
 };
 
@@ -1280,6 +1797,10 @@ function detectLanguage() {
     if (saved === 'ja' || saved === 'en') return saved;
   } catch (_) {}
   return (navigator.language || '').toLowerCase().startsWith('ja') ? 'ja' : 'en';
+}
+
+function uiLocale() {
+  return currentLang === 'ja' ? 'ja-JP' : 'en-US';
 }
 
 function setLanguage(lang) {
@@ -1313,14 +1834,23 @@ function applyLanguage() {
 
   // Re-render state-derived dynamic text in the new language.
   renderStatusText();
+  renderConnDetail();
+  renderConnError();
+  renderNotice();
   renderThreshInfo();
+  renderPwmInfo();
+  renderScopeBadge();
+  renderBeepInfo();
+  renderVibInfo();
   renderModeInfo();
   renderBleNameInfo();
   renderPauseButton();
   renderApiWarning();
+  renderDemoUI();
   updateFeatureInfo();
   updateModeBadge(state.mode);
   updateAutoSaveUI();
+  updateUploadUI();
   if (state.events.length === 0) {
     $('elapsedTime').textContent = t('header.elapsed', { time: '--:--:--' });
   }
@@ -1337,9 +1867,48 @@ const VALID_MODES = ['DIGITAL', 'DUAL', 'ANALOG'];
 
 // Throttling / memory caps (to keep the page responsive under high event rates)
 const MAX_EVENTS            = 1000000; // cap on state.events kept in memory (table/recompute/download). Oldest dropped past this, with a visible warning.
+// Trimming the head of a 1M-element array is O(n), so it is done in chunks:
+// the array may overshoot MAX_EVENTS by this much, then one splice brings it back.
+const EVENTS_TRIM_CHUNK     = 50000;
 const UI_UPDATE_INTERVAL    = 300;     // ms between chart/table/card refreshes
 const STATS_UPDATE_INTERVAL = 1000;    // ms between stats-card refreshes
 const MAX_RATE_HISTORY      = 200;     // cap on state.rateHistory
+const RATE_WINDOW_US        = 10e6;    // rate chart: each point averages at least this much device time
+
+// ========== Auto-save ==========
+// Chrome copies the whole file into a swap file every time createWritable(keepExistingData)
+// opens it, so one append costs O(file size). The flush interval is stretched to keep
+// that copy below AUTOSAVE_IO_DUTY of wall time, measured from the actual write time.
+// The cap bounds how much a closed tab or a crash can lose; files are split at
+// AUTOSAVE_SPLIT_BYTES so the copy, and with it the interval, stays small (N-15).
+const AUTOSAVE_MIN_INTERVAL_MS = 1000;
+const AUTOSAVE_MAX_INTERVAL_MS = 15000;
+const AUTOSAVE_IO_DUTY         = 0.05;
+const AUTOSAVE_SPLIT_BYTES     = 64 * 1024 * 1024;
+const AUTOSAVE_PREFIX_WAIT_MS  = 5000;  // how long the first write waits for BLENAME: before using the stored name
+
+// ========== BLE reconnect ==========
+const BLE_RECONNECT_MIN_MS     = 1000;
+const BLE_RECONNECT_MAX_MS     = 30000;
+const BLE_CONNECT_TIMEOUT_MS   = 20000;
+
+// ========== Commands ==========
+const CMD_GAP_MS               = 80;     // pause between the GET_* queries sent after connecting
+const SCOPE_KEEPALIVE_MS       = 15000;  // firmware turns the scope off after 60 s without any command
+const SCOPE_IDLE_RETURN_MS     = 10 * 60 * 1000;  // scope tab left alone this long -> back to Analysis (N-6)
+
+// ========== Server upload ==========
+const UPLOAD_TICK_MS       = 1000;   // flush interval, same cadence as auto-save
+const UPLOAD_QUEUE_SOFT    = 5000;   // warn + suggest decimation past this
+const UPLOAD_QUEUE_HARD    = 50000;  // start dropping oldest past this (counted, never silent)
+const UPLOAD_LEGACY_CONC   = 4;      // parallel single-event POSTs against the legacy API
+const UPLOAD_LEGACY_BATCH  = 20;     // events taken per tick in legacy mode
+const UPLOAD_BACKOFF_MAX   = 60000;  // 60 s ceiling
+const UPLOAD_REJECT_CAP    = 100;    // cap on the remembered reject list
+const UPLOAD_HTTP_TIMEOUT  = 15000;  // ms per request
+const UPLOAD_STORE_KEY     = 'crd_upload_v1';
+const UPLOAD_SECRET_KEY    = 'crd_upload_secret_v1';   // only written when "remember" is on
+const UPLOAD_TOKEN_KEY     = 'crd_upload_token_v1';    // sessionStorage, used when "remember" is off
 
 // ========== BLE UUIDs (Nordic UART Service) ==========
 const BLE_SERVICE_UUID = '6e400001-b5a3-f393-e0a9-e50e24dcca9e';
@@ -1347,6 +1916,31 @@ const BLE_TX_UUID      = '6e400003-b5a3-f393-e0a9-e50e24dcca9e';  // Notify (dev
 const BLE_RX_UUID      = '6e400002-b5a3-f393-e0a9-e50e24dcca9e';  // Write  (web -> device)
 
 // ========== State ==========
+// Incremental sums over every event received (not just the ones still in memory,
+// so averages stay right after the MAX_EVENTS cap). BME280 fields keep their own
+// counts because the firmware prints "nan" when the sensor is missing (R-12).
+function newStats() {
+  return {
+    n: 0,
+    nTemp: 0, sumTemp: 0, sumTemp2: 0, minTemp: Infinity, maxTemp: -Infinity,
+    nHum: 0,  sumHum: 0,  minHum:  Infinity, maxHum:  -Infinity,
+    nPress: 0, sumPress: 0, minPress: Infinity, maxPress: -Infinity,
+    sumAdc: 0, maxAdc: 0,
+    digHits: [0, 0, 0],
+    sumAna:  [0, 0, 0],
+  };
+}
+
+function newRateState() {
+  return {
+    seg: null,       // { id, base: {count,timeUs,deadUs}, last: {count,timeUs,deadUs} }
+    nextId: 1,
+    done: { counts: 0, elapsedUs: 0, deadUs: 0 },   // closed segments
+    chartLast: null, // event used for the previous rate-chart point
+    boardAddr: null, // BTADDR of the board these totals came from (N-5)
+  };
+}
+
 const state = {
   connectionType: null,  // null | 'usb' | 'ble'
   // USB Serial
@@ -1358,6 +1952,20 @@ const state = {
   bleDevice: null,
   bleServer: null,
   bleRxChar: null,
+  // 接続先の識別情報。ブラウザから取れるものと、ファームに問い合わせて得るものの両方。
+  //   Web Serial は VID/PID しか公開しない（COM 番号は仕様上取得できない）。
+  //   Web Bluetooth の device.id はオリジン固有の不透明 ID で MAC ではない。
+  //   btAddr は GET_BTADDR の応答（= 基板の BLE アドレス）。USB 接続でも取れる。
+  conn: { usbVendorId: null, usbProductId: null, bleId: null, bleName: null, btAddr: null, btAddrTimedOut: false },
+  // BLE auto-reconnect (R-10). bleUserDisconnect tells onBLEDisconnected that
+  // the drop was requested, so it must not start retrying.
+  bleTxChar: null,
+  bleUserDisconnect: false,
+  reconnecting: false,
+  reconnectAttempt: 0,
+  reconnectAtMs: 0,
+  bleNameKnown: false,    // BLENAME: arrived during this connection (fixes the auto-save prefix)
+  connectedAtMs: 0,
   // Common
   isConnected: false,
   paused: false,          // web-side logging pause (Stop/Resume); device keeps measuring
@@ -1365,30 +1973,83 @@ const state = {
   rateHistory: [],
   sessionStart: null,
   rawLines: [],
-  stats: {
-    sumTemp: 0, sumTemp2: 0, minTemp: Infinity, maxTemp: -Infinity,
-    sumHum: 0,  minHum:  Infinity, maxHum:  -Infinity,
-    sumPress: 0, minPress: Infinity, maxPress: -Infinity,
-    sumAdc: 0, maxAdc: 0,
-    digHits: [0, 0, 0],
-    sumAna:  [0, 0, 0],
-  },
+  stats: newStats(),
+  // Count rate from the board's own counters (R-1). A segment is a stretch where
+  // count / time / deadtime only grow; it closes on RESET, reboot or disconnect.
+  // Rate = counts / live time summed over segments, the same formula as the OLED.
+  rate: newRateState(),
   mode: null,             // 'DIGITAL' | 'DUAL' | 'ANALOG' | null
   threshold: null,        // int (0-4095)
-  pwmDuty: null,          // int (0-1023)
+  pwmDuty: null,          // int (0-255), comparator threshold on D2
+  pwmCalibrating: false,  // AUTO_PWM in progress
   sdEnabled: null,        // bool | null
   extEnabled: null,       // bool | null
   oledEnabled: null,      // bool | null
   buzzerEnabled: null,    // bool | null
+  vibEnabled: null,       // bool | null
+  beepMin: null,          // int Hz (pitch at threshold) | null
+  beepMax: null,          // int Hz (pitch at ADC max) | null
+  beepMs: null,           // int ms (beep duration) | null
+  vibMin: null,           // int ms (vibration length at threshold) | null
+  vibMax: null,           // int ms (vibration length at ADC max) | null
   autoSave: {
     dirHandle: null,
-    pending: [],
-    currentDate: null,
-    lineCount: 0,
+    // One queue per format, so a failure in one format only retries that format
+    // and never duplicates lines already written to the other (R-2 d).
+    queues: { dat: [], csv: [] },
+    written: { dat: 0, csv: 0 },
+    prefix: null,      // file name base, fixed at the first write of a session (R-2 c)
+    parts: {},         // "<fmt>|<prefix>|<date>" -> current part number of a split file
+    lastFile: { dat: null, csv: null },   // file name last written, per format
     enabled: false,
     flushing: false,   // re-entrancy lock so overlapping flushes don't corrupt the file
+    nextFlushMs: 0,
+    intervalMs: AUTOSAVE_MIN_INTERVAL_MS,
+    lastError: null,
+  },
+  // Server upload. Deliberately a separate queue from autoSave: the two have
+  // different enablement lifetimes, different retry semantics (disk failures are
+  // usually permanent, network ones transient) and different drop policies
+  // (disk must never drop; the network mirror may, because disk is the record).
+  upload: {
+    // configuration (persisted, except the password -- see saveUploadConfig)
+    serverUrl: '',
+    stationId: '',
+    deviceLabel: '',
+    lat: '',
+    lon: '',
+    decimate: 1,
+    remember: false,
+    token: null,
+    tokenExpMs: 0,
+    apiMode: 'legacy',    // only 'legacy' in Phase 1; 'v2' arrives with C-12
+    // runtime
+    enabled: false,
+    loggingIn: false,
+    queue: [],            // references to the SAME event objects held in state.events
+    flushing: false,      // re-entrancy lock
+    inFlight: null,       // Set of the events in the batch being sent (N-3)
+    attempt: 0,
+    nextAttemptMs: 0,
+    lastError: null,
+    authError: false,
+    runId: null,
+    // clock anchor (see uploadClockUs). Advanced for every event in arrival
+    // order, whether or not upload is on, so ev.wall_us is fixed once (R-11).
+    anchorWallUs: 0,
+    anchorDevUs: 0,
+    anchorCount: 0,
+    // counters
+    sent: 0, failed: 0, dropped: 0, skipped: 0,
+    rejected: [],
+    backlogSince: 0,
   },
 };
+
+// Session-scoped password. Deliberately NOT part of `state` and NOT persisted by
+// default: it lives only for the lifetime of this tab so an overnight run can
+// silently re-login after a 401. Written to localStorage only if the user opts in.
+let uploadPassword = '';
 
 // ========== DOM Elements ==========
 const $ = id => document.getElementById(id);
@@ -1419,6 +2080,14 @@ function niceNum(v) {
   const f = v / Math.pow(10, exp);
   const nf = f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10;
   return nf * Math.pow(10, exp);
+}
+
+// A log axis cannot render an empty bin, so the axis floor is pinned to 0.5:
+// that keeps 1-count bins visible (half a decade tall) instead of flat.
+const HIST_LOG_MIN = 0.5;
+
+function formatLogTick(v) {
+  return v >= 1000 ? formatYTick(v) : String(v);
 }
 
 function formatYTick(v) {
@@ -1453,24 +2122,50 @@ function drawChart(chart) {
 
   let maxY = 0;
   for (let i = 0; i < n; i++) { const v = data[i]; if (v > maxY) maxY = v; }
-  const niceMax = maxY > 0 ? niceNum(maxY) : 1;
+
+  // Y scale: value -> pixel, plus the grid ticks to draw for it.
+  // Log mode spans HIST_LOG_MIN .. the next power of ten above the peak;
+  // minor (unlabelled) decade ticks are added while the range stays short.
+  const yBase = padT + plotH;
+  let yPos, yTickList;
+  if (chart.opts.logY) {
+    const decades = Math.max(1, Math.ceil(Math.log10(Math.max(maxY, 1))));
+    const lo = Math.log10(HIST_LOG_MIN);
+    const span = decades - lo;
+    yPos = v => v > HIST_LOG_MIN ? yBase - plotH * (Math.log10(v) - lo) / span : yBase;
+    yTickList = [];
+    for (let e = 0; e <= decades; e++) {
+      const base = Math.pow(10, e);
+      yTickList.push({ v: base, label: formatLogTick(base) });
+      if (decades <= 3 && e < decades) {
+        for (let m = 2; m <= 9; m++) yTickList.push({ v: m * base, label: '' });
+      }
+    }
+  } else {
+    const niceMax = maxY > 0 ? niceNum(maxY) : 1;
+    yPos = v => yBase - (v / niceMax) * plotH;
+    yTickList = [];
+    for (let i = 0; i <= 5; i++) {
+      const v = niceMax * i / 5;
+      yTickList.push({ v, label: formatYTick(v) });
+    }
+  }
 
   ctx.font = '11px -apple-system, "Segoe UI", Roboto, sans-serif';
   ctx.lineWidth = 1;
 
   // Y grid + labels
   ctx.fillStyle = '#888';
-  ctx.strokeStyle = '#eee';
   ctx.textAlign = 'right';
   ctx.textBaseline = 'middle';
-  const yTicks = 5;
-  for (let i = 0; i <= yTicks; i++) {
-    const y = padT + plotH - (plotH * i / yTicks);
+  for (const tick of yTickList) {
+    const y = yPos(tick.v);
+    ctx.strokeStyle = tick.label ? '#eee' : '#f4f4f4';
     ctx.beginPath();
     ctx.moveTo(padL, y);
     ctx.lineTo(padL + plotW, y);
     ctx.stroke();
-    ctx.fillText(formatYTick(niceMax * i / yTicks), padL - 4, y);
+    if (tick.label) ctx.fillText(tick.label, padL - 4, y);
   }
 
   // Axes
@@ -1489,8 +2184,10 @@ function drawChart(chart) {
       for (let i = 0; i < n; i++) {
         const v = data[i];
         if (!v) continue;
-        const bh = (v / niceMax) * plotH;
-        ctx.fillRect(padL + i * bw, padT + plotH - bh, drawW, bh);
+        const top = yPos(v);
+        const bh = yBase - top;
+        if (bh <= 0) continue;
+        ctx.fillRect(padL + i * bw, top, drawW, bh);
       }
       ctx.fillStyle = '#666';
       ctx.textAlign = 'center';
@@ -1500,15 +2197,24 @@ function drawChart(chart) {
         ctx.fillText(String(labels[i] ?? ''), padL + (i + 0.5) * bw, padT + plotH + 4);
       }
     } else if (chart.type === 'line') {
+      // With chart.data.xs (epoch ms) the x axis is a real time axis, so uneven
+      // gaps between points (manual refresh, scope dwell) show as gaps.
+      const xs = chart.data.xs;
+      const timeAxis = Array.isArray(xs) && xs.length === n;
+      const xMin = timeAxis ? xs[0] : 0;
+      const xSpan = timeAxis ? Math.max(1, xs[n - 1] - xs[0]) : 0;
       const step = n > 1 ? plotW / (n - 1) : 0;
-      const yFor = v => padT + plotH - (v / niceMax) * plotH;
+      const xFor = timeAxis
+        ? (i => padL + (n > 1 ? (xs[i] - xMin) / xSpan * plotW : plotW / 2))
+        : (i => padL + i * step);
+      const yFor = yPos;
 
       // filled area
       ctx.fillStyle = 'rgba(0, 184, 169, 0.12)';
       ctx.beginPath();
-      ctx.moveTo(padL, padT + plotH);
-      for (let i = 0; i < n; i++) ctx.lineTo(padL + i * step, yFor(data[i]));
-      ctx.lineTo(padL + (n - 1) * step, padT + plotH);
+      ctx.moveTo(xFor(0), padT + plotH);
+      for (let i = 0; i < n; i++) ctx.lineTo(xFor(i), yFor(data[i]));
+      ctx.lineTo(xFor(n - 1), padT + plotH);
       ctx.closePath();
       ctx.fill();
 
@@ -1517,7 +2223,7 @@ function drawChart(chart) {
       ctx.lineWidth = 1.5;
       ctx.beginPath();
       for (let i = 0; i < n; i++) {
-        const x = padL + i * step;
+        const x = xFor(i);
         const y = yFor(data[i]);
         if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
       }
@@ -1528,7 +2234,7 @@ function drawChart(chart) {
         ctx.fillStyle = '#00b8a9';
         for (let i = 0; i < n; i++) {
           ctx.beginPath();
-          ctx.arc(padL + i * step, yFor(data[i]), 2, 0, Math.PI * 2);
+          ctx.arc(xFor(i), yFor(data[i]), 2, 0, Math.PI * 2);
           ctx.fill();
         }
       }
@@ -1536,9 +2242,20 @@ function drawChart(chart) {
       ctx.fillStyle = '#666';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'top';
-      const lstep = Math.max(1, Math.ceil(n / 6));
-      for (let i = 0; i < n; i += lstep) {
-        ctx.fillText(String(labels[i] ?? ''), padL + i * step, padT + plotH + 4);
+      if (timeAxis) {
+        const fmt = chart.opts.xFormat || (ms => new Date(ms).toLocaleTimeString());
+        const ticks = n > 1 ? 5 : 1;
+        for (let k = 0; k < ticks; k++) {
+          const ms = n > 1 ? xMin + xSpan * k / (ticks - 1) : xMin;
+          const x = n > 1 ? padL + plotW * k / (ticks - 1) : padL + plotW / 2;
+          ctx.textAlign = (n > 1 && k === 0) ? 'left' : (n > 1 && k === ticks - 1) ? 'right' : 'center';
+          ctx.fillText(fmt(ms), x, padT + plotH + 4);
+        }
+      } else {
+        const lstep = Math.max(1, Math.ceil(n / 6));
+        for (let i = 0; i < n; i += lstep) {
+          ctx.fillText(String(labels[i] ?? ''), padL + i * step, padT + plotH + 4);
+        }
       }
     }
   }
@@ -1568,6 +2285,7 @@ function initCharts() {
   histogramChart = makeChart($('histogramChart'), 'bar', {
     xTitle: t('chart.xAdc'),
     yTitle: t('chart.yCount'),
+    logY: $('histLogScale').checked,
   });
   histogramChart.data.labels = labels;
   histogramChart.data.datasets[0].data = new Array(numBins).fill(0);
@@ -1575,6 +2293,9 @@ function initCharts() {
   rateChart = makeChart($('rateChart'), 'line', {
     xTitle: t('chart.xTime'),
     yTitle: t('chart.yRate'),
+    // Read currentLang at draw time so a language switch also changes the clock format.
+    xFormat: ms => new Date(ms).toLocaleTimeString(uiLocale(),
+                    { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
   });
 
   histogramChart.update();
@@ -1595,6 +2316,12 @@ function initCharts() {
   }
 }
 
+function applyHistScale() {
+  if (!histogramChart) return;
+  histogramChart.opts.logY = $('histLogScale').checked;
+  histogramChart.update();
+}
+
 function rebuildHistogram() {
   const binWidth = parseInt($('binWidth').value);
   const numBins = getNumBins();
@@ -1608,6 +2335,82 @@ function rebuildHistogram() {
   histogramChart.data.labels = labels;
   histogramChart.data.datasets[0].data = counts;
   histogramChart.update('none');
+}
+
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+// ========== Connection errors (shown on the page, R-8) ==========
+// Kept as key + params so a language switch can redraw the message.
+let connErrorMsg = null;
+
+function showConnError(key, params) {
+  connErrorMsg = { key, params };
+  renderConnError();
+}
+
+function clearConnError() {
+  connErrorMsg = null;
+  renderConnError();
+}
+
+function renderConnError() {
+  const el = $('connError');
+  if (!el) return;
+  if (!connErrorMsg) { el.style.display = 'none'; return; }
+  $('connErrorText').textContent = t(connErrorMsg.key, connErrorMsg.params);
+  el.style.display = '';
+}
+
+// Notices that are not errors (a different board, the scope tab closed for
+// inactivity). Same key + params scheme as the connection error.
+let pageNoticeMsg = null;
+
+function showNotice(key, params) {
+  pageNoticeMsg = { key, params };
+  renderNotice();
+}
+
+function clearNotice() {
+  pageNoticeMsg = null;
+  renderNotice();
+}
+
+function renderNotice() {
+  const el = $('pageNotice');
+  if (!el) return;
+  if (!pageNoticeMsg) { el.style.display = 'none'; return; }
+  $('pageNoticeText').textContent = t(pageNoticeMsg.key, pageNoticeMsg.params);
+  el.style.display = '';
+}
+
+function errMsg(e) {
+  if (!e) return '?';
+  return e.message ? `${e.name ? e.name + ': ' : ''}${e.message}` : String(e.name || e);
+}
+
+// Closing the port / device chooser without picking anything is not an error.
+// (A missing Bluetooth adapter is also a NotFoundError, so look at the message.)
+function isUserCancel(e) {
+  if (!e) return false;
+  if (e.name === 'AbortError') return true;
+  return e.name === 'NotFoundError' && /cancel|selected/i.test(e.message || '');
+}
+
+// Shared tail of every successful connect (USB, BLE, demo, BLE reconnect).
+function onConnected(opts) {
+  const reconnect = !!(opts && opts.reconnect);
+  // A reconnect is the same board and the same clock, so it keeps the upload run
+  // and the user's "Stop Logging" (a radio dropout must not restart logging, N-12).
+  if (!reconnect) startUploadRun();
+  const keepPaused = reconnect && state.paused;
+  state.connectedAtMs = Date.now();
+  state.bleNameKnown = false;
+  clearConnError();
+  updateConnectionUI(true);
+  if (keepPaused) setLoggingPaused(true);
+  refreshDeviceState();
+  // The scope tab may already be open: put the firmware into scope mode too (R-6).
+  if (scope.active) scopeEnter();
 }
 
 // ========== USB Serial Connection ==========
@@ -1633,12 +2436,31 @@ async function recoverFromBootloader() {
 }
 
 async function connectUSB() {
-  if (state.isConnected) return;
-  try {
-    const port = await navigator.serial.requestPort();
-    const baudRate = parseInt($('baudRate').value);
-    await port.open({ baudRate });
+  if (state.isConnected || state.reconnecting) return;
+  clearConnError();
 
+  let port;
+  try {
+    port = await navigator.serial.requestPort();
+  } catch (e) {
+    if (!isUserCancel(e)) {
+      console.error('USB port request failed:', e);
+      showConnError(e.name === 'SecurityError' ? 'err.security' : 'err.usb', { msg: errMsg(e) });
+    }
+    return;
+  }
+
+  try {
+    await port.open({ baudRate: parseInt($('baudRate').value) });
+  } catch (e) {
+    // NetworkError ("Failed to open serial port") nearly always means another
+    // program holds the port, e.g. the Arduino IDE Serial Monitor.
+    console.error('USB open failed:', e);
+    showConnError('err.usbOpen', { msg: errMsg(e) });
+    return;
+  }
+
+  try {
     // ESP32-S3 native USB (USB-Serial-JTAG) maps DTR/RTS onto the auto-reset
     // circuit: the half-asserted state the browser leaves after open() can
     // reset the chip into the ROM bootloader. Assert both to disarm it.
@@ -1647,19 +2469,31 @@ async function connectUSB() {
     } catch (_) {}
     usbBootloaderRecoveryDone = false;
 
+    state.writer = port.writable.getWriter();
     state.port = port;
     state.connectionType = 'usb';
     state.isConnected = true;
     state.sessionStart = new Date();
+    // getInfo() が返すのは USB の VID/PID だけ。COM 番号はブラウザからは見えない。
+    const info = (typeof port.getInfo === 'function') ? (port.getInfo() || {}) : {};
+    state.conn.usbVendorId  = info.usbVendorId ?? null;
+    state.conn.usbProductId = info.usbProductId ?? null;
+    state.conn.bleId = null;
+    state.conn.bleName = null;
 
-    state.writer = port.writable.getWriter();
-
-    updateConnectionUI(true);
     state.readLoopPromise = readLoopUSB(port);
-
-    refreshDeviceState();
+    onConnected();
   } catch (e) {
+    // The port opened but setup failed: close it again, or the next attempt
+    // would fail with "port is already open".
     console.error('USB connection failed:', e);
+    showConnError('err.usb', { msg: errMsg(e) });
+    state.isConnected = false;
+    state.connectionType = null;
+    if (state.writer) { try { state.writer.releaseLock(); } catch (_) {} state.writer = null; }
+    state.port = null;
+    try { await port.close(); } catch (_) {}
+    updateConnectionUI(false);
   }
 }
 
@@ -1683,6 +2517,7 @@ async function readLoopUSB(port) {
   } catch (e) {
     if (state.isConnected) {
       console.error('USB read error:', e);
+      showConnError('err.usbLost', { msg: errMsg(e) });
       disconnect();
     }
   } finally {
@@ -1692,40 +2527,94 @@ async function readLoopUSB(port) {
 
 // ========== BLE Connection ==========
 let bleBuffer = '';
+let bleReconnectGen = 0;
+
+// GATT connect + service discovery + notifications. Used for the first connect
+// and for every automatic reconnect of the same device. `stillWanted` is checked
+// after the awaits: if Disconnect was pressed meanwhile, the attempt gives up
+// without touching the page's BLE state or adding a listener (N-11).
+async function bleAttach(device, stillWanted) {
+  const wanted = stillWanted || (() => true);
+  const cancelled = () => {
+    const e = new Error('BLE connect cancelled');
+    e.name = 'AbortError';
+    return e;
+  };
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => {
+      const e = new Error('GATT connect timed out');
+      e.name = 'TimeoutError';
+      reject(e);
+    }, BLE_CONNECT_TIMEOUT_MS);
+  });
+  try {
+    const server = await Promise.race([device.gatt.connect(), timeout]);
+    const service = await server.getPrimaryService(BLE_SERVICE_UUID);
+    const txChar = await service.getCharacteristic(BLE_TX_UUID);
+    const rxChar = await service.getCharacteristic(BLE_RX_UUID);
+    if (!wanted()) throw cancelled();
+    // A reconnect may hand back the same characteristic object; never stack listeners.
+    if (state.bleTxChar) state.bleTxChar.removeEventListener('characteristicvaluechanged', handleBLEData);
+    txChar.removeEventListener('characteristicvaluechanged', handleBLEData);
+    txChar.addEventListener('characteristicvaluechanged', handleBLEData);
+    await txChar.startNotifications();
+    if (!wanted()) {
+      txChar.removeEventListener('characteristicvaluechanged', handleBLEData);
+      throw cancelled();
+    }
+    bleBuffer = '';
+    state.bleServer = server;
+    state.bleTxChar = txChar;
+    state.bleRxChar = rxChar;
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 async function connectBLE() {
-  if (state.isConnected) return;
+  if (state.isConnected || state.reconnecting) return;
+  clearConnError();
+  const targetName = ($('bleName').value || 'CosmicRay').trim() || 'CosmicRay';
+
+  let device;
   try {
-    const targetName = ($('bleName').value || 'CosmicRay').trim() || 'CosmicRay';
-    const device = await navigator.bluetooth.requestDevice({
+    device = await navigator.bluetooth.requestDevice({
       filters: [{ name: targetName }],
       optionalServices: [BLE_SERVICE_UUID]
     });
+  } catch (e) {
+    if (!isUserCancel(e)) {
+      console.error('BLE device request failed:', e);
+      showConnError(e.name === 'SecurityError' ? 'err.security' : 'err.ble', { msg: errMsg(e) });
+    }
+    return;
+  }
 
-    const server = await device.gatt.connect();
-    const service = await server.getPrimaryService(BLE_SERVICE_UUID);
-
-    const txChar = await service.getCharacteristic(BLE_TX_UUID);
-    await txChar.startNotifications();
-    txChar.addEventListener('characteristicvaluechanged', handleBLEData);
-
-    const rxChar = await service.getCharacteristic(BLE_RX_UUID);
-
-    state.bleDevice = device;
-    state.bleServer = server;
-    state.bleRxChar = rxChar;
-    state.connectionType = 'ble';
-    state.isConnected = true;
-    state.sessionStart = new Date();
-    bleBuffer = '';
-
-    device.addEventListener('gattserverdisconnected', onBLEDisconnected);
-
-    updateConnectionUI(true);
-    refreshDeviceState();
+  try {
+    await bleAttach(device);
   } catch (e) {
     console.error('BLE connection failed:', e);
+    try { device.gatt.disconnect(); } catch (_) {}
+    const network = e && (e.name === 'NetworkError' || e.name === 'TimeoutError');
+    showConnError(network ? 'err.bleNetwork' : 'err.ble', { msg: errMsg(e) });
+    return;
   }
+
+  state.bleDevice = device;
+  state.bleUserDisconnect = false;
+  state.connectionType = 'ble';
+  state.isConnected = true;
+  state.sessionStart = new Date();
+  // device.id はオリジンごとにハッシュ化された不透明 ID。実アドレスは
+  // GET_BTADDR でファームから受け取る（BTADDR: 行）。
+  state.conn.bleId = device.id || null;
+  state.conn.bleName = device.name || targetName;
+  state.conn.usbVendorId = null;
+  state.conn.usbProductId = null;
+
+  device.addEventListener('gattserverdisconnected', onBLEDisconnected);
+  onConnected();
 }
 
 function handleBLEData(event) {
@@ -1741,21 +2630,81 @@ function handleBLEData(event) {
 }
 
 function onBLEDisconnected() {
-  state.isConnected = false;
-  state.connectionType = null;
-  state.bleDevice = null;
+  const device = state.bleDevice;
   state.bleServer = null;
   state.bleRxChar = null;
   bleBuffer = '';
+  if (state.bleUserDisconnect || !device) return;  // disconnect() does the teardown
+  if (state.reconnecting) return;                  // a retry dropped again; the loop carries on
+
+  // Unexpected drop (out of range, board rebooted, ...). Keep the session --
+  // auto-save file, upload run, rate segment -- and try to get the link back (R-10).
+  state.isConnected = false;
+  state.reconnecting = true;
+  state.reconnectAttempt = 0;
+  setScopeDeviceOn(false);
+  // Best-effort drain of both sinks while the link is down.
+  flushAutoSave({ force: true }).catch(() => {});
+  flushUpload({ final: true }).catch(() => {});
   updateConnectionUI(false);
+  bleReconnectLoop(device);
+}
+
+async function bleReconnectLoop(device) {
+  const gen = ++bleReconnectGen;
+  const alive = () => state.reconnecting && gen === bleReconnectGen;
+  let delay = BLE_RECONNECT_MIN_MS;
+
+  while (alive()) {
+    state.reconnectAttempt++;
+    state.reconnectAtMs = Date.now() + delay;
+    // Wait in 1 s steps so the header can count down.
+    while (alive() && Date.now() < state.reconnectAtMs) {
+      renderStatusText();
+      await sleep(Math.min(1000, state.reconnectAtMs - Date.now()));
+    }
+    if (!alive()) return;
+    state.reconnectAtMs = 0;
+    renderStatusText();
+
+    try {
+      await bleAttach(device, alive);
+    } catch (e) {
+      // Cancelled by Disconnect: disconnect() has already dropped the link, and
+      // the user may be connecting this same device again -- leave it alone.
+      if (!alive()) return;
+      console.warn('BLE reconnect failed:', e);
+      try { device.gatt.disconnect(); } catch (_) {}
+      delay = Math.min(delay * 2, BLE_RECONNECT_MAX_MS);
+      continue;
+    }
+
+    if (!alive()) return;
+    state.reconnecting = false;
+    state.reconnectAttempt = 0;
+    state.connectionType = 'ble';
+    state.isConnected = true;
+    onConnected({ reconnect: true });
+    return;
+  }
 }
 
 // ========== Disconnect (common) ==========
 async function disconnect() {
+  // Stop a pending BLE reconnect first.
+  if (state.reconnecting) {
+    state.reconnecting = false;
+    bleReconnectGen++;
+  }
   state.isConnected = false;
+  state.bleUserDisconnect = true;
+  // 先に止めないと、下の flush を待っている間も合成イベントが積み上がる。
+  if (state.connectionType === 'demo') demoStop();
 
   // Persist any events still queued for auto-save before tearing down.
-  try { await flushAutoSave(); } catch (_) {}
+  // Disk first (it is the record), then drain the network queue.
+  try { await flushAutoSave({ force: true }); } catch (_) {}
+  try { await flushUpload({ final: true }); } catch (_) {}
 
   if (state.connectionType === 'usb') {
     try {
@@ -1780,26 +2729,55 @@ async function disconnect() {
       console.error('USB disconnect error:', e);
     }
   } else if (state.connectionType === 'ble') {
+    const device = state.bleDevice;
     try {
-      if (state.bleServer && state.bleServer.connected) {
-        state.bleServer.disconnect();
+      if (device) {
+        device.removeEventListener('gattserverdisconnected', onBLEDisconnected);
+        // Always call it: besides dropping a live link, it aborts a GATT connect
+        // that a reconnect attempt still has in flight (N-11).
+        device.gatt.disconnect();
       }
     } catch (e) {
       console.error('BLE disconnect error:', e);
     }
+    if (state.bleTxChar) state.bleTxChar.removeEventListener('characteristicvaluechanged', handleBLEData);
     state.bleDevice = null;
     state.bleServer = null;
+    state.bleTxChar = null;
     state.bleRxChar = null;
     bleBuffer = '';
   }
 
+  // Lines that arrived while the transport was being torn down still belong to
+  // this session: write them under this session's file name before it is reset.
+  try { await flushAutoSave({ force: true }); } catch (_) {}
+
   state.connectionType = null;
+  setScopeDeviceOn(false);
+  // The session ends here: close the rate segment and let the next session
+  // pick its own auto-save file prefix.
+  rateCloseSegment();
+  endAutoSaveSession();
   updateConnectionUI(false);
 }
 
 // ========== Send Command (routes to active transport) ==========
-async function sendCommand(cmd) {
+// Every command goes through one promise chain, so a BLE write never starts while
+// the previous one is still in flight ("GATT operation already in progress", R-5).
+let cmdChain = Promise.resolve();
+
+function sendCommand(cmd) {
+  cmdChain = cmdChain.then(() => sendCommandNow(cmd)).catch(() => {});
+  return cmdChain;
+}
+
+async function sendCommandNow(cmd) {
   if (!state.isConnected) return;
+
+  if (state.connectionType === 'demo') {
+    demoCommand(cmd);
+    return;
+  }
 
   if (state.connectionType === 'usb') {
     if (!state.writer) return;
@@ -1809,14 +2787,16 @@ async function sendCommand(cmd) {
       console.error('USB send error:', e);
     }
   } else if (state.connectionType === 'ble') {
-    if (!state.bleRxChar) return;
+    const ch = state.bleRxChar;
+    if (!ch) return;
     try {
-      const encoder = new TextEncoder();
-      const data = encoder.encode(cmd + '\n');
+      const data = usbTextEncoder.encode(cmd + '\n');
       // BLE Notify / Write MTU is typically 20 B; chunk to stay safe.
+      // The firmware joins the chunks until '\n'.
       for (let i = 0; i < data.length; i += 20) {
         const chunk = data.slice(i, i + 20);
-        await state.bleRxChar.writeValue(chunk);
+        if (typeof ch.writeValueWithResponse === 'function') await ch.writeValueWithResponse(chunk);
+        else await ch.writeValue(chunk);
       }
     } catch (e) {
       console.error('BLE send error:', e);
@@ -1824,16 +2804,33 @@ async function sendCommand(cmd) {
   }
 }
 
-// Fire GET_THRESH + GET_MODE after a short delay to let the device finish booting.
-function refreshDeviceState() {
-  setTimeout(() => sendCommand('GET_THRESH'), 800);
-  setTimeout(() => sendCommand('GET_MODE'),   1400);
-  setTimeout(() => sendCommand('GET_SD'),     1600);
-  setTimeout(() => sendCommand('GET_EXT'),    1800);
-  setTimeout(() => sendCommand('GET_OLED'),   2000);
-  setTimeout(() => sendCommand('GET_BUZZER'), 2200);
-  setTimeout(() => sendCommand('GET_BLENAME'),2400);
-  setTimeout(() => sendCommand('GET_AUTO_MARGIN'), 2600);
+// Queries sent after connecting and after the board reboots. GET_BLENAME goes
+// first because the auto-save file name waits for it.
+const REFRESH_COMMANDS = [
+  'GET_BLENAME', 'GET_THRESH', 'GET_PWM', 'GET_MODE', 'GET_SCOPE',
+  'GET_SD', 'GET_EXT', 'GET_OLED', 'GET_BUZZER', 'GET_VIB',
+  'GET_AUTO_MARGIN', 'GET_BEEP', 'GET_VIB_MS', 'GET_BTADDR',
+];
+let refreshGen = 0;
+
+// Sent one at a time through the command chain; a newer call supersedes an older one.
+async function refreshDeviceState() {
+  const gen = ++refreshGen;
+  // GET_BTADDR は新しめのファームだけが応答する。無応答なら「取得不可」に切り替える。
+  state.conn.btAddr = null;
+  state.conn.btAddrTimedOut = false;
+  // Give a board that is still booting a moment before the first GET.
+  await sleep(800);
+  for (const cmd of REFRESH_COMMANDS) {
+    if (gen !== refreshGen || !state.isConnected) return;
+    await sendCommand(cmd);
+    await sleep(CMD_GAP_MS);
+  }
+  await sleep(1500);
+  if (gen === refreshGen && state.isConnected && !state.conn.btAddr) {
+    state.conn.btAddrTimedOut = true;
+    renderConnDetail();
+  }
 }
 
 function updateFeatureButtons(containerId, val) {
@@ -1855,6 +2852,7 @@ function updateFeatureInfo() {
   info.textContent = t('feat.status', {
     sd: fmt(state.sdEnabled), ext: fmt(state.extEnabled),
     oled: fmt(state.oledEnabled), buzzer: fmt(state.buzzerEnabled),
+    vib: fmt(state.vibEnabled),
   });
 }
 
@@ -1863,9 +2861,63 @@ function updateFeatureInfo() {
 function renderStatusText() {
   const text = $('statusText');
   if (!text) return;
-  if (!state.isConnected) { text.textContent = t('common.notConnected'); return; }
-  const label = state.connectionType === 'ble' ? t('conn.connectedBle') : t('conn.connectedUsb');
+  if (state.reconnecting) {
+    const sec = Math.max(0, Math.ceil((state.reconnectAtMs - Date.now()) / 1000));
+    text.textContent = state.reconnectAtMs
+      ? t('conn.reconnectWait', { n: state.reconnectAttempt, sec })
+      : t('conn.reconnecting', { n: state.reconnectAttempt });
+    text.title = '';
+    return;
+  }
+  if (!state.isConnected) { text.textContent = t('common.notConnected'); text.title = ''; return; }
+  const label = state.connectionType === 'demo' ? t('demo.connected')
+              : state.connectionType === 'ble'  ? t('conn.connectedBle')
+              : t('conn.connectedUsb');
   text.textContent = state.paused ? label + t('conn.pausedSuffix') : label;
+  // ヘッダは狭いので、詳細（VID:PID / アドレス）はツールチップに載せる。
+  text.title = connDetailLines().join(' / ');
+}
+
+// 接続先を識別する行を、表示順に組み立てる。ヘッダのツールチップと
+// サイドバーの詳細ボックスで同じ内容を使う。
+function connDetailLines() {
+  const c = state.conn;
+  const hex4 = v => (v == null) ? null : v.toString(16).toUpperCase().padStart(4, '0');
+  const addr = c.btAddr ? c.btAddr
+             : (c.btAddrTimedOut ? t('conn.addrUnknown') : t('conn.addrFetching'));
+  const lines = [];
+  if (state.connectionType === 'demo') {
+    return [t('demo.detail'), `${t('conn.deviceName')}: ${demo.dev.bleName}`, t('demo.detailNote')];
+  }
+  if (state.connectionType === 'ble') {
+    lines.push(t('conn.detailBle'));
+    if (c.bleName) lines.push(`${t('conn.deviceName')}: ${c.bleName}`);
+    lines.push(`${t('conn.address')}: ${addr}`);
+    // 実アドレスが取れないファームでも、ブラウザ側の識別子だけは出しておく。
+    if (!c.btAddr && c.bleId) lines.push(`${t('conn.browserId')}: ${c.bleId}`);
+  } else {
+    lines.push(t('conn.detailUsb'));
+    const vid = hex4(c.usbVendorId), pid = hex4(c.usbProductId);
+    if (vid && pid) lines.push(`${t('conn.vidpid')}: ${vid}:${pid}`);
+    // COM 番号は Web Serial API が公開していない（仕様上の制約）。
+    lines.push(`${t('conn.comPort')}: ${t('conn.comUnavailable')}`);
+    lines.push(`${t('conn.boardAddr')}: ${addr}`);
+  }
+  return lines;
+}
+
+function renderConnDetail() {
+  const el = $('connDetail');
+  if (!el) return;
+  if (state.reconnecting) { el.textContent = t('conn.reconnectInfo'); renderStatusText(); return; }
+  if (!state.isConnected) { el.textContent = ''; return; }
+  el.textContent = '';
+  for (const line of connDetailLines()) {
+    const div = document.createElement('div');
+    div.textContent = line;
+    el.appendChild(div);
+  }
+  renderStatusText();
 }
 
 function renderThreshInfo() {
@@ -1874,6 +2926,72 @@ function renderThreshInfo() {
   if (!state.isConnected) el.textContent = t('common.notConnected');
   else if (state.threshold != null) el.textContent = t('thresh.current', { sig: state.threshold, duty: state.pwmDuty ?? '?' });
   else el.textContent = t('thresh.fetching');
+}
+
+let pwmCalTarget = 0;
+let pwmCalTimer = null;
+
+function setPwmDutyState(duty) {
+  state.pwmDuty = duty;
+  $('pwmDuty').value = duty;
+}
+
+function renderPwmInfo() {
+  const el = $('pwmInfo');
+  if (!el) return;
+  if (!state.isConnected) el.textContent = t('common.notConnected');
+  else if (state.pwmCalibrating) el.textContent = t('pwm.calibrating', { target: pwmCalTarget });
+  else if (state.pwmDuty != null) el.textContent = t('pwm.current', { duty: state.pwmDuty });
+  else el.textContent = t('pwm.fetching');
+}
+
+// AUTO_PWM blocks the firmware for ~8 s (32 duty steps x 200 ms). The buttons
+// stay down until PWM: arrives, with a timeout in case the reply is lost.
+function setPwmCalibrating(on) {
+  state.pwmCalibrating = !!on;
+  if (pwmCalTimer) { clearTimeout(pwmCalTimer); pwmCalTimer = null; }
+  if (on) pwmCalTimer = setTimeout(() => setPwmCalibrating(false), 15000);
+  const busy = state.pwmCalibrating || !state.isConnected;
+  $('btnAutoPwm').disabled = busy;
+  $('btnSetPwm').disabled = busy;
+  renderPwmInfo();
+}
+
+// The firmware stops counting while the scope runs. Make that impossible to miss
+// (R-6), including for how long it has been stopped (N-6).
+function setScopeDeviceOn(on) {
+  on = !!on;
+  if (on && !scope.deviceOn) scope.deviceOnSinceMs = Date.now();
+  if (!on) scope.deviceOnSinceMs = 0;
+  scope.deviceOn = on;
+  renderScopeBadge();
+}
+
+function renderScopeBadge() {
+  const el = $('scopeBadge');
+  if (!el) return;
+  const on = scope.deviceOn && state.isConnected;
+  el.style.display = on ? '' : 'none';
+  if (!on) return;
+  const since = scope.deviceOnSinceMs ? formatTime(Date.now() - scope.deviceOnSinceMs) : '';
+  el.innerHTML = '&#x23f8;&#xfe0f; ';
+  el.appendChild(document.createTextNode(t('scope.countingPausedFor', { time: since })));
+}
+
+function renderBeepInfo() {
+  const el = $('beepInfo');
+  if (!el) return;
+  if (!state.isConnected) el.textContent = t('common.notConnected');
+  else if (state.beepMin != null) el.textContent = t('beep.current', { min: state.beepMin, max: state.beepMax, ms: state.beepMs });
+  else el.textContent = t('beep.fetching');
+}
+
+function renderVibInfo() {
+  const el = $('vibInfo');
+  if (!el) return;
+  if (!state.isConnected) el.textContent = t('common.notConnected');
+  else if (state.vibMin != null) el.textContent = t('vib.current', { min: state.vibMin, max: state.vibMax });
+  else el.textContent = t('vib.fetching');
 }
 
 function renderModeInfo() {
@@ -1887,7 +3005,10 @@ function renderModeInfo() {
 function renderBleNameInfo() {
   const el = $('bleNameInfo');
   if (!el) return;
-  el.textContent = state.bleName ? t('conn.bleNameCurrent', { name: state.bleName }) : t('conn.bleNameHint');
+  el.textContent = state.bleName
+    ? t('conn.bleNameCurrent', { name: state.bleName }) + '\n' + t('conn.bleNameHint')
+    : t('conn.bleNameHint');
+  el.style.whiteSpace = 'pre-line';
 }
 
 function renderPauseButton() {
@@ -1937,6 +3058,9 @@ function processLine(line) {
   // loop() starts draining the RX buffer.
   if (line.startsWith('Booting')) {
     refreshDeviceState();
+    // A reboot always comes up with the scope OFF; re-enter if the tab is open.
+    setScopeDeviceOn(false);
+    if (scope.active && state.isConnected) scopeEnter();
     return;
   }
 
@@ -1947,10 +3071,23 @@ function processLine(line) {
       const sig = parseInt(m[1]);
       const duty = parseInt(m[2]);
       state.threshold = sig;
-      state.pwmDuty = duty;
+      setPwmDutyState(duty);
       $('threshSignal').value = sig;
       renderThreshInfo();
       if (state.isConnected) $('btnAutoThresh').disabled = false;
+    }
+    return;
+  }
+
+  // Comparator PWM response: "PWM:<duty>" (SET_PWM / GET_PWM / AUTO_PWM, R-4).
+  // Must be handled here: otherwise it falls through to the event-line check.
+  if (line.startsWith('PWM:')) {
+    const duty = parseInt(line.substring(4).trim());
+    if (!isNaN(duty)) {
+      setPwmDutyState(duty);
+      renderThreshInfo();
+      if (state.pwmCalibrating) setPwmCalibrating(false);
+      else renderPwmInfo();
     }
     return;
   }
@@ -1977,24 +3114,81 @@ function processLine(line) {
     return;
   }
 
+  // Beep pitch mapping response: "BEEP:<min>,<max>,<ms>"
+  if (line.startsWith('BEEP:')) {
+    const p = line.substring(5).trim().split(',');
+    if (p.length >= 3) {
+      const mn = parseInt(p[0]), mx = parseInt(p[1]), ms = parseInt(p[2]);
+      if (!isNaN(mn) && !isNaN(mx) && !isNaN(ms)) {
+        state.beepMin = mn;
+        state.beepMax = mx;
+        state.beepMs = ms;
+        $('beepMin').value = mn;
+        $('beepMax').value = mx;
+        $('beepMs').value = ms;
+        renderBeepInfo();
+      }
+    }
+    return;
+  }
+
+  // Vibration length mapping response: "VIBMS:<min>,<max>"
+  // 先に見ること。後段の機能トグル表は 'VIB:' で前方一致するが、
+  // "VIBMS:" は 'VIB:' で始まらないので取り違えは起きない。
+  if (line.startsWith('VIBMS:')) {
+    const p = line.substring(6).trim().split(',');
+    if (p.length >= 2) {
+      const mn = parseInt(p[0]), mx = parseInt(p[1]);
+      if (!isNaN(mn) && !isNaN(mx)) {
+        state.vibMin = mn;
+        state.vibMax = mx;
+        $('vibMin').value = mn;
+        $('vibMax').value = mx;
+        renderVibInfo();
+      }
+    }
+    return;
+  }
+
   // BLE name response: "BLENAME:<name>"
+  // The name is stored only once the board itself reports it, so a rename that
+  // the board truncated or rejected never ends up in the BLE scan filter (R-7).
   if (line.startsWith('BLENAME:')) {
     const name = line.substring(8).trim();
     if (name) {
       state.bleName = name;
+      state.bleNameKnown = true;
       $('bleName').value = name;
-      try { localStorage.setItem('bleName', name); } catch (_) {}
+      // デモの仮想基板の名前は保存しない。次に実機へ BLE 接続するときの
+      // 名前フィルタを、デモで付けた名前で上書きしてしまうため（N-16）。
+      if (state.connectionType !== 'demo') {
+        try { localStorage.setItem('bleName', name); } catch (_) {}
+      }
       renderBleNameInfo();
     }
     return;
   }
 
-  // Feature toggle responses: "SD:ON" / "SD:OFF" / "EXT:..." / "OLED:..." / "BUZZER:..."
+  // "BTADDR:aa:bb:cc:dd:ee:ff" — 基板の BLE アドレス。USB 接続でも返ってくるので
+  // どの基板に繋がっているかの識別に使える。
+  if (line.startsWith('BTADDR:')) {
+    const addr = line.substring(7).trim().toUpperCase();
+    if (addr) {
+      state.conn.btAddr = addr;
+      state.conn.btAddrTimedOut = false;
+      renderConnDetail();
+      noteBoardAddress(addr);
+    }
+    return;
+  }
+
+  // Feature toggle responses: "SD:ON" / "SD:OFF" / "EXT:..." / "OLED:..." / "BUZZER:..." / "VIB:..."
   for (const [prefix, key, btnId] of [
     ['SD:',     'sdEnabled',     'featSD'],
     ['EXT:',    'extEnabled',    'featEXT'],
     ['OLED:',   'oledEnabled',   'featOLED'],
     ['BUZZER:', 'buzzerEnabled', 'featBUZZER'],
+    ['VIB:',    'vibEnabled',    'featVIB'],
   ]) {
     if (line.startsWith(prefix)) {
       const val = line.substring(prefix.length).trim().toUpperCase();
@@ -2015,9 +3209,10 @@ function processLine(line) {
       const sig = parseInt(m[1]);
       const duty = parseInt(m[2]);
       state.threshold = sig;
-      state.pwmDuty = duty;
+      setPwmDutyState(duty);
       $('threshSignal').value = sig;
       renderThreshInfo();
+      renderPwmInfo();
     }
     return;
   }
@@ -2034,7 +3229,10 @@ function processLine(line) {
     return;
   }
   if (line.startsWith('SCOPE:')) {
-    scope.deviceOn = (line.substring(6).trim().toUpperCase() === 'ON');
+    setScopeDeviceOn(line.substring(6).trim().toUpperCase() === 'ON');
+    // Left on by an earlier page (its OFF on unload never arrived): counting
+    // would stay stopped without anyone noticing. Turn it off (R-6).
+    if (scope.deviceOn && !scope.active && state.isConnected) sendCommand('SET_SCOPE:OFF');
     return;
   }
   if (line.startsWith('SCOPE_RATE:')) {
@@ -2069,36 +3267,53 @@ function processLine(line) {
     timestamp_us: timestampUs,
     pc_timestamp: Date.now(),
     adc,
-    deadtime_us: deadtimeUs,
+    deadtime_us: isNaN(deadtimeUs) ? 0 : deadtimeUs,
     temp_c: tempC,
     hum_pct: humPct,
     press_hpa: pressHpa,
-    dig,
-    ana,
+    // Plain fields rather than two small arrays: up to MAX_EVENTS of these stay
+    // in memory, and each array costs an extra heap object per event (R-17).
+    d1: dig[0], d2: dig[1], d3: dig[2],
+    a1: ana[0], a2: ana[1], a3: ana[2],
+    seg: 0,           // rate segment id (set by rateTrack)
+    wall_us: 0,       // device clock mapped onto wall time, fixed at arrival (R-11)
+    demo: state.connectionType === 'demo',   // never uploaded, even by Re-send
+    run: state.upload.runId,  // the connection it arrived in; Re-send keeps to the current one (N-13)
+    uploaded: false,  // set when the server accepted it (R-3)
+    rejected: false,  // set when the server refused it with HTTP 400
   };
+  event.wall_us = uploadClockUs(event);
+  rateTrack(event);
 
   state.events.push(event);
 
-  if (state.events.length > MAX_EVENTS) {
+  if (state.events.length > MAX_EVENTS + EVENTS_TRIM_CHUNK) {
     const drop = state.events.length - MAX_EVENTS;
     state.events.splice(0, drop);
     lastTableLength = Math.max(0, lastTableLength - drop);
-    showMemWarning();
   }
+  if (state.events.length > MAX_EVENTS) showMemWarning();
 
   if (state.autoSave.enabled) {
-    state.autoSave.pending.push(event);
+    const fmt = $('autoSaveFormat').value;
+    if (fmt === 'dat' || fmt === 'both') state.autoSave.queues.dat.push(event);
+    if (fmt === 'csv' || fmt === 'both') state.autoSave.queues.csv.push(event);
+  }
+
+  if (state.upload.enabled) {
+    enqueueUpload(event);
   }
 
   // Incremental stats
   const s = state.stats;
-  if (!isNaN(tempC))  { s.sumTemp  += tempC;  s.sumTemp2 += tempC * tempC;
+  s.n++;
+  if (!isNaN(tempC))  { s.nTemp++; s.sumTemp  += tempC;  s.sumTemp2 += tempC * tempC;
                         if (tempC  < s.minTemp)  s.minTemp  = tempC;
                         if (tempC  > s.maxTemp)  s.maxTemp  = tempC; }
-  if (!isNaN(humPct)) { s.sumHum   += humPct;
+  if (!isNaN(humPct)) { s.nHum++; s.sumHum   += humPct;
                         if (humPct < s.minHum)   s.minHum   = humPct;
                         if (humPct > s.maxHum)   s.maxHum   = humPct; }
-  if (!isNaN(pressHpa)) { s.sumPress += pressHpa;
+  if (!isNaN(pressHpa)) { s.nPress++; s.sumPress += pressHpa;
                           if (pressHpa < s.minPress) s.minPress = pressHpa;
                           if (pressHpa > s.maxPress) s.maxPress = pressHpa; }
   s.sumAdc  += adc;
@@ -2150,21 +3365,23 @@ function updateTable() {
   const events = state.events;
   const maxRows = 100;
 
-  for (let i = lastTableLength; i < events.length; i++) {
+  // Only the newest maxRows can survive the trim below, so don't build the rest.
+  const from = Math.max(lastTableLength, events.length - maxRows);
+  for (let i = from; i < events.length; i++) {
     const ev = events[i];
-    const ts = new Date(ev.pc_timestamp).toISOString().replace('T', ' ').substring(0, 23);
     const row = tbody.insertRow(0);
     const fmt = (v, d = 1) => (isNaN(v) ? '--' : v.toFixed(d));
+    // Shown in the PC's local time (R-13). Saved files keep UTC with a trailing Z.
     row.innerHTML = `<td>${ev.count}</td>
-      <td>${ts}</td>
+      <td>${formatLocalTimestamp(ev.pc_timestamp)}</td>
       <td>${ev.timestamp_us}</td>
       <td>${ev.adc}</td>
       <td>${ev.deadtime_us}</td>
       <td>${fmt(ev.temp_c, 1)}</td>
       <td>${fmt(ev.hum_pct, 1)}</td>
       <td>${fmt(ev.press_hpa, 1)}</td>
-      <td>${ev.dig[0]}</td><td>${ev.dig[1]}</td><td>${ev.dig[2]}</td>
-      <td>${ev.ana[0]}</td><td>${ev.ana[1]}</td><td>${ev.ana[2]}</td>`;
+      <td>${ev.d1}</td><td>${ev.d2}</td><td>${ev.d3}</td>
+      <td>${ev.a1}</td><td>${ev.a2}</td><td>${ev.a3}</td>`;
   }
   lastTableLength = events.length;
 
@@ -2173,9 +3390,87 @@ function updateTable() {
   }
 }
 
+// ========== Count rate (board counters, R-1) ==========
+// The page used to divide "events received by the browser" by "board time since
+// boot", which reads ~0 cps when it attaches to a board that has run for hours,
+// ignores deadtime (scope dwell, OLED) and drifts once MAX_EVENTS is reached.
+// Instead, take differences of the board's own count / time / deadtime between
+// the start and the latest event of a segment and divide by live time -- the same
+// formula the OLED uses. A segment ends when the counters go backwards (RESET,
+// reboot, rename) or the user disconnects; segments are summed.
+// The totals run from the last "Clear Data" -- like Total Events and the
+// histogram -- across disconnects and reconnects (N-5).
+
+// The totals only mean something for one board. When a different board reports
+// its address while data from another one is on the page, say so.
+function noteBoardAddress(addr) {
+  const r = state.rate;
+  if (r.boardAddr && r.boardAddr !== addr && state.stats.n > 0) {
+    showNotice('notice.boardChanged', { prev: r.boardAddr, now: addr });
+  }
+  r.boardAddr = addr;
+}
+
+function rateBaseOf(ev) {
+  // count 1 means the board just started counting (boot or RESET), so the
+  // stretch from its zero point up to this event belongs to the session too.
+  return ev.count === 1
+    ? { count: 0, timeUs: 0, deadUs: 0 }
+    : { count: ev.count, timeUs: ev.timestamp_us, deadUs: ev.deadtime_us };
+}
+
+function rateTrack(ev) {
+  const r = state.rate;
+  const seg = r.seg;
+  if (seg && (ev.count <= seg.last.count || ev.timestamp_us < seg.last.timeUs ||
+              ev.deadtime_us < seg.last.deadUs)) {
+    rateCloseSegment();
+  }
+  if (!r.seg) {
+    r.seg = { id: r.nextId++, base: rateBaseOf(ev), last: null };
+  }
+  r.seg.last = { count: ev.count, timeUs: ev.timestamp_us, deadUs: ev.deadtime_us };
+  ev.seg = r.seg.id;
+}
+
+function rateSegDiff(seg) {
+  if (!seg || !seg.last) return { counts: 0, elapsedUs: 0, deadUs: 0 };
+  return {
+    counts:    seg.last.count  - seg.base.count,
+    elapsedUs: seg.last.timeUs - seg.base.timeUs,
+    deadUs:    seg.last.deadUs - seg.base.deadUs,
+  };
+}
+
+function rateCloseSegment() {
+  const r = state.rate;
+  if (!r.seg) return;
+  const d = rateSegDiff(r.seg);
+  r.done.counts    += d.counts;
+  r.done.elapsedUs += d.elapsedUs;
+  r.done.deadUs    += d.deadUs;
+  r.seg = null;
+  r.chartLast = null;
+}
+
+function rateSummary() {
+  const r = state.rate;
+  const d = rateSegDiff(r.seg);
+  const counts    = r.done.counts    + d.counts;
+  const elapsedUs = r.done.elapsedUs + d.elapsedUs;
+  const deadUs    = r.done.deadUs    + d.deadUs;
+  const liveUs    = elapsedUs - deadUs;
+  const liveSec   = liveUs / 1e6;
+  return {
+    counts, elapsedUs, deadUs, liveUs,
+    rate:    liveSec > 0 ? counts / liveSec : 0,
+    rateStd: liveSec > 0 ? Math.sqrt(counts) / liveSec : 0,
+  };
+}
+
 function updateStats() {
-  const events = state.events;
-  const n = events.length;
+  const s = state.stats;
+  const n = s.n;   // every event received, including any dropped from memory at the cap
   $('statTotalEvents').textContent = n;
   $('ds_total').textContent = n;
 
@@ -2187,42 +3482,51 @@ function updateStats() {
     return;
   }
 
-  const elapsedUs = events[n - 1].timestamp_us;    // device Time is microseconds (v2)
-  const elapsedStr = formatTime(elapsedUs / 1000); // formatTime expects ms
+  const r = rateSummary();
+  const elapsedStr = formatTime(r.elapsedUs / 1000); // formatTime expects ms
   $('statElapsed').textContent = elapsedStr;
   $('elapsedTime').textContent = t('header.elapsed', { time: elapsedStr });
-  $('ds_elapsed').textContent = elapsedStr + ` (${(elapsedUs / 1e6).toFixed(1)} s)`;
+  $('ds_elapsed').textContent = elapsedStr + ` (${(r.elapsedUs / 1e6).toFixed(1)} s)`;
 
-  const elapsedSec = elapsedUs / 1e6;
-  const rate = elapsedSec > 0 ? (n / elapsedSec) : 0;
-  $('statRate').textContent = rate.toFixed(3);
-  $('ds_rate').textContent = rate.toFixed(4) + ' cps';
+  $('statRate').textContent = r.rate.toFixed(3);
+  $('ds_rate').textContent = r.rate.toFixed(4) + ' cps';
+  $('ds_rateStd').textContent = r.rateStd.toFixed(4) + ' cps';
+  $('ds_devCounts').textContent = r.counts;
+  $('ds_liveTime').textContent = formatTime(Math.max(0, r.liveUs) / 1000) + ` (${(r.liveUs / 1e6).toFixed(1)} s)`;
 
-  const rateStd = elapsedSec > 0 ? (Math.sqrt(n) / elapsedSec) : 0;
-  $('ds_rateStd').textContent = rateStd.toFixed(4) + ' cps';
+  // Deadtime of this session only (the board's counter runs from boot / RESET).
+  const deadSec = r.deadUs / 1e6;
+  $('statDeadtime').textContent = deadSec.toFixed(3);
+  $('ds_deadtime').textContent  = deadSec.toFixed(3) + ' s';
 
-  const s = state.stats;
-  const avgTemp  = s.sumTemp  / n;
-  const tempStd  = Math.sqrt(Math.max(0, s.sumTemp2 / n - avgTemp * avgTemp));
-  const avgHum   = s.sumHum   / n;
-  const avgPress = s.sumPress / n;
-  const avgAdc   = s.sumAdc   / n;
-  // Deadtime is the running cumulative total (µs); the latest event holds the total so far.
-  const totalDeadSec = events[n - 1].deadtime_us / 1e6;
-
+  const avgAdc = s.sumAdc / n;
   $('statAdc').textContent = avgAdc.toFixed(0);
-  $('statDeadtime').textContent = totalDeadSec.toFixed(3);
+  $('ds_adcMean').textContent = avgAdc.toFixed(1);
+  $('ds_adcMax').textContent  = s.maxAdc;
 
-  $('ds_temp').textContent      = avgTemp.toFixed(2) + ' \u00b0C';
-  $('ds_tempStd').textContent   = tempStd.toFixed(2) + ' \u00b0C';
-  $('ds_tempRange').textContent = `${s.maxTemp.toFixed(1)} / ${s.minTemp.toFixed(1)} \u00b0C`;
-  $('ds_hum').textContent       = avgHum.toFixed(2)  + ' %';
-  $('ds_humRange').textContent  = `${s.maxHum.toFixed(1)} / ${s.minHum.toFixed(1)} %`;
-  $('ds_press').textContent     = avgPress.toFixed(2) + ' hPa';
-  $('ds_pressRange').textContent = `${s.maxPress.toFixed(1)} / ${s.minPress.toFixed(1)} hPa`;
-  $('ds_deadtime').textContent  = totalDeadSec.toFixed(3) + ' s';
-  $('ds_adcMean').textContent   = avgAdc.toFixed(1);
-  $('ds_adcMax').textContent    = s.maxAdc;
+  // Divide each BME280 field by its own count of valid readings; with no
+  // sensor the firmware prints "nan" and there is nothing to average (R-12).
+  if (s.nTemp > 0) {
+    const avgTemp = s.sumTemp / s.nTemp;
+    const tempStd = Math.sqrt(Math.max(0, s.sumTemp2 / s.nTemp - avgTemp * avgTemp));
+    $('ds_temp').textContent      = avgTemp.toFixed(2) + ' °C';
+    $('ds_tempStd').textContent   = tempStd.toFixed(2) + ' °C';
+    $('ds_tempRange').textContent = `${s.maxTemp.toFixed(1)} / ${s.minTemp.toFixed(1)} °C`;
+  } else {
+    $('ds_temp').textContent = $('ds_tempStd').textContent = $('ds_tempRange').textContent = '--';
+  }
+  if (s.nHum > 0) {
+    $('ds_hum').textContent      = (s.sumHum / s.nHum).toFixed(2) + ' %';
+    $('ds_humRange').textContent = `${s.maxHum.toFixed(1)} / ${s.minHum.toFixed(1)} %`;
+  } else {
+    $('ds_hum').textContent = $('ds_humRange').textContent = '--';
+  }
+  if (s.nPress > 0) {
+    $('ds_press').textContent      = (s.sumPress / s.nPress).toFixed(2) + ' hPa';
+    $('ds_pressRange').textContent = `${s.maxPress.toFixed(1)} / ${s.minPress.toFixed(1)} hPa`;
+  } else {
+    $('ds_press').textContent = $('ds_pressRange').textContent = '--';
+  }
 
   const digPct = s.digHits.map(h => ((h / n) * 100).toFixed(1) + '%').join(' / ');
   $('ds_digRate').textContent = digPct;
@@ -2248,10 +3552,12 @@ function updateExtGrid() {
   const grid = $('extGrid');
   const n = state.events.length;
   const last = n > 0 ? state.events[n - 1] : null;
+  const digs = last ? [last.d1, last.d2, last.d3] : [0, 0, 0];
+  const anas = last ? [last.a1, last.a2, last.a3] : ['--', '--', '--'];
   let html = '';
   for (let i = 0; i < 3; i++) {
-    const d = last ? last.dig[i] : 0;
-    const a = last ? last.ana[i] : '--';
+    const d = digs[i];
+    const a = anas[i];
     html += `
       <div class="ext-cell">
         <div class="ext-label">${t('ext.cellLabel', { n: i + 1 })}</div>
@@ -2271,106 +3577,233 @@ function updateRawDisplay() {
 }
 
 // ========== Auto-Save ==========
+let autoSaveRun = null;   // the flush in progress (awaited by forced flushes, N-1)
+
 async function selectSaveFolder() {
   if (!('showDirectoryPicker' in window)) {
     alert(t('alert.fsApi'));
     return;
   }
   try {
+    // Must be the first await, while the click's user activation is still valid.
     const dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+    // Whatever is still queued for the previous folder goes there first. A forced
+    // flush also waits for a write already in progress, so none of it can end up
+    // in the new folder.
+    try { await flushAutoSave({ force: true }); } catch (_) {}
     const as = state.autoSave;
     as.dirHandle = dirHandle;
     as.enabled = true;
-    as.currentDate = null;
-    as.lineCount = 0;
+    as.prefix = null;
+    as.parts = {};
+    as.lastFile = { dat: null, csv: null };
+    as.written = { dat: 0, csv: 0 };
+    as.intervalMs = AUTOSAVE_MIN_INTERVAL_MS;
+    as.nextFlushMs = 0;
+    as.lastError = null;
     updateAutoSaveUI();
   } catch (e) {
     if (e.name !== 'AbortError') console.error('Folder select error:', e);
   }
 }
 
-async function appendToFile(dirHandle, filename, content) {
+// Appends content, writing the header first only when the file is still empty.
+// Deciding by file size (not by "first write of this page session") means a
+// reconnect, a re-selected folder or a second page never puts a header row in
+// the middle of a file (R-2 b).
+async function appendToFile(dirHandle, filename, content, header) {
   const fileHandle = await dirHandle.getFileHandle(filename, { create: true });
   const file = await fileHandle.getFile();
   const writable = await fileHandle.createWritable({ keepExistingData: true });
-  await writable.seek(file.size);
-  await writable.write(content);
-  await writable.close();
+  try {
+    await writable.seek(file.size);
+    await writable.write(file.size === 0 && header ? header + content : content);
+    await writable.close();
+  } catch (e) {
+    // Drop the swap file instead of leaving a half-written one behind.
+    try { await writable.abort(); } catch (_) {}
+    throw e;
+  }
 }
 
-const DAT_HEADER = '# Event\tPC_Timestamp\tTime[us]\tADC[0-4095]\tDeadtime[us]\tTemp[C]\tHum[%]\tPress[hPa]\tDig1\tDig2\tDig3\tAna1\tAna2\tAna3\n';
-const CSV_HEADER = 'Event,PC_Timestamp,Time_us,ADC,Deadtime_us,Temp_C,Hum_pct,Press_hPa,Dig1,Dig2,Dig3,Ana1,Ana2,Ana3\n';
-
-function getFilePrefix() {
-  const name = (state.bleName || 'CosmicRay').trim();
-  const safe = name.replace(/[^A-Za-z0-9_\-]/g, '_');
-  return safe || 'CosmicRay';
+async function fileSizeIn(dirHandle, filename) {
+  try {
+    const fh = await dirHandle.getFileHandle(filename);   // no create: just look
+    return (await fh.getFile()).size;
+  } catch (e) {
+    if (e && e.name === 'NotFoundError') return 0;
+    throw e;
+  }
 }
 
+// Every append makes Chrome copy the whole file, so a file is closed off at
+// AUTOSAVE_SPLIT_BYTES and the day continues in <prefix>_<date>_02, _03, ...
+// (each with its own header). Ordinary cosmic-ray runs never get there; a
+// strong source can (N-15). Looking up the size does not copy anything.
+async function autoSaveFileName(dirHandle, prefix, day, fmt) {
+  const as = state.autoSave;
+  const key = `${fmt}|${prefix}|${day}`;
+  let part = as.parts[key] || 1;
+  const nameOf = n => n === 1 ? `${prefix}_${day}.${fmt}` : `${prefix}_${day}_${String(n).padStart(2, '0')}.${fmt}`;
+  while (await fileSizeIn(dirHandle, nameOf(part)) >= AUTOSAVE_SPLIT_BYTES) part++;
+  as.parts[key] = part;
+  return nameOf(part);
+}
+
+const DAT_COLUMNS = '# Event\tPC_Timestamp\tTime[us]\tADC[0-4095]\tDeadtime[us]\tTemp[C]\tHum[%]\tPress[hPa]\tDig1\tDig2\tDig3\tAna1\tAna2\tAna3\n';
+const CSV_COLUMNS = 'Event,PC_Timestamp,Time_us,ADC,Deadtime_us,Temp_C,Hum_pct,Press_hPa,Dig1,Dig2,Dig3,Ana1,Ana2,Ana3\n';
+
+// One header builder for every path -- auto-save and download, .dat and .csv --
+// so all files carry the same metadata (R-15). Metadata lines start with '#';
+// in the CSV they come before the column row (pandas: read_csv(path, comment='#')).
+// The values are the ones known when the file is created. `isDemo` comes from
+// the events being written, not from whether the demo is running right now.
+function buildFileHeader(format, isDemo) {
+  const lines = [];
+  const comment = $('fileComment').value;
+  if (comment) for (const l of comment.split(/\r?\n/)) lines.push('# ' + l);
+  if (isDemo) lines.push(DEMO_FILE_NOTE.trimEnd());
+  lines.push('# Source: CosmicRay Recorder v2 (v2/index.html)');
+  if (state.bleName)           lines.push(`# Device: ${state.bleName}`);
+  if (state.conn.btAddr)       lines.push(`# Board address: ${state.conn.btAddr}`);
+  if (state.mode)              lines.push(`# Trigger mode: ${state.mode}`);
+  if (state.threshold != null) lines.push(`# Signal threshold: ${state.threshold} / 4095`);
+  if (state.pwmDuty != null)   lines.push(`# Comparator PWM duty: ${state.pwmDuty} / 255`);
+  lines.push('# PC_Timestamp: UTC (trailing Z). Time / Deadtime: board counters in microseconds since boot or RESET.');
+  lines.push('# Column 2 (PC_Timestamp) is added by this page, so later columns sit one to the right of the firmware / SD log.');
+  return lines.join('\n') + '\n' + (format === 'csv' ? CSV_COLUMNS : DAT_COLUMNS);
+}
+
+// File name base from the board's BLE name, without the DEMO_ mark.
+function getFileBase() {
+  const name = (state.bleName || state.conn.bleName || 'CosmicRay').trim();
+  return name.replace(/[^A-Za-z0-9_\-]/g, '_') || 'CosmicRay';
+}
+
+// デモの合成データは、あとから本物と取り違えないようファイル名の頭で分かるようにする。
+function getFilePrefix(isDemo = demo.on) {
+  return (isDemo ? 'DEMO_' : '') + getFileBase();
+}
+
+// Pressure keeps the firmware's one decimal; a second digit would be invented precision.
 function eventToDatLine(ev) {
-  const pcTs = new Date(ev.pc_timestamp).toISOString().replace('T', '-').replace(/:/g, '-').substring(0, 26);
+  const pcTs = new Date(ev.pc_timestamp).toISOString().replace('T', '-').replace(/:/g, '-');
   const f = (v, d = 1) => (isNaN(v) ? '' : v.toFixed(d));
-  return `${ev.count}\t${pcTs}\t${ev.timestamp_us}\t${ev.adc}\t${ev.deadtime_us}\t${f(ev.temp_c, 1)}\t${f(ev.hum_pct, 1)}\t${f(ev.press_hpa, 2)}\t${ev.dig[0]}\t${ev.dig[1]}\t${ev.dig[2]}\t${ev.ana[0]}\t${ev.ana[1]}\t${ev.ana[2]}\n`;
+  return `${ev.count}\t${pcTs}\t${ev.timestamp_us}\t${ev.adc}\t${ev.deadtime_us}\t${f(ev.temp_c, 1)}\t${f(ev.hum_pct, 1)}\t${f(ev.press_hpa, 1)}\t${ev.d1}\t${ev.d2}\t${ev.d3}\t${ev.a1}\t${ev.a2}\t${ev.a3}\n`;
 }
 
 function eventToCsvLine(ev) {
   const f = (v, d = 1) => (isNaN(v) ? '' : v.toFixed(d));
-  return `${ev.count},${new Date(ev.pc_timestamp).toISOString()},${ev.timestamp_us},${ev.adc},${ev.deadtime_us},${f(ev.temp_c, 1)},${f(ev.hum_pct, 1)},${f(ev.press_hpa, 2)},${ev.dig[0]},${ev.dig[1]},${ev.dig[2]},${ev.ana[0]},${ev.ana[1]},${ev.ana[2]}\n`;
+  return `${ev.count},${new Date(ev.pc_timestamp).toISOString()},${ev.timestamp_us},${ev.adc},${ev.deadtime_us},${f(ev.temp_c, 1)},${f(ev.hum_pct, 1)},${f(ev.press_hpa, 1)},${ev.d1},${ev.d2},${ev.d3},${ev.a1},${ev.a2},${ev.a3}\n`;
 }
 
-async function flushAutoSave() {
+// Writes one format's queue to `dir` under the file name base `base`. Both are
+// fixed by the caller before the first await (N-1). Events are grouped by their
+// own local date, so a batch that straddles midnight is split between the two
+// days' files (R-2 a), and by their own demo mark, so synthetic events always go
+// to a DEMO_ file even when the demo has already been stopped (N-4).
+// On failure only this format's unwritten tail goes back on its queue (R-2 d).
+async function flushAutoSaveFormat(fmt, dir, base) {
   const as = state.autoSave;
-  if (!as.enabled || !as.dirHandle) return;
+  const batch = as.queues[fmt];
+  if (batch.length === 0) return;
+  as.queues[fmt] = [];
+  const lineOf = fmt === 'dat' ? eventToDatLine : eventToCsvLine;
+  let i = 0;
+  try {
+    while (i < batch.length) {
+      const d0 = new Date(batch[i].pc_timestamp);
+      const day = formatLocalDate(d0);
+      const nextMidnight = new Date(d0.getFullYear(), d0.getMonth(), d0.getDate() + 1).getTime();
+      const isDemo = !!batch[i].demo;
+      const parts = [];
+      let j = i;
+      while (j < batch.length && batch[j].pc_timestamp < nextMidnight && !!batch[j].demo === isDemo) {
+        parts.push(lineOf(batch[j++]));
+      }
+      const name = await autoSaveFileName(dir, (isDemo ? 'DEMO_' : '') + base, day, fmt);
+      await appendToFile(dir, name, parts.join(''), buildFileHeader(fmt, isDemo));
+      as.written[fmt] += j - i;
+      as.lastFile[fmt] = name;
+      i = j;
+    }
+  } catch (e) {
+    // concat, not spread: the queue can be very large.
+    as.queues[fmt] = batch.slice(i).concat(as.queues[fmt]);
+    throw e;
+  }
+}
+
+async function flushAutoSave(opts) {
+  const force = !!(opts && opts.force);
+  const as = state.autoSave;
   // Re-entrancy guard: the 1 s interval can fire again before a slow write
   // finishes; two writers seeking/appending to the same file corrupt it.
-  if (as.flushing) return;
+  // A forced flush (disconnect, folder change, page hidden) must not skip: it
+  // waits for the write in progress and then writes whatever is left (N-1).
+  while (as.flushing) {
+    if (!force) return;
+    try { await autoSaveRun; } catch (_) {}
+  }
+  if (!as.enabled || !as.dirHandle) return;
+  if (!force && Date.now() < as.nextFlushMs) return;
+  if (as.queues.dat.length === 0 && as.queues.csv.length === 0) return;
+
+  // The file name base is fixed at the first write of a session and kept until
+  // disconnect (R-2 c). Wait briefly for the board to report its BLE name, mode
+  // and thresholds, otherwise the first lines would go to a file named after
+  // the previously used board and the header would lack the settings.
+  if (!as.prefix) {
+    const ready = force || !state.isConnected ||
+      (state.bleNameKnown && state.mode != null && state.threshold != null) ||
+      (Date.now() - state.connectedAtMs >= AUTOSAVE_PREFIX_WAIT_MS);
+    if (!ready) return;
+    as.prefix = getFileBase();
+  }
+
+  // Fix the destination now. Disconnect and folder selection replace these
+  // while the writes below are being awaited (N-1).
+  const dir = as.dirHandle;
+  const base = as.prefix;
+
   as.flushing = true;
-
-  try {
-    const today = new Date().toISOString().substring(0, 10);
-    const prefix = getFilePrefix();
-    const format = $('autoSaveFormat').value;
-
-    if (today !== as.currentDate) {
-      as.currentDate = today;
-      const comment = $('fileComment').value;
-      let headerDat = '';
-      if (comment) headerDat += '# ' + comment.replace(/\n/g, '\n# ') + '\n';
-      headerDat += DAT_HEADER;
+  const t0 = performance.now();
+  autoSaveRun = (async () => {
+    let err = null;
+    for (const fmt of ['dat', 'csv']) {
       try {
-        if (format === 'dat' || format === 'both') await appendToFile(as.dirHandle, `${prefix}_${today}.dat`, headerDat);
-        if (format === 'csv' || format === 'both') await appendToFile(as.dirHandle, `${prefix}_${today}.csv`, CSV_HEADER);
+        await flushAutoSaveFormat(fmt, dir, base);
       } catch (e) {
-        console.error('Auto-save header write error:', e);
+        console.error(`Auto-save ${fmt} write error:`, e);
+        if (!err) err = e;
       }
     }
-
-    if (as.pending.length === 0) return;
-
-    const batch = as.pending.splice(0);
-    let datLines = '';
-    let csvLines = '';
-    for (const ev of batch) {
-      datLines += eventToDatLine(ev);
-      csvLines += eventToCsvLine(ev);
-    }
-
-    try {
-      if (format === 'dat' || format === 'both') await appendToFile(as.dirHandle, `${prefix}_${today}.dat`, datLines);
-      if (format === 'csv' || format === 'both') await appendToFile(as.dirHandle, `${prefix}_${today}.csv`, csvLines);
-      as.lineCount += batch.length;
-      updateAutoSaveUI();
-    } catch (e) {
-      console.error('Auto-save write error:', e);
-      // Re-queue the batch so a transient failure doesn't lose events
-      // (concat avoids spread-on-huge-array limits).
-      as.pending = batch.concat(as.pending);
-      $('autoSaveStatus').className = 'autosave-status error';
-      $('autoSaveStatus').textContent = t('autosave.writeError', { msg: e.message });
-    }
+    as.lastError = err ? (err.message || String(err)) : null;
+  })();
+  try {
+    await autoSaveRun;
   } finally {
     as.flushing = false;
+    // Every append makes Chrome copy the whole file, so stretch the interval as
+    // the file grows, keeping that copy to a few percent of wall time (R-2 e).
+    // The cap bounds what a crash can lose; the file split keeps writes short.
+    const took = performance.now() - t0;
+    as.intervalMs = Math.min(AUTOSAVE_MAX_INTERVAL_MS,
+                             Math.max(AUTOSAVE_MIN_INTERVAL_MS, took / AUTOSAVE_IO_DUTY));
+    as.nextFlushMs = Date.now() + as.intervalMs;
+    updateAutoSaveUI();
   }
+}
+
+function autoSavePendingCount() {
+  const q = state.autoSave.queues;
+  return Math.max(q.dat.length, q.csv.length);
+}
+
+// End of a measurement session: the next one picks its own file prefix.
+function endAutoSaveSession() {
+  state.autoSave.prefix = null;
+  updateAutoSaveUI();
 }
 
 function updateAutoSaveUI() {
@@ -2381,11 +3814,659 @@ function updateAutoSaveUI() {
     el.textContent = t('autosave.notConfigured');
     return;
   }
-  const prefix = getFilePrefix();
   const format = $('autoSaveFormat').value;
+  const main = format === 'csv' ? 'csv' : 'dat';
   const ext = format === 'both' ? '.dat / .csv' : '.' + format;
-  el.className = 'autosave-status active';
-  el.textContent = t('autosave.status', { file: `${prefix}_${as.currentDate || '...'}${ext}`, n: as.lineCount });
+  // The file actually written last, or the one the next write will start.
+  const stem = as.lastFile[main]
+    ? as.lastFile[main].replace(/\.(dat|csv)$/, '')
+    : `${demo.on ? 'DEMO_' : ''}${as.prefix || getFileBase()}_${formatLocalDate(new Date())}`;
+  const lines = [t('autosave.status', { file: stem + ext, n: as.written[main] })];
+  const pending = autoSavePendingCount();
+  if (as.intervalMs >= 2 * AUTOSAVE_MIN_INTERVAL_MS) {
+    lines.push(t('autosave.slow', { sec: Math.round(as.intervalMs / 1000) }));
+  }
+  // Events that would be lost if the tab closed right now (N-15).
+  if (pending > 0 && (as.intervalMs >= 2 * AUTOSAVE_MIN_INTERVAL_MS || as.lastError)) {
+    lines.push(t('autosave.pending', { n: pending }));
+  }
+  if (as.lastError) lines.push(t('autosave.writeError', { msg: as.lastError }));
+  el.className = 'autosave-status ' + (as.lastError ? 'error' : 'active');
+  el.textContent = lines.join('\n');
+}
+
+// ========== Server Upload ==========
+// Mirrors the auto-save trio (queue -> 1 s interval -> flush with a re-entrancy
+// lock and requeue-on-failure), but over HTTP. Auto-save is the record; this is
+// a mirror, which is what licenses the bounded queue and the drop policy below.
+
+// --- config persistence ----------------------------------------------------
+
+function loadUploadConfig() {
+  const u = state.upload;
+  try {
+    const raw = localStorage.getItem(UPLOAD_STORE_KEY);
+    if (raw) {
+      const c = JSON.parse(raw);
+      u.serverUrl   = c.serverUrl || '';
+      u.stationId   = c.stationId || '';
+      u.deviceLabel = c.deviceLabel || '';
+      u.lat         = (c.gps && c.gps.lat != null) ? c.gps.lat : '';
+      u.lon         = (c.gps && c.gps.lon != null) ? c.gps.lon : '';
+      u.decimate    = Number(c.decimate) > 0 ? Number(c.decimate) : 1;
+      u.remember    = !!c.rememberPassword;
+      // The token is only kept across browser restarts when "remember" is on.
+      if (u.remember) {
+        u.token      = c.token || null;
+        u.tokenExpMs = Number(c.tokenExpMs) || 0;
+      }
+    }
+  } catch (_) {}
+  if (!u.remember) {
+    try {
+      const tk = JSON.parse(sessionStorage.getItem(UPLOAD_TOKEN_KEY) || 'null');
+      if (tk && tk.token) { u.token = tk.token; u.tokenExpMs = Number(tk.tokenExpMs) || 0; }
+    } catch (_) {}
+  }
+
+  // Only read the password back if the user opted in.
+  if (u.remember) {
+    try { uploadPassword = localStorage.getItem(UPLOAD_SECRET_KEY) || ''; } catch (_) {}
+  }
+
+  // A stored token past its expiry is useless; drop it so the UI shows "not configured".
+  if (u.tokenExpMs && Date.now() >= u.tokenExpMs) {
+    u.token = null;
+    u.tokenExpMs = 0;
+  }
+
+  $('uploadServer').value      = u.serverUrl;
+  $('uploadStationId').value   = u.stationId;
+  $('uploadDeviceLabel').value = u.deviceLabel;
+  $('uploadLat').value         = u.lat;
+  $('uploadLon').value         = u.lon;
+  $('uploadDecimate').value    = String(u.decimate);
+  $('uploadRemember').checked  = u.remember;
+  $('uploadPassword').value    = uploadPassword;
+  $('uploadRememberWarn').style.display = u.remember ? '' : 'none';
+
+  // Write the settings straight back. With "remember" off this removes a token
+  // that an older version of this page left in localStorage (N-14).
+  saveUploadConfig();
+}
+
+function saveUploadConfig() {
+  const u = state.upload;
+  try {
+    localStorage.setItem(UPLOAD_STORE_KEY, JSON.stringify({
+      v: 1,
+      serverUrl: u.serverUrl,
+      stationId: u.stationId,
+      deviceLabel: u.deviceLabel,
+      gps: { lat: u.lat, lon: u.lon },
+      decimate: u.decimate,
+      rememberPassword: u.remember,
+      // A valid token is enough to upload, so it is treated like the password:
+      // persisted only on opt-in, otherwise kept for this tab only (R-9).
+      token: u.remember ? u.token : null,
+      tokenExpMs: u.remember ? u.tokenExpMs : 0,
+    }));
+    // The password is stored ONLY on explicit opt-in, and cleared the moment it
+    // is turned off. No obfuscation: base64/XOR would only imply protection that
+    // isn't there.
+    if (u.remember) {
+      localStorage.setItem(UPLOAD_SECRET_KEY, uploadPassword);
+    } else {
+      localStorage.removeItem(UPLOAD_SECRET_KEY);
+    }
+  } catch (_) {}
+  try {
+    if (!u.remember && u.token) {
+      sessionStorage.setItem(UPLOAD_TOKEN_KEY, JSON.stringify({ token: u.token, tokenExpMs: u.tokenExpMs }));
+    } else {
+      sessionStorage.removeItem(UPLOAD_TOKEN_KEY);
+    }
+  } catch (_) {}
+}
+
+function readUploadForm() {
+  const u = state.upload;
+  u.serverUrl   = $('uploadServer').value.trim().replace(/\/+$/, '');
+  u.stationId   = $('uploadStationId').value.trim();
+  u.deviceLabel = $('uploadDeviceLabel').value.trim();
+  u.lat         = $('uploadLat').value.trim();
+  u.lon         = $('uploadLon').value.trim();
+  u.decimate    = Math.max(1, parseInt($('uploadDecimate').value) || 1);
+  u.remember    = $('uploadRemember').checked;
+  uploadPassword = $('uploadPassword').value;
+}
+
+// --- clock -----------------------------------------------------------------
+
+// Anchor the device's microsecond clock to the browser wall clock.
+// pc_timestamp alone is jittery (USB/BLE deliver bursts of buffered lines that
+// all get nearly the same value); timestamp_us alone has precise spacing but no
+// wall time. Combining them gives real sub-millisecond spacing on an absolute
+// timeline, and re-anchors on reboot or an NTP step.
+function uploadClockUs(ev) {
+  const u = state.upload;
+  const devUs = ev.timestamp_us;
+  const wallUs = ev.pc_timestamp * 1000;
+  const reboot = devUs < u.anchorDevUs || ev.count < u.anchorCount;
+  const derived = u.anchorWallUs + (devUs - u.anchorDevUs);
+  const drift = Math.abs(derived - wallUs);
+
+  if (!u.anchorWallUs || reboot || drift > 5000000) {   // 5 s
+    u.anchorWallUs = wallUs;
+    u.anchorDevUs = devUs;
+    u.anchorCount = ev.count;
+    return wallUs;
+  }
+  u.anchorCount = ev.count;
+  return derived;
+}
+
+// The server parser splits on '-' and needs >= 6 parts, in LOCAL time.
+// Sending ISO-8601 would yield 3 parts, which makes the server name the file
+// after its own UTC date and write a corrupt datetime column.
+function formatServerTimestamp(epochUs) {
+  const d = new Date(Math.floor(epochUs / 1000));
+  const p = (n, w = 2) => String(n).padStart(w, '0');
+  const frac = ((epochUs % 1000000) + 1000000) % 1000000;
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}-` +
+         `${p(d.getHours())}-${p(d.getMinutes())}-${p(d.getSeconds())}.${p(frac, 6)}`;
+}
+
+function startUploadRun() {
+  const u = state.upload;
+  u.runId = (globalThis.crypto && globalThis.crypto.randomUUID) ? globalThis.crypto.randomUUID()
+          : 'run-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
+  u.anchorWallUs = 0;
+  u.anchorDevUs = 0;
+  u.anchorCount = 0;
+}
+
+// --- payload ---------------------------------------------------------------
+
+// v2 event -> legacy /upload-data/:id body.
+// Lost in this mode: hum_pct, press_hpa, dig[0..2], ana[0..2], ADC bit depth,
+// keV energy, coincidence config and run identity. Surfaced in the UI as
+// upload.legacyMode so it is never a silent omission.
+function eventToLegacyPayload(ev) {
+  const u = state.upload;
+  // Fixed when the event arrived (R-11). Computing it here, at send time, let a
+  // retried old event look like a reboot and re-anchor the clock for later ones.
+  const us = ev.wall_us || (ev.pc_timestamp * 1000);
+  return {
+    event: ev.count,
+    timestamp: formatServerTimestamp(us),
+    time: ev.timestamp_us,
+    adc: ev.adc,
+    // v2 has no SiPM amplitude channel; this is the ADC pin voltage in mV.
+    // A computed value, not a measured one -- documented in server-plan.html.
+    vol: +(ev.adc / ADC_MAX * 3300).toFixed(3),
+    // v2 counts deadtime in microseconds; the legacy column follows the
+    // CosmicWatch convention of milliseconds.
+    deadtime: Math.round(ev.deadtime_us / 1000),
+    temp: ev.temp_c,
+    // Ignored by the legacy handler, but forward-compatible and it closes the
+    // timezone hole for anything that later reads these rows.
+    timestamp_utc: new Date(Math.floor(us / 1000)).toISOString(),
+    tz: (Intl.DateTimeFormat().resolvedOptions().timeZone || ''),
+    tz_offset_min: -new Date().getTimezoneOffset(),
+    run_id: ev.run || u.runId,
+    device_label: u.deviceLabel || undefined,
+  };
+}
+
+// --- queue -----------------------------------------------------------------
+
+function enqueueUpload(ev) {
+  const u = state.upload;
+
+  // デモの合成イベントは測定サーバへ送らない。本物の観測データを汚さないため。
+  if (ev.demo || state.connectionType === 'demo') return;
+
+  if (u.decimate > 1 && (ev.count % u.decimate) !== 0) {
+    u.skipped++;
+    return;
+  }
+
+  u.queue.push(ev);
+
+  if (u.queue.length > UPLOAD_QUEUE_HARD) {
+    // Drop OLDEST: the newest events are what makes a live server view useful,
+    // and the dropped ones still exist on disk and in state.events (recoverable
+    // with "Re-send buffered events"). Always counted, never silent.
+    const drop = u.queue.length - UPLOAD_QUEUE_HARD;
+    u.queue.splice(0, drop);
+    u.dropped += drop;
+  }
+}
+
+// --- HTTP ------------------------------------------------------------------
+
+function uploadUrl(path) {
+  return state.upload.serverUrl + path;
+}
+
+// Single choke point for every request. Never throws: returns a result object,
+// so callers can branch on status without try/catch noise.
+async function uploadFetch(path, { method = 'GET', body = null, auth = false } = {}) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), UPLOAD_HTTP_TIMEOUT);
+  try {
+    const headers = {};
+    if (body !== null) headers['Content-Type'] = 'application/json';
+    if (auth && state.upload.token) headers['Authorization'] = `Bearer ${state.upload.token}`;
+
+    const res = await fetch(uploadUrl(path), {
+      method,
+      headers,
+      body: body === null ? undefined : JSON.stringify(body),
+      signal: controller.signal,
+      credentials: 'omit',   // keeps the request non-credentialed so the server's
+                             // Access-Control-Allow-Origin: * is honoured
+      cache: 'no-store',
+    });
+
+    let json = null;
+    try { json = await res.json(); } catch (_) {}
+    return { ok: res.ok, status: res.status, json, err: null };
+  } catch (e) {
+    // Network error, CORS rejection, timeout -- indistinguishable by design in
+    // the Fetch spec, so they share one retryable branch.
+    return { ok: false, status: 0, json: null, err: e.name === 'AbortError' ? 'timeout' : String(e.message || e) };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function decodeJwtExpMs(token) {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+    return payload.exp ? payload.exp * 1000 : 0;
+  } catch (_) {
+    return 0;
+  }
+}
+
+async function uploadLogin() {
+  const u = state.upload;
+  readUploadForm();
+
+  if (!u.serverUrl || !u.stationId || !uploadPassword) {
+    u.lastError = t('upload.needFields');
+    u.authError = true;
+    updateUploadUI();
+    return false;
+  }
+  try {
+    const parsed = new URL(u.serverUrl);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') throw new Error('scheme');
+  } catch (_) {
+    u.lastError = t('upload.badUrl');
+    u.authError = true;
+    updateUploadUI();
+    return false;
+  }
+
+  u.loggingIn = true;
+  u.authError = false;
+  u.lastError = null;
+  updateUploadUI();
+
+  const login = await uploadFetch('/auth/login', {
+    method: 'POST',
+    body: { id: u.stationId, password: uploadPassword },
+  });
+
+  if (!login.ok || !login.json || !login.json.token) {
+    u.loggingIn = false;
+    u.authError = true;
+    // A status of 0 means the request never completed: on a mixed-content or
+    // CORS failure the browser tells us nothing more, so point at the likely cause.
+    u.lastError = login.status === 0
+      ? t('upload.corsHint')
+      : t('upload.loginFail', { msg: (login.json && (login.json.error || login.json.message)) || `HTTP ${login.status}` });
+    updateUploadUI();
+    return false;
+  }
+
+  u.token = login.json.token;
+  u.tokenExpMs = decodeJwtExpMs(u.token);
+
+  // The station directory must exist before any upload is accepted (the server
+  // answers 404 otherwise), and /setup-id is idempotent, so run it every login.
+  const setup = await uploadFetch('/setup-id', {
+    method: 'POST',
+    auth: true,
+    body: {
+      id: u.stationId,
+      comment: $('fileComment').value || u.deviceLabel || 'CosmicRay Recorder v2',
+      gps_latitude: u.lat === '' ? null : u.lat,
+      gps_longitude: u.lon === '' ? null : u.lon,
+      created_at: new Date().toISOString(),
+    },
+  });
+
+  u.loggingIn = false;
+
+  if (!setup.ok) {
+    u.authError = true;
+    u.lastError = t('upload.loginFail', {
+      msg: (setup.json && (setup.json.error || setup.json.message)) || `HTTP ${setup.status}`,
+    });
+    updateUploadUI();
+    return false;
+  }
+
+  u.authError = false;
+  u.lastError = null;
+  saveUploadConfig();
+  updateUploadUI();
+  return true;
+}
+
+// Keeps a usable token in hand. Refresh needs a still-valid token (the server
+// was hardened so an unauthenticated refresh can no longer mint one), which is
+// exactly why the session password is kept in memory.
+// `force` is used after a 401/403: a token can be rejected while still being
+// inside its stated expiry (server restart with a new JWT_SECRET, revoked user),
+// and without forcing we would keep retrying a dead token every tick forever
+// instead of surfacing an auth error.
+async function uploadEnsureAuth(force) {
+  const u = state.upload;
+  if (!u.token) return false;
+
+  const expiringSoon = u.tokenExpMs && (Date.now() > u.tokenExpMs - 5 * 60 * 1000);
+  if (!force && !expiringSoon) return true;
+
+  const r = await uploadFetch('/auth/refresh', { method: 'POST', auth: true, body: {} });
+  if (r.ok && r.json && r.json.token) {
+    u.token = r.json.token;
+    u.tokenExpMs = decodeJwtExpMs(u.token);
+    saveUploadConfig();
+    return true;
+  }
+  if (uploadPassword) return await uploadLogin();
+
+  u.authError = true;
+  u.lastError = t('upload.stAuthError');
+  return false;
+}
+
+// Legacy API: one HTTP request per event, so run a few concurrently.
+// Returns per-event outcomes rather than a single verdict, which is what lets
+// flushUpload() discard only the events the server actually refused.
+async function sendBatchLegacy(batch) {
+  const u = state.upload;
+  const results = new Array(batch.length);
+  let next = 0;
+
+  async function worker() {
+    for (;;) {
+      const i = next++;
+      if (i >= batch.length) return;
+      const r = await uploadFetch(`/upload-data/${encodeURIComponent(u.stationId)}`, {
+        method: 'POST',
+        auth: true,
+        body: eventToLegacyPayload(batch[i]),
+      });
+      results[i] = r;
+    }
+  }
+
+  await Promise.all(
+    Array.from({ length: Math.min(UPLOAD_LEGACY_CONC, batch.length) }, worker)
+  );
+  return results;
+}
+
+function uploadBackoffMs(attempt) {
+  const base = Math.min(1000 * Math.pow(2, Math.max(0, attempt - 1)), UPLOAD_BACKOFF_MAX);
+  return base * (0.8 + 0.4 * Math.random());   // jitter, so many stations recovering
+                                               // from one restart don't synchronise
+}
+
+// --- flush -----------------------------------------------------------------
+
+async function flushUpload(opts) {
+  const final = !!(opts && opts.final);
+  const u = state.upload;
+
+  if (!u.enabled || !u.token) return;
+  if (u.flushing) return;                        // same idiom as autoSave.flushing
+  if (!final && Date.now() < u.nextAttemptMs) return;
+  if (u.queue.length === 0) return;
+
+  // Skip entirely while offline: no point burning backoff attempts on requests
+  // the browser will refuse to make.
+  if (navigator.onLine === false) {
+    updateUploadUI();
+    return;
+  }
+
+  u.flushing = true;
+  try {
+    let rounds = 0;
+    do {
+      if (!await uploadEnsureAuth()) return;
+
+      const batch = u.queue.splice(0, UPLOAD_LEGACY_BATCH);
+      if (batch.length === 0) return;
+
+      // Out of the queue but not marked yet while the requests are in flight:
+      // Re-send has to treat these as already queued (N-3).
+      u.inFlight = new Set(batch);
+      const results = await sendBatchLegacy(batch);
+
+      const retry = [];
+      let ok = 0;
+      let authFailed = false;
+      let lastMsg = null;
+
+      for (let i = 0; i < batch.length; i++) {
+        const r = results[i];
+        // Marked on the event itself so "Re-send" skips it (R-3).
+        if (r && r.ok) { batch[i].uploaded = true; ok++; continue; }
+
+        const status = r ? r.status : 0;
+        if (status === 401 || status === 403) {
+          authFailed = true;
+          retry.push(batch[i]);
+        } else if (status === 400) {
+          // Poison event: the server will never accept it. Record and move on
+          // rather than blocking the queue forever.
+          batch[i].rejected = true;
+          if (u.rejected.length < UPLOAD_REJECT_CAP) {
+            u.rejected.push({ count: batch[i].count, reason: (r.json && r.json.error) || 'rejected' });
+          }
+          u.failed++;
+        } else {
+          retry.push(batch[i]);
+          lastMsg = (r && (r.err || (r.json && r.json.error))) || `HTTP ${status}`;
+        }
+      }
+
+      u.sent += ok;
+
+      if (retry.length) {
+        // Head requeue with concat (not spread) to avoid argument-count limits
+        // on large arrays -- same reasoning as the auto-save path.
+        u.queue = retry.concat(u.queue);
+        u.inFlight = null;
+        u.failed += retry.length;
+        u.attempt++;
+        u.lastError = lastMsg;
+        u.nextAttemptMs = Date.now() + uploadBackoffMs(u.attempt);
+
+        if (authFailed) {
+          const recovered = await uploadEnsureAuth(true);
+          if (!recovered) { u.authError = true; return; }
+          u.nextAttemptMs = Date.now();   // credentials refreshed, retry promptly
+        }
+        return;   // let the next tick (or the next `final` round) carry on
+      }
+
+      u.inFlight = null;
+      u.attempt = 0;
+      u.lastError = null;
+      u.authError = false;
+      rounds++;
+    } while (final && u.queue.length > 0 && rounds < 200);
+  } finally {
+    u.inFlight = null;
+    u.flushing = false;
+    updateUploadUI();
+  }
+}
+
+// --- UI --------------------------------------------------------------------
+
+function uploadSetButtons() {
+  const u = state.upload;
+  const loggedIn = !!u.token;
+  $('btnUploadLogin').disabled  = u.loggingIn || u.enabled;
+  $('btnUploadStart').disabled  = !loggedIn || u.enabled || u.loggingIn || demo.on;
+  $('btnUploadStop').disabled   = !u.enabled;
+  $('btnUploadResend').disabled = !loggedIn || !u.enabled;
+  $('btnUploadLogout').disabled = !loggedIn || u.enabled;
+
+  // Locking the identity fields while running avoids silently switching streams
+  // mid-run; everything else stays editable.
+  ['uploadServer', 'uploadStationId', 'uploadPassword'].forEach(id => {
+    $(id).disabled = u.enabled;
+  });
+}
+
+function updateUploadUI() {
+  const u = state.upload;
+  const el = $('uploadStatus');
+  const counters = $('uploadCounters');
+  if (!el) return;
+
+  uploadSetButtons();
+
+  const queued = u.queue.length;
+
+  if (u.loggingIn) {
+    el.className = 'autosave-status idle';
+    el.textContent = t('upload.stLoggingIn');
+  } else if (u.authError) {
+    el.className = 'autosave-status error';
+    el.textContent = u.lastError || t('upload.stAuthError');
+  } else if (!u.serverUrl || !u.stationId || !u.token) {
+    el.className = 'autosave-status idle';
+    el.textContent = t('upload.stNotConfigured');
+  } else if (!u.enabled) {
+    el.className = 'autosave-status idle';
+    el.textContent = t('upload.stReady', { id: u.stationId });
+  } else if (navigator.onLine === false) {
+    el.className = 'autosave-status warn';
+    el.textContent = t('upload.stOffline', { queued });
+  } else if (u.attempt > 0) {
+    const sec = Math.max(0, Math.ceil((u.nextAttemptMs - Date.now()) / 1000));
+    el.className = 'autosave-status warn';
+    el.textContent = t('upload.stRetrying', { attempt: u.attempt, sec, msg: u.lastError || '' });
+  } else if (queued > UPLOAD_QUEUE_SOFT) {
+    el.className = 'autosave-status warn';
+    el.textContent = t('upload.stBacklog', { queued });
+  } else {
+    el.className = 'autosave-status active';
+    el.textContent = t('upload.stActive', { mode: u.apiMode, sent: u.sent, queued });
+  }
+
+  // Losses and refusals are always visible, never folded into the main line.
+  const extra = [];
+  if (u.dropped > 0) extra.push(t('upload.stDropped', { n: u.dropped }));
+  if (u.rejected.length > 0) extra.push(t('upload.stRejected', { n: u.rejected.length }));
+  if (u.enabled && u.apiMode === 'legacy') extra.push(t('upload.legacyMode'));
+  if (isInsecureServerUrl(u.serverUrl)) extra.push(t('upload.insecure'));
+
+  counters.textContent =
+    t('upload.counters', {
+      sent: u.sent, queued, skipped: u.skipped, dropped: u.dropped, rejected: u.rejected.length,
+    }) + (extra.length ? '\n' + extra.join('\n') : '');
+  counters.style.whiteSpace = 'pre-line';
+}
+
+// --- actions ---------------------------------------------------------------
+
+function uploadStart() {
+  const u = state.upload;
+  if (!u.token) return;
+  if (demo.on) { alert(t('demo.uploadBlocked')); return; }
+  readUploadForm();
+  saveUploadConfig();
+  if (!u.runId) startUploadRun();
+  u.enabled = true;
+  u.attempt = 0;
+  u.nextAttemptMs = 0;
+  u.lastError = null;
+  updateUploadUI();
+}
+
+async function uploadStop() {
+  const u = state.upload;
+  u.enabled = true;                       // keep the gate open for the final drain
+  try { await flushUpload({ final: true }); } catch (_) {}
+  u.enabled = false;
+  updateUploadUI();
+}
+
+function uploadLogout() {
+  const u = state.upload;
+  u.enabled = false;
+  u.token = null;
+  u.tokenExpMs = 0;
+  u.authError = false;
+  u.lastError = null;
+  uploadPassword = '';
+  $('uploadPassword').value = '';
+  try { localStorage.removeItem(UPLOAD_SECRET_KEY); } catch (_) {}
+  saveUploadConfig();
+  updateUploadUI();
+}
+
+// Plain http:// to anything but this machine sends the password in the clear (R-9).
+function isInsecureServerUrl(url) {
+  try {
+    const p = new URL(url);
+    return p.protocol === 'http:' && !['localhost', '127.0.0.1', '[::1]'].includes(p.hostname);
+  } catch (_) {
+    return false;
+  }
+}
+
+// Re-queue events still in memory that never reached the server: the hard-cap
+// drop case and events captured before upload was switched on. Events the server
+// already accepted or refused are skipped, so the server gets no duplicates (R-3),
+// and so are the ones in the batch being sent right now (N-3). Only events of the
+// current connection are taken: older ones may come from another board and would
+// be filed under this run (N-13).
+// Only the free part of the queue is filled -- otherwise the cap would push out
+// the very events being re-sent -- so a large backlog takes several presses.
+function uploadResend() {
+  const u = state.upload;
+  const room = UPLOAD_QUEUE_HARD - u.queue.length;
+  if (room <= 0) return;
+  const already = new Set(u.queue);
+  if (u.inFlight) for (const ev of u.inFlight) already.add(ev);
+  const add = [];
+  for (const ev of state.events) {
+    if (add.length >= room) break;
+    if (ev.uploaded || ev.rejected || ev.demo || already.has(ev)) continue;
+    if (ev.run !== u.runId) continue;
+    if (u.decimate > 1 && (ev.count % u.decimate) !== 0) continue;
+    add.push(ev);
+  }
+  if (add.length === 0) return;
+  // Older than anything already queued, so they go in front (oldest first).
+  u.queue = add.concat(u.queue);
+  u.attempt = 0;
+  u.nextAttemptMs = 0;
+  updateUploadUI();
 }
 
 function updateModeBadge(mode) {
@@ -2439,50 +4520,91 @@ function toggleLogging() {
 function updateConnectionUI(connected) {
   const dot = $('statusDot');
   if (connected) {
-    dot.className = 'status-dot connected';
+    dot.className = 'status-dot ' + (state.connectionType === 'demo' ? 'demo' : 'connected');
     $('connectButtons').style.display = 'none';
     $('baudRateGroup').style.display = 'none';
     $('connectionInfo').style.display = 'block';
+    $('btnPauseLog').style.display = '';
     $('btnSetThresh').disabled = false;
     $('btnGetThresh').disabled = false;
     $('btnAutoThresh').disabled = false;
+    $('btnSetPwm').disabled = false;
+    $('btnGetPwm').disabled = false;
+    $('btnAutoPwm').disabled = false;
     $('btnSetBleName').disabled = false;
+    $('btnSetBeep').disabled = false;
+    $('btnTestBeep').disabled = false;
+    $('btnSetVib').disabled = false;
+    $('btnTestVib').disabled = false;
     renderThreshInfo();
+    renderPwmInfo();
+    renderBeepInfo();
+    renderVibInfo();
     renderModeInfo();
-    ['featSD', 'featEXT', 'featOLED', 'featBUZZER'].forEach(id => {
+    ['featSD', 'featEXT', 'featOLED', 'featBUZZER', 'featVIB'].forEach(id => {
       $(id).querySelectorAll('button').forEach(btn => { btn.disabled = false; });
     });
     $('featInfo').textContent = t('feat.fetching');
     setLoggingPaused(false);
   } else {
-    dot.className = 'status-dot disconnected';
-    setLoggingPaused(false);
-    $('connectButtons').style.display = '';
-    $('baudRateGroup').style.display = '';
-    $('connectionInfo').style.display = 'none';
+    // While a BLE reconnect is pending, keep the Disconnect button (it cancels
+    // the retries) instead of offering the connect buttons.
+    const retrying = state.reconnecting;
+    dot.className = 'status-dot ' + (retrying ? 'reconnecting' : 'disconnected');
+    // A pending reconnect keeps the user's pause; onConnected() restores it (N-12).
+    if (!retrying) setLoggingPaused(false);
+    $('connectButtons').style.display = retrying ? 'none' : '';
+    $('baudRateGroup').style.display = retrying ? 'none' : '';
+    $('connectionInfo').style.display = retrying ? 'block' : 'none';
+    $('btnPauseLog').style.display = retrying ? 'none' : '';
     $('btnSetThresh').disabled = true;
     $('btnGetThresh').disabled = true;
     $('btnAutoThresh').disabled = true;
+    $('btnSetPwm').disabled = true;
+    $('btnGetPwm').disabled = true;
+    $('btnAutoPwm').disabled = true;
     $('btnSetBleName').disabled = true;
+    $('btnSetBeep').disabled = true;
+    $('btnTestBeep').disabled = true;
+    $('btnSetVib').disabled = true;
+    $('btnTestVib').disabled = true;
     state.mode = null;
     state.threshold = null;
     state.pwmDuty = null;
+    if (pwmCalTimer) { clearTimeout(pwmCalTimer); pwmCalTimer = null; }
+    state.pwmCalibrating = false;
     state.sdEnabled = null;
     state.extEnabled = null;
     state.oledEnabled = null;
     state.buzzerEnabled = null;
-    ['featSD', 'featEXT', 'featOLED', 'featBUZZER'].forEach(id => {
+    state.vibEnabled = null;
+    state.beepMin = null;
+    state.beepMax = null;
+    state.beepMs = null;
+    state.vibMin = null;
+    state.vibMax = null;
+    // A pending reconnect is the same board: keep its identity for the header.
+    if (!retrying) {
+      state.conn = { usbVendorId: null, usbProductId: null, bleId: null, bleName: null, btAddr: null, btAddrTimedOut: false };
+    }
+    ['featSD', 'featEXT', 'featOLED', 'featBUZZER', 'featVIB'].forEach(id => {
       $(id).querySelectorAll('button').forEach(btn => {
         btn.disabled = true;
         btn.classList.remove('active');
       });
     });
     renderThreshInfo();
+    renderPwmInfo();
+    renderBeepInfo();
+    renderVibInfo();
     renderModeInfo();
     updateFeatureInfo();
     updateModeBadge(null);
   }
+  renderDemoUI();
   renderStatusText();
+  renderConnDetail();
+  renderScopeBadge();
   updateModeButtons();
 }
 
@@ -2513,24 +4635,43 @@ function applyChartRefreshMode(mode) {
 }
 
 // ========== Rate Calculation ==========
+// One point per refresh, from the board's counters rather than browser arrival
+// times (USB / BLE deliver lines in bursts, R-14). The point covers the device
+// time since the previous point, and at least RATE_WINDOW_US: it runs from the
+// last event at or before that start (E_a) to the newest event (E_now), and its
+// rate is (count difference) / (live time difference). Plotted at E_now's wall
+// time on a real time axis.
 function updateRateChart() {
-  if (state.events.length === 0) return;
+  const events = state.events;
+  const n = events.length;
+  if (n === 0) return;
+  const now = events[n - 1];
+  const prev = state.rate.chartLast;
+  if (prev === now) return;   // nothing new since the last point
 
-  const now = Date.now();
-  const windowMs = 10000;
-  let recentCount = 0;
-  for (let i = state.events.length - 1; i >= 0; i--) {
-    if ((now - state.events[i].pc_timestamp) >= windowMs) break;
-    recentCount++;
+  let start = now.timestamp_us - RATE_WINDOW_US;
+  if (prev && prev.seg === now.seg && prev.timestamp_us < start) start = prev.timestamp_us;
+
+  // Walk back within the same segment to the last event at or before `start`.
+  let a = null;
+  for (let i = n - 2; i >= 0; i--) {
+    const ev = events[i];
+    if (ev.seg !== now.seg) break;
+    a = ev;
+    if (ev.timestamp_us <= start) break;
   }
-  const rate = recentCount / (windowMs / 1000);
-  const timeLabel = new Date().toLocaleTimeString('en-US');
+  if (!a) return;   // only one event in this segment so far
 
-  state.rateHistory.push({ time: timeLabel, rate });
+  const counts = now.count - a.count;
+  const liveUs = (now.timestamp_us - a.timestamp_us) - (now.deadtime_us - a.deadtime_us);
+  state.rate.chartLast = now;
+  if (counts <= 0 || liveUs <= 0) return;
 
+  state.rateHistory.push({ t: now.wall_us / 1000, rate: counts / (liveUs / 1e6) });
   if (state.rateHistory.length > MAX_RATE_HISTORY) state.rateHistory.shift();
 
-  rateChart.data.labels = state.rateHistory.map(r => r.time);
+  rateChart.data.xs = state.rateHistory.map(r => r.t);
+  rateChart.data.labels = [];
   rateChart.data.datasets[0].data = state.rateHistory.map(r => r.rate);
   rateChart.update('none');
   $('rateDataCount').textContent = state.rateHistory.length;
@@ -2583,28 +4724,21 @@ async function exportData(format) {
   exporting = true;
   setExportBusy(true);
 
+  // Snapshot so events arriving (or being dropped at the cap) mid-export don't shift indices.
+  const events = state.events.slice();
+  const total = events.length;
+
+  // Any synthetic event in the file makes it a demo file, whether or not the
+  // demo is still running (N-4).
+  const isDemo  = demo.on || events.some(ev => ev.demo);
   const isDat   = format === 'dat';
-  const prefix  = getFilePrefix();
+  const prefix  = getFilePrefix(isDemo);
   const dateStr = formatDateForFile(state.sessionStart || new Date());
   const filename = `${prefix}_${dateStr}.${isDat ? 'dat' : 'csv'}`;
   const lineOf  = isDat ? eventToDatLine : eventToCsvLine;
   const mime    = isDat ? 'text/plain;charset=utf-8' : 'text/csv;charset=utf-8';
 
-  let header;
-  if (isDat) {
-    const comment = $('fileComment').value;
-    header = '';
-    if (comment) header += '# ' + comment.replace(/\n/g, '\n# ') + '\n';
-    if (state.mode)              header += `# Trigger mode: ${state.mode}\n`;
-    if (state.threshold != null) header += `# Signal threshold: ${state.threshold} / 4095\n`;
-    header += DAT_HEADER;
-  } else {
-    header = CSV_HEADER;
-  }
-
-  // Snapshot so events arriving (or being dropped at the cap) mid-export don't shift indices.
-  const events = state.events.slice();
-  const total = events.length;
+  const header = buildFileHeader(isDat ? 'dat' : 'csv', isDemo);
 
   try {
     let writable = null;
@@ -2676,6 +4810,23 @@ function downloadFile(filename, content) {
   downloadBlob(filename, new Blob([content], { type: 'text/plain;charset=utf-8' }));
 }
 
+// チャートを PNG で保存する。canvas の背景は透明なので、白で塗ってから
+// 重ねてから書き出す（そのまま出すと白背景のビューアで軸線が消える）。
+// 保存されるのは表示中のピクセル寸法 × devicePixelRatio。
+function saveChartPng(canvasId, baseName) {
+  const src = $(canvasId);
+  if (!src || !src.width || !src.height) return;
+  const out = document.createElement('canvas');
+  out.width = src.width;
+  out.height = src.height;
+  const ctx = out.getContext('2d');
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, out.width, out.height);
+  ctx.drawImage(src, 0, 0);
+  const name = `${getFilePrefix()}_${baseName}_${formatDateForFile()}.png`;
+  out.toBlob(blob => { if (blob) downloadBlob(name, blob); }, 'image/png');
+}
+
 // ========== Utilities ==========
 function formatTime(ms) {
   const totalSec = Math.floor(ms / 1000);
@@ -2695,13 +4846,34 @@ function formatDateForFile(date) {
     String(d.getSeconds()).padStart(2, '0');
 }
 
+// Local calendar date (YYYY-MM-DD). Auto-save file names use this, not
+// toISOString(), so the file changes at local midnight (R-2 a).
+function formatLocalDate(date) {
+  const d = (date instanceof Date) ? date : new Date(date);
+  return d.getFullYear() + '-' +
+    String(d.getMonth() + 1).padStart(2, '0') + '-' +
+    String(d.getDate()).padStart(2, '0');
+}
+
+// "YYYY-MM-DD HH:MM:SS.mmm" in local time, for the data table (R-13).
+function formatLocalTimestamp(ms) {
+  const d = new Date(ms);
+  return formatLocalDate(d) + ' ' +
+    String(d.getHours()).padStart(2, '0') + ':' +
+    String(d.getMinutes()).padStart(2, '0') + ':' +
+    String(d.getSeconds()).padStart(2, '0') + '.' +
+    String(d.getMilliseconds()).padStart(3, '0');
+}
+
 // ========== Oscilloscope ==========
 // タブを開いている間だけファームに SET_SCOPE:ON を送り、WF, 行を受けて描く。
 // Chart.js ではなく生 canvas を使うのは、毎イベント全体を描き直すため
 // （Chart.js のデータセット更新＋アニメーションは数 Hz でも重い）。
 const scope = {
   active: false,     // タブが開いている
+  enteredAtMs: 0,    // タブを開いた時刻（無操作で解析タブへ戻す判定に使う）
   deviceOn: false,   // ファームが SCOPE:ON を返した
+  deviceOnSinceMs: 0,// その時刻（ヘッダに計数停止の経過時間を出す）
   frozen: false,
   traces: [],        // 新しいものほど後ろ
   raw: [],           // 保存用の生 WF, 行
@@ -2770,8 +4942,18 @@ function scopeStats() {
 function scopeDraw() {
   const cv = $('scopeCanvas');
   if (!cv) return;
+  // Size the backing store to the displayed size x devicePixelRatio, like the
+  // other charts, so the trace stays sharp on high-DPI screens (R-16).
+  const rect = cv.getBoundingClientRect();
+  const W = Math.round(rect.width), H = Math.round(rect.height);
+  if (W <= 0 || H <= 0) return;   // tab hidden; drawn again on scopeEnter()
+  const dpr = window.devicePixelRatio || 1;
+  if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) {
+    cv.width = Math.round(W * dpr);
+    cv.height = Math.round(H * dpr);
+  }
   const ctx = cv.getContext('2d');
-  const W = cv.width, H = cv.height;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   const padL = 64, padR = 16, padT = 14, padB = 40;
   const pw = W - padL - padR, ph = H - padT - padB;
 
@@ -2873,21 +5055,62 @@ function scopeDraw() {
   ctx.fillText('ADC', 6, padT + 10);
 }
 
+// Called when the tab opens, and again after (re)connecting or a reboot while
+// it is open. The two commands go through the command queue in order.
 function scopeEnter() {
+  if (!scope.active) scope.enteredAtMs = Date.now();
   scope.active = true;
   $('scopeBleWarn').style.display = (state.connectionType === 'ble') ? '' : 'none';
   if (state.isConnected) {
     sendCommand('SET_SCOPE_RATE:' + (parseInt($('scopeRate').value) || 3));
     sendCommand('SET_SCOPE:ON');
   }
+  scopeStartKeepalive();
   scopeDraw();
 }
 
 function scopeLeave() {
   scope.active = false;
-  // 計数を再開させる。接続が切れていれば送れないが、
-  // ファーム側は再起動時に必ず OFF なので取り残されることは無い。
+  scopeStopKeepalive();
+  // 計数を再開させる。接続が切れていれば送れないが、ファーム側は再起動時に
+  // 必ず OFF、さらにコマンドが 60 秒来なければ自分で OFF に戻る。
   if (state.isConnected) sendCommand('SET_SCOPE:OFF');
+}
+
+// The firmware turns the scope off by itself after 60 s without any command,
+// so a page that closed without sending OFF cannot leave counting stopped.
+// While the tab is open, keep it alive -- and if the board reports OFF anyway
+// (watchdog, DMA start failure), ask once per period instead of in a loop.
+let scopeKeepaliveTimer = null;
+
+function scopeStartKeepalive() {
+  if (scopeKeepaliveTimer) return;
+  scopeKeepaliveTimer = setInterval(() => {
+    if (!scope.active || !state.isConnected) return;
+    sendCommand(scope.deviceOn ? 'GET_SCOPE' : 'SET_SCOPE:ON');
+  }, SCOPE_KEEPALIVE_MS);
+}
+
+function scopeStopKeepalive() {
+  if (scopeKeepaliveTimer) { clearInterval(scopeKeepaliveTimer); scopeKeepaliveTimer = null; }
+}
+
+// The keepalive keeps the scope -- and the stopped counting -- going for as long
+// as the tab is open. Someone who walks away from it would lose the whole night,
+// so after SCOPE_IDLE_RETURN_MS without any input the page goes back to the
+// Analysis tab, which turns the scope off, and says so (N-6).
+let lastUserActivityMs = Date.now();
+['pointerdown', 'keydown', 'wheel', 'touchstart'].forEach(type => {
+  document.addEventListener(type, () => { lastUserActivityMs = Date.now(); }, { passive: true, capture: true });
+});
+
+function scopeIdleTick() {
+  if (scope.deviceOn) renderScopeBadge();   // keep the "stopped for mm:ss" current
+  if (!scope.active || !state.isConnected) return;
+  const idleSince = Math.max(lastUserActivityMs, scope.enteredAtMs);
+  if (Date.now() - idleSince < SCOPE_IDLE_RETURN_MS) return;
+  document.querySelector('.tab[data-tab="analysis"]').click();
+  showNotice('notice.scopeIdle', { min: Math.round(SCOPE_IDLE_RETURN_MS / 60000) });
 }
 
 $('scopeRate').addEventListener('change', () => {
@@ -2916,8 +5139,685 @@ $('scopeSave').addEventListener('click', () => {
   URL.revokeObjectURL(a.href);
 });
 
-window.addEventListener('beforeunload', () => {
+// Closing the tab: try to turn the scope off, write what auto-save still holds,
+// and if events are still unwritten ask the browser to confirm leaving -- the
+// write gets the time the dialog is open (N-15).
+window.addEventListener('beforeunload', (e) => {
   if (scope.active && state.isConnected) sendCommand('SET_SCOPE:OFF');
+  const as = state.autoSave;
+  if (as.enabled && as.dirHandle && autoSavePendingCount() > 0) {
+    flushAutoSave({ force: true }).catch(() => {});
+    e.preventDefault();
+    e.returnValue = '';
+  }
+});
+
+// Switching away (another tab, minimising, closing on mobile) is often the last
+// chance to run; write right away instead of waiting for the next interval.
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') flushAutoSave({ force: true }).catch(() => {});
+});
+window.addEventListener('pagehide', () => { flushAutoSave({ force: true }).catch(() => {}); });
+
+if (typeof ResizeObserver !== 'undefined') {
+  new ResizeObserver(() => { if (scope.active) scopeDraw(); }).observe($('scopeWrap'));
+}
+
+// ========== Demo Mode (virtual detector) ==========
+// 実機が無くても UI の動きを一通り見せるための仮想検出器。
+// やっていることは「ファームが吐くのと同じ 1 行を組み立てて processLine() に渡す」
+// だけで、解析・ヒストグラム・レート・オシロ・保存のどの経路にもデモ専用の分岐を
+// 持ち込んでいない。画面に出るものは実機と完全に同じ道を通る。
+//
+// 数値は v2 実機の実測に合わせてある:
+//   - 減衰時定数とベースラインノイズは avg_waveform_20260721_122238.csv の平均波形から
+//     (605 ADC のピークが 12us ごとに 0.946 倍 -> tau ~= 200us、sem*sqrt(n) -> sigma ~= 2.7 LSB)
+//   - 波形の点数・サンプル周期はファームの SCOPE_PRE / SCOPE_POST / SCOPE_FS_HZ と同じ
+//   - デッドタイムの内訳もファームの処理順 (COIN 同期待ち -> ADC -> OLED) に合わせてある
+
+const DEMO_SCOPE_PRE       = 32;      // ファームの SCOPE_PRE
+const DEMO_SCOPE_POST      = 128;     // ファームの SCOPE_POST
+const DEMO_SCOPE_PERIOD_NS = 12000;   // 83.333 kHz = 12.0 us/点
+const DEMO_TICK_MS         = 100;
+const DEMO_BASELINE        = 86;      // ピークホールド出力のベースライン [ADC]
+const DEMO_NOISE_LSB       = 2.7;     // 1 掃引あたりのベースラインノイズ sigma
+const DEMO_TAU_US          = 200;     // ピークホールドの放電時定数
+const DEMO_RISE_US         = 1.5;     // ピークホールドの追従 (1 サンプルよりずっと速い)
+const DEMO_EVT_DEADTIME_US = 68;      // EXT 無しの 1 イベント処理時間
+const DEMO_EXT_DEADTIME_US = 45;      // COIN 同期待ち + ANA 3ch 読み
+const DEMO_OLED_DEADTIME_US = 34000;  // OLED 1 回の書き換え
+const DEMO_DISPLAY_INTERVAL_MS = 2000;
+const DEMO_BARO_COEFF      = 0.002;   // 気圧効果 = -0.2 %/hPa (ミューオンの実測相場)
+const DEMO_RATE_MIN = 0.2, DEMO_RATE_MAX = 60;   // スライダ両端 [cps]
+const DEMO_SOURCE_GAIN = 6;           // 線源シナリオのレート倍率
+const DEMO_BEEP_MIN_GAP_MS = 60;      // 音が団子にならない程度に間引く
+// 保存ファイルの先頭に入れる注意書き。あとから本物の測定と取り違えないように。
+const DEMO_FILE_NOTE = '# *** DEMO MODE: synthetic data generated in the browser - NOT a measurement ***\n';
+
+const demo = {
+  on: false,
+  scenario: 'background',
+  rate: 3.5,             // スライダで決まる基準レート [cps]
+  sound: false,
+  timer: null,
+  startMs: 0,
+  lastMs: 0,
+  count: 0,
+  deadtimeUs: 0,
+  nextEventMs: 0,
+  burstUntilMs: 0,
+  burstGain: 1,
+  nextBurstMs: 0,
+  lastDisplayMs: 0,
+  lastInfoMs: 0,
+  lastBeepMs: 0,
+  phase: Math.random() * Math.PI * 2,
+  env: { temp: 23.6, hum: 47.0, press: 1013.4, tempGoal: 25.6 },
+  // 仮想デバイスの設定値 (ファームの Preferences 相当)。
+  dev: {
+    threshold: 120, duty: 34, mode: 'DIGITAL', autoMargin: 50,
+    sd: false, ext: true, oled: true, buzzer: true, vib: false,
+    beepMin: 500, beepMax: 4000, beepMs: 25,
+    vibMin: 20, vibMax: 120,
+    bleName: 'CosmicRay',
+  },
+  scope: { on: false, rate: 3, enterMs: 0, emitted: 0, nextMs: 0 },
+  audio: null,
+};
+
+// --- 乱数 -------------------------------------------------------------------
+
+function demoRandN() {           // 標準正規 (Box-Muller)
+  let u = 0, v = 0;
+  while (u === 0) u = Math.random();
+  while (v === 0) v = Math.random();
+  return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+}
+
+function demoExp(mean) {         // 指数分布 (ポアソン過程の待ち時間)
+  return -mean * Math.log(1 - Math.random());
+}
+
+// Landau 近似 (Moyal)。exp(-y) が chi^2_1 に一致するので y = -2 ln|Z| で引ける。
+// 最頻値 0・右に長い裾という形が、薄いシンチを突き抜けるミューオンの波高分布に近い。
+function demoLandau(mpv, xi) {
+  let z = Math.abs(demoRandN());
+  if (z < 1e-9) z = 1e-9;
+  return mpv + xi * (-2 * Math.log(z));
+}
+
+function demoClipAdc(x) {
+  let v = Math.round(x);
+  // 飽和はきっちり 4095 に張り付かず、ADC ノイズで天井付近に散る (実測の .dat も 4044〜4084)。
+  if (v > ADC_MAX) v = ADC_MAX - Math.round(Math.abs(demoRandN()) * 8);
+  if (v < 0) v = 0;
+  return v;
+}
+
+// --- 波高分布 ---------------------------------------------------------------
+
+function demoSampleAdcRaw(shower) {
+  const thr = demo.dev.threshold;
+  const u = Math.random();
+  if (shower) {
+    // 空気シャワーの多重ヒットは 1 本ぶんの Landau より重い側に寄る。
+    return demoLandau(1150, 105) * (1.0 + 0.9 * Math.random());
+  }
+  if (demo.scenario === 'source') {
+    if (u < 0.45)      return thr + demoExp(120);             // 連続部の立ち上がり
+    if (u < 0.82)      return 760 + demoRandN() * 46;         // 光電ピーク (FWHM ~14%)
+    if (u < 0.97)      return thr + 40 + Math.random() * 560; // コンプトンの棚
+    return demoLandau(1150, 105);                             // 宇宙線ミューオンも混ざる
+  }
+  if (u < 0.60)        return thr + demoExp(95);              // 環境ガンマ + ノイズ裾
+  if (u < 0.975)       return demoLandau(1150, 105);          // ミューオンの Landau ピーク
+  return demoLandau(2300, 380);                               // 大きい落とし込み / 飽和寸前
+}
+
+// トリガはしきい値超えでしか掛からないので、下回った値は引き直す。
+// こちらは ADC の天井でクリップする前の「本当の波高」。波形を描くときは
+// これを使うと、飽和した事象の頭が 4095 で平らに潰れて実機と同じ見え方になる。
+function demoSampleAdcTrue(shower) {
+  const thr = demo.dev.threshold;
+  for (let i = 0; i < 8; i++) {
+    const v = demoSampleAdcRaw(shower);
+    if (v > thr) return v;
+  }
+  return thr + 1 + Math.random() * 30;
+}
+
+function demoSampleAdc(shower) {
+  return demoClipAdc(demoSampleAdcTrue(shower));
+}
+
+// ベースラインは温度でゆっくり動く (実機のアナログ段と同じ癖)。
+function demoBaseline() {
+  return DEMO_BASELINE + (demo.env.temp - 25) * 0.8;
+}
+
+// --- レート -----------------------------------------------------------------
+
+function demoRate(nowMs) {
+  const tSec = (nowMs - demo.startMs) / 1000;
+  // ゆっくりした変動。実際は気温・気圧・上空の大気の厚みが効くが、ここでは
+  // 「見て分かる程度のうねり」をまとめて 2 本の正弦で表している。
+  const slow = 1 + 0.10 * Math.sin(2 * Math.PI * tSec / 240 + demo.phase)
+                 + 0.05 * Math.sin(2 * Math.PI * tSec / 67);
+  // 気圧効果: レート ∝ exp(-beta * dP)。beta は実測の相場で -0.2 %/hPa。
+  const baro = Math.exp(-DEMO_BARO_COEFF * (demo.env.press - 1013.25));
+  const burst = (nowMs < demo.burstUntilMs) ? demo.burstGain : 1;
+  const scn = (demo.scenario === 'source') ? DEMO_SOURCE_GAIN : 1;
+  return Math.max(0.01, demo.rate * scn * slow * baro * burst);
+}
+
+function demoMaybeBurst(nowMs) {
+  if (nowMs < demo.nextBurstMs) return;
+  if (demo.scenario === 'shower') {
+    demo.burstUntilMs = nowMs + 600 + Math.random() * 2400;
+    demo.burstGain    = 4 + Math.random() * 8;
+    demo.nextBurstMs  = nowMs + demoExp(22000);
+  } else {
+    // 通常・線源シナリオでも、ごくたまに小さな群れが来る。
+    demo.burstUntilMs = nowMs + 300 + Math.random() * 900;
+    demo.burstGain    = 2 + Math.random() * 2;
+    demo.nextBurstMs  = nowMs + demoExp(120000);
+  }
+}
+
+function demoInjectBurst() {
+  if (!demo.on) return;
+  const now = performance.now();
+  demo.burstUntilMs = now + 1200 + Math.random() * 1800;
+  demo.burstGain    = 8 + Math.random() * 10;
+  demo.nextBurstMs  = Math.max(demo.nextBurstMs, now + 15000);
+}
+
+// --- 環境 (BME280) ----------------------------------------------------------
+
+function demoUpdateEnv(dtMs) {
+  const e = demo.env;
+  const k = dtMs / 1000, s = Math.sqrt(Math.max(0, k));
+  // 電源投入後にじわっと暖まり、その後は室温のゆらぎを追いかけるだけ。
+  e.temp  += (e.tempGoal - e.temp) * 0.004 * k + demoRandN() * 0.012 * s;
+  e.tempGoal += demoRandN() * 0.02 * s;
+  e.hum   += ((58 - e.temp * 0.5) - e.hum) * 0.003 * k + demoRandN() * 0.03 * s;
+  e.press += demoRandN() * 0.015 * s;          // 気圧はランダムウォーク (天気)
+  if (e.temp  < 10)   e.temp  = 10;   if (e.temp  > 45)   e.temp  = 45;
+  if (e.tempGoal < 12) e.tempGoal = 12; if (e.tempGoal > 40) e.tempGoal = 40;
+  if (e.hum   < 5)    e.hum   = 5;    if (e.hum   > 95)   e.hum   = 95;
+  if (e.press < 960)  e.press = 960;  if (e.press > 1050) e.press = 1050;
+}
+
+// --- イベント ---------------------------------------------------------------
+
+function demoMakeEvent(tMs) {
+  const d = demo.dev;
+  const shower = (tMs < demo.burstUntilMs) && Math.random() < 0.75;
+  const adc = demoSampleAdc(shower);
+  demo.count++;
+
+  // デッドタイム: 1 イベントの処理時間 + 2 秒ごとの OLED 書き換え。
+  demo.deadtimeUs += DEMO_EVT_DEADTIME_US + (d.ext ? DEMO_EXT_DEADTIME_US : 0)
+                   + Math.round(Math.abs(demoRandN()) * 12);
+  if (d.oled && tMs - demo.lastDisplayMs >= DEMO_DISPLAY_INTERVAL_MS) {
+    demo.lastDisplayMs = tMs;
+    demo.deadtimeUs += DEMO_OLED_DEADTIME_US + Math.round(demoRandN() * 1500);
+  }
+
+  const dig = [0, 0, 0], ana = [0, 0, 0];
+  if (d.ext) {
+    // 外部 3 台。シャワー中は 3 台が揃って鳴りやすく、通常は偶然同時計数だけ。
+    const p = shower ? [0.82, 0.64, 0.41] : [0.030, 0.018, 0.009];
+    for (let i = 0; i < 3; i++) {
+      dig[i] = (Math.random() < p[i]) ? 1 : 0;
+      ana[i] = dig[i] ? demoClipAdc(demoLandau(820, 130))
+                      : Math.round(12 + Math.abs(demoRandN()) * 6);
+    }
+  }
+
+  const e = demo.env;
+  // ファームの snprintf("%lu %llu %d %llu %.1f %.1f %.1f %d %d %d %d %d %d") と同じ並び。
+  processLine([
+    demo.count,
+    Math.round((tMs - demo.startMs) * 1000),
+    adc,
+    demo.deadtimeUs,
+    e.temp.toFixed(1), e.hum.toFixed(1), e.press.toFixed(1),
+    dig[0], dig[1], dig[2], ana[0], ana[1], ana[2],
+  ].join(' '));
+
+  if (demo.sound && d.buzzer) demoBeep(adc, tMs);
+}
+
+// --- 波形 (オシロ) ----------------------------------------------------------
+
+function demoEmitWaveform(tMs) {
+  const npre = DEMO_SCOPE_PRE;
+  const ntot = DEMO_SCOPE_PRE + 1 + DEMO_SCOPE_POST;
+  const dtUs = DEMO_SCOPE_PERIOD_NS / 1000;
+  const base = demoBaseline();
+  const shower = (tMs < demo.burstUntilMs) && Math.random() < 0.75;
+  const amp = demoSampleAdcTrue(shower) - base;
+
+  // パルスの起点はトリガ点の 4〜12us 前。コンパレータが出てから DMA のトリガ点まで
+  // に ISR ぶんの遅れがあるので、実機でもトリガ点ではピークホールドが既に頂点に
+  // 達している (実測平均波形も t=-12us は地、t=0 が頂点)。どこにずれるかは事象ごとに
+  // 違うので、頂点直後の減衰の位相が少しずつばらつく。
+  const tStart = -(4 + 8 * Math.random());
+  const tau = DEMO_TAU_US * (0.88 + 0.24 * Math.random());
+
+  const raw = new Float64Array(ntot);
+  let mx = 0;
+  for (let i = 0; i < ntot; i++) {
+    const t = (i - npre) * dtUs - tStart;
+    const s = (t < 0) ? 0 : (1 - Math.exp(-t / DEMO_RISE_US)) * Math.exp(-t / tau);
+    raw[i] = s;
+    if (s > mx) mx = s;
+  }
+  // 次の事象が窓の中に入ってくる = パイルアップ。レートを上げると実際に増える。
+  const winSec = ntot * dtUs / 1e6;
+  if (Math.random() < 1 - Math.exp(-demoRate(tMs) * winSec)) {
+    const t2 = Math.random() * (ntot - npre) * dtUs;
+    const amp2 = (demoSampleAdc(false) - base) / Math.max(1, amp);
+    const tau2 = DEMO_TAU_US * (0.88 + 0.24 * Math.random());
+    for (let i = 0; i < ntot; i++) {
+      const t = (i - npre) * dtUs - t2;
+      if (t < 0) continue;
+      raw[i] += amp2 * mx * (1 - Math.exp(-t / DEMO_RISE_US)) * Math.exp(-t / tau2);
+    }
+  }
+
+  const k = (mx > 0) ? amp / mx : 0;
+  const v = new Array(ntot);
+  for (let i = 0; i < ntot; i++) {
+    let s = Math.round(base + raw[i] * k + demoRandN() * DEMO_NOISE_LSB);
+    if (s < 0) s = 0;
+    if (s > ADC_MAX) s = ADC_MAX;
+    v[i] = s;
+  }
+
+  demo.scope.emitted++;
+  processLine('WF,' + demo.scope.emitted + ',' + Math.round(tMs - demo.scope.enterMs) +
+              ',U,' + npre + ',' + ntot + ',' + DEMO_SCOPE_PERIOD_NS + ',' + v.join(','));
+}
+
+// --- ブザー (Web Audio) -----------------------------------------------------
+
+function demoBeep(adc, tMs, force) {
+  if (!force && tMs - demo.lastBeepMs < DEMO_BEEP_MIN_GAP_MS) return;
+  demo.lastBeepMs = tMs;
+  const d = demo.dev;
+  try {
+    if (!demo.audio) demo.audio = new (window.AudioContext || window.webkitAudioContext)();
+    const ac = demo.audio;
+    if (ac.state === 'suspended') ac.resume();
+    // ファームと同じ対数マッピング: f = fmin * (fmax/fmin)^x,
+    // x = (ln adc - ln thr) / (ln ADC_MAX - ln thr)
+    const thr = Math.max(1, d.threshold);
+    let x = 0;
+    if (adc > thr && ADC_MAX > thr) {
+      x = (Math.log(adc) - Math.log(thr)) / (Math.log(ADC_MAX) - Math.log(thr));
+      x = Math.min(1, Math.max(0, x));
+    }
+    const f = d.beepMin * Math.pow(d.beepMax / d.beepMin, x);
+    const dur = Math.max(0.005, d.beepMs / 1000);
+    const t0 = ac.currentTime;
+    const osc = ac.createOscillator(), g = ac.createGain();
+    osc.type = 'square';                       // 圧電ブザーの音色に寄せる
+    osc.frequency.value = f;
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(0.07, t0 + 0.002);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    osc.connect(g).connect(ac.destination);
+    osc.start(t0);
+    osc.stop(t0 + dur + 0.02);
+  } catch (_) {}
+}
+
+// --- 本体のループ -----------------------------------------------------------
+
+function demoTick() {
+  if (!demo.on) return;
+  const now = performance.now();
+  // タブが裏に回っていた間ぶんを一気に生成しないよう、1 tick の進みは頭打ちにする。
+  const dt = Math.min(500, Math.max(0, now - demo.lastMs));
+  demo.lastMs = now;
+
+  demoUpdateEnv(dt);
+  demoMaybeBurst(now);
+
+  if (demo.scope.on) {
+    // ファームはオシロ ON の間、計数を止める (### SCOPE: ON - counting is PAUSED)。
+    // デモも同じにしておかないと「オシロを開くとレートが落ちる」実機の癖が出ない。
+    const eff = Math.min(demo.scope.rate, demoRate(now));
+    let guard = 0;
+    while (demo.scope.nextMs <= now && guard++ < 8) {
+      demoEmitWaveform(demo.scope.nextMs);
+      demo.scope.nextMs += demoExp(1000 / Math.max(0.05, eff));
+    }
+  } else {
+    let guard = 0;
+    while (demo.nextEventMs <= now && guard++ < 600) {
+      demoMakeEvent(demo.nextEventMs);
+      demo.nextEventMs += demoExp(1000 / demoRate(demo.nextEventMs));
+    }
+  }
+
+  if (now - demo.lastInfoMs > 500) {
+    demo.lastInfoMs = now;
+    renderDemoInfo();
+  }
+}
+
+// --- 仮想デバイスのコマンド応答 ---------------------------------------------
+// ファームの executeCommand() と同じ文字列を返す。実機と同じ行しか流さないので、
+// 受け側 (processLine) にデモ用の分岐は要らない。
+
+function demoCommand(cmd) {
+  const d = demo.dev;
+  const say = (line, ms) => setTimeout(() => { if (demo.on) processLine(line); }, ms == null ? 30 : ms);
+  const threshLine = () => 'THRESH:' + d.threshold + ' DUTY:' + d.duty;
+  const clampI = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+
+  if (cmd.startsWith('SET_THRESH:')) {
+    const n = parseInt(cmd.slice(11));
+    if (!isNaN(n)) d.threshold = clampI(n, 0, ADC_MAX);
+    say(threshLine());
+  } else if (cmd === 'GET_THRESH') {
+    say(threshLine());
+  } else if (cmd === 'AUTO_THRESH' || cmd.startsWith('AUTO_THRESH:')) {
+    if (cmd.startsWith('AUTO_THRESH:')) {
+      const m = parseInt(cmd.slice(12));
+      if (!isNaN(m)) d.autoMargin = clampI(m, 0, ADC_MAX);
+    }
+    say('### Auto-calibrating threshold...');
+    // 実機は 100 点 x 10ms = 約 1 秒ノイズを眺めてから返す。
+    setTimeout(() => {
+      if (!demo.on) return;
+      const mn = Math.round(Math.abs(demoRandN()) * 3);
+      const mx = Math.round(24 + Math.abs(demoRandN()) * 10);
+      d.threshold = Math.min(ADC_MAX, mx + d.autoMargin);
+      processLine('### Auto-threshold calib: min=' + mn + ' max=' + mx +
+                  ' margin=' + d.autoMargin + ' -> thr=' + d.threshold);
+      processLine(threshLine());
+      processLine('AUTO_MARGIN:' + d.autoMargin);
+    }, 1200);
+  } else if (cmd === 'GET_AUTO_MARGIN') {
+    say('AUTO_MARGIN:' + d.autoMargin);
+  } else if (cmd.startsWith('SET_AUTO_MARGIN:')) {
+    const m = parseInt(cmd.slice(16));
+    if (!isNaN(m)) d.autoMargin = clampI(m, 0, ADC_MAX);
+    say('AUTO_MARGIN:' + d.autoMargin);
+  } else if (cmd.startsWith('SET_PWM:')) {
+    const n = parseInt(cmd.slice(8));
+    if (!isNaN(n)) d.duty = clampI(n, 0, 255);
+    say('PWM:' + d.duty);
+  } else if (cmd === 'GET_PWM') {
+    say('PWM:' + d.duty);
+  } else if (cmd === 'AUTO_PWM' || cmd.startsWith('AUTO_PWM:')) {
+    // 実機は duty を 0 -> 255 まで 8 刻みで掃引し、ノイズ山を越えて反応回数が
+    // target 以下に落ちた点 + 2 刻みを採る（約 7 秒ブロック）。デモは結果だけ短く返す。
+    const target = cmd.startsWith('AUTO_PWM:') ? Math.max(0, parseInt(cmd.slice(9)) || 0) : 50;
+    say('### AUTO_PWM sweep: duty,comp_rate[/s]');
+    setTimeout(() => {
+      if (!demo.on) return;
+      const knee = 72 + Math.round(Math.abs(demoRandN()) * 6 / 8) * 8;
+      d.duty = clampI(knee + 16, 0, 255);
+      processLine('### AUTO_PWM done: duty=' + d.duty + ' comp_rate=' +
+                  Math.round(Math.min(target, 30) * Math.random()) + '/s (noise peak=' +
+                  Math.round(40000 + Math.random() * 20000) + '/s, target<=' + target + '/s)');
+      processLine('PWM:' + d.duty);
+    }, 3000);
+  } else if (cmd === 'RESET') {
+    demoResetCounters(performance.now());
+    say('RESET:OK');
+  } else if (cmd.startsWith('SET_MODE:')) {
+    const m = cmd.slice(9).toUpperCase();
+    if (VALID_MODES.includes(m)) d.mode = m;
+    say('MODE:' + d.mode);
+  } else if (cmd === 'GET_MODE') {
+    say('MODE:' + d.mode);
+  } else if (cmd === 'GET_BLENAME') {
+    say('BLENAME:' + d.bleName);
+  } else if (cmd.startsWith('SET_BLENAME:')) {
+    const n = cmd.slice(12).trim();
+    if (/^[\x20-\x7E]{1,24}$/.test(n)) {
+      d.bleName = n;
+      say('BLENAME:' + n);
+      say('### BLE name saved. Restarting in 1s...', 40);
+      // 実機はここで 1 秒待って再起動する。待つ間は loop() が止まるので計数もしない。
+      // 再起動すると計数・経過時間・デッドタイムは 0 から、オシロは OFF になる。
+      demo.nextEventMs = Math.max(demo.nextEventMs, performance.now() + 2500);
+      setTimeout(() => {
+        if (!demo.on) return;
+        const now = performance.now();
+        demo.scope.on = false;
+        demoResetCounters(now);
+        demo.nextEventMs = now + 1000;   // 起動処理の間は計数しない
+        demoBootBanner();
+      }, 1500);
+    } else {
+      say('### BLE name invalid (1-24 printable ASCII chars).');
+    }
+  } else if (cmd === 'GET_BTADDR') {
+    say('BTADDR:DE:A0:C0:DE:00:01');   // 実在しない見るからにデモ用のアドレス
+  } else if (cmd.startsWith('SET_BEEP:')) {
+    const p = cmd.slice(9).split(',').map(x => parseInt(x));
+    if (p.length >= 3 && p.every(x => !isNaN(x))) {
+      d.beepMin = p[0]; d.beepMax = p[1]; d.beepMs = p[2];
+    }
+    say('BEEP:' + d.beepMin + ',' + d.beepMax + ',' + d.beepMs);
+  } else if (cmd === 'GET_BEEP') {
+    say('BEEP:' + d.beepMin + ',' + d.beepMax + ',' + d.beepMs);
+  } else if (cmd === 'BEEP_TEST') {
+    if (demo.sound) {
+      // ファームは min -> max を 5 段で鳴らす。ここでも同じ幅を聞かせる。
+      for (let i = 0; i < 5; i++) {
+        const a = Math.round(d.threshold * Math.pow(ADC_MAX / d.threshold, i / 4));
+        setTimeout(() => demoBeep(a, performance.now(), true), i * 120);
+      }
+    }
+  } else if (cmd.startsWith('SET_VIB_MS:')) {
+    const p = cmd.slice(11).split(',').map(x => parseInt(x));
+    if (p.length >= 2 && p.every(x => !isNaN(x))) { d.vibMin = p[0]; d.vibMax = p[1]; }
+    say('VIBMS:' + d.vibMin + ',' + d.vibMax);
+  } else if (cmd === 'GET_VIB_MS') {
+    say('VIBMS:' + d.vibMin + ',' + d.vibMax);
+  } else if (cmd === 'VIB_TEST') {
+    if (navigator.vibrate) { try { navigator.vibrate([80, 60, 80, 60, 80]); } catch (_) {} }
+  } else if (cmd.startsWith('SET_SCOPE_RATE:')) {
+    const r = parseInt(cmd.slice(15));
+    if (!isNaN(r)) demo.scope.rate = clampI(r, 1, 20);
+    say('SCOPE_RATE:' + demo.scope.rate);
+  } else if (cmd === 'GET_SCOPE_RATE') {
+    say('SCOPE_RATE:' + demo.scope.rate);
+  } else if (cmd.startsWith('SET_SCOPE:')) {
+    demoSetScope(cmd.slice(10).toUpperCase() === 'ON');
+  } else if (cmd === 'GET_SCOPE') {
+    say(demo.scope.on ? 'SCOPE:ON' : 'SCOPE:OFF');
+  } else {
+    // 機能トグル (SET_SD / SET_EXT / SET_OLED / SET_BUZZER / SET_VIB と GET_*)
+    for (const [name, key] of [['SD', 'sd'], ['EXT', 'ext'], ['OLED', 'oled'],
+                               ['BUZZER', 'buzzer'], ['VIB', 'vib']]) {
+      if (cmd === 'GET_' + name) {
+        say(name + ':' + (d[key] ? 'ON' : 'OFF'));
+        return;
+      }
+      if (cmd.startsWith('SET_' + name + ':')) {
+        const val = cmd.slice(name.length + 5).toUpperCase();
+        if (val === 'ON' || val === 'OFF') d[key] = (val === 'ON');
+        say(name + ':' + (d[key] ? 'ON' : 'OFF'));
+        return;
+      }
+    }
+  }
+}
+
+// RESET と再起動の共通部分: 計数・経過時間・デッドタイムを 0 からやり直す。
+function demoResetCounters(now) {
+  demo.count = 0;
+  demo.deadtimeUs = 0;
+  demo.startMs = now;
+  demo.lastDisplayMs = now;
+  // 予定済みの次のイベントが新しい起点より前に残っていると、
+  // RESET 直後の最初のイベントの時刻が負になる（N-16）。
+  if (demo.nextEventMs < now) demo.nextEventMs = now;
+  // オシロ中の RESET は、ファームと同じく閉じたときに計上する滞在時間を
+  // RESET 以降の分にする（N-2）。
+  if (demo.scope.on) demo.scope.enterMs = now;
+}
+
+function demoSetScope(on) {
+  const s = demo.scope;
+  // ファームと同じく、すでにその状態なら何も返さない（fw の scopeSetOn）。
+  if (on === s.on) return;
+  const now = performance.now();
+  if (on) {
+    s.on = true;
+    s.enterMs = now;
+    s.emitted = 0;
+    s.nextMs = now + 200;
+    processLine('### SCOPE: ON - counting is PAUSED while the scope is open.');
+    processLine('###        A0 is the PEAK-HOLD output, not the raw amplifier pulse.');
+    processLine('SCOPE:ON');
+  } else {
+    s.on = false;
+    // 実機は「オシロを開いていた時間」をまるごとデッドタイムに足す。
+    // ここを省くと、オシロを閉じたあとの平均レートが実機より高く出てしまう。
+    demo.deadtimeUs += Math.round((now - s.enterMs) * 1000);
+    demo.nextEventMs = now + demoExp(1000 / demoRate(now));
+    processLine('### SCOPE: OFF - counting resumed.');
+    processLine('SCOPE:OFF');
+  }
+}
+
+function demoBootBanner() {
+  const d = demo.dev;
+  const lines = [
+    'Booting v2...',
+    '### Accel Kitchen',
+    '### https://accel-kitchen.com/',
+    '### info@accel-kitchen.com',
+    '### DEMO BOARD - synthetic data, no hardware attached',
+    '### Signal threshold: ' + d.threshold + ' (Duty ' + d.duty + ')',
+    '### Event Time[us] ADC[0-4095] Deadtime[us] Temp[C] Hum[%] Press[hPa] Dig1 Dig2 Dig3 Ana1 Ana2 Ana3',
+  ];
+  lines.forEach((l, i) => setTimeout(() => { if (demo.on) processLine(l); }, 60 + i * 40));
+}
+
+// --- 接続 / 切断 ------------------------------------------------------------
+
+function connectDemo() {
+  if (state.isConnected || state.reconnecting) return;
+  const now = performance.now();
+
+  demo.on = true;
+  demo.startMs = now;
+  demo.lastMs = now;
+  demo.lastDisplayMs = now;
+  demo.lastInfoMs = 0;
+  demo.nextEventMs = now + 200;
+  demo.nextBurstMs = now + 15000 + Math.random() * 20000;
+  demo.burstUntilMs = 0;
+  demo.count = 0;
+  demo.deadtimeUs = 0;
+  demo.phase = Math.random() * Math.PI * 2;
+  demo.scope = { on: false, rate: parseInt($('scopeRate').value) || 3, enterMs: 0, emitted: 0, nextMs: 0 };
+  // BLE 名は画面の入力欄をそのまま名乗る。デモが勝手に別名を保存して、
+  // 次に実機へ BLE 接続するときの名前フィルタを壊さないため。
+  demo.dev.bleName = ($('bleName').value || 'CosmicRay').trim() || 'CosmicRay';
+
+  state.connectionType = 'demo';
+  state.isConnected = true;
+  state.sessionStart = new Date();
+  state.conn = { usbVendorId: null, usbProductId: null, bleId: null,
+                 bleName: demo.dev.bleName, btAddr: null, btAddrTimedOut: false };
+
+  demoBootBanner();
+  demo.timer = setInterval(demoTick, DEMO_TICK_MS);
+  // 実機と同じ後処理（状態の問い合わせ、オシロタブが開いていれば SET_SCOPE:ON）。
+  onConnected();
+}
+
+function demoStop() {
+  if (demo.timer) { clearInterval(demo.timer); demo.timer = null; }
+  demo.on = false;
+  demo.scope.on = false;
+  renderDemoUI();
+}
+
+// --- デモ用 UI --------------------------------------------------------------
+
+function demoSliderToRate(v) {
+  // 端の 0.2 cps から 60 cps まで対数で振る (低レート側の操作性を残すため)。
+  return DEMO_RATE_MIN * Math.pow(DEMO_RATE_MAX / DEMO_RATE_MIN, v / 100);
+}
+
+function demoFmtRate(r) {
+  return r >= 10 ? r.toFixed(0) : r.toFixed(1);
+}
+
+function renderDemoUI() {
+  const sec = $('demoSection');
+  const banner = $('demoBanner');
+  if (!sec || !banner) return;
+  sec.style.display = demo.on ? '' : 'none';
+  banner.style.display = demo.on ? '' : 'none';
+  banner.textContent = t('demo.banner');
+
+  $('demoRateLabel').textContent = t('demo.rate', { r: demoFmtRate(demo.rate) });
+  $('demoSoundLabel').textContent = t('demo.sound');
+  $('demoScenarioInfo').textContent = t('demo.sc.' + demo.scenario);
+  $('demoScenario').querySelectorAll('button').forEach(b => {
+    b.classList.toggle('active', b.dataset.scenario === demo.scenario);
+  });
+  renderDemoInfo();
+}
+
+function renderDemoInfo() {
+  const el = $('demoInfo');
+  if (!el) return;
+  if (!demo.on) { el.textContent = ''; return; }
+  const now = performance.now();
+  const lines = [t('demo.info', {
+    lam: demoFmtRate(demoRate(now)),
+    n: demo.count.toLocaleString(),
+    temp: demo.env.temp.toFixed(1),
+    press: demo.env.press.toFixed(1),
+  })];
+  if (demo.scope.on) lines.push(t('demo.infoScope'));
+  else if (now < demo.burstUntilMs) lines.push(t('demo.infoBurst'));
+  el.textContent = lines.join('\n');
+  el.style.whiteSpace = 'pre-line';
+}
+
+$('btnConnectDemo').addEventListener('click', connectDemo);
+
+$('demoScenario').querySelectorAll('button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    demo.scenario = btn.dataset.scenario;
+    demo.burstUntilMs = 0;
+    demo.nextBurstMs = performance.now() + 4000;
+    renderDemoUI();
+  });
+});
+
+$('demoRate').addEventListener('input', () => {
+  demo.rate = demoSliderToRate(parseInt($('demoRate').value) || 0);
+  $('demoRateLabel').textContent = t('demo.rate', { r: demoFmtRate(demo.rate) });
+});
+
+$('btnDemoBurst').addEventListener('click', demoInjectBurst);
+
+$('demoSound').addEventListener('change', () => {
+  demo.sound = $('demoSound').checked;
+  // AudioContext はユーザー操作の中でしか起こせないので、ここで作っておく。
+  if (demo.sound) {
+    try {
+      if (!demo.audio) demo.audio = new (window.AudioContext || window.webkitAudioContext)();
+      if (demo.audio.state === 'suspended') demo.audio.resume();
+    } catch (_) {}
+  }
 });
 
 // ========== Tabs ==========
@@ -2955,16 +5855,41 @@ $('btnSetThresh').addEventListener('click', () => {
 
 $('btnGetThresh').addEventListener('click', () => sendCommand('GET_THRESH'));
 
+// The firmware's command buffer used to hold 31 characters, so "SET_BLENAME:"
+// (12) leaves 19 for the name; longer names were silently truncated (R-7).
+// localStorage is updated only when the board answers BLENAME:.
 $('btnSetBleName').addEventListener('click', () => {
   const name = ($('bleName').value || '').trim();
-  if (!/^[\x20-\x7E]{1,24}$/.test(name)) {
+  if (!/^[\x20-\x7E]{1,19}$/.test(name)) {
     alert(t('alert.bleName'));
     return;
   }
   if (!confirm(t('confirm.rename', { name }))) return;
-  try { localStorage.setItem('bleName', name); } catch (_) {}
   sendCommand(`SET_BLENAME:${name}`);
   $('bleNameInfo').textContent = t('conn.bleNameSaving', { name });
+});
+
+// Comparator threshold (D2 PWM), R-4.
+$('btnSetPwm').addEventListener('click', () => {
+  const duty = Number($('pwmDuty').value);
+  if (!Number.isInteger(duty) || duty < 0 || duty > 255) {
+    alert(t('alert.pwmRange'));
+    return;
+  }
+  sendCommand(`SET_PWM:${duty}`);
+});
+
+$('btnGetPwm').addEventListener('click', () => sendCommand('GET_PWM'));
+
+$('btnAutoPwm').addEventListener('click', () => {
+  const target = Number($('pwmTarget').value);
+  if (!Number.isInteger(target) || target < 0) {
+    alert(t('alert.pwmTarget'));
+    return;
+  }
+  pwmCalTarget = target;
+  setPwmCalibrating(true);
+  sendCommand(target === 50 ? 'AUTO_PWM' : `AUTO_PWM:${target}`);
 });
 
 $('btnAutoThresh').addEventListener('click', () => {
@@ -2979,6 +5904,38 @@ $('btnAutoThresh').addEventListener('click', () => {
   setTimeout(() => { $('btnAutoThresh').disabled = !state.isConnected; }, 3000);
 });
 
+$('btnSetBeep').addEventListener('click', () => {
+  const mn = parseInt($('beepMin').value);
+  const mx = parseInt($('beepMax').value);
+  const ms = parseInt($('beepMs').value);
+  if (isNaN(mn) || isNaN(mx) || isNaN(ms) ||
+      mn < 50 || mx <= mn || mx > 20000 || ms < 1 || ms > 500) {
+    alert(t('beep.range'));
+    return;
+  }
+  sendCommand(`SET_BEEP:${mn},${mx},${ms}`);
+});
+
+$('btnTestBeep').addEventListener('click', () => sendCommand('BEEP_TEST'));
+
+$('btnSetVib').addEventListener('click', () => {
+  const mn = parseInt($('vibMin').value);
+  const mx = parseInt($('vibMax').value);
+  if (isNaN(mn) || isNaN(mx) || mn < 1 || mx <= mn || mx > 500) {
+    alert(t('vib.range'));
+    return;
+  }
+  sendCommand(`SET_VIB_MS:${mn},${mx}`);
+});
+
+// VIB_TEST はファーム側が delay() で 3 回振動させる間ブロックする。
+// 戻ってくるまで押しっぱなしにならないよう、その分だけボタンを伏せる。
+$('btnTestVib').addEventListener('click', () => {
+  $('btnTestVib').disabled = true;
+  sendCommand('VIB_TEST');
+  setTimeout(() => { $('btnTestVib').disabled = !state.isConnected; }, 2000);
+});
+
 // Mode selector
 $('modeSelect').querySelectorAll('button').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -2990,8 +5947,8 @@ $('modeSelect').querySelectorAll('button').forEach(btn => {
   });
 });
 
-// Feature toggles (SD / EXT / OLED / BUZZER)
-['SD', 'EXT', 'OLED', 'BUZZER'].forEach(feat => {
+// Feature toggles (SD / EXT / OLED / BUZZER / VIB)
+['SD', 'EXT', 'OLED', 'BUZZER', 'VIB'].forEach(feat => {
   $(`feat${feat}`).querySelectorAll('button').forEach(btn => {
     btn.addEventListener('click', () => {
       if (!state.isConnected || btn.disabled) return;
@@ -3003,21 +5960,21 @@ $('modeSelect').querySelectorAll('button').forEach(btn => {
 $('btnSelectFolder').addEventListener('click', selectSaveFolder);
 $('btnExportDat').addEventListener('click', exportDat);
 $('btnExportCsv').addEventListener('click', exportCsv);
+$('btnSaveHistPng').addEventListener('click', () => saveChartPng('histogramChart', 'histogram'));
+$('btnSaveRatePng').addEventListener('click', () => saveChartPng('rateChart', 'rate'));
 
+// Clears the page AND resets the board's counter (RESET), which the button
+// label and the confirmation now both say (R-18). Ask whenever it would do
+// something irreversible: data on the page, or a board to reset.
 $('btnClearData').addEventListener('click', () => {
-  if (state.events.length > 0 && !confirm(t('confirm.clear'))) return;
+  if ((state.events.length > 0 || state.isConnected) && !confirm(t('confirm.clear'))) return;
   if (state.isConnected) sendCommand('RESET');
   state.events = [];
   state.rateHistory = [];
   state.rawLines = [];
-  state.stats = {
-    sumTemp: 0, sumTemp2: 0, minTemp: Infinity, maxTemp: -Infinity,
-    sumHum: 0,  minHum:  Infinity, maxHum:  -Infinity,
-    sumPress: 0, minPress: Infinity, maxPress: -Infinity,
-    sumAdc: 0, maxAdc: 0,
-    digHits: [0, 0, 0],
-    sumAna:  [0, 0, 0],
-  };
+  state.stats = newStats();
+  state.rate = newRateState();
+  clearNotice();   // e.g. the "different board" notice asked for exactly this
   lastTableLength = 0;
   uiDirty = false;
   statsDirty = false;
@@ -3031,17 +5988,25 @@ $('btnClearData').addEventListener('click', () => {
   $('exportStatus').style.display = 'none';
   rebuildHistogram();
   rateChart.data.labels = [];
+  rateChart.data.xs = [];
   rateChart.data.datasets[0].data = [];
   rateChart.update('none');
+  $('rateDataCount').textContent = 0;
   updateStats();
   updateEnvCards();
   updateExtGrid();
 });
 
+$('connErrorClose').addEventListener('click', clearConnError);
+$('pageNoticeClose').addEventListener('click', clearNotice);
+$('autoSaveFormat').addEventListener('change', updateAutoSaveUI);
+
 $('binWidth').addEventListener('change', () => {
   rebuildHistogram();
   uiDirty = true;
 });
+
+$('histLogScale').addEventListener('change', applyHistScale);
 
 // Chart refresh selector
 $('refreshSelect').querySelectorAll('button').forEach(btn => {
@@ -3051,6 +6016,41 @@ $('refreshSelect').querySelectorAll('button').forEach(btn => {
 });
 
 $('btnRefreshNow').addEventListener('click', refreshCharts);
+
+// Server upload
+$('btnUploadLogin').addEventListener('click', () => { uploadLogin(); });
+$('btnUploadStart').addEventListener('click', uploadStart);
+$('btnUploadStop').addEventListener('click', () => { uploadStop(); });
+$('btnUploadLogout').addEventListener('click', uploadLogout);
+$('btnUploadResend').addEventListener('click', uploadResend);
+
+$('uploadRemember').addEventListener('change', () => {
+  state.upload.remember = $('uploadRemember').checked;
+  $('uploadRememberWarn').style.display = state.upload.remember ? '' : 'none';
+  uploadPassword = $('uploadPassword').value;
+  saveUploadConfig();
+});
+
+['uploadServer', 'uploadStationId', 'uploadDeviceLabel', 'uploadLat', 'uploadLon', 'uploadDecimate']
+  .forEach(id => {
+    $(id).addEventListener('change', () => {
+      readUploadForm();
+      saveUploadConfig();
+      updateUploadUI();
+    });
+  });
+
+$('uploadPassword').addEventListener('change', () => {
+  uploadPassword = $('uploadPassword').value;
+  if (state.upload.remember) saveUploadConfig();
+});
+
+// Recovering from an outage should not wait out the remaining backoff.
+window.addEventListener('online', () => {
+  state.upload.nextAttemptMs = 0;
+  updateUploadUI();
+});
+window.addEventListener('offline', updateUploadUI);
 
 // ========== Initialization ==========
 document.addEventListener('DOMContentLoaded', () => {
@@ -3071,13 +6071,29 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   } catch (_) {}
 
+  loadUploadConfig();
+  demo.rate = demoSliderToRate(parseInt($('demoRate').value) || 50);
+
+  // "Advanced settings" stays the way the user left it.
+  const adv = $('sidebarAdvanced');
+  try { if (localStorage.getItem('sidebarAdvancedOpen') === '1') adv.open = true; } catch (_) {}
+  adv.addEventListener('toggle', () => {
+    try { localStorage.setItem('sidebarAdvancedOpen', adv.open ? '1' : '0'); } catch (_) {}
+  });
+
   initCharts();
   applyLanguage();   // also renders apiWarning, ext grid, and all state-derived text
 
   setInterval(updateUIBatch,    UI_UPDATE_INTERVAL);
   setInterval(updateStatsBatch, STATS_UPDATE_INTERVAL);
+  setInterval(scopeIdleTick, 1000);
+  // Keeps the "not yet written" count in the auto-save status current (N-15).
+  setInterval(() => { if (state.autoSave.enabled) updateAutoSaveUI(); }, 1000);
   applyChartRefreshMode(chartRefreshMode);
   setInterval(flushAutoSave, 1000);
+  // Registered after auto-save so that within one tick the disk write is issued
+  // first: local storage is the record, the server is a mirror.
+  setInterval(flushUpload, UPLOAD_TICK_MS);
 });
 </script>
 </body>
