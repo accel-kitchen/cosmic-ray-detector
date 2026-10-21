@@ -282,39 +282,73 @@ function drawRate(canvas) {
 }
 
 // ---------- Oscilloscope ----------
+// State of the view rather than of the data. The threshold line can be dragged (ui.js owns the
+// pointer handling); this keeps where the plot sits on the canvas for hit-testing, and the line
+// being held. The vertical range is frozen for the length of a drag: with the axis fitting the
+// traces it would otherwise move under the pointer every time a waveform arrives.
+const scopeView = {
+  plot: null,    // { padL, padT, pw, ph, yLo, yHi, thrY } of the last draw; thrY is null while the line is not grabbable
+  drag: null,    // { thr, yLo, yHi } while the line is held
+  hover: false,  // the pointer is over the line
+  range: null,   // [yLo, yHi] of the last auto-fitted draw
+};
+// Time axis until the first waveform arrives: SCOPE_PRE 32 and SCOPE_POST 128 points, 12 µs each
+const SCOPE_T0_DEFAULT = -384, SCOPE_T1_DEFAULT = 1536;
+
+// ADC value under canvas row y for the range [lo, hi]; stays inside the plot and the ADC.
+function scopeValueAtY(y, lo, hi) {
+  const p = scopeView.plot;
+  const a = lo + (1 - (y - p.padT) / p.ph) * (hi - lo);
+  return Math.round(Math.min(Math.min(ADC_MAX, hi), Math.max(Math.max(0, lo), a)));
+}
+
 function drawScope(canvas) {
   const { ctx, w: W, h: H, ok } = prepCanvas(canvas);
   if (!ok) return;   // view hidden; drawn again when it opens
   const padL = 64, padR = 16, padT = 12, padB = 46;
   const pw = W - padL - padR, ph = H - padT - padB;
+  scopeView.plot = null;
   if (pw <= 0 || ph <= 0) return;
 
   ctx.fillStyle = CH.nightPlot;
   ctx.fillRect(padL, padT, pw, ph);
 
+  // The axes and the threshold line are drawn before the first waveform too: with the
+  // threshold set too high none ever arrives, and the line is the way to bring it down.
   const traces = scope.traces;
-  if (!traces.length) {
-    drawEmpty(ctx, state.isConnected ? t('scope.waiting') : t('scope.notConnected'),
-              padL + pw / 2, padT + ph / 2, CH.nightInk2);
-    drawAxisTitles(ctx, W, H, padL, padT, pw, ph, t('scope.xTitle'), t('scope.yTitle'), CH.nightInk2);
-    return;
-  }
-
   const ref = traces[traces.length - 1];
-  const t0 = -ref.npre * ref.dtUs;
-  const t1 = (ref.ntot - 1 - ref.npre) * ref.dtUs;
+  const t0 = ref ? -ref.npre * ref.dtUs : SCOPE_T0_DEFAULT;
+  const t1 = ref ? (ref.ntot - 1 - ref.npre) * ref.dtUs : SCOPE_T1_DEFAULT;
+
+  // the value being dragged wins over the one in the threshold box
+  const thr = scopeView.drag ? scopeView.drag.thr : parseInt(settings.threshSignal);
+  if (isFinite(thr)) canvas.setAttribute('aria-valuenow', String(thr));
 
   let yLo, yHi;
-  if (settings.scopeAutoY) {
-    yLo = Infinity; yHi = -Infinity;
-    for (const tr of traces) {
-      for (let i = 0; i < tr.ntot; i++) {
-        if (tr.v[i] < yLo) yLo = tr.v[i];
-        if (tr.v[i] > yHi) yHi = tr.v[i];
+  if (scopeView.drag) {
+    yLo = scopeView.drag.yLo; yHi = scopeView.drag.yHi;
+  } else if (settings.scopeAutoY) {
+    yLo = 0; yHi = 400;
+    if (traces.length) {
+      yLo = Infinity; yHi = -Infinity;
+      for (const tr of traces) {
+        for (let i = 0; i < tr.ntot; i++) {
+          if (tr.v[i] < yLo) yLo = tr.v[i];
+          if (tr.v[i] > yHi) yHi = tr.v[i];
+        }
       }
+      const pad = Math.max(4, (yHi - yLo) * 0.08);
+      yLo -= pad; yHi += pad;
+    } else if (scopeView.range) {
+      // no waveform (yet): keep the range the line was last shown in, so that it does not jump on release
+      [yLo, yHi] = scopeView.range;
     }
-    const pad = Math.max(4, (yHi - yLo) * 0.08);
-    yLo -= pad; yHi += pad;
+    // the axis fits the threshold line as well: out of the plot it could not be grabbed
+    if (isFinite(thr) && (thr < yLo || thr > yHi)) {
+      const tp = Math.max(4, (yHi - yLo) * 0.08);
+      yLo = Math.min(yLo, thr - tp); yHi = Math.max(yHi, thr + tp);
+    }
+    scopeView.range = [yLo, yHi];
   } else {
     yLo = 0; yHi = ADC_MAX;
   }
@@ -334,19 +368,48 @@ function drawScope(canvas) {
     ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(padL + pw, y); ctx.stroke();
   }
 
-  // signal threshold (the value in the threshold box, as before)
-  const thr = parseInt(settings.threshSignal);
-  if (isFinite(thr) && thr >= yLo && thr <= yHi) {
-    ctx.strokeStyle = 'rgba(200,101,78,0.9)';
-    ctx.setLineDash([5, 4]);
-    ctx.beginPath(); ctx.moveTo(padL, yOf(thr)); ctx.lineTo(padL + pw, yOf(thr)); ctx.stroke();
+  // signal threshold: drag it (ui.js). The grip and the hint show only when it can be dragged.
+  let thrY = null;
+  if (isFinite(thr) && (scopeView.drag || (thr >= yLo && thr <= yHi))) {
+    const y = Math.min(padT + ph, Math.max(padT, yOf(thr)));
+    const live = !!scopeView.drag, hot = live || scopeView.hover;
+    const grab = state.isConnected;
+    thrY = grab ? y : null;
+    ctx.strokeStyle = hot ? '#F4B4A3' : 'rgba(200,101,78,0.9)';
+    ctx.lineWidth = hot ? 2 : 1;
+    ctx.setLineDash(live ? [] : [5, 4]);
+    ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(padL + pw, y); ctx.stroke();
     ctx.setLineDash([]);
+    ctx.lineWidth = 1;
+
+    const up = y - padT >= 24;   // the label sits above the line, below it when the line is at the top
     ctx.fillStyle = '#F4B4A3';
-    ctx.font = `12px ${CH.ui}`;
+    ctx.font = `${live ? '600 14px' : '12px'} ${CH.ui}`;
     ctx.textAlign = 'left';
-    ctx.textBaseline = 'bottom';
-    ctx.fillText(t('scope.thresh') + ' ' + thr, padL + 6, yOf(thr) - 3);
+    ctx.textBaseline = up ? 'bottom' : 'top';
+    const label = t('scope.thresh') + ' ' + thr;
+    ctx.fillText(label, padL + 6, up ? y - 4 : y + 4);
+    if (grab && !live && pw >= 360) {
+      const lw = ctx.measureText(label).width;
+      ctx.fillStyle = 'rgba(169,163,188,0.8)';
+      ctx.font = `12px ${CH.ui}`;
+      ctx.fillText(t('scope.threshDrag'), padL + 6 + lw + 10, up ? y - 4 : y + 4);
+    }
+
+    if (grab) {
+      const gw = 34, gh = 18, gx = padL + pw - gw - 6, cx = gx + gw / 2;
+      ctx.fillStyle = hot ? '#F4B4A3' : 'rgba(200,101,78,0.95)';
+      ctx.beginPath();
+      if (ctx.roundRect) ctx.roundRect(gx, y - gh / 2, gw, gh, 9); else ctx.rect(gx, y - gh / 2, gw, gh);
+      ctx.fill();
+      ctx.fillStyle = CH.night;
+      ctx.beginPath();
+      ctx.moveTo(cx, y - 6); ctx.lineTo(cx - 5, y - 1.5); ctx.lineTo(cx + 5, y - 1.5);
+      ctx.moveTo(cx, y + 6); ctx.lineTo(cx - 5, y + 1.5); ctx.lineTo(cx + 5, y + 1.5);
+      ctx.fill();
+    }
   }
+  scopeView.plot = { padL, padT, pw, ph, yLo, yHi, thrY };
 
   // trigger point
   ctx.strokeStyle = 'rgba(233,230,240,0.35)';
@@ -381,4 +444,11 @@ function drawScope(canvas) {
     ctx.fillText((yLo + (yHi - yLo) * (1 - k / 5)).toFixed(0), padL - 7, padT + ph * k / 5);
   }
   drawAxisTitles(ctx, W, H, padL, padT, pw, ph, t('scope.xTitle'), t('scope.yTitle'), CH.nightInk2);
+
+  if (!traces.length) {
+    // on the half of the plot the threshold line is not in
+    const mid = padT + ph / 2, ty = thrY == null ? mid : thrY;
+    drawEmpty(ctx, state.isConnected ? t('scope.waiting') : t('scope.notConnected'),
+              padL + pw / 2, ty < mid ? padT + ph * 0.72 : padT + ph * 0.28, CH.nightInk2);
+  }
 }

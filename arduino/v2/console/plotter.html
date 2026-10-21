@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>解析 — CosmicRay Recorder</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+JP:wght@400;500;700&family=Shippori+Mincho:wght@600;700&display=swap">
+  <link rel="stylesheet" href="assets/css/console.css">
+  <link rel="stylesheet" href="assets/css/pages.css">
+  <script src="https://cdn.plot.ly/plotly-basic-2.35.2.min.js" charset="utf-8"></script>
+</head>
+<body>
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+  <symbol id="i-rec" viewBox="0 0 24 24"><path d="M2.5 12.5h3.3l2.2-6.5 3.5 12 3-9.5 1.8 4h5.2"/></symbol>
+  <symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 20V4M4 20h16"/><path d="M7.5 20v-5M11 20V9M14.5 20v-7M18 20v-3"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24"><path d="M12 6.5C10 5 7.5 4.5 4 4.5v13c3.5 0 6 .5 8 2 2-1.5 4.5-2 8-2v-13c-3.5 0-6 .5-8 2z"/><path d="M12 6.5v13"/></symbol>
+  <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3.5H7A1.5 1.5 0 0 0 5.5 5v14A1.5 1.5 0 0 0 7 20.5h10a1.5 1.5 0 0 0 1.5-1.5V8z"/><path d="M14 3.5V8h4.5"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 20h14"/></symbol>
+  <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 15V4M7.5 8.5 12 4l4.5 4.5M5 20h14"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4.5 7h15M9.5 7V4.5h5V7M6.5 7l.9 12.5h9.2L17.5 7M10 10.5v6M14 10.5v6"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-fit" viewBox="0 0 24 24"><path d="M4 19c4-1 7-4 9-8s4-6 7-7"/><circle cx="6" cy="16" r="1.2"/><circle cx="11" cy="12.5" r="1.2"/><circle cx="15" cy="7.5" r="1.2"/><circle cx="19" cy="5.5" r="1.2"/></symbol>
+</svg>
+
+<header class="topbar" id="topbar">
+  <div class="topbar-row">
+    <a class="brand" href="index.html"><span class="brand-name">CosmicRay Recorder</span></a>
+    <nav class="pagenav" data-i18n-aria="nav.label" aria-label="ページ">
+      <a href="index.html"><svg class="i"><use href="#i-rec"/></svg><span data-i18n="nav.record">記録</span></a>
+      <a href="plotter.html" aria-current="page"><svg class="i"><use href="#i-chart"/></svg><span data-i18n="nav.plotter">解析</span></a>
+      <a href="manual.html#plotter"><svg class="i"><use href="#i-book"/></svg><span data-i18n="nav.manual">マニュアル</span></a>
+    </nav>
+    <div class="top-right">
+      <div class="lang" role="group" aria-label="Language">
+        <button type="button" data-lang="ja" lang="ja">日本語</button><span aria-hidden="true">/</span><button type="button" data-lang="en" lang="en">English</button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="tool">
+  <div class="tool-head">
+    <div>
+      <p class="eyebrow" data-i18n="head.eyebrow">保存したデータの解析</p>
+      <h1 data-i18n="head.title">解析</h1>
+    </div>
+    <p data-i18n="head.lead">記録のページで保存した .dat / .csv を読み込みます。ファイルはこのパソコンの中だけで読み、どこにも送りません。</p>
+  </div>
+
+  <div class="tabs" role="tablist">
+    <button type="button" role="tab" data-tab="tab1" aria-selected="true" data-i18n="tab.hist">ADC ヒストグラム</button>
+    <button type="button" role="tab" data-tab="tab2" aria-selected="false" data-i18n="tab.zenith">天頂角分布</button>
+    <button type="button" role="tab" data-tab="tab3" aria-selected="false" data-i18n="tab.cal">エネルギー校正</button>
+  </div>
+
+  <!-- ===== Tab 1: ADC histogram ===== -->
+  <section id="tab1" class="tab-content" role="tabpanel">
+    <div class="panel">
+      <div class="panel-head"><h2 class="panel-title" data-i18n="hist.dataTitle">データと表示の範囲</h2></div>
+      <div class="controls">
+        <label class="filepick">
+          <span data-i18n="hist.file">測定データ</span>
+          <input type="file" id="fileInput" accept=".dat,.csv,.txt">
+          <span class="btn btn-primary btn-sm"><svg class="i"><use href="#i-file"/></svg><span data-i18n="common.choose">ファイルを選ぶ</span></span>
+          <span class="file-name" id="fileName" data-i18n="common.noFile">未選択</span>
+        </label>
+        <span class="sep"></span>
+        <label class="field"><span data-i18n="hist.binWidth">ビン幅</span><input type="number" class="num-input" id="binWidth" value="10" min="1" max="200" step="1"></label>
+        <label class="field"><span><span data-i18n="hist.adcMin">ADC 下限</span> <span class="dim" data-i18n="common.optional">任意</span></span><input type="number" class="num-input" id="adcMin" data-i18n-placeholder="common.auto" placeholder="自動"></label>
+        <label class="field"><span><span data-i18n="hist.adcMax">ADC 上限</span> <span class="dim" data-i18n="common.optional">任意</span></span><input type="number" class="num-input" id="adcMax" data-i18n-placeholder="common.auto" placeholder="自動"></label>
+        <label class="field"><span><span data-i18n="hist.timeFrom">開始 [s]</span> <span class="dim" id="durationHint"></span></span><input type="number" class="num-input" id="timeFrom" min="0" step="any" placeholder="0"></label>
+        <label class="field"><span data-i18n="hist.timeTo">終了 [s]</span><input type="number" class="num-input" id="timeTo" min="0" step="any" data-i18n-placeholder="common.end" placeholder="最後"></label>
+        <span class="sep"></span>
+        <label class="filepick">
+          <span><span data-i18n="hist.bgFile">バックグラウンド</span> <span class="dim" data-i18n="common.optional">任意</span></span>
+          <input type="file" id="bgFileInput" accept=".dat,.csv,.txt">
+          <span class="btn btn-line btn-sm"><svg class="i"><use href="#i-file"/></svg><span data-i18n="common.choose">ファイルを選ぶ</span></span>
+          <span class="file-name" id="bgFileName" data-i18n="hist.noBg">なし</span>
+        </label>
+        <label class="field"><span data-i18n="hist.bgScale">BG の倍率</span><input type="number" class="num-input" id="bgScale" step="any" data-i18n-placeholder="common.auto" placeholder="自動"></label>
+        <div class="checks">
+          <label class="check"><input type="checkbox" id="subtractBg" disabled><span data-i18n="hist.subtract">バックグラウンドを引く</span></label>
+          <label class="check"><input type="checkbox" id="logY"><span data-i18n="common.logY">縦軸を対数に</span></label>
+          <label class="check"><input type="checkbox" id="useKeV" disabled><span data-i18n="hist.useKeV">横軸を keV に（校正を使う）</span></label>
+        </div>
+      </div>
+    </div>
+
+    <dl class="readouts-sm" id="statsRow" hidden>
+      <div><dt data-i18n="hist.count">イベント数</dt><dd id="statCount">-</dd></div>
+      <div><dt id="statMeanLabel">平均 ADC</dt><dd id="statMean">-</dd></div>
+      <div><dt id="statMedianLabel">中央値 ADC</dt><dd id="statMedian">-</dd></div>
+      <div><dt id="statStdLabel">標準偏差</dt><dd id="statStd">-</dd></div>
+    </dl>
+
+    <div class="panel">
+      <div class="panel-head">
+        <h2 class="panel-title" data-i18n="hist.plotTitle">エネルギー分布</h2>
+        <span class="panel-sub" data-i18n="common.zoomHint">ドラッグで範囲を拡大・ホイールで拡大縮小・ダブルクリックで全体</span>
+      </div>
+      <div class="plot">
+        <div id="histDiv"></div>
+        <p class="plot-empty" id="histEmpty" data-i18n="hist.empty">測定データのファイルを選ぶと、ここにヒストグラムが出ます</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Tab 2: Zenith angle ===== -->
+  <section id="tab2" class="tab-content" role="tabpanel" hidden>
+    <div class="panel">
+      <div class="panel-head">
+        <h2 class="panel-title" data-i18n="zen.dataTitle">角度ごとのカウントレート</h2>
+        <span class="panel-sub" data-i18n="zen.dataSub">検出器を傾けて測ったレートを入れてください。誤差は計数の統計誤差（√N）から計算します。</span>
+      </div>
+      <div class="controls" style="margin-bottom:14px">
+        <label class="field"><span data-i18n="zen.measTime">1 角度あたりの測定時間 [s]</span><input type="number" class="num-input" id="measTime" value="300" min="1" step="1"></label>
+      </div>
+      <div class="table-scroll">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>&theta; [&deg;]</th>
+              <th>cos &theta;</th>
+              <th data-i18n="zen.rate">R(&theta;) [回/秒]</th>
+              <th>&sigma;<sub>R</sub></th>
+              <th>R(&theta;) / R(0&deg;)</th>
+              <th>&sigma;<sub>R/R₀</sub></th>
+            </tr>
+          </thead>
+          <tbody id="zenithBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="action-bar" style="margin-bottom:18px">
+      <button type="button" class="btn btn-primary" id="fitBtn"><svg class="i"><use href="#i-fit"/></svg><span data-i18n="zen.fit">cosⁿθ でフィット</span></button>
+      <div class="fit-out" id="fitResult" hidden>
+        <span class="fit-big">n = <span id="nValue">-</span></span>
+        <span class="fit-small">R² = <span id="r2Value">-</span></span>
+      </div>
+      <p class="field-msg" id="fitMsg" hidden></p>
+    </div>
+
+    <div class="grid-2">
+      <div class="panel">
+        <div class="panel-head"><h2 class="panel-title">R(&theta;)/R(0&deg;) vs cos &theta;</h2></div>
+        <div class="plot"><div id="linearDiv"></div><p class="plot-empty" id="linearEmpty" data-i18n="zen.empty">R(0°) と、ほかの角度を 1 つ以上入れてください</p></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h2 class="panel-title">ln(R/R₀) vs ln(cos &theta;)</h2><span class="panel-sub" data-i18n="zen.logSub">傾きが n</span></div>
+        <div class="plot"><div id="logDiv"></div><p class="plot-empty" id="logEmpty" data-i18n="zen.empty">R(0°) と、ほかの角度を 1 つ以上入れてください</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Tab 3: Energy calibration ===== -->
+  <section id="tab3" class="tab-content" role="tabpanel" hidden>
+    <div class="panel">
+      <div class="panel-head">
+        <h2 class="panel-title" data-i18n="cal.srcTitle">校正用の線源</h2>
+        <span class="panel-sub" data-i18n="cal.srcSub">線源を置いて測ったファイルを読み込み、下の表で各ピークを指定します。</span>
+      </div>
+      <div class="controls">
+        <label class="filepick">
+          <span data-i18n="cal.file">線源の測定データ</span>
+          <input type="file" id="calFileInput" accept=".dat,.csv,.txt">
+          <span class="btn btn-primary btn-sm"><svg class="i"><use href="#i-file"/></svg><span data-i18n="common.choose">ファイルを選ぶ</span></span>
+          <span class="file-name" id="calFileName" data-i18n="common.noFile">未選択</span>
+        </label>
+        <span class="sep"></span>
+        <label class="field"><span data-i18n="hist.binWidth">ビン幅</span><input type="number" class="num-input" id="calBinWidth" value="10" min="1" max="200" step="1"></label>
+        <label class="field"><span data-i18n="cal.source">線源</span>
+          <select id="calSource">
+            <option value="Th-232" data-i18n="cal.srcTh">Th-232（トリウム系列）</option>
+            <option value="Cs-137">Cs-137 (662 keV)</option>
+            <option value="Co-60">Co-60 (1173 / 1332 keV)</option>
+            <option value="K-40">K-40 (1461 keV)</option>
+          </select>
+        </label>
+        <button type="button" class="btn btn-line btn-sm" id="loadPresetBtn" data-i18n="cal.loadLines">線源のピークを入れる</button>
+        <div class="checks"><label class="check"><input type="checkbox" id="calLogY"><span data-i18n="common.logY">縦軸を対数に</span></label></div>
+      </div>
+    </div>
+
+    <div class="panel" id="calHistCard">
+      <div class="panel-head">
+        <h2 class="panel-title" data-i18n="cal.specTitle">スペクトル</h2>
+        <span class="panel-sub" data-i18n="cal.specSub">表で行を選んでからピークをクリックすると、その行の Peak ADC に入ります（ガウス近似でビンより細かく補正）。</span>
+      </div>
+      <div class="action-bar" style="margin-bottom:10px">
+        <button type="button" class="btn btn-line btn-sm" id="autoPeaksBtn"><svg class="i"><use href="#i-search"/></svg><span data-i18n="cal.autoPeaks">ピークを自動で探す</span></button>
+        <button type="button" class="btn btn-quiet btn-sm" id="clearPeaksBtn"><svg class="i"><use href="#i-close"/></svg><span data-i18n="cal.clearPeaks">候補を消す</span></button>
+        <span class="hint" data-i18n="cal.peaksHint">候補（▼）をクリックしても、選んでいる行に入ります。</span>
+      </div>
+      <div class="plot">
+        <div id="calHistDiv"></div>
+        <p class="plot-empty" id="calHistEmpty" data-i18n="cal.empty">校正用のファイルを読み込んでください</p>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <h2 class="panel-title" data-i18n="cal.tableTitle">校正点（ADC ↔ keV）</h2>
+        <span class="panel-sub" data-i18n="cal.tableSub">「使う」にチェックがあり、keV と Peak ADC が入っている行で最小二乗フィットします（1 次は 2 点、2 次は 3 点以上）。</span>
+      </div>
+      <div class="table-scroll">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th data-i18n="cal.thArm">選択</th>
+              <th data-i18n="cal.thUse">使う</th>
+              <th data-i18n="cal.thLine">核種 / ライン</th>
+              <th data-i18n="cal.thKev">エネルギー [keV]</th>
+              <th>Peak ADC</th>
+              <th data-i18n="cal.thResid">残差 [keV]</th>
+              <th>FWHM [ADC]</th>
+              <th data-i18n="cal.thResol">分解能</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="calTableBody"></tbody>
+        </table>
+      </div>
+      <div class="action-bar" style="margin-top:14px">
+        <button type="button" class="btn btn-line btn-sm" id="addCalRowBtn"><svg class="i"><use href="#i-plus"/></svg><span data-i18n="cal.addRow">行を足す</span></button>
+        <label class="field field-row"><span data-i18n="cal.model">フィットの式</span>
+          <select id="calModel">
+            <option value="linear" data-i18n="cal.linear">1 次　E = a·ADC + b</option>
+            <option value="quadratic" data-i18n="cal.quadratic">2 次　E = a·ADC² + b·ADC + c</option>
+          </select>
+        </label>
+      </div>
+      <div class="fit-out" id="calResult" style="margin-top:12px">
+        <span class="fit-eqn" id="calEqn">-</span>
+        <span class="fit-small" id="calR2"></span>
+      </div>
+    </div>
+
+    <div class="grid-side">
+      <div class="panel">
+        <div class="panel-head"><h2 class="panel-title" data-i18n="cal.fitTitle">校正の直線（keV vs ADC）</h2></div>
+        <div class="plot"><div id="calFitDiv"></div></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h2 class="panel-title" data-i18n="cal.saveTitle">保存と読み込み</h2></div>
+        <div class="save-col">
+          <div class="row">
+            <button type="button" class="btn btn-primary btn-sm" id="saveCalBtn"><svg class="i"><use href="#i-check"/></svg><span data-i18n="cal.save">保存</span></button>
+            <button type="button" class="btn btn-line btn-sm" id="loadCalBtn" data-i18n="cal.load">読み込む</button>
+            <button type="button" class="btn btn-danger btn-sm" id="clearCalBtn"><svg class="i"><use href="#i-trash"/></svg><span data-i18n="cal.clear">消去</span></button>
+          </div>
+          <div class="row">
+            <button type="button" class="btn btn-line btn-sm" id="exportCalBtn"><svg class="i"><use href="#i-download"/></svg><span data-i18n="cal.export">.json に書き出す</span></button>
+            <label class="filepick">
+              <input type="file" id="calImportInput" accept=".json,application/json">
+              <span class="btn btn-line btn-sm"><svg class="i"><use href="#i-upload"/></svg><span data-i18n="cal.import">.json から読み込む</span></span>
+            </label>
+          </div>
+          <p class="hint" data-i18n="cal.saveHint">校正はこのブラウザに自動で保存されます。「ADC ヒストグラム」のタブで横軸を keV にすると、ほかの測定データにも使えます。</p>
+          <p class="field-msg" id="calMsg" hidden></p>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">
+  <span>&copy; 2020&ndash;2026 <a href="https://accel-kitchen.com/" target="_blank" rel="noopener" data-i18n="footer.company">加速キッチン合同会社</a></span>
+  <a href="mailto:info@accel-kitchen.com">info@accel-kitchen.com</a>
+</footer>
+
+<script src="assets/js/plotter.js"></script>
+</body>
+</html>

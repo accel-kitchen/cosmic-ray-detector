@@ -1330,6 +1330,78 @@ function bindControls() {
     URL.revokeObjectURL(a.href);
   });
 
+  // --- threshold line in the scope: grab it, pull it, let go
+  // The new value goes to the board once, on release (arrow keys: shortly after the last press).
+  // A command per pointer move would flood the serial / Bluetooth command queue.
+  const scopeCv = $('scopeCanvas');
+  const thrNear = (x0, y0, touch) => {
+    const p = scopeView.plot;
+    if (!p || p.thrY == null || !scope.active || !state.isConnected) return false;
+    const r = scopeCv.getBoundingClientRect();
+    const x = x0 - r.left, y = y0 - r.top;
+    return x >= p.padL - 6 && x <= p.padL + p.pw + 6 && Math.abs(y - p.thrY) <= (touch ? 18 : 10);
+  };
+  const thrApply = v => { settings.threshSignal = v; $('threshSignal').value = v; };
+  const thrHover = on => {
+    if (scopeView.hover === on) return;
+    scopeView.hover = on;
+    scopeCv.classList.toggle('thr-hot', on);
+    drawScope(scopeCv);
+  };
+  const thrEnd = (e, commit) => {
+    const d = scopeView.drag;
+    if (!d) return;
+    scopeView.drag = null;
+    scopeCv.classList.remove('thr-drag');
+    if (commit && d.thr !== d.start) {
+      thrApply(d.thr);
+      if (state.isConnected) sendCommand(`SET_THRESH:${d.thr}`);
+    } else {
+      thrApply(d.start);   // cancelled, or put back where it was
+    }
+    scopeView.hover = thrNear(e.clientX, e.clientY, e.pointerType === 'touch');
+    scopeCv.classList.toggle('thr-hot', scopeView.hover);
+    drawScope(scopeCv);
+  };
+  scopeCv.addEventListener('pointerdown', e => {
+    if (e.button !== 0 || !thrNear(e.clientX, e.clientY, e.pointerType === 'touch')) return;
+    const p = scopeView.plot, start = parseInt(settings.threshSignal);
+    scopeView.drag = { thr: start, start, yLo: p.yLo, yHi: p.yHi, dy: e.clientY - scopeCv.getBoundingClientRect().top - p.thrY };
+    scopeCv.classList.add('thr-drag');
+    try { scopeCv.setPointerCapture(e.pointerId); } catch (_) { /* the pointer is already gone */ }
+    e.preventDefault();
+    drawScope(scopeCv);
+  });
+  scopeCv.addEventListener('pointermove', e => {
+    const d = scopeView.drag;
+    if (!d) { thrHover(thrNear(e.clientX, e.clientY, e.pointerType === 'touch')); return; }
+    const v = scopeValueAtY(e.clientY - scopeCv.getBoundingClientRect().top - d.dy, d.yLo, d.yHi);
+    if (v === d.thr) return;
+    d.thr = v;
+    thrApply(v);
+    drawScope(scopeCv);
+  });
+  scopeCv.addEventListener('pointerup', e => thrEnd(e, true));
+  scopeCv.addEventListener('lostpointercapture', e => thrEnd(e, false));   // after pointerup this finds nothing to do
+  scopeCv.addEventListener('pointerleave', () => { if (!scopeView.drag) thrHover(false); });
+  // A touch that starts on the line must not scroll the page instead (touch-action cannot be switched per spot).
+  scopeCv.addEventListener('touchstart', e => {
+    const tp = e.touches[0];
+    if (tp && thrNear(tp.clientX, tp.clientY, true)) e.preventDefault();
+  }, { passive: false });
+  let thrKeyTimer = null;
+  scopeCv.addEventListener('keydown', e => {
+    const step = { ArrowUp: 1, ArrowDown: -1, PageUp: 100, PageDown: -100 }[e.key];
+    const cur = parseInt(settings.threshSignal);
+    if (!step || isNaN(cur) || scopeView.drag || !scope.active || !state.isConnected) return;
+    e.preventDefault();
+    const v = Math.min(ADC_MAX, Math.max(0, cur + (e.shiftKey && Math.abs(step) === 1 ? step * 10 : step)));
+    thrApply(v);
+    drawScope(scopeCv);
+    clearTimeout(thrKeyTimer);
+    thrKeyTimer = setTimeout(() => { if (state.isConnected) sendCommand(`SET_THRESH:${v}`); }, 400);
+  });
+
   // --- drawer: section links, and each section remembers whether it was open
   qsa('#drawerNav a').forEach(a => {
     a.addEventListener('click', e => {

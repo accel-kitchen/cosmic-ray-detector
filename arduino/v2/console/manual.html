@@ -1,0 +1,1035 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>マニュアル — CosmicRay Recorder</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+JP:wght@400;500;700&family=Shippori+Mincho:wght@600;700&display=swap">
+  <link rel="stylesheet" href="assets/css/console.css">
+  <link rel="stylesheet" href="assets/css/pages.css">
+</head>
+<body>
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+  <symbol id="i-rec" viewBox="0 0 24 24"><path d="M2.5 12.5h3.3l2.2-6.5 3.5 12 3-9.5 1.8 4h5.2"/></symbol>
+  <symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 20V4M4 20h16"/><path d="M7.5 20v-5M11 20V9M14.5 20v-7M18 20v-3"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24"><path d="M12 6.5C10 5 7.5 4.5 4 4.5v13c3.5 0 6 .5 8 2 2-1.5 4.5-2 8-2v-13c-3.5 0-6 .5-8 2z"/><path d="M12 6.5v13"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.5M12 7.8v.2"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 4 21 19.5H3z"/><path d="M12 10v4.5M12 17v.2"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-chevron" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
+  <symbol id="i-up" viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></symbol>
+</svg>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#4F4956"/></marker>
+    <marker id="ar-sig" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#2E8BA0"/></marker>
+    <marker id="ar-coral" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#C8654E"/></marker>
+  </defs>
+</svg>
+
+<header class="topbar" id="topbar">
+  <div class="topbar-row">
+    <a class="brand" href="index.html"><span class="brand-name">CosmicRay Recorder</span></a>
+    <nav class="pagenav" aria-label="ページ">
+      <a href="index.html"><svg class="i"><use href="#i-rec"/></svg>記録</a>
+      <a href="plotter.html"><svg class="i"><use href="#i-chart"/></svg>解析</a>
+      <a href="manual.html" aria-current="page"><svg class="i"><use href="#i-book"/></svg>マニュアル</a>
+    </nav>
+  </div>
+</header>
+
+<div class="doc">
+  <nav class="toc" aria-labelledby="tocTitle">
+    <p class="toc-title" id="tocTitle">目次</p>
+    <ol>
+      <li><a href="#about">このアプリについて</a></li>
+      <li><a href="#open">ページの開き方</a></li>
+      <li><a href="#model">機種を選ぶ</a></li>
+      <li><a href="#connect">つなぐ</a></li>
+      <li><a href="#measure">計測画面の見方</a></li>
+      <li><a href="#save">保存する</a></li>
+      <li><a href="#scope">オシロスコープ</a></li>
+      <li><a href="#settings">詳細設定</a></li>
+      <li><a href="#upload">サーバーへの送信</a></li>
+      <li><a href="#plotter">解析（プロッター）</a></li>
+      <li><a href="#trouble">困ったとき</a></li>
+      <li><a href="#glossary">用語集</a></li>
+      <li class="appx"><a href="#a-format">付録 A　ファイルとログの形式</a></li>
+      <li class="appx"><a href="#a-commands">付録 B　コマンド一覧</a></li>
+      <li class="appx"><a href="#a-hardware">付録 C　ハードウェアとピン</a></li>
+      <li class="appx"><a href="#a-firmware">付録 D　ファームウェアの書き込み</a></li>
+    </ol>
+  </nav>
+
+  <article class="article">
+    <p class="eyebrow">CosmicRay Recorder · v2 基板</p>
+    <h1>マニュアル</h1>
+    <p class="lead">宇宙線検出器をパソコンにつないで、数える・記録する・解析するまでの使い方です。後半の付録には、ファイルの形式、検出器のコマンド、ピン配置、ファームウェアの書き込み方をまとめています。</p>
+
+    <!-- ============================================================ -->
+    <h2 id="about"><span class="no">01</span>このアプリについて</h2>
+    <p>CosmicRay Recorder は、SiPM（シリコン光電子増倍管）を使った宇宙線検出器のデータをブラウザで記録するアプリです。検出器から 1 イベントごとに届く行を受け取り、その場でグラフにし、パソコンのフォルダへ自動で保存します。インストールは要りません。</p>
+
+    <figure class="fig">
+      <svg class="dg" viewBox="0 0 780 214" role="img" aria-label="検出器から記録・保存・解析までの流れ">
+        <image href="assets/img/model-v2.webp" x="0" y="34" width="136" height="102"/>
+        <text class="t-b t-c" x="68" y="156">検出器</text>
+        <text class="t-s t-c" x="68" y="174">1 イベント = 1 行</text>
+
+        <path class="ln" d="M140 86 H 214" marker-end="url(#ar)"/>
+        <text class="t-s t-c" x="177" y="74">USB</text>
+        <text class="t-s t-c" x="177" y="106">Bluetooth</text>
+
+        <rect class="box-ink" x="220" y="50" width="150" height="72" rx="6"/>
+        <text class="t-b t-c on-ink" x="295" y="82" style="fill:var(--paper)">記録</text>
+        <text class="t-s t-c" x="295" y="102" style="fill:#C9C3CF">index.html</text>
+        <text class="t-s t-c" x="295" y="146">数える・グラフ・設定</text>
+
+        <path class="ln" d="M370 74 C 410 74, 410 46, 450 46" marker-end="url(#ar)"/>
+        <text class="t-s" x="384" y="40">自動保存</text>
+        <rect class="box" x="456" y="16" width="150" height="62" rx="6"/>
+        <text class="t-b t-c" x="531" y="42">パソコンのフォルダ</text>
+        <text class="t-s t-c t-m" x="531" y="62">.dat / .csv（正本）</text>
+
+        <path class="ln-soft" d="M370 100 C 410 100, 410 156, 450 156" marker-end="url(#ar)"/>
+        <text class="t-s" x="384" y="186">送信（任意）</text>
+        <rect class="box-soft" x="456" y="128" width="150" height="58" rx="6" style="stroke-dasharray:4 4"/>
+        <text class="t-b t-c" x="531" y="153">観測サーバー</text>
+        <text class="t-s t-c" x="531" y="172">複製</text>
+
+        <path class="ln" d="M606 47 H 642" marker-end="url(#ar)"/>
+        <rect class="box" x="648" y="16" width="128" height="62" rx="6"/>
+        <text class="t-b t-c" x="712" y="42">解析</text>
+        <text class="t-s t-c" x="712" y="62">plotter.html</text>
+      </svg>
+      <figcaption>記録のページが検出器から行を受け取り、フォルダへ保存します。保存したファイルを解析のページで読み込みます。</figcaption>
+    </figure>
+
+    <div class="table-wrap"><table>
+      <thead><tr><th>ページ</th><th>できること</th></tr></thead>
+      <tbody>
+        <tr><td><a href="index.html"><span class="ui">記録</span></a>（<code>index.html</code>）</td><td>検出器とつなぐ、計数を見る、保存する、オシロスコープ、検出器の設定、サーバーへの送信</td></tr>
+        <tr><td><a href="plotter.html"><span class="ui">解析</span></a>（<code>plotter.html</code>）</td><td>保存した <code>.dat</code> / <code>.csv</code> を読み込んで、ヒストグラム・天頂角分布・エネルギー校正を行う。検出器は要りません</td></tr>
+        <tr><td><span class="ui">マニュアル</span>（このページ）</td><td>使い方と資料</td></tr>
+        <tr><td><a href="v1.html">v1 のページ</a>（<code>v1.html</code>）</td><td>v1 の検出器の記録用。v1 の使い方は画面左の「注意事項・ヒント」を見てください</td></tr>
+      </tbody>
+    </table></div>
+    <div class="note"><svg class="i"><use href="#i-info"/></svg><div>
+      <b>対応ブラウザ</b>
+      <p>パソコンの <strong>Chrome</strong> か <strong>Edge</strong> を使ってください。USB 接続（Web Serial）、Bluetooth 接続（Web Bluetooth）、フォルダへの自動保存（File System Access）は、Firefox と Safari では使えません。デモと解析のページはどのブラウザでも動きます。</p>
+    </div></div>
+    <p class="hint">このマニュアルの画面写真は、デモ（合成データ）で撮ったものです。数値は実際の測定ではありません。写真を押すと大きく開きます。</p>
+
+    <!-- ============================================================ -->
+    <h2 id="open"><span class="no">02</span>ページの開き方</h2>
+    <p>ページをどの方法で開いたかによって、使える機能が変わります。いちばん確実なのは <code>http://localhost</code> で開く方法です。</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>開き方</th><th>USB</th><th>Bluetooth</th><th><code>http://</code> のサーバーへ送信</th></tr></thead>
+      <tbody>
+        <tr><td><code>file://</code>（ファイルをダブルクリック）</td><td>使える</td><td>使えない</td><td>Chrome の版によって変わる（事前に確認）</td></tr>
+        <tr><td><code>http://localhost:ポート</code></td><td>使える</td><td>使える</td><td><strong>使える — おすすめ</strong></td></tr>
+        <tr><td><code>https://</code>（Web サイトに置いたページ）</td><td>使える</td><td>使える</td><td><strong>使えない</strong>（混在コンテンツとして止められる）</td></tr>
+      </tbody>
+    </table></div>
+    <p><code>localhost</code> で開くには、<code>console</code> フォルダで簡単なサーバーを動かして、ブラウザで <code>http://localhost:8000/</code> を開きます。</p>
+    <pre><code># Python が入っていれば追加のインストールは要りません
+cd arduino/v2/console
+python -m http.server 8000</code></pre>
+
+    <!-- ============================================================ -->
+    <h2 id="model"><span class="no">03</span>機種を選ぶ</h2>
+    <p>最初に開くと、検出器の機種を選ぶ画面が出ます。機種によってデータの形式が違うので、画面も別々です。手元の検出器と<strong>ケースの形</strong>を見比べて選んでください。</p>
+    <figure class="shot">
+      <a class="shot-frame" href="assets/img/manual/model.webp" target="_blank" rel="noopener"><img src="assets/img/manual/model.webp" width="1366" height="768" alt="機種を選ぶ画面。v1・v2・v2.1 のケースの画像が並んでいる" loading="lazy"></a>
+      <figcaption>機種を選ぶ画面。v2.1 は「準備中」で、まだ選べません。</figcaption>
+    </figure>
+    <div class="models-fig">
+      <figure><img src="assets/img/model-v1.webp" width="640" height="480" alt="v1 のケース" loading="lazy"><figcaption><b>v1</b>縦長の箱。上の面に画面の小窓と小さな丸い穴。<code>v1.html</code> が開きます。</figcaption></figure>
+      <figure><img src="assets/img/model-v2.webp" width="640" height="480" alt="v2 のケース" loading="lazy"><figcaption><b>v2</b>ほぼ立方体の箱。横の面に画面の窓と丸い穴 2 つ。このアプリの本体です。</figcaption></figure>
+      <figure><img src="assets/img/model-v2-1.webp" width="640" height="480" alt="v2.1 のケース" loading="lazy"><figcaption><b>v2.1</b>四隅に柱がある平たい箱。横に丸い穴が 4 つ。画面は準備中です。</figcaption></figure>
+    </div>
+    <ul>
+      <li>選んだ機種はブラウザが覚えています。次からは v2 ならすぐ接続の画面、v1 なら v1 のページが開きます。</li>
+      <li>選び直すときは、接続の画面の見出しの横にある <span class="ui">機種を選び直す</span>（下の写真の <span class="legend-n">7</span>）を押します。v1 のページではロゴの下にあります。<code>index.html?choose</code> を開いても選ぶ画面になります。</li>
+    </ul>
+
+    <!-- ============================================================ -->
+    <h2 id="connect"><span class="no">04</span>つなぐ</h2>
+    <figure class="shot">
+      <a class="shot-frame" href="assets/img/manual/connect.webp" target="_blank" rel="noopener">
+        <img src="assets/img/manual/connect.webp" width="1366" height="768" alt="接続の画面。USB・Bluetooth・デモの 3 つのカード" loading="lazy">
+        <span class="pin" style="left:11.9%;top:39.6%">1</span>
+        <span class="pin" style="left:10.1%;top:58.1%">2</span>
+        <span class="pin" style="left:38.3%;top:39.6%">3</span>
+        <span class="pin" style="left:46.6%;top:57.2%">4</span>
+        <span class="pin" style="left:64.6%;top:39.6%">5</span>
+        <span class="pin" style="left:66.5%;top:78.7%">6</span>
+        <span class="pin" style="left:36.1%;top:16.9%">7</span>
+      </a>
+      <ol class="legend">
+        <li><span class="n">1</span><span><b>USBでつなぐ</b> — ケーブルでつなぐ。いちばん確実</span></li>
+        <li><span class="n">2</span><span><b>接続オプション</b> — ボーレート（ふつうは 9600）</span></li>
+        <li><span class="n">3</span><span><b>Bluetoothでつなぐ</b> — 無線でつなぐ</span></li>
+        <li><span class="n">4</span><span><b>検出器の名前</b> — Bluetooth の一覧をこの名前で絞り込む</span></li>
+        <li><span class="n">5</span><span><b>デモで試す</b> — 検出器なしで全部の機能を試せる</span></li>
+        <li><span class="n">6</span><span><b>保存先を先に選ぶ</b> — つなぐ前に保存フォルダを決めておける</span></li>
+        <li><span class="n">7</span><span><b>機種を選び直す</b></span></li>
+      </ol>
+    </figure>
+
+    <h3>USB でつなぐ</h3>
+    <ol class="steps-list">
+      <li>検出器を USB ケーブルでパソコンにつなぎます。</li>
+      <li><span class="ui">USBでつなぐ</span> を押し、ブラウザが出す一覧から検出器のポートを選んで <span class="ui">接続</span> を押します。</li>
+      <li>上の帯が <span class="ui">接続中 · USB</span> になり、検出器の名前が出れば完了です。宇宙線が届くたびにグラフが伸びていきます。</li>
+    </ol>
+    <p>検出器が書き込み待ち（ブートローダー）で止まっていたときは、自動で通常の起動に戻します。</p>
+
+    <h3>Bluetooth でつなぐ</h3>
+    <ol class="steps-list">
+      <li>検出器の電源を入れます。</li>
+      <li><span class="ui">検出器の名前</span> に、検出器の Bluetooth の名前を入れます（最初は <code>CosmicRay</code>）。名前で絞り込むので、教室に何台あっても自分の検出器だけが一覧に出ます。</li>
+      <li><span class="ui">Bluetoothでつなぐ</span> を押し、一覧から選んで <span class="ui">ペア設定</span> を押します。</li>
+    </ol>
+    <p>途中で切れたときは、自動でつなぎ直します。上の帯がコーラル色で点滅し、「◯ 秒後に ◯ 回目の再接続」と数えます。つながり直すと、自動保存は同じファイルに続けて書きます。やめるときは <span class="ui">切断</span> を押します。</p>
+    <figure class="fig">
+      <svg class="dg" viewBox="0 0 780 112" role="img" aria-label="再接続の間隔は 1 秒から倍々に延び、30 秒で頭打ち">
+        <text class="t-s" x="0" y="16">切れてから次に試すまでの間隔</text>
+        <g transform="translate(0,30)">
+          <rect class="box-sig" x="0"   y="0" width="16"  height="30" rx="3"/><text class="t-m t-c" x="8"   y="52">1</text>
+          <rect class="box-sig" x="24"  y="0" width="32"  height="30" rx="3"/><text class="t-m t-c" x="40"  y="52">2</text>
+          <rect class="box-sig" x="64"  y="0" width="64"  height="30" rx="3"/><text class="t-m t-c" x="96"  y="52">4</text>
+          <rect class="box-sig" x="136" y="0" width="128" height="30" rx="3"/><text class="t-m t-c" x="200" y="52">8</text>
+          <rect class="box-sig" x="272" y="0" width="240" height="30" rx="3"/><text class="t-m t-c" x="392" y="52">16</text>
+          <rect class="box-sig" x="520" y="0" width="250" height="30" rx="3"/><text class="t-m t-c" x="645" y="52">30 秒（以後ずっと 30 秒）</text>
+        </g>
+      </svg>
+      <figcaption>再接続の間隔は 1 秒から倍々に延び、最長 30 秒です。回数の制限はありません。</figcaption>
+    </figure>
+
+    <h3>デモで試す</h3>
+    <p>検出器がなくても、合成データで全部の機能を試せます。右の欄で、宇宙線だけの <span class="ui">通常</span>、線源を置いた <span class="ui">線源あり</span>、空気シャワーが続く <span class="ui">シャワー</span> を選べ、頻度のつまみや <span class="ui">バーストを起こす</span> で動きを変えられます。デモのあいだは上に斜線の帯が出て、保存ファイルの名前に <code>DEMO_</code> が付き、サーバーへは送れません。</p>
+
+    <!-- ============================================================ -->
+    <h2 id="measure"><span class="no">05</span>計測画面の見方</h2>
+    <figure class="shot">
+      <a class="shot-frame" href="assets/img/manual/measure.webp" target="_blank" rel="noopener">
+        <img src="assets/img/manual/measure.webp" width="1366" height="768" alt="計測画面。上に数値、中央にヒストグラムとカウントレートのグラフ、右に保存の欄" loading="lazy">
+        <span class="pin" style="left:26%;top:7.4%">1</span>
+        <span class="pin" style="left:39.6%;top:7.4%">2</span>
+        <span class="pin" style="left:47.6%;top:7.4%">3</span>
+        <span class="pin" style="left:62.4%;top:7.4%">4</span>
+        <span class="pin" style="left:73%;top:7.4%">5</span>
+        <span class="pin" style="left:84.6%;top:7.4%">6</span>
+        <span class="pin" style="left:55.6%;top:19.6%">7</span>
+        <span class="pin" style="left:19.8%;top:27.2%">8</span>
+        <span class="pin" style="left:60.2%;top:27.2%">9</span>
+        <span class="pin" style="left:62.5%;top:94.4%">10</span>
+        <span class="pin" style="left:90.6%;top:15.6%">11</span>
+        <span class="pin" style="left:82.2%;top:63.6%">12</span>
+      </a>
+      <ol class="legend">
+        <li><span class="n">1</span><span><b>接続の状態</b> — 点はイベントが届くたびに光る</span></li>
+        <li><span class="n">2</span><span><b>記録を一時停止</b> — 届いたイベントを記録しない（検出器は数え続ける）</span></li>
+        <li><span class="n">3</span><span><b>切断</b> — データは画面に残る。<span class="ui">もう一度つなぐ</span> で続きから</span></li>
+        <li><span class="n">4</span><span><b>オシロスコープ</b>（<a href="#scope">07</a>）</span></li>
+        <li><span class="n">5</span><span><b>解析・マニュアル</b> — 別のタブで開くので計測は止まらない</span></li>
+        <li><span class="n">6</span><span><b>詳細設定</b>（<a href="#settings">08</a>）</span></li>
+        <li><span class="n">7</span><span><b>総イベント数・平均カウントレート・経過時間</b></span></li>
+        <li><span class="n">8</span><span><b>エネルギー分布</b> — 届いたばかりのビンがシアンで光る</span></li>
+        <li><span class="n">9</span><span><b>カウントレートの変化</b> — 最新の点がシアン</span></li>
+        <li><span class="n">10</span><span><b>温度・湿度・気圧、外部検出器、平均 ADC、デッドタイム、トリガー</b></span></li>
+        <li><span class="n">11</span><span><b>デモの設定</b>（デモのときだけ）</span></li>
+        <li><span class="n">12</span><span><b>保存</b>（<a href="#save">06</a>）</span></li>
+      </ol>
+    </figure>
+
+    <h3>いちばん上の数値</h3>
+    <ul>
+      <li><strong>総イベント数</strong> — 届いたイベントの数。</li>
+      <li><strong>平均カウントレート</strong> — 1 秒あたりの数と、その統計誤差（±）。下の図のように、デッドタイムを差し引いた<strong>ライブタイム</strong>で割っています。</li>
+      <li><strong>経過時間</strong> — 検出器の時計で測った時間。</li>
+    </ul>
+    <figure class="fig">
+      <svg class="dg" viewBox="0 0 780 196" role="img" aria-label="経過時間からデッドタイムを引いたものがライブタイム">
+        <line class="ln" x1="20" y1="80" x2="760" y2="80"/>
+        <text class="t-s t-e" x="760" y="102">時間 →</text>
+        <!-- events + deadtime -->
+        <g>
+          <rect class="fill-dead" x="92" y="58" width="22" height="22"/><line class="ln-thick" x1="92" y1="46" x2="92" y2="80"/><circle class="fill-ink" cx="92" cy="44" r="4"/>
+          <rect class="fill-dead" x="196" y="58" width="22" height="22"/><line class="ln-thick" x1="196" y1="46" x2="196" y2="80"/><circle class="fill-ink" cx="196" cy="44" r="4"/>
+          <rect class="fill-dead" x="268" y="58" width="22" height="22"/><line class="ln-thick" x1="268" y1="46" x2="268" y2="80"/><circle class="fill-ink" cx="268" cy="44" r="4"/>
+          <rect class="fill-dead" x="350" y="40" width="150" height="40"/>
+          <text class="t-s t-c" x="425" y="30">オシロスコープ中（計数停止）</text>
+          <rect class="fill-dead" x="560" y="58" width="22" height="22"/><line class="ln-thick" x1="560" y1="46" x2="560" y2="80"/><circle class="fill-ink" cx="560" cy="44" r="4"/>
+          <rect class="fill-dead" x="668" y="58" width="22" height="22"/><line class="ln-thick" x1="668" y1="46" x2="668" y2="80"/><circle class="fill-ink" cx="668" cy="44" r="4"/>
+        </g>
+        <!-- brackets -->
+        <path class="ln" d="M20 118 V 126 H 760 V 118"/>
+        <text class="t-b" x="20" y="148">経過時間</text>
+        <text class="t-s" x="20" y="168">ライブタイム ＝ 経過時間 − デッドタイム（赤い部分の合計）</text>
+        <text class="t-s" x="20" y="186">平均カウントレート ＝ イベント数 ÷ ライブタイム　　統計誤差 ＝ √イベント数 ÷ ライブタイム</text>
+        <!-- legend -->
+        <circle class="fill-ink" cx="560" cy="150" r="4"/><text class="t-s" x="572" y="154">イベント</text>
+        <rect class="fill-dead" x="640" y="142" width="16" height="16"/><text class="t-s" x="662" y="154">デッドタイム</text>
+      </svg>
+      <figcaption>イベントを処理している間（とオシロスコープを開いている間）は数えられません。この時間を差し引くので、オシロスコープを開いてもカウントレートは正しいままです。</figcaption>
+    </figure>
+
+    <h3>グラフ</h3>
+    <ul>
+      <li><strong>エネルギー分布</strong>（ADC ヒストグラム）— 信号の大きさ（0〜4095）ごとの数。<span class="ui">ビン幅</span> と <span class="ui">対数</span> を切り替えられます。地上の宇宙線（ミューオン）は ADC 1000 あたりに山を作り、低い側には環境のγ線が積み上がります。</li>
+      <li><strong>カウントレートの変化</strong> — レートの推移。</li>
+    </ul>
+    <p>どちらも右上の画像のボタンで PNG に保存できます。描き直す間隔は <span class="ui">詳細設定</span> &gt; <span class="ui">表示</span> で 1 秒・3 秒・10 秒・手動から選べます。数値や項目の名前の横の <span class="ui">?</span> を押すと、用語の説明が出ます。</p>
+
+    <h3>記録の中身</h3>
+    <p>下にスクロールすると、届いたデータそのものを見られます。</p>
+    <figure class="shot">
+      <a class="shot-frame" href="assets/img/manual/data.webp" target="_blank" rel="noopener"><img src="assets/img/manual/data.webp" width="1051" height="420" alt="記録の中身。測定データ・受信ログ・統計のタブと、測定データの表" loading="lazy"></a>
+      <figcaption><b>測定データ</b>は新しい順に最新 100 件、<b>受信ログ</b>は検出器から届いた行そのまま（最新 100 行）、<b>統計</b>は平均・最大・標準偏差・ライブタイム・外部検出器の反応率など 18 項目です。</figcaption>
+    </figure>
+    <div class="note"><svg class="i"><use href="#i-info"/></svg><div>
+      <p>画面のメモリには最大 1,000,000 件まで残します。それを超えると古いものから空けて、警告を出します。長時間の測定では自動保存を使ってください。</p>
+    </div></div>
+
+    <!-- ============================================================ -->
+    <h2 id="save"><span class="no">06</span>保存する</h2>
+    <div class="side">
+      <figure class="shot">
+        <a class="shot-frame" href="assets/img/manual/save.webp" target="_blank" rel="noopener">
+          <img src="assets/img/manual/save.webp" width="300" height="731" alt="保存の欄" loading="lazy">
+          <span class="pin" style="left:6.5%;top:22.1%">1</span>
+          <span class="pin" style="left:33%;top:28.1%">2</span>
+          <span class="pin" style="left:6.5%;top:37.5%">3</span>
+          <span class="pin" style="left:6.5%;top:55.6%">4</span>
+          <span class="pin" style="left:6.5%;top:85.1%">5</span>
+        </a>
+      </figure>
+      <div>
+        <p>計測画面の右の欄（狭い画面では右下の <span class="ui">保存</span> ボタン）にまとまっています。</p>
+        <ol class="legend one">
+          <li><span class="n">1</span><span><b>保存フォルダを選ぶ</b> — ここから自動保存が始まる</span></li>
+          <li><span class="n">2</span><span><b>形式</b> — <code>.dat</code>・<code>.csv</code>・両方</span></li>
+          <li><span class="n">3</span><span><b>メモ</b> — 場所・向き・条件など。ファイルの先頭に <code>#</code> 付きで入る</span></li>
+          <li><span class="n">4</span><span><b>ダウンロード</b> — 画面にあるデータをまとめて 1 つのファイルに</span></li>
+          <li><span class="n">5</span><span><b>データを消去して最初から</b> — 検出器にも <code>RESET</code> を送り、番号と時間を 0 に。保存済みのファイルは消えない</span></li>
+        </ol>
+      </div>
+    </div>
+    <h3>自動保存（おすすめ）</h3>
+    <ol class="steps-list">
+      <li><span class="ui">保存フォルダを選ぶ</span> を押して、保存先のフォルダを選びます。ブラウザが書き込みの許可を聞いてきたら <span class="ui">ファイルの編集を許可</span> を選びます。</li>
+      <li>届いたデータが <code>&lt;検出器の名前&gt;_&lt;日付&gt;.dat</code> に書き足されていきます。日付が変わると新しいファイルになります。ファイルがとても大きくなったときは <code>_02</code>、<code>_03</code>… に分けます。</li>
+      <li>欄に、書き込み済みの件数と、まだ書き込んでいない件数が出ます。まだ書き込んでいないデータがあるときにタブを閉じようとすると、ブラウザが確認します。</li>
+    </ol>
+    <figure class="fig">
+      <svg class="dg" viewBox="0 0 780 120" role="img" aria-label="自動保存は日付ごとにファイルが分かれる">
+        <line class="ln" x1="20" y1="40" x2="760" y2="40"/>
+        <line class="ln-soft" x1="380" y1="14" x2="380" y2="66"/><text class="t-s t-c" x="380" y="10">0 時</text>
+        <circle class="fill-ink" cx="60" cy="40" r="3"/><circle class="fill-ink" cx="110" cy="40" r="3"/><circle class="fill-ink" cx="190" cy="40" r="3"/><circle class="fill-ink" cx="260" cy="40" r="3"/><circle class="fill-ink" cx="330" cy="40" r="3"/>
+        <circle class="fill-ink" cx="430" cy="40" r="3"/><circle class="fill-ink" cx="520" cy="40" r="3"/><circle class="fill-ink" cx="600" cy="40" r="3"/><circle class="fill-ink" cx="700" cy="40" r="3"/>
+        <rect class="box" x="60" y="74" width="270" height="34" rx="5"/><text class="t-m t-c" x="195" y="96">CosmicRay_2026-10-07.dat</text>
+        <rect class="box" x="430" y="74" width="270" height="34" rx="5"/><text class="t-m t-c" x="565" y="96">CosmicRay_2026-10-08.dat</text>
+      </svg>
+      <figcaption>名前の前半は検出器の Bluetooth の名前です。台ごとに名前を変えておくと、ファイルも台ごとに分かれます。</figcaption>
+    </figure>
+    <p>ファイルの列の並びは <a href="#a-format">付録 A</a> を見てください。</p>
+
+    <!-- ============================================================ -->
+    <h2 id="scope"><span class="no">07</span>オシロスコープ</h2>
+    <p>上の帯の <span class="ui">オシロスコープ</span> を押すと、確認のあと画面が夜色になり、検出器から届く信号の波形（12 µs ごとに 1 点）を表示します。</p>
+    <div class="side">
+      <figure class="shot">
+        <a class="shot-frame" href="assets/img/manual/scope-confirm.webp" target="_blank" rel="noopener"><img src="assets/img/manual/scope-confirm.webp" width="520" height="340" alt="オシロスコープを開くときの確認" loading="lazy"></a>
+      </figure>
+      <div class="note note-warn" style="margin:0"><svg class="i"><use href="#i-alert"/></svg><div>
+        <b>開いている間は計数が止まります</b>
+        <p>上の帯に「計数停止中 mm:ss」が出ます。止まっていた時間はデッドタイムに入るので、平均カウントレートは正しいままです。<span class="ui">閉じて計数に戻る</span>（または <kbd>Esc</kbd>）で戻ります。10 分間操作しないと自動で閉じて計数に戻ります。</p>
+      </div></div>
+    </div>
+    <figure class="shot shot-night">
+      <a class="shot-frame" href="assets/img/manual/scope.webp" target="_blank" rel="noopener">
+        <img src="assets/img/manual/scope.webp" width="1366" height="768" alt="オシロスコープの画面。夜色の背景に、立ち上がってゆっくり下がる波形が重なっている" loading="lazy">
+        <span class="pin" style="left:25%;top:7.4%">1</span>
+        <span class="pin" style="left:79.6%;top:7.4%">2</span>
+        <span class="pin" style="left:9.7%;top:15.9%">3</span>
+        <span class="pin" style="left:20.4%;top:15.9%">4</span>
+        <span class="pin" style="left:27.1%;top:15.9%">5</span>
+        <span class="pin" style="left:72.9%;top:15.9%">6</span>
+        <span class="pin" style="left:88.6%;top:15.9%">7</span>
+        <span class="pin" style="left:9%;top:24%">8</span>
+        <span class="pin" style="left:36.5%;top:89.8%">9</span>
+      </a>
+      <ol class="legend">
+        <li><span class="n">1</span><span><b>計数停止中</b> — 止まっている時間</span></li>
+        <li><span class="n">2</span><span><b>閉じて計数に戻る</b></span></li>
+        <li><span class="n">3</span><span><b>レート上限</b> — 1 秒に送る波形の数（1〜20）。Bluetooth では低めに</span></li>
+        <li><span class="n">4</span><span><b>残光</b> — 前の波形を薄く残す本数</span></li>
+        <li><span class="n">5</span><span><b>縦軸を自動で合わせる</b></span></li>
+        <li><span class="n">6</span><span><b>一時停止 / クリア</b></span></li>
+        <li><span class="n">7</span><span><b>.wfm で保存</b> — 表示中の波形をファイルに</span></li>
+        <li><span class="n">8</span><span><b>波形</b> — いちばん新しいものが明るい線。点線はしきい値で、<strong>線（右端のつまみ）をつかんで上下にドラッグ</strong>すると、離したところが基板に設定されます。↑↓ キーでも動かせます（Shift で 10、PageUp / PageDown で 100）</span></li>
+        <li><span class="n">9</span><span><b>ピーク ADC・t_peak・波形の数・波形/秒・壊れた行</b></span></li>
+      </ol>
+    </figure>
+    <p>見えているのはアンプの生の信号ではなく、ピークホールド回路の出力です。立ち上がって頂点で止まり、ゆっくり下がってからリセットされる形になります（<a href="#a-hardware">付録 C</a> の図）。</p>
+
+    <!-- ============================================================ -->
+    <h2 id="settings"><span class="no">08</span>詳細設定</h2>
+    <p>上の帯の <span class="ui">詳細設定</span> で右からパネルが開きます。上の目次で節に飛べます。基板の設定は検出器をつないでいるときだけ変えられます。「基板: …」の行は、検出器が今使っている値です。</p>
+
+    <h3>トリガーとしきい値</h3>
+    <div class="side">
+      <figure class="shot">
+        <a class="shot-frame" href="assets/img/manual/adv-trigger.webp" target="_blank" rel="noopener">
+          <img src="assets/img/manual/adv-trigger.webp" width="460" height="910" alt="詳細設定のトリガーとしきい値" loading="lazy">
+          <span class="pin" style="left:51%;top:23.5%">1</span>
+          <span class="pin" style="left:50%;top:44.3%">2</span>
+          <span class="pin" style="left:57%;top:55%">3</span>
+          <span class="pin" style="left:50%;top:68.1%">4</span>
+          <span class="pin" style="left:75%;top:78.9%">5</span>
+        </a>
+      </figure>
+      <div>
+        <ol class="legend one">
+          <li><span class="n">1</span><span><b>トリガーモード</b> — Analog / Digital / Dual（下の図）</span></li>
+          <li><span class="n">2</span><span><b>信号しきい値</b>（0〜4095）— Analog と Dual で使う</span></li>
+          <li><span class="n">3</span><span><b>自動校正</b> — ノイズを約 1 秒（100 回）測り、その<strong>最大値にマージン</strong>（初期値 50）を足してしきい値にする。光が入らない状態で</span></li>
+          <li><span class="n">4</span><span><b>コンパレータしきい値</b>（PWM duty 0〜255）— Digital と Dual で使う</span></li>
+          <li><span class="n">5</span><span><b>Auto PWM</b> — しきい値を掃引し、ノイズの反応が目標（回/秒）以下になるところに合わせる（約 8 秒）。Digital・Dual にしたら一度実行</span></li>
+        </ol>
+      </div>
+    </div>
+    <figure class="fig">
+      <svg class="dg" viewBox="0 0 780 250" role="img" aria-label="ひとつの信号と 2 本のしきい値。モードによってどちらで数えるかが違う">
+        <!-- plot -->
+        <line class="ln" x1="40" y1="200" x2="300" y2="200"/>
+        <line class="ln" x1="40" y1="20" x2="40" y2="200"/>
+        <text class="t-s" x="46" y="18">信号（ピークホールドの出力）</text>
+        <text class="t-s t-e" x="300" y="220">時間 →</text>
+        <path class="ln-thick" d="M40 190 H 100 L 108 52 L 124 52 C 150 66, 190 140, 230 172 C 255 186, 280 189, 300 190"/>
+        <line x1="40" y1="118" x2="300" y2="118" style="stroke:var(--ink-2);stroke-width:1.5;stroke-dasharray:6 4"/>
+        <text class="t-s" x="308" y="114">信号</text><text class="t-s" x="308" y="130">しきい値</text>
+        <line class="ln-coral" x1="40" y1="150" x2="300" y2="150"/>
+        <text class="t-s" x="308" y="154" style="fill:var(--coral-2)">コンパ</text><text class="t-s" x="308" y="170" style="fill:var(--coral-2)">レータ</text>
+        <circle class="fill-sig" cx="104" cy="118" r="5" style="stroke:var(--signal-2)"/>
+        <!-- modes -->
+        <g transform="translate(420,20)">
+          <rect class="box" x="0" y="0" width="356" height="60" rx="6"/>
+          <text class="t-b" x="14" y="24">Analog</text><text class="t-s" x="84" y="24">（起動時）</text>
+          <text class="t-s" x="14" y="46">信号を読み続け、黒い点線を超えたら数える</text>
+          <rect class="box" x="0" y="72" width="356" height="60" rx="6" style="stroke:var(--coral)"/>
+          <text class="t-b" x="14" y="96">Digital</text>
+          <text class="t-s" x="14" y="118">回路の比較器が赤い点線を超えたのを知らせたら数える</text>
+          <rect class="box" x="0" y="144" width="356" height="60" rx="6"/>
+          <text class="t-b" x="14" y="168">Dual</text>
+          <text class="t-s" x="14" y="190">比較器が反応し、さらに黒い点線も超えていたら数える</text>
+        </g>
+      </svg>
+      <figcaption>しきい値が低すぎるとノイズまで数え、高すぎると小さな信号を取りこぼします。迷ったら Analog で自動校正を使ってください。</figcaption>
+    </figure>
+
+    <h3>検出器の機能・音と振動</h3>
+    <div class="side">
+      <figure class="shot">
+        <a class="shot-frame" href="assets/img/manual/adv-features.webp" target="_blank" rel="noopener"><img src="assets/img/manual/adv-features.webp" width="460" height="910" alt="詳細設定の検出器の機能と音と振動" loading="lazy"></a>
+      </figure>
+      <div>
+        <p><strong>検出器の機能</strong> — microSD への記録・外部検出器の読み取り・OLED 画面・ブザー・振動モーターを、それぞれスイッチでオン／オフできます。使わない機能を止めると、デッドタイムが減り電池が長持ちします。設定は検出器に保存され、次の起動でも残ります。</p>
+        <p><strong>音と振動</strong> — 信号が大きいほど高い音・長い振動になります（対数）。最低 / 最高の周波数、音の長さ、振動の最短 / 最長を設定し、<span class="ui">鳴らしてみる</span> / <span class="ui">振動させてみる</span> で確かめられます。音は計数を妨げません。振動のテストのあいだ止まった時間はデッドタイムに入ります。</p>
+      </div>
+    </div>
+
+    <h3>表示・接続</h3>
+    <ul>
+      <li><strong>グラフの更新間隔</strong> — 1 秒 / 3 秒 / 10 秒 / 手動（<span class="ui">今すぐ更新</span>）。</li>
+      <li><strong>接続先</strong> — USB の VID:PID、Bluetooth の名前、基板のアドレス。どの基板につながっているかの確認に使います。</li>
+      <li><strong>Bluetooth の名前</strong> — 英数字と記号で 1〜19 文字。<span class="ui">名前を変えて再起動</span> で検出器に保存され、再起動後に新しい名前になります。教室で何台も使うときは、1 台ずつ別の名前にしておくと便利です。</li>
+    </ul>
+
+    <!-- ============================================================ -->
+    <h2 id="upload"><span class="no">09</span>サーバーへの送信</h2>
+    <p><span class="ui">詳細設定</span> &gt; <span class="ui">サーバー送信</span> から、測定イベントを観測サーバー（<code>cosmicray-server</code>）へリアルタイムに送れます。</p>
+    <figure class="fig">
+      <svg class="dg" viewBox="0 0 780 176" role="img" aria-label="届いたイベントは全件ファイルに保存され、送信は間引いてから送信待ちを通ってサーバーへ">
+        <rect class="box-ink" x="0" y="64" width="130" height="48" rx="6"/>
+        <text class="t-b t-c" x="65" y="93" style="fill:var(--paper)">届いたイベント</text>
+        <path class="ln" d="M130 80 C 160 80, 160 34, 190 34" marker-end="url(#ar)"/>
+        <rect class="box" x="196" y="10" width="200" height="48" rx="6"/>
+        <text class="t-b t-c" x="296" y="32">自動保存（全件）</text><text class="t-s t-c" x="296" y="50">このパソコン — 正本</text>
+        <path class="ln" d="M130 98 C 160 98, 160 136, 190 136" marker-end="url(#ar)"/>
+        <rect class="box-soft" x="196" y="112" width="120" height="48" rx="6"/>
+        <text class="t-b t-c" x="256" y="134">送る量</text><text class="t-s t-c" x="256" y="152">全件 / 1/10 / 1/100</text>
+        <path class="ln" d="M316 136 H 346" marker-end="url(#ar)"/>
+        <rect class="box-sig" x="352" y="112" width="190" height="48" rx="6"/>
+        <text class="t-b t-c" x="447" y="134">送信待ち</text><text class="t-s t-c" x="447" y="152">最大 50,000 件</text>
+        <path class="ln" d="M542 136 H 600" marker-end="url(#ar)"/>
+        <text class="t-s t-c" x="571" y="126">1 秒ごと</text>
+        <rect class="box-soft" x="606" y="112" width="170" height="48" rx="6" style="stroke-dasharray:4 4"/>
+        <text class="t-b t-c" x="691" y="134">観測サーバー</text><text class="t-s t-c" x="691" y="152">切れたら自動で再試行</text>
+        <path class="ln-coral" d="M447 112 V 84" marker-end="url(#ar-coral)"/>
+        <text class="t-s" x="456" y="80" style="fill:var(--coral-2)">あふれたら古いものから破棄（ファイルには残る → 再送できる）</text>
+      </svg>
+      <figcaption>正式な記録はこのパソコンの自動保存です。サーバーへの送信は複製なので、<strong>自動保存と一緒に使ってください</strong>。</figcaption>
+    </figure>
+
+    <h3>送信の手順</h3>
+    <div class="side">
+      <figure class="shot">
+        <a class="shot-frame" href="assets/img/manual/adv-upload.webp" target="_blank" rel="noopener">
+          <img src="assets/img/manual/adv-upload.webp" width="460" height="910" alt="詳細設定のサーバー送信" loading="lazy">
+          <span class="pin" style="left:30%;top:26.3%">1</span>
+          <span class="pin" style="left:23%;top:34.3%">2</span>
+          <span class="pin" style="left:59%;top:42.5%">3</span>
+          <span class="pin" style="left:19.5%;top:62.5%">4</span>
+          <span class="pin" style="left:70%;top:71.3%">5</span>
+          <span class="pin" style="left:89%;top:81.7%">6</span>
+        </a>
+      </figure>
+      <div>
+        <ol class="legend one">
+          <li><span class="n">1</span><span><b>サーバー URL</b>（例: <code>http://accel-kitchen.com:3000</code>）</span></li>
+          <li><span class="n">2</span><span><b>観測局 ID とパスワード</b> — ID がサーバー上の保存先の名前になる。必要なら装置ラベル（1 か所に何台もあるときの区別）と緯度・経度も</span></li>
+          <li><span class="n">3</span><span><b>パスワードを保存</b> — 共用のパソコンでは使わない（下の注意）</span></li>
+          <li><span class="n">4</span><span><b>送る量</b> — 回線が細いときや計数率が高いときは減らす（自動保存は全件のまま）</span></li>
+          <li><span class="n">5</span><span><b>ログイン</b> を押してから <b>送信開始</b></span></li>
+          <li><span class="n">6</span><span><b>状態</b> — 下の表。その下の行は <code>送信 / 待ち / 間引き / 破棄 / 拒否</code> の件数</span></li>
+        </ol>
+      </div>
+    </div>
+    <h3>表示の見方</h3>
+    <div class="table-wrap"><table>
+      <thead><tr><th>表示</th><th>意味</th></tr></thead>
+      <tbody>
+        <tr><td>未設定</td><td>URL / ID が空、またはログインしていない</td></tr>
+        <tr><td>◯◯ でログイン中 — 送信は止まっています</td><td>ログイン済み。<span class="ui">送信開始</span> を待っている</td></tr>
+        <tr><td>送信中 — 送信済み N 件 / 待ち N 件</td><td>正常に送っている</td></tr>
+        <tr><td>N 秒後に再試行（M 回目）</td><td>送信に失敗。1 → 2 → 4 … 最長 60 秒の間隔で、回数の制限なく再試行（データは保持）</td></tr>
+        <tr><td>未送信 N 件 — 回線が追いつきません</td><td>送信待ちがたまっている。送る量を減らす</td></tr>
+        <tr><td>オフライン</td><td>ネットワークが切れている。戻ると自動で再開</td></tr>
+        <tr><td>認証に失敗しました</td><td>もう一度ログインする</td></tr>
+      </tbody>
+    </table></div>
+    <h3>送られる項目</h3>
+    <div class="note note-warn"><svg class="i"><use href="#i-alert"/></svg><div>
+      <p>今のサーバーの取り込み形式は CosmicWatch 用のため、<strong>湿度・気圧・外部検出器（Dig1〜3・Ana1〜3）は送られません</strong>（画面にも「旧 API モード」と出ます）。これらが必要なときは保存した <code>.dat</code> / <code>.csv</code> を使ってください。</p>
+    </div></div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>サーバーの項目</th><th>この検出器の値</th><th>備考</th></tr></thead>
+      <tbody>
+        <tr><td><code>event</code></td><td>Event（通し番号）</td><td>—</td></tr>
+        <tr><td><code>timestamp</code></td><td>パソコンの時計 ＋ 検出器の µs 時計</td><td>間隔の精度は検出器の時計で保つ</td></tr>
+        <tr><td><code>time</code></td><td>Time[us]</td><td>起動からの経過</td></tr>
+        <tr><td><code>adc</code></td><td>ADC（0〜4095）</td><td>—</td></tr>
+        <tr><td><code>vol</code></td><td>ADC から換算した電圧 [mV]</td><td><strong>計算値で、実測ではありません</strong></td></tr>
+        <tr><td><code>deadtime</code></td><td>Deadtime[us] ÷ 1000</td><td>ms にして送る</td></tr>
+        <tr><td><code>temp</code></td><td>Temp[C]</td><td>—</td></tr>
+      </tbody>
+    </table></div>
+    <h3>パスワードの扱い</h3>
+    <div class="note note-warn"><svg class="i"><use href="#i-alert"/></svg><div>
+      <b>「このパソコンにパスワードを保存する」は共用のパソコンで使わないでください</b>
+      <p>ブラウザの中に<strong>暗号化せずに</strong>保存されます。<code>file://</code> で開いているときは、Chrome がすべてのローカル HTML ファイルで保存場所を共有するので、ほかのローカルのページからも読めてしまいます。</p>
+    </div></div>
+    <p>ふつうはパスワードを保存せず、タブを開いている間だけメモリに持っています（夜通しの測定中に認証が切れても、自動でログインし直せるように）。測定が終わったら <span class="ui">ログアウト</span> で消してください。サーバー URL が <code>http://</code> のときは、パスワードとデータが暗号化されずに送られる旨の注意が出ます。</p>
+
+    <!-- ============================================================ -->
+    <h2 id="plotter"><span class="no">10</span>解析（プロッター）</h2>
+    <p>上の <a href="plotter.html"><span class="ui">解析</span></a> で開きます。保存したファイルを読み込むだけなので、検出器は要りません。v2 の <code>.dat</code> / <code>.csv</code> のほか、v1 のページで保存した <code>.dat</code> と、microSD のログ（<code>LOG0001.TXT</code> など）も読めます。ファイルはこのパソコンの中だけで読み、どこにも送りません。</p>
+
+    <h3>ADC ヒストグラム</h3>
+    <figure class="shot">
+      <a class="shot-frame" href="assets/img/manual/plotter-hist.webp" target="_blank" rel="noopener">
+        <img src="assets/img/manual/plotter-hist.webp" width="1240" height="920" alt="解析の ADC ヒストグラム。線源ありの測定からバックグラウンドを引くと、ADC 760 あたりのピークが残る" loading="lazy">
+        <span class="pin" style="left:2.4%;top:10%">1</span>
+        <span class="pin" style="left:16.2%;top:15.9%">2</span>
+        <span class="pin" style="left:44.9%;top:15.9%">3</span>
+        <span class="pin" style="left:69.2%;top:13.3%">4</span>
+        <span class="pin" style="left:18.6%;top:20.5%">5</span>
+        <span class="pin" style="left:24%;top:36%">6</span>
+        <span class="pin" style="left:3.4%;top:51.5%">7</span>
+      </a>
+      <ol class="legend">
+        <li><span class="n">1</span><span><b>測定データ</b>のファイルを選ぶ</span></li>
+        <li><span class="n">2</span><span><b>ビン幅</b>と、ADC の範囲（任意）</span></li>
+        <li><span class="n">3</span><span><b>時間の範囲</b> — 何秒目から何秒目までを使うか</span></li>
+        <li><span class="n">4</span><span><b>バックグラウンド</b> — 線源なしで測ったファイル。倍率はライブタイムの比で自動（手で入れても良い）</span></li>
+        <li><span class="n">5</span><span><b>バックグラウンドを引く・対数・keV</b>（keV は校正があるとき）</span></li>
+        <li><span class="n">6</span><span><b>イベント数・平均・中央値・標準偏差</b></span></li>
+        <li><span class="n">7</span><span><b>グラフ</b> — 黒い棒が差し引いた結果、青い線が測定、赤い点線がバックグラウンド。ドラッグで拡大、ダブルクリックで戻る</span></li>
+      </ol>
+      <figcaption>例: Cs-137 を置いて測ったデータから、置かずに測ったデータを引くと、ADC 760 あたりに Cs-137 の光電ピーク（662 keV）とその下のコンプトン連続部が残ります。宇宙線の山（ADC 1100 あたり）はほぼ消えます。</figcaption>
+    </figure>
+
+    <h3>天頂角分布</h3>
+    <p>検出器を傾けて、真上（0°）から 15° ずつ向きを変えてカウントレートを測ると、宇宙線（ミューオン）が真上から多く、横からは少なく降ってくることを確かめられます。</p>
+    <figure class="fig">
+      <svg class="dg" viewBox="0 0 780 250" role="img" aria-label="検出器を天頂から角度 θ 傾けて測る">
+        <line class="ln" x1="30" y1="220" x2="370" y2="220"/>
+        <line class="ln-soft" x1="200" y1="220" x2="200" y2="22"/>
+        <text class="t-s t-c" x="200" y="14">天頂（真上）</text>
+        <g transform="rotate(40 200 170)">
+          <line class="ln-coral" x1="200" y1="170" x2="200" y2="40"/>
+          <rect class="box-ink" x="150" y="155" width="100" height="30" rx="4"/>
+        </g>
+        <path class="ln" d="M200 104 A 66 66 0 0 1 242 119"/>
+        <text class="t-b" x="214" y="98">θ</text>
+        <path class="ln-sig" d="M300 34 L 262 96" marker-end="url(#ar-sig)"/>
+        <path class="ln-sig" d="M334 58 L 288 118" marker-end="url(#ar-sig)"/>
+        <path class="ln-sig" d="M100 30 L 110 80" marker-end="url(#ar-sig)" style="opacity:.45"/>
+        <text class="t-s" x="300" y="22" style="fill:var(--signal-ink)">ミューオン</text>
+        <g transform="translate(420,40)">
+          <text class="t-b" x="0" y="20" style="font-size:16px">R(θ) = R(0°) · cosⁿθ</text>
+          <text class="t-s" x="0" y="50">R(θ): 角度 θ で測ったカウントレート</text>
+          <text class="t-s" x="0" y="72">地上のミューオンでは n ≈ 2</text>
+          <path class="ln-thick" d="M0 180 Q 150 180 300 78" style="stroke:var(--coral)"/>
+          <line class="ln" x1="0" y1="180" x2="310" y2="180"/>
+          <line class="ln" x1="0" y1="78" x2="0" y2="180"/>
+          <text class="t-s" x="300" y="198" style="text-anchor:end">cos θ → 1</text>
+          <text class="t-s" x="8" y="92">R/R(0°)</text>
+        </g>
+      </svg>
+    </figure>
+    <figure class="shot">
+      <a class="shot-frame" href="assets/img/manual/plotter-zenith.webp" target="_blank" rel="noopener">
+        <img src="assets/img/manual/plotter-zenith.webp" width="1240" height="950" alt="天頂角分布のタブ。角度ごとのレートの表と、cosⁿθ のフィットの 2 つのグラフ" loading="lazy">
+        <span class="pin" style="left:2.2%;top:12.9%">1</span>
+        <span class="pin" style="left:31.6%;top:21.8%">2</span>
+        <span class="pin" style="left:15%;top:51.9%">3</span>
+      </a>
+      <ol class="legend">
+        <li><span class="n">1</span><span><b>1 角度あたりの測定時間</b> — 誤差（√N）の計算に使う</span></li>
+        <li><span class="n">2</span><span><b>R(θ)</b> — 各角度のカウントレートを入れる。比と誤差は自動で出る</span></li>
+        <li><span class="n">3</span><span><b>cosⁿθ でフィット</b> — n と R² が出て、グラフに線が引かれる</span></li>
+      </ol>
+      <figcaption>入れた値はこのブラウザに残るので、測りながら少しずつ埋めていけます。</figcaption>
+    </figure>
+
+    <h3>エネルギー校正</h3>
+    <p>ADC の値をエネルギー（keV）に直すための式を、線源の既知のγ線から作ります。</p>
+    <figure class="shot">
+      <a class="shot-frame" href="assets/img/manual/plotter-cal.webp" target="_blank" rel="noopener">
+        <img src="assets/img/manual/plotter-cal.webp" width="1240" height="1045" alt="エネルギー校正のタブ。Co-60 のスペクトルに 2 つのピークがあり、表に 2 点を入れて 1 次式でフィットしている" loading="lazy">
+        <span class="pin" style="left:2%;top:11.4%">1</span>
+        <span class="pin" style="left:50.8%;top:8.4%">2</span>
+        <span class="pin" style="left:2%;top:26.1%">3</span>
+        <span class="pin" style="left:74%;top:42.5%">4</span>
+        <span class="pin" style="left:3.6%;top:87.4%">5</span>
+        <span class="pin" style="left:58.6%;top:79.7%">6</span>
+        <span class="pin" style="left:46.5%;top:96.1%">7</span>
+      </a>
+      <ol class="legend">
+        <li><span class="n">1</span><span><b>線源を置いて測ったファイル</b>を読み込む</span></li>
+        <li><span class="n">2</span><span><b>線源</b>を選んで <b>線源のピークを入れる</b> — 表にγ線のエネルギーが入る</span></li>
+        <li><span class="n">3</span><span><b>ピークを自動で探す</b> — 候補に ▼ が付く</span></li>
+        <li><span class="n">4</span><span><b>ピーク</b>をクリック — 選んでいる行の Peak ADC に入る（ガウス近似でビンより細かく）</span></li>
+        <li><span class="n">5</span><span><b>選択</b> — クリックで値を入れる行</span></li>
+        <li><span class="n">6</span><span><b>Peak ADC</b> — 手で入れても良い。FWHM と分解能も出る</span></li>
+        <li><span class="n">7</span><span><b>校正の式と R²</b> — 1 次は 2 点、2 次は 3 点以上で計算</span></li>
+      </ol>
+      <figcaption>例: Co-60 の 1173 keV と 1332 keV の 2 本を使った 1 次の校正（合成データ）。</figcaption>
+    </figure>
+    <p>校正はブラウザに自動で保存され、ADC ヒストグラムのタブで <span class="ui">横軸を keV に</span> すると、ほかの測定データにも使えます。<code>.json</code> に書き出して、別のパソコンに持っていくこともできます。</p>
+
+    <!-- ============================================================ -->
+    <h2 id="trouble"><span class="no">11</span>困ったとき</h2>
+    <h3>アプリ</h3>
+    <details><summary>USB / Bluetooth のボタンが押せない<svg class="i"><use href="#i-chevron"/></svg></summary>
+      <ul>
+        <li>Chrome か Edge で開いているか確かめてください。理由はボタンの下に出ます。</li>
+        <li>Bluetooth は <code>file://</code> で開いたページでは使えません。<code>http://localhost</code> で開き直してください（<a href="#open">02</a>）。</li>
+      </ul>
+    </details>
+    <details><summary>「シリアルポートを開けませんでした」と出る<svg class="i"><use href="#i-chevron"/></svg></summary>
+      <ul>
+        <li>ほかのアプリがポートを使っています。Arduino IDE のシリアルモニタや、このアプリを開いた別のタブを閉じてから、もう一度試してください。</li>
+      </ul>
+    </details>
+    <details><summary>Bluetooth の一覧に検出器が出ない<svg class="i"><use href="#i-chevron"/></svg></summary>
+      <ul>
+        <li><span class="ui">検出器の名前</span> が検出器の名前と同じか確かめてください（大文字・小文字も区別します）。</li>
+        <li>検出器の電源と距離、ほかのスマホやパソコンとつながっていないかを確かめてください。</li>
+      </ul>
+    </details>
+    <details><summary>「別の検出器につながりました」と出た<svg class="i"><use href="#i-chevron"/></svg></summary>
+      <ul>
+        <li>画面の計数率・経過時間・件数には前の検出器の分も入っています。測り直すときは <span class="ui">データを消去して最初から</span> を押してください。</li>
+      </ul>
+    </details>
+    <details><summary>サーバーに「接続できません」と出る<svg class="i"><use href="#i-chevron"/></svg></summary>
+      <ul>
+        <li>ページを <code>https://</code> で開いていないか確かめてください。<code>http://localhost</code> で開き直すのが確実です。</li>
+        <li>サーバー URL の綴りとポート番号（ふつうは <code>3000</code>）を確かめてください。</li>
+        <li>サーバーで CORS が有効になっているか、管理者に確かめてください。</li>
+      </ul>
+    </details>
+    <details><summary>ログインはできるのに、送信でエラーになる / 「拒否」が増える<svg class="i"><use href="#i-chevron"/></svg></summary>
+      <ul>
+        <li>観測局 ID が自分のアカウントの ID と同じか確かめてください。他人の ID には送れません。</li>
+        <li>「拒否」が増えるときは、サーバーの検査で受け付けられていません。管理者に相談してください。</li>
+      </ul>
+    </details>
+    <details><summary>「未送信」が増え続ける<svg class="i"><use href="#i-chevron"/></svg></summary>
+      <ul>
+        <li>回線に対して計数率が高すぎます。<span class="ui">送る量</span> を「10 件に 1 件」以下にしてください。自動保存は全件続きます。</li>
+      </ul>
+    </details>
+
+    <h3>検出器</h3>
+    <details><summary>受信ログに何も出ない / “Booting” が出ない<svg class="i"><use href="#i-chevron"/></svg></summary>
+      <ul>
+        <li>Arduino IDE のボードが <strong>Arduino Nano ESP32</strong>、<code>USB CDC On Boot</code> が <strong>Enabled</strong> になっているか確かめて、書き込み直してください。</li>
+        <li>ボーレートを 9600 にしてください。</li>
+        <li><code>BOOT</code> を押しながら <code>RESET</code> を押して書き込みモードにし、書き込み直してください。</li>
+      </ul>
+    </details>
+    <details><summary>イベントが 1 回も記録されない<svg class="i"><use href="#i-chevron"/></svg></summary>
+      <ul>
+        <li>しきい値が高すぎるかもしれません。<span class="ui">自動校正</span> をやり直してください。</li>
+        <li>Digital / Dual のときは、<span class="ui">Auto PWM</span> をやり直してください。</li>
+        <li><a href="#scope">オシロスコープ</a>で信号が来ているか確かめてください。</li>
+      </ul>
+    </details>
+    <details><summary>カウントレートが異常に高い<svg class="i"><use href="#i-chevron"/></svg></summary>
+      <ul>
+        <li>しきい値（Digital / Dual では PWM duty）が低すぎて、ノイズで反応しています。</li>
+        <li>ピークホールドのリセット（D8）が効いていないかもしれません。配線を確かめてください。</li>
+        <li>コンパレータの出力（D0）にノイズが乗っているかもしれません。グラウンドの配線を見直してください。</li>
+      </ul>
+    </details>
+    <details><summary>温度・湿度・気圧が「--」のまま<svg class="i"><use href="#i-chevron"/></svg></summary>
+      <ul>
+        <li>BME280 が見つかっていません。I²C アドレス（0x76 / 0x77）と配線（SDA = A4、SCL = A5）を確かめてください。</li>
+        <li>BMP280（温度と気圧だけ）では湿度は出ません。</li>
+      </ul>
+    </details>
+    <details><summary>OLED が真っ暗<svg class="i"><use href="#i-chevron"/></svg></summary>
+      <ul>
+        <li><span class="ui">詳細設定</span> &gt; <span class="ui">検出器の機能</span> で OLED がオンか確かめてください。</li>
+        <li>I²C の配線と電源（3.3 V / GND）、OLED のアドレス（0x3C、まれに 0x3D）を確かめてください。</li>
+      </ul>
+    </details>
+    <details><summary>外部検出器の Dig1〜3 がずっと 0（または 1）<svg class="i"><use href="#i-chevron"/></svg></summary>
+      <ul>
+        <li><span class="ui">外部検出器の読み取り</span> がオンか確かめてください。</li>
+        <li>外部検出器の出力の電圧（3.3 V / 5 V）と、プルアップ・プルダウンの要否を回路図で確かめてください。</li>
+      </ul>
+    </details>
+
+    <!-- ============================================================ -->
+    <h2 id="glossary"><span class="no">12</span>用語集</h2>
+    <dl class="terms">
+      <dt>SiPM</dt><dd>Silicon Photomultiplier（シリコン光電子増倍管）。シンチレーターが出す弱い光を電気の信号に変える素子。</dd>
+      <dt>ADC</dt><dd>信号の大きさを数にしたもの。この検出器では 0〜4095（12 ビット）。大きいほどエネルギーが大きい。</dd>
+      <dt>ピークホールド</dt><dd>パルスのいちばん高い電圧をしばらく保つ回路。マイコンが落ち着いて読めるようにするため。</dd>
+      <dt>コンパレータ</dt><dd>信号がしきい値を超えたかどうかを回路で判定する部品。しきい値は PWM の duty で作る。</dd>
+      <dt>Duty</dt><dd>PWM の信号が HIGH になっている時間の割合。0〜255 で表す。平均電圧 ≈ duty × 電源電圧 ÷ 255。</dd>
+      <dt>デッドタイム</dt><dd>1 イベントを処理している間など、次の信号を数えられない時間。</dd>
+      <dt>ライブタイム</dt><dd>経過時間からデッドタイムを引いた、実際に数えていた時間。カウントレートはこれで割る。</dd>
+      <dt>コインシデンス</dt><dd>複数の検出器がほぼ同時（µs 程度）に反応すること。貫いて通る粒子（ミューオンなど）だと確かめるのに使う。</dd>
+      <dt>BLE / NUS</dt><dd>Bluetooth Low Energy / Nordic UART Service。無線でシリアル通信のようにやりとりする仕組み。</dd>
+    </dl>
+
+    <!-- ============================================================ -->
+    <h2 id="a-format"><span class="no">付録 A</span>ファイルとログの形式</h2>
+    <h3>検出器が送る行</h3>
+    <p>イベントのたびに、USB と Bluetooth の両方へ 1 行ずつ送られます。空白区切りです。microSD のログも同じ形です。</p>
+    <pre><code>### Event Time[us] ADC[0-4095] Deadtime[us] Temp[C] Hum[%] Press[hPa] Dig1 Dig2 Dig3 Ana1 Ana2 Ana3
+42 18732450 1940 1203000 24.3 48.2 1013.2 1 0 1 2448 112 2804</code></pre>
+    <div class="table-wrap"><table>
+      <thead><tr><th>列</th><th>意味</th><th>範囲・単位</th></tr></thead>
+      <tbody>
+        <tr><td>Event</td><td>イベントの通し番号</td><td>1, 2, 3, …</td></tr>
+        <tr><td>Time[us]</td><td>起動（または RESET）からの時間</td><td>µs</td></tr>
+        <tr><td>ADC</td><td>この検出器のピークホールドの値</td><td>0〜4095</td></tr>
+        <tr><td>Deadtime[us]</td><td>デッドタイムの累計</td><td>µs</td></tr>
+        <tr><td>Temp[C] / Hum[%] / Press[hPa]</td><td>BME280 の温度・湿度・気圧（2 秒ごとに更新）</td><td>°C / %RH / hPa</td></tr>
+        <tr><td><span class="tag tag-new">v2</span>Dig1〜3</td><td>外部検出器 1〜3 のデジタル値</td><td>0 / 1</td></tr>
+        <tr><td><span class="tag tag-new">v2</span>Ana1〜3</td><td>外部検出器 1〜3 のアナログ値</td><td>0〜4095</td></tr>
+      </tbody>
+    </table></div>
+    <h3>このアプリが保存するファイル</h3>
+    <figure class="fig">
+      <svg class="dg" viewBox="0 0 780 176" role="img" aria-label="保存ファイルでは 2 列目に PC_Timestamp が入り、それより後ろの列が 1 つ右にずれる">
+        <text class="t-b" x="0" y="44">検出器の行</text><text class="t-s" x="0" y="62">microSD のログ</text>
+        <g transform="translate(130,22)">
+          <rect class="box" x="0" y="0" width="90" height="34"/><text class="t-m t-c" x="45" y="22">Event</text>
+          <rect class="box" x="210" y="0" width="100" height="34"/><text class="t-m t-c" x="260" y="22">Time[us]</text>
+          <rect class="box" x="310" y="0" width="90" height="34"/><text class="t-m t-c" x="355" y="22">ADC</text>
+          <rect class="box" x="400" y="0" width="120" height="34"/><text class="t-m t-c" x="460" y="22">Deadtime[us]</text>
+          <rect class="box-soft" x="520" y="0" width="120" height="34"/><text class="t-m t-c" x="580" y="22">Temp …</text>
+          <text class="t-s t-c" x="45" y="-6">0</text><text class="t-s t-c" x="260" y="-6">1</text><text class="t-s t-c" x="355" y="-6">2</text><text class="t-s t-c" x="460" y="-6">3</text>
+          <path class="ln-soft" d="M45 34 V 86"/><path class="ln-soft" d="M260 34 V 86"/><path class="ln-soft" d="M355 34 V 86"/><path class="ln-soft" d="M460 34 V 86"/>
+        </g>
+        <text class="t-b" x="0" y="130">保存ファイル</text><text class="t-s" x="0" y="148">.dat / .csv</text>
+        <g transform="translate(130,108)">
+          <rect class="box" x="0" y="0" width="90" height="34"/><text class="t-m t-c" x="45" y="22">Event</text>
+          <rect class="box-sig" x="90" y="0" width="120" height="34"/><text class="t-m t-c" x="150" y="22">PC_Timestamp</text>
+          <rect class="box" x="210" y="0" width="100" height="34"/><text class="t-m t-c" x="260" y="22">Time[us]</text>
+          <rect class="box" x="310" y="0" width="90" height="34"/><text class="t-m t-c" x="355" y="22">ADC</text>
+          <rect class="box" x="400" y="0" width="120" height="34"/><text class="t-m t-c" x="460" y="22">Deadtime[us]</text>
+          <rect class="box-soft" x="520" y="0" width="120" height="34"/><text class="t-m t-c" x="580" y="22">Temp …</text>
+          <text class="t-s t-c" x="45" y="52">0</text><text class="t-s t-c" x="150" y="52">1</text><text class="t-s t-c" x="260" y="52">2</text><text class="t-s t-c" x="355" y="52">3</text><text class="t-s t-c" x="460" y="52">4</text>
+        </g>
+        <text class="t-s" x="222" y="99" style="fill:var(--signal-ink)">↓ 足した列（PC の時計）</text>
+      </svg>
+      <figcaption>小さい数字は 0 から数えた列の番号です。プログラムで読むときは、ファイルによって ADC が 2 列目か 3 列目かが変わることに気をつけてください（解析のページは見出しの行から自動で見分けます）。</figcaption>
+    </figure>
+    <p>上の列の 2 列目に <strong>PC_Timestamp</strong>（このパソコンの時計、UTC、末尾 <code>Z</code>）を足した形です。そのため 3 列目以降は、検出器の行より 1 つ右にずれます。<code>.dat</code> はタブ区切り、<code>.csv</code> はカンマ区切りです。</p>
+    <pre><code># 屋上・水平・晴れ                       ← メモ
+# Source: CosmicRay Recorder v2
+# Device: CosmicRay
+# Trigger mode: ANALOG
+# Signal threshold: 120 / 4095
+# Event	PC_Timestamp	Time[us]	ADC[0-4095]	Deadtime[us]	Temp[C]	Hum[%]	Press[hPa]	Dig1	Dig2	Dig3	Ana1	Ana2	Ana3
+1	2026-10-07T03:12:45.118Z	18732450	1940	1203000	24.3	48.2	1013.2	1	0	1	2448	112	2804</code></pre>
+    <div class="note note-ok"><svg class="i"><use href="#i-check"/></svg><div>
+      <p><code>#</code> で始まる行はメモと見出しです。Python の pandas なら <code>read_csv(path, sep='\t', comment='#')</code>（.csv は <code>sep</code> なし）で読めます。</p>
+    </div></div>
+
+    <!-- ============================================================ -->
+    <h2 id="a-commands"><span class="no">付録 B</span>コマンド一覧</h2>
+    <p>このアプリのボタンは、内部で次のコマンドを検出器に送っています。シリアル（9600 bps）か BLE の RX に書き込むと、手で送ることもできます。<strong>改行（LF か CR）で確定</strong>します。設定は検出器の Preferences に保存され、次の起動でも残ります。</p>
+
+    <h3>しきい値・トリガー</h3>
+    <div class="cmd"><div class="syntax">GET_THRESH</div>
+      <p>今の信号しきい値と PWM duty を <code>THRESH:&lt;sig&gt; DUTY:&lt;duty&gt;</code> で返します。</p></div>
+    <div class="cmd"><div class="syntax">SET_THRESH:&lt;signal&gt;</div>
+      <p>Analog / Dual で使う信号しきい値を 0〜4095 で設定します。例: <code>SET_THRESH:1200</code>。</p>
+      <div class="note"><svg class="i"><use href="#i-info"/></svg><div><p>v1 の 2 つの引数（<code>SET_THRESH:sig,rst</code>）はなくなりました。リセットのしきい値は回路が受け持ちます。</p></div></div></div>
+    <div class="cmd"><div class="syntax">AUTO_THRESH / AUTO_THRESH:&lt;margin&gt;</div>
+      <p>A0 のノイズを 100 回（約 1 秒）測り、<strong>最大値 ＋ マージン</strong> を信号しきい値にします。光が入らない状態で実行してください。</p>
+      <ul><li><code>AUTO_THRESH</code> — 今のマージン（初期値 50）で校正します。</li>
+          <li><code>AUTO_THRESH:&lt;margin&gt;</code> — マージンを変えてから校正します（例: <code>AUTO_THRESH:60</code>）。</li></ul></div>
+    <div class="cmd"><div class="syntax">GET_AUTO_MARGIN / SET_AUTO_MARGIN:&lt;n&gt;</div>
+      <p>自動校正のマージンを読む / 設定します。応答は <code>AUTO_MARGIN:&lt;n&gt;</code>。</p></div>
+    <div class="cmd"><div class="syntax">GET_MODE / SET_MODE:DIGITAL|DUAL|ANALOG</div>
+      <p>トリガーモードを読む / 設定します。応答は <code>MODE:ANALOG</code> など。</p></div>
+
+    <h3>コンパレータのしきい値（PWM）</h3>
+    <div class="cmd"><div class="syntax">GET_PWM / SET_PWM:&lt;0-255&gt;</div>
+      <p>Digital / Dual で使うコンパレータのしきい値（D2 の PWM duty）を読む / 設定します。応答は <code>PWM:&lt;duty&gt;</code>。</p></div>
+    <div class="cmd"><div class="syntax">AUTO_PWM / AUTO_PWM:&lt;target_edges_per_s&gt;</div>
+      <p>duty を掃引して、ノイズの反応が目標（回/秒）以下になる点に合わせ、終わると <code>PWM:&lt;duty&gt;</code> を返します。Digital / Dual を使う前に一度実行してください。</p>
+      <div class="note"><svg class="i"><use href="#i-info"/></svg><div><p>コンパレータのしきい値は <code>SET_THRESH</code> とは別に設定します（以前の ×2 の換算はなくなりました）。</p></div></div></div>
+
+    <h3>オシロスコープ</h3>
+    <div class="cmd"><div class="syntax">SET_SCOPE:ON|OFF / GET_SCOPE</div>
+      <p>波形を送るモードを切り替えます。応答は <code>SCOPE:ON</code> / <code>SCOPE:OFF</code>。ON の間は<strong>計数が止まり</strong>、その時間はデッドタイムに入ります。波形は <code>WF,…</code> で始まる行で届きます。</p></div>
+    <div class="cmd"><div class="syntax">SET_SCOPE_RATE:&lt;n&gt; / GET_SCOPE_RATE</div>
+      <p>1 秒に送る波形の数の上限（1〜20、初期値 3）を読む / 設定します。応答は <code>SCOPE_RATE:&lt;n&gt;</code>。</p></div>
+
+    <h3>ブザー</h3>
+    <div class="cmd"><div class="syntax">GET_BEEP / SET_BEEP:&lt;min_hz&gt;,&lt;max_hz&gt;,&lt;ms&gt;</div>
+      <p>イベントごとの音を読む / 設定します。応答は <code>BEEP:&lt;min&gt;,&lt;max&gt;,&lt;ms&gt;</code>（初期値 <code>500,4000,25</code>）。信号の大きさを対数で音の高さにし、しきい値ちょうどで <code>min_hz</code>、ADC 最大で <code>max_hz</code> になります。</p>
+      <p>範囲: <code>min ≥ 50</code>、<code>min &lt; max ≤ 20000</code>、<code>ms</code> は 1〜500。音は待たずに鳴らすので、デッドタイムは増えません。</p></div>
+    <div class="cmd"><div class="syntax">BEEP_TEST</div><p>最低・中間・最高の音を順に鳴らします。</p></div>
+
+    <h3>振動モーター</h3>
+    <div class="cmd"><div class="syntax">GET_VIB_MS / SET_VIB_MS:&lt;min_ms&gt;,&lt;max_ms&gt;</div>
+      <p>振動の長さを読む / 設定します。応答は <code>VIBMS:&lt;min&gt;,&lt;max&gt;</code>（初期値 <code>20,120</code>）。信号が大きいほど長く振動します。範囲: <code>min ≥ 1</code>、<code>min &lt; max ≤ 500</code>。止めるのは <code>loop()</code> 側なので、デッドタイムは増えません。</p></div>
+    <div class="cmd"><div class="syntax">VIB_TEST</div>
+      <p>最短・中間・最長で順に振動させます。待っている間は計数が止まりますが、その時間はデッドタイムに入るので計数率は狂いません。</p></div>
+
+    <h3>機能のオン / オフ</h3>
+    <div class="cmd"><div class="syntax">SET_SD / SET_EXT / SET_OLED / SET_BUZZER / SET_VIB :ON|OFF</div>
+      <p>microSD・外部検出器・OLED・ブザー・振動をオン / オフします（初期値はすべて ON）。読むときは <code>GET_SD</code> などで、応答は <code>SD:ON</code>、<code>BUZZER:OFF</code> の形です。</p></div>
+
+    <h3>システム</h3>
+    <div class="cmd"><div class="syntax">GET_BLENAME / SET_BLENAME:&lt;name&gt;</div>
+      <p>Bluetooth の名前を読む / 変えます。応答は <code>BLENAME:&lt;name&gt;</code>。<strong>再起動すると反映</strong>されます。このアプリは 19 文字までに制限しています。</p></div>
+    <div class="cmd"><div class="syntax">GET_BTADDR</div><p>基板の Bluetooth アドレスを <code>BTADDR:aa:bb:cc:dd:ee:ff</code> で返します。USB でつないでいても使えます。</p></div>
+    <div class="cmd"><div class="syntax">RESET</div><p>イベント番号とデッドタイムを 0 に戻します。応答は <code>RESET:OK</code>。</p></div>
+
+    <h3>Bluetooth（Nordic UART Service）</h3>
+    <div class="table-wrap"><table>
+      <thead><tr><th>UUID</th><th>用途</th></tr></thead>
+      <tbody>
+        <tr><td><code>6E400001-B5A3-F393-E0A9-E50E24DCCA9E</code></td><td>サービス</td></tr>
+        <tr><td><code>6E400002-…</code></td><td>RX（パソコン → 検出器、Write）</td></tr>
+        <tr><td><code>6E400003-…</code></td><td>TX（検出器 → パソコン、Notify）</td></tr>
+      </tbody>
+    </table></div>
+    <p>検出器は 20 バイトずつに分けて送り、受け取る側で 1 行につなぎ直します。このアプリのほか、スマホの汎用 BLE ターミナル（iOS: Bluefruit Connect、Android: Serial Bluetooth Terminal / nRF Connect）でも、UART モードで行を見たりコマンドを送ったりできます。</p>
+
+    <!-- ============================================================ -->
+    <h2 id="a-hardware"><span class="no">付録 C</span>ハードウェアとピン</h2>
+    <h3>v1 からの主な変更</h3>
+    <div class="table-wrap"><table>
+      <thead><tr><th>項目</th><th>v1</th><th>v2</th></tr></thead>
+      <tbody>
+        <tr><td>トリガー</td><td>ADC を読み続けてしきい値と比べる</td><td>外部コンパレータ ＋ 割り込みも使える。しきい値は D2 の PWM duty</td></tr>
+        <tr><td>ピークホールド</td><td>信号が下がるまで待つ</td><td>D8 のパルスで強制的にリセット</td></tr>
+        <tr><td>温度センサ</td><td>NTC サーミスタ（A3）</td><td>BME280（I²C）で温度・湿度・気圧</td></tr>
+        <tr><td>コインシデンス</td><td>Master / Slave の 2 台</td><td>外部検出器 3 台を同時に入力（DIG_IN1〜3 / ANA_IN1〜3）</td></tr>
+        <tr><td>出力</td><td>LED のみ</td><td>ブザー、音声ジャック（COIN_OUT、ANA_OUT）、振動モーター</td></tr>
+        <tr><td>ログ</td><td>Mode 列（Master / Slave）</td><td>湿度・気圧と Dig1〜3 / Ana1〜3 の列。時間は µs</td></tr>
+      </tbody>
+    </table></div>
+    <h3>Nano ESP32 のピン</h3>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Nano ピン</th><th>ラベル</th><th>ネット名</th><th>方向</th><th>用途</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>D1 / TX</td><td>(Buzzer)</td><td class="dir-out">OUT</td><td>ブザー</td></tr>
+        <tr><td>2</td><td>D0 / RX</td><td>Trigger</td><td class="dir-in">IN (INT)</td><td>コンパレータの出力 → 割り込み</td></tr>
+        <tr><td>5</td><td>D2</td><td>PWM</td><td class="dir-out">OUT</td><td>コンパレータのしきい値（duty）</td></tr>
+        <tr><td>7</td><td>D4</td><td>DIG_IN3</td><td class="dir-in">IN</td><td>外部検出器 3（デジタル）</td></tr>
+        <tr><td>8</td><td>D5</td><td>DIG_IN2</td><td class="dir-in">IN</td><td>外部検出器 2（デジタル）</td></tr>
+        <tr><td>9</td><td>D6</td><td>DIG_IN1</td><td class="dir-in">IN</td><td>外部検出器 1（デジタル）</td></tr>
+        <tr><td>10</td><td>D7</td><td>COIN_OUT</td><td class="dir-out">OUT</td><td>音声ジャックのデジタル出力</td></tr>
+        <tr><td>11</td><td>D8</td><td>TriggerReset</td><td class="dir-out">OUT</td><td>ピークホールドのリセットパルス</td></tr>
+        <tr><td>12〜16</td><td>D9〜D13</td><td>SPI</td><td>—</td><td>microSD（CS / MOSI / MISO / SCK）</td></tr>
+        <tr><td>19</td><td>A0</td><td>ANA_OUT</td><td class="dir-in">IN (ADC)</td><td>この検出器のピークホールドの値</td></tr>
+        <tr><td>20</td><td>A1</td><td>ANA_IN1</td><td class="dir-in">IN (ADC)</td><td>外部検出器 1（アナログ）</td></tr>
+        <tr><td>21</td><td>A2</td><td>ANA_IN2</td><td class="dir-in">IN (ADC)</td><td>外部検出器 2（アナログ）</td></tr>
+        <tr><td>23</td><td>A4</td><td>SDA</td><td class="dir-bi">I²C</td><td>OLED ＋ BME280</td></tr>
+        <tr><td>24</td><td>A5</td><td>SCL</td><td class="dir-bi">I²C</td><td>OLED ＋ BME280</td></tr>
+        <tr><td>25</td><td>A6</td><td>ANA_IN3</td><td class="dir-in">IN (ADC)</td><td>外部検出器 3（アナログ）</td></tr>
+        <tr><td>26</td><td>A7</td><td>(Vibration)</td><td class="dir-out">OUT</td><td>振動モーター（基板では空き。後付け）</td></tr>
+      </tbody>
+    </table></div>
+    <div class="note"><svg class="i"><use href="#i-info"/></svg><div>
+      <b>ANA_OUT はマイコンから見ると入力です</b>
+      <p>「ANA_OUT」はアナログ回路（ピークホールド）からの出力という意味で、音声ジャックとマイコンの A0 に同じ信号がつながっています。マイコンはこの電圧を読むだけです。</p>
+    </div></div>
+    <h3>信号の流れ</h3>
+    <figure class="fig">
+      <svg class="dg" viewBox="0 0 780 300" role="img" aria-label="SiPM からアンプ、ピークホールドを通り、マイコンの A0 とコンパレータへ。D2 の PWM がしきい値、D8 がリセット">
+        <rect class="box" x="0" y="112" width="84" height="48" rx="6"/><text class="t-b t-c" x="42" y="141">SiPM</text>
+        <path class="ln" d="M84 136 H 108" marker-end="url(#ar)"/>
+        <rect class="box" x="114" y="112" width="84" height="48" rx="6"/><text class="t-b t-c" x="156" y="141">アンプ</text>
+        <path class="ln" d="M198 136 H 222" marker-end="url(#ar)"/>
+        <rect class="box" x="228" y="104" width="128" height="64" rx="6"/><text class="t-b t-c" x="292" y="132">ピーク</text><text class="t-b t-c" x="292" y="152">ホールド</text>
+
+        <path class="ln" d="M330 104 V 70 H 548" marker-end="url(#ar)"/>
+        <circle class="fill-ink" cx="410" cy="70" r="3.5"/>
+        <path class="ln" d="M410 70 V 42" marker-end="url(#ar)"/>
+        <rect class="box-soft" x="340" y="8" width="160" height="30" rx="5"/><text class="t-s t-c" x="420" y="28">音声ジャック ANA_OUT</text>
+
+        <path class="ln" d="M356 140 H 404" marker-end="url(#ar)"/>
+        <path class="box-coral" d="M410 110 L 410 170 L 470 140 Z"/>
+        <text class="t-s t-c" x="440" y="100" style="fill:var(--coral-2)">コンパレータ</text>
+        <path class="ln" d="M470 140 H 548" marker-end="url(#ar)"/>
+
+        <path class="ln-coral" d="M554 226 H 432 V 166" marker-end="url(#ar-coral)"/>
+        <text class="t-s" x="446" y="220" style="fill:var(--coral-2)">しきい値（PWM）</text>
+
+        <path class="ln" d="M554 266 H 292 V 174" marker-end="url(#ar)"/>
+        <text class="t-s" x="304" y="260">リセットのパルス</text>
+
+        <rect class="box-ink" x="554" y="44" width="224" height="246" rx="8"/>
+        <text class="t-b" x="652" y="74" style="fill:var(--paper)">Arduino</text>
+        <text class="t-b" x="652" y="94" style="fill:var(--paper)">Nano ESP32</text>
+        <text class="t-m" x="566" y="74" style="fill:var(--signal)">A0</text>
+        <text class="t-m" x="566" y="144" style="fill:var(--signal)">D0</text><text class="t-s" x="592" y="164" style="fill:#C9C3CF">割り込み</text>
+        <text class="t-m" x="566" y="230" style="fill:var(--signal)">D2</text><text class="t-s" x="592" y="230" style="fill:#C9C3CF">PWM</text>
+        <text class="t-m" x="566" y="270" style="fill:var(--signal)">D8</text><text class="t-s" x="592" y="270" style="fill:#C9C3CF">リセット</text>
+        <text class="t-s" x="652" y="134" style="fill:#C9C3CF">反応したら</text>
+        <text class="t-s" x="652" y="156" style="fill:var(--paper)">D7 → COIN_OUT</text>
+        <text class="t-s" x="652" y="178" style="fill:var(--paper)">D1 → ブザー</text>
+        <text class="t-s" x="652" y="200" style="fill:var(--paper)">A7 → 振動</text>
+
+        <text class="t-s" x="0" y="222">外部検出器 1〜3</text>
+        <text class="t-s" x="0" y="240">DIG_IN1〜3（D6 / D5 / D4）</text>
+        <text class="t-s" x="0" y="258">ANA_IN1〜3（A1 / A2 / A6）</text>
+        <text class="t-s" x="0" y="280">I²C（A4 / A5）: OLED・BME280</text>
+      </svg>
+      <figcaption>ピークホールドは信号の頂点を保ち、マイコンが A0 で読んだあと D8 のパルスでリセットされます。オシロスコープで見える「立ち上がって頂点で止まり、ゆっくり下がる」形はこのためです。</figcaption>
+    </figure>
+    <h3>振動モーターの配線</h3>
+    <div class="note note-warn"><svg class="i"><use href="#i-alert"/></svg><div>
+      <b>GPIO に直接つながないでください</b>
+      <p>振動モーターは <strong>A7（GPIO14）</strong>で動かします。<strong>D13 は使えません</strong>（microSD の SCK と共用で、SD のログが壊れます）。コイン型（10 × 2.7 mm）は 75〜90 mA ほど流れ、起動時はさらに大きく、ESP32-S3 の GPIO の絶対最大定格 40 mA を超えます。A7 → 1 kΩ → NPN トランジスタ（2N3904 / S8050）か N-ch MOSFET（2N7002）で駆動し、モーターと並列に還流ダイオード（1N4148）、端子間に 0.1 µF を入れてください。モーターのノイズは SiPM の誤トリガーの原因にもなります。</p>
+    </div></div>
+
+    <!-- ============================================================ -->
+    <h2 id="a-firmware"><span class="no">付録 D</span>ファームウェアの書き込み</h2>
+    <h3>用意するもの</h3>
+    <ul>
+      <li>Arduino IDE 2.x（または PlatformIO）</li>
+      <li>ESP32 Arduino Core（ボードマネージャで <code>esp32</code> by Espressif Systems）</li>
+      <li>USB Type-C ケーブル</li>
+    </ul>
+    <h3>ライブラリ</h3>
+    <div class="table-wrap"><table>
+      <thead><tr><th>ライブラリ</th><th>用途</th></tr></thead>
+      <tbody>
+        <tr><td>Adafruit SSD1306</td><td>OLED</td></tr>
+        <tr><td>Adafruit GFX Library</td><td>描画の土台</td></tr>
+        <tr><td><span class="tag tag-new">v2</span>Adafruit BME280 Library</td><td>温度・湿度・気圧</td></tr>
+        <tr><td><span class="tag tag-new">v2</span>Adafruit Unified Sensor</td><td>BME280 が使う</td></tr>
+      </tbody>
+    </table></div>
+    <p>BLE と Preferences は ESP32 Arduino Core に入っているので、別に入れる必要はありません。</p>
+    <h3>書き込みの手順</h3>
+    <ol class="steps-list">
+      <li><code>v2/COSMICRAY_DETECTOR_ESP32-S3-Nano-v2/COSMICRAY_DETECTOR_ESP32-S3-Nano-v2.ino</code> を Arduino IDE で開きます。</li>
+      <li><span class="ui">ツール</span> &gt; <span class="ui">ボード</span> で <strong>Arduino Nano ESP32</strong> を選び、<code>USB CDC On Boot</code> を <strong>Enabled</strong> にします。</li>
+      <li>ポートを選びます（Windows は <code>COMxx</code>、Mac は <code>/dev/cu.usbmodem…</code>）。</li>
+      <li>✓（検証）でコンパイルし、→（書き込み）で書き込みます。</li>
+      <li>シリアルモニタ（9600 baud）に <code>Booting v2...</code> と出れば完了です。</li>
+    </ol>
+    <div class="note note-warn"><svg class="i"><use href="#i-alert"/></svg><div>
+      <b>書き込めないとき</b>
+      <p>基板の <code>BOOT</code> を押しながら <code>RESET</code> を一瞬押すと書き込みモードになります。そのあと IDE から書き込んでください。書き込み中はこのアプリを閉じておいてください（ポートを取り合います）。</p>
+    </div></div>
+    <h3>起動の流れ</h3>
+    <ol>
+      <li>電源を入れると <code>Booting v2...</code> を送ります。</li>
+      <li>保存してある設定を読みます（初めてのときは自動校正）。</li>
+      <li>Bluetooth の広告を始めます（名前は最初 <code>CosmicRay</code>）。</li>
+      <li>OLED にオープニング画面を出します。</li>
+      <li>BME280 を探します（0x76 → 0x77）。</li>
+      <li>計測を始めます。</li>
+    </ol>
+    <h3>OLED の表示</h3>
+    <pre>Accel Kitchen v2
+Cnt:123  T:00:05:42
+Rate: 0.41+/-0.04
+Thr:30 Duty:7
+Temp:24.3C</pre>
+    <p><strong>Cnt</strong> は累計のイベント数、<strong>T</strong> は経過時間、<strong>Rate</strong> は平均レートと統計誤差、<strong>Thr / Duty</strong> は信号しきい値と PWM duty、<strong>Temp</strong> は温度です。</p>
+
+    <p><a class="toplink" href="#"><svg class="i"><use href="#i-up"/></svg>ページの先頭へ</a></p>
+  </article>
+</div>
+
+<footer class="foot">
+  <span>&copy; 2020&ndash;2026 <a href="https://accel-kitchen.com/" target="_blank" rel="noopener">加速キッチン合同会社</a></span>
+  <a href="mailto:info@accel-kitchen.com">info@accel-kitchen.com</a>
+  <span>対応ファーム: COSMICRAY_DETECTOR_ESP32-S3-Nano-v2</span>
+</footer>
+
+<script>
+  // 上の帯の高さ（目次の sticky と見出しの飛び先に使う）と、いま読んでいる節の目次の印。
+  (function () {
+    var bar = document.getElementById('topbar');
+    function syncHead() { document.documentElement.style.setProperty('--head-h', bar.offsetHeight + 'px'); }
+    syncHead();
+    window.addEventListener('resize', syncHead);
+
+    var heads = Array.prototype.slice.call(document.querySelectorAll('.article h2[id]'));
+    var links = {};
+    document.querySelectorAll('.toc a').forEach(function (a) { links[a.getAttribute('href').slice(1)] = a; });
+    var current = null, pending = false;
+    function mark() {
+      pending = false;
+      var line = bar.offsetHeight + window.innerHeight * 0.25, hit = null;
+      for (var i = 0; i < heads.length; i++) { if (heads[i].getBoundingClientRect().top <= line) hit = heads[i]; else break; }
+      var a = hit ? links[hit.id] : null;
+      if (a === current) return;
+      if (current) current.classList.remove('here');
+      current = a;
+      if (current) current.classList.add('here');
+    }
+    window.addEventListener('scroll', function () { if (!pending) { pending = true; requestAnimationFrame(mark); } }, { passive: true });
+    mark();
+  })();
+</script>
+</body>
+</html>

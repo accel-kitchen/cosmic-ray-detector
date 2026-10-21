@@ -32,6 +32,12 @@ const I18N = {
     'model.last': '前回',
     'model.note': '選んだ機種は覚えておき、次からはすぐ接続の画面を開きます。あとから「機種を選び直す」で変えられます。',
     'model.change': '機種を選び直す',
+    'nav.plotter': '解析',
+    'nav.plotterTitle': '保存したデータを解析する（別のタブで開きます）',
+    'nav.plotterOpen': '保存したデータを解析する',
+    'nav.manual': 'マニュアル',
+    'nav.manualTitle': '使い方を読む（別のタブで開きます）',
+    'nav.manualOpen': 'マニュアルを開く',
 
     // --- 最初の画面 ---
     'connect.eyebrow': '宇宙線検出器 v2 のデータ記録アプリ',
@@ -369,6 +375,8 @@ const I18N = {
     'scope.xTitle': 'トリガーからの時間 [µs]',
     'scope.yTitle': 'ADC',
     'scope.thresh': 'しきい値',
+    'scope.threshDrag': '線をドラッグして変更',
+    'scope.threshAria': 'しきい値（↑↓キーで変更、Shift で 10、PageUp/PageDown で 100）',
 
     'dlg.skip': '次回からこの確認を表示しない',
     'gloss.label': '「{term}」の説明',
@@ -398,6 +406,12 @@ const I18N = {
     'model.last': 'Last time',
     'model.note': 'Your choice is remembered, so next time the connect screen opens straight away. Use "Choose another model" to change it.',
     'model.change': 'Choose another model',
+    'nav.plotter': 'Analysis',
+    'nav.plotterTitle': 'Analyse saved data (opens in a new tab)',
+    'nav.plotterOpen': 'Analyse saved data',
+    'nav.manual': 'Manual',
+    'nav.manualTitle': 'Read the manual (opens in a new tab)',
+    'nav.manualOpen': 'Open the manual',
 
     'connect.eyebrow': 'Data recorder for the v2 cosmic-ray detector',
     'connect.title': 'Count cosmic rays',
@@ -726,6 +740,8 @@ const I18N = {
     'scope.xTitle': 'Time from trigger [µs]',
     'scope.yTitle': 'ADC',
     'scope.thresh': 'Threshold',
+    'scope.threshDrag': 'drag the line to change',
+    'scope.threshAria': 'Threshold (arrow keys to change, Shift for 10, PageUp/PageDown for 100)',
 
     'dlg.skip': 'Don\'t ask again',
     'gloss.label': 'What is "{term}"?',

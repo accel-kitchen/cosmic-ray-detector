@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+JP:wght@400;500;700&family=Shippori+Mincho:wght@600;700&display=swap">
-  <link rel="stylesheet" href="console.css">
+  <link rel="stylesheet" href="assets/css/console.css">
 </head>
 <body data-view="model">
 
@@ -44,6 +44,8 @@
   <symbol id="i-chevron" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
   <symbol id="i-stop" viewBox="0 0 24 24"><rect x="6.5" y="6.5" width="11" height="11" rx="1"/></symbol>
   <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 20V4M4 20h16"/><path d="M7.5 20v-5M11 20V9M14.5 20v-7M18 20v-3"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24"><path d="M12 6.5C10 5 7.5 4.5 4 4.5v13c3.5 0 6 .5 8 2 2-1.5 4.5-2 8-2v-13c-3.5 0-6 .5-8 2z"/><path d="M12 6.5v13"/></symbol>
 </svg>
 
 <!-- ===== Top bar: the one place that shows the connection ===== -->
@@ -83,6 +85,13 @@
       <button type="button" class="btn btn-quiet btn-sm" id="btnOpenScope" data-i18n-title="scope.openTitle">
         <svg class="i"><use href="#i-wave"/></svg><span class="lbl" data-i18n="scope.open">オシロスコープ</span>
       </button>
+      <!-- 計測を止めないよう、別のタブで開く -->
+      <a class="btn btn-quiet btn-sm" id="linkPlotter" href="plotter.html" target="_blank" rel="noopener" data-i18n-title="nav.plotterTitle">
+        <svg class="i"><use href="#i-chart"/></svg><span class="lbl" data-i18n="nav.plotter">解析</span>
+      </a>
+      <a class="btn btn-quiet btn-sm" id="linkManual" href="manual.html" target="_blank" rel="noopener" data-i18n-title="nav.manualTitle">
+        <svg class="i"><use href="#i-book"/></svg><span class="lbl" data-i18n="nav.manual">マニュアル</span>
+      </a>
       <button type="button" class="btn btn-quiet btn-sm" id="btnOpenAdvanced" aria-controls="drawer" aria-expanded="false">
         <svg class="i"><use href="#i-sliders"/></svg><span class="lbl" data-i18n="advanced.title">詳細設定</span>
       </button>
@@ -114,17 +123,17 @@
 
       <div class="models">
         <button type="button" class="model" data-model="v1">
-          <span class="model-fig"><img src="img/model-v1.webp" width="640" height="480" alt="" decoding="async"></span>
+          <span class="model-fig"><img src="assets/img/model-v1.webp" width="640" height="480" alt="" decoding="async"></span>
           <span class="model-name">v1<span class="model-last" data-i18n="model.last" hidden>前回</span></span>
           <span class="model-desc" data-i18n="model.v1Desc"></span>
         </button>
         <button type="button" class="model" data-model="v2">
-          <span class="model-fig"><img src="img/model-v2.webp" width="640" height="480" alt="" decoding="async"></span>
+          <span class="model-fig"><img src="assets/img/model-v2.webp" width="640" height="480" alt="" decoding="async"></span>
           <span class="model-name">v2<span class="model-last" data-i18n="model.last" hidden>前回</span></span>
           <span class="model-desc" data-i18n="model.v2Desc"></span>
         </button>
         <div class="model model-soon" aria-disabled="true">
-          <span class="model-fig"><img src="img/model-v2-1.webp" width="640" height="480" alt="" decoding="async"></span>
+          <span class="model-fig"><img src="assets/img/model-v2-1.webp" width="640" height="480" alt="" decoding="async"></span>
           <span class="model-name">v2.1<span class="model-tag" data-i18n="model.soon">準備中</span></span>
           <span class="model-desc" data-i18n="model.v21Desc"></span>
         </div>
@@ -348,7 +357,7 @@
       </div>
       <p class="scope-warn" id="scopeBleWarn" hidden><svg class="i"><use href="#i-alert"/></svg><span data-i18n="scope.bleWarn"></span></p>
       <div class="scope-wrap" id="scopeWrap">
-        <canvas id="scopeCanvas"></canvas>
+        <canvas id="scopeCanvas" tabindex="0" role="slider" aria-orientation="vertical" aria-valuemin="0" aria-valuemax="4095" data-i18n-aria="scope.threshAria"></canvas>
       </div>
       <dl class="scope-stats">
         <div><dt data-i18n="scope.peak">ピーク ADC</dt><dd class="num" id="scopePeak">--</dd></div>
@@ -656,6 +665,10 @@
     <details class="adv" id="adv-help">
       <summary><span data-i18n="adv.help">ヘルプ</span><svg class="i"><use href="#i-chevron"/></svg></summary>
       <div class="adv-body">
+        <p class="help-links">
+          <a class="btn btn-line btn-sm" href="manual.html" target="_blank" rel="noopener"><svg class="i"><use href="#i-book"/></svg><span data-i18n="nav.manualOpen">マニュアルを開く</span></a>
+          <a class="btn btn-line btn-sm" href="plotter.html" target="_blank" rel="noopener"><svg class="i"><use href="#i-chart"/></svg><span data-i18n="nav.plotterOpen">保存したデータを解析する</span></a>
+        </p>
         <ul class="notes">
           <li data-i18n="notes.chrome"></li>
           <li data-i18n="notes.usb"></li>
@@ -689,9 +702,9 @@
   <p class="pop-body" id="popBody"></p>
 </div>
 
-<script src="js/i18n.js"></script>
-<script src="js/core.js"></script>
-<script src="js/charts.js"></script>
-<script src="js/ui.js"></script>
+<script src="assets/js/i18n.js"></script>
+<script src="assets/js/core.js"></script>
+<script src="assets/js/charts.js"></script>
+<script src="assets/js/ui.js"></script>
 </body>
 </html>
