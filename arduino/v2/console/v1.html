@@ -13,10 +13,6 @@
   <!-- 見た目は v2 の画面（index.html）と共通。ここには v1 だけに要るものを足す。 -->
   <link rel="stylesheet" href="assets/css/console.css">
   <style>
-    /* v1 には「デモ」の入口が無いので、接続方法は 2 つ */
-    @media (min-width: 901px) {
-      .choices-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    }
     #boardBadge { font-family: var(--f-num); color: var(--ink); }
     /* Chart.js は canvas の大きさを自分で決める。囲みのほうを基準にさせる */
     .chart-box canvas { position: absolute; inset: 0; }
@@ -44,6 +40,8 @@
   <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.5M12 7.8v.2"/></symbol>
   <symbol id="i-chevron" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
   <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-flask" viewBox="0 0 24 24"><path d="M9.5 3h5"/><path d="M10.5 3v5.6L5.3 18.1A1.9 1.9 0 0 0 7 21h10a1.9 1.9 0 0 0 1.7-2.9L13.5 8.6V3"/><path d="M7.7 14.5h8.6"/></symbol>
+  <symbol id="i-zap" viewBox="0 0 24 24"><path d="M13 3 5.5 13.5H11L10 21l8-11h-5.5z"/></symbol>
 </svg>
 
 <!-- ===== Top bar: the one place that shows the connection ===== -->
@@ -69,6 +67,7 @@
         <span class="quick-label" data-i18n="conn.reconnectLabel">もう一度つなぐ:</span>
         <button type="button" class="btn btn-line btn-sm" id="btnQuickUSB"><svg class="i"><use href="#i-usb"/></svg><span data-i18n="conn.quickUsb">USB</span></button>
         <button type="button" class="btn btn-line btn-sm" id="btnQuickBLE"><svg class="i"><use href="#i-bluetooth"/></svg><span data-i18n="conn.quickBle">Bluetooth</span></button>
+        <button type="button" class="btn btn-line btn-sm" id="btnQuickDemo"><svg class="i"><use href="#i-flask"/></svg><span data-i18n="conn.quickDemo">デモ</span></button>
       </span>
     </div>
 
@@ -91,6 +90,10 @@
       </div>
     </nav>
   </div>
+  <div class="demo-band" id="demoBanner" hidden>
+    <span class="demo-tag" data-i18n="demo.bannerTag">デモ</span>
+    <span data-i18n="demo.banner"></span>
+  </div>
 </header>
 
 <div class="page" id="page">
@@ -105,7 +108,7 @@
         <p class="hero-lead" data-i18n="connect.lead">検出器をパソコンにつなぐと、届いた宇宙線がその場でグラフになります。</p>
       </div>
 
-      <div class="choices choices-2">
+      <div class="choices">
         <div class="choice">
           <button type="button" class="choice-btn" id="btnConnectUSB">
             <svg class="i choice-icon"><use href="#i-usb"/></svg>
@@ -146,6 +149,23 @@
               <span data-i18n="conn.bleName">検出器の名前</span>
               <input type="text" id="bleDeviceName" value="CosmicRay" maxlength="24" placeholder="CosmicRay" spellcheck="false" autocomplete="off">
             </label>
+          </div>
+        </div>
+
+        <div class="choice choice-demo">
+          <button type="button" class="choice-btn" id="btnConnectDemo">
+            <svg class="i choice-icon"><use href="#i-flask"/></svg>
+            <span class="choice-title" data-i18n="demo.connect">デモで試す</span>
+            <span class="choice-desc" data-i18n="demo.connectDesc">検出器がなくても大丈夫。合成データで全部の機能を試せます。</span>
+          </button>
+          <div class="choice-foot">
+            <div class="field">
+              <span data-i18n="demo.board">デモの機種</span>
+              <div class="seg seg-wide" id="demoBoard" role="group">
+                <button type="button" data-board="NANO" class="active">Arduino Nano</button>
+                <button type="button" data-board="ESP32S3">ESP32-S3</button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -320,6 +340,24 @@
   <!-- ===== Save: always within reach while measuring ===== -->
   <aside class="rail" id="rail" aria-labelledby="railTitle">
     <button type="button" class="icon-btn rail-close" id="btnCloseRail" data-i18n-title="common.close"><svg class="i"><use href="#i-close"/></svg></button>
+
+    <section class="rail-sec demo-sec" id="demoSection" hidden>
+      <h2 class="rail-title"><svg class="i"><use href="#i-flask"/></svg><span data-i18n="demo.title">デモの設定</span></h2>
+      <div class="seg seg-wide" id="demoScenario">
+        <button type="button" data-scenario="background" class="active" data-i18n="demo.scBackground">通常</button>
+        <button type="button" data-scenario="source" data-i18n="demo.scSource">線源あり</button>
+        <button type="button" data-scenario="shower" data-i18n="demo.scShower">シャワー</button>
+      </div>
+      <p class="hint" id="demoScenarioInfo"></p>
+      <label class="field">
+        <span id="demoRateLabel"></span>
+        <input type="range" class="range" id="demoRate" min="0" max="100" step="1" value="50">
+      </label>
+      <div class="row">
+        <button type="button" class="btn btn-line btn-sm" id="btnDemoBurst"><svg class="i"><use href="#i-zap"/></svg><span data-i18n="demo.burst">バーストを起こす</span></button>
+      </div>
+      <p class="hint num-hint" id="demoInfo"></p>
+    </section>
 
     <section class="rail-sec">
       <h2 class="rail-title" id="railTitle" data-i18n="save.title">保存</h2>
@@ -742,6 +780,30 @@ const I18N = {
     'scope.sigLevel': '信号',
     'scope.rstLevel': 'リセット',
 
+    // --- デモ ---
+    'conn.quickDemo': 'デモ',
+    'demo.connect': 'デモで試す',
+    'demo.connectDesc': '検出器がなくても大丈夫。合成データで全部の機能を試せます。',
+    'demo.board': 'デモの機種',
+    'demo.title': 'デモの設定',
+    'demo.bannerTag': 'デモ',
+    'demo.banner': '表示している数値はすべてブラウザの中で作った合成データで、実際の測定ではありません。保存ファイルの名前には "DEMO_" が付きます。',
+    'demo.scBackground': '通常',
+    'demo.scSource': '線源あり',
+    'demo.scShower': 'シャワー',
+    'demo.sc.background': '宇宙線ミューオンの山と、しきい値から下がっていく環境ガンマ線。',
+    'demo.sc.source': 'シンチレーターの前に線源を置いた状態。光電ピークとその下のコンプトンの棚が出て、レートは約 6 倍。',
+    'demo.sc.shower': '空気シャワーが次々に来る状態。数秒間レートが跳ね上がり、波高が上限まで届く。',
+    'demo.rate': 'トリガーの頻度: {r} 回/秒',
+    'demo.burst': 'バーストを起こす',
+    'demo.info': 'λ ≈ {lam} 回/秒 · 生成 {n} 件 · {temp} °C',
+    'demo.infoScope': 'オシロスコープ表示中は計数が止まります（実機と同じ動き）。',
+    'demo.infoBurst': 'バースト発生中 — レートのグラフを見てください。',
+    'demo.infoSlave': 'Slave: Master と同時に光った事象だけを数えるので、レートは約 15% になります。',
+    'demo.connected': '接続中 · デモ',
+    'demo.detail': 'デモモード（仮想の検出器）',
+    'demo.detailNote': '合成データ — 実機はつながっていません',
+
     'dlg.skip': '次回からこの確認を表示しない',
   },
 
@@ -965,6 +1027,29 @@ const I18N = {
     'scope.sigLevel': 'SIGNAL',
     'scope.rstLevel': 'RESET',
 
+    'conn.quickDemo': 'Demo',
+    'demo.connect': 'Try the demo',
+    'demo.connectDesc': 'No detector needed. Try every feature with synthetic data.',
+    'demo.board': 'Detector in the demo',
+    'demo.title': 'Demo settings',
+    'demo.bannerTag': 'Demo',
+    'demo.banner': 'Every number on screen is synthetic data made inside the browser, not a measurement. Saved files get a "DEMO_" name.',
+    'demo.scBackground': 'Normal',
+    'demo.scSource': 'With a source',
+    'demo.scShower': 'Shower',
+    'demo.sc.background': 'The cosmic-ray muon peak, plus ambient gamma rays tailing down from the threshold.',
+    'demo.sc.source': 'A source in front of the scintillator: a photopeak with a Compton shelf under it, and about 6 times the rate.',
+    'demo.sc.shower': 'Air showers keep arriving: for a few seconds the rate jumps and the pulse height reaches the top of the range.',
+    'demo.rate': 'Trigger rate: {r} cps',
+    'demo.burst': 'Trigger a burst',
+    'demo.info': 'λ ≈ {lam} cps · {n} generated · {temp} °C',
+    'demo.infoScope': 'Counting stops while the oscilloscope is open (as on the real detector).',
+    'demo.infoBurst': 'A burst is under way — watch the rate graph.',
+    'demo.infoSlave': 'Slave: counts only events that coincide with the Master, so the rate is about 15%.',
+    'demo.connected': 'Connected · Demo',
+    'demo.detail': 'Demo mode (virtual detector)',
+    'demo.detailNote': 'Synthetic data — no hardware is connected',
+
     'dlg.skip': 'Don’t show this again',
   },
 };
@@ -1041,6 +1126,7 @@ function applyLanguage() {
   renderScopeControls();
   renderScopeState();
   renderScopeBadge();
+  renderDemoUI();
   if (scope.active) scopeDraw();
 }
 
@@ -1079,6 +1165,7 @@ const state = {
     dirHandle: null,   // FileSystemDirectoryHandle
     pending: [],       // 書き込み待ちのデータ行
     currentDate: null, // 現在の日付文字列 (YYYY-MM-DD)
+    currentBase: null, // 直近に書いたファイル名の頭（DEMO_ が付くか）。変わったらヘッダを書き直す
     lineCount: 0,      // 書き込み済みイベント数
     enabled: false,
   },
@@ -1121,6 +1208,7 @@ function renderView() {
   }
   renderTopActions();
   renderScopeState();
+  renderDemoUI();
 }
 
 // 上部バーとメッセージ帯の高さは、最初の画面を 1 画面に収める計算に使う。
@@ -1615,6 +1703,7 @@ function onConnected() {
 async function disconnect() {
   state.isConnected = false;
   clearTimeout(state.boardProbeTimer);
+  if (state.transport === 'demo') demoStop();
   try {
     if (state.ble.device) {
       if (state.ble.txChar) {
@@ -1672,6 +1761,8 @@ async function readLoop(port) {
 }
 
 async function sendCommand(cmd) {
+  // デモの仮想検出器へは、書き込む先が無いので直接渡す
+  if (state.transport === 'demo') { demoCommand(cmd); return; }
   const payload = cmd + '\n';
   try {
     if (state.transport === 'ble') {
@@ -1689,6 +1780,614 @@ async function sendCommand(cmd) {
   } catch (e) {
     console.error('Send error:', e);
   }
+}
+
+// ========== Demo mode (virtual detector) ==========
+// 実機が無くても画面の動きを一通り見せるための仮想検出器（v2 のデモと同じ考え方）。
+// やっていることは「ファームが出すのと同じ 1 行を組み立てて processLine() に渡す」だけで、
+// 解析・ヒストグラム・レート・オシロ・保存のどの経路にもデモ専用の分岐を持ち込まない。
+// 画面に出るものは実機と同じ道を通る。
+//
+// v1 にはファームが 2 つあるので、デモも機種を選べて、選んだほうのファームと同じ書式・同じ応答で動く。
+//   - Arduino Nano 版: 10bit、6 項目のデータ行、MODE / THRESH / SCOPE 系のコマンドにしか答えない
+//     （GET_BOARD などは黙って無視する。ボードの自動判別はこの沈黙に頼っている）。
+//   - ESP32-S3 版: 12bit、7 項目のデータ行、BOARD / AUTO_MARGIN / SAMPLE / COINC / OLED / BLENAME などにも答える。
+// 数値は v1 基板の実測（v1/PULSE_REPORT.html、ESP32-S3 版）に合わせてある:
+//   - パルスは立ち上がり 0.7us、減衰時定数 tau = 199us。ピークはしきい値を超えた最初の 1 点。
+//   - ベースラインは ADC 5、ノイズは約 5.6（0 でクリップされる）。しきい値は 77 / 57（AUTO_THRESH の結果）。
+//   - ピーク振幅の中央値は約 273、四分位は 146 / 273 / 555（対数正規でおよそ再現）。
+//   - 波形の点数と周期は各ファームの SCOPE_PRE / SCOPE_POST / サンプリング周期と同じ。
+
+const DEMO_TICK_MS         = 100;
+const DEMO_TAU_US          = 199;     // パルスの減衰時定数
+const DEMO_RISE_US         = 0.7;     // 立ち上がり（1 サンプルよりずっと速い）
+const DEMO_DISPLAY_INTERVAL_MS = 2000;
+const DEMO_RATE_MIN = 0.2, DEMO_RATE_MAX = 60;   // スライダ両端 [cps]
+const DEMO_SOURCE_GAIN     = 6;       // 線源シナリオのレート倍率
+const DEMO_COINC_FRACTION  = 0.15;    // Slave が数える割合（Master と同時に光ったものだけ）
+const DEMO_SCOPE_IDLE_MS   = 60000;   // ファームの SCOPE_IDLE_TIMEOUT_MS
+// 保存ファイルの先頭に入れる注意書き。あとから本物の測定と取り違えないように。
+const DEMO_FILE_NOTE = '# *** DEMO MODE: synthetic data generated in the browser - NOT a measurement ***\n';
+
+const DEMO_PROFILES = {
+  NANO: {
+    adcMax: 1023, baseline: 12, noise: 1.1, thr: [30, 25],
+    scopePre: 16, scopePost: 128, periodNs: 6500,
+    scopeMaxRate: 2,        // 9600 bps では 1 本 0.5 秒かかるので毎秒 2 本が上限
+    evtUs: 40,              // 1 イベントの処理（analogRead 2 回 + delayMicroseconds 2 回）
+    oledUs: 18000,          // OLED 1 回の書き換え
+  },
+  ESP32S3: {
+    adcMax: 4095, baseline: 5, noise: 5.6, thr: [77, 57],
+    scopePre: 32, scopePost: 128, periodNs: 12000,
+    scopeMaxRate: 20,
+    evtUs: 68,
+    oledUs: 34000,
+  },
+};
+
+// COSMICRAY_DETECTOR_v1.ino の cal[]（Arduino Nano 版の SiPM 電圧 [mV]）。ホーナー法で評価する。
+const DEMO_NANO_CAL = [
+  -9.085681659276021e-27, 4.6790804314609205e-23, -1.0317125207013292e-19,
+  1.2741066484319192e-16, -9.684460759517656e-14, 4.6937937442284284e-11,
+  -1.4553498837275352e-08, 2.8216624998078298e-06, -0.000323032620672037,
+  0.019538631135788468, -0.3774384056850066, 12.324891083404246,
+];
+
+const demo = {
+  on: false,
+  board: 'NANO',
+  scenario: 'background',
+  rate: 3.5,             // スライダで決まる基準レート [cps]
+  timer: null,
+  startMs: 0,
+  lastMs: 0,
+  count: 0,
+  deadtimeUs: 0,
+  nextEventMs: 0,
+  burstUntilMs: 0,
+  burstGain: 1,
+  nextBurstMs: 0,
+  lastDisplayMs: 0,
+  lastInfoMs: 0,
+  lastCommandMs: 0,
+  phase: Math.random() * Math.PI * 2,
+  temp: 24.0,
+  tempGoal: 25.5,
+  // 仮想デバイスの設定値（ファームの Preferences 相当）
+  dev: { sig: 30, rst: 25, mode: 0, autoMargin: 60, sample: 'PEAK', coinc: 'SLAVE', oled: true, bleName: 'CosmicRay' },
+  scope: { on: false, rate: 3, enterMs: 0, emitted: 0, nextMs: 0 },
+};
+
+const demoProf = () => DEMO_PROFILES[demo.board];
+
+// --- 乱数 -------------------------------------------------------------------
+
+function demoRandN() {           // 標準正規 (Box-Muller)
+  let u = 0, v = 0;
+  while (u === 0) u = Math.random();
+  while (v === 0) v = Math.random();
+  return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+}
+
+function demoExp(mean) {         // 指数分布（ポアソン過程の待ち時間）
+  return -mean * Math.log(1 - Math.random());
+}
+
+function demoClipAdc(x) {
+  const max = demoProf().adcMax;
+  let v = Math.round(x);
+  // 飽和はきっちり上限に張り付かず、ADC ノイズで天井付近に散る。
+  if (v > max) v = max - Math.round(Math.abs(demoRandN()) * 8 * max / 4095);
+  return Math.max(0, v);
+}
+
+// --- 波高分布 ---------------------------------------------------------------
+
+// ベースラインからの波高 [ADC]。v1 は薄いシンチ + SiPM なので、中央値 273 の対数正規でおよそ合う。
+function demoAmp(shower) {
+  const sc = demoProf().adcMax / 4095;
+  const u = Math.random();
+  const logn = (med, s) => med * Math.exp(s * demoRandN());
+  if (shower) return logn(900 * sc, 0.45) * (1.0 + 0.9 * Math.random());   // 多重ヒットは重い側に寄る
+  if (demo.scenario === 'source') {
+    if (u < 0.40) return logn(150 * sc, 0.9);                      // 連続部
+    if (u < 0.80) return 900 * sc * (1 + 0.064 * demoRandN());     // 光電ピーク（分解能 FWHM 15%）
+    if (u < 0.97) return (150 + Math.random() * 600) * sc;         // コンプトンの棚
+    return logn(273 * sc, 1.0);                                    // 宇宙線も混ざる
+  }
+  return logn(273 * sc, 1.0);
+}
+
+// トリガはしきい値超えでしか掛からないので、下回った値は引き直す。
+// ADC の天井でクリップする前の「本当の波高」（波形を描くときはこちらを使う）。
+function demoSampleAdcTrue(shower) {
+  const p = demoProf(), thr = demo.dev.sig;
+  for (let i = 0; i < 12; i++) {
+    const v = p.baseline + demoAmp(shower);
+    if (v > thr) return v;
+  }
+  return thr + 1 + Math.random() * 20 * p.adcMax / 4095;
+}
+
+// --- レート -----------------------------------------------------------------
+
+// Slave は Master と同時に光ったものだけを数える。ESP32-S3 版は判定を切ると全部数え、PAIR は両機でゲートする。
+function demoGateFactor() {
+  const slave = demo.dev.mode === 1;
+  const gated = demo.board === 'NANO'
+    ? slave
+    : (slave && demo.dev.coinc !== 'OFF') || demo.dev.coinc === 'PAIR';
+  return gated ? DEMO_COINC_FRACTION : 1;
+}
+
+function demoRate(nowMs) {
+  const tSec = (nowMs - demo.startMs) / 1000;
+  // ゆっくりした変動（気温・気圧・上空の大気の厚みをまとめて 2 本の正弦で表している）
+  const slow = 1 + 0.10 * Math.sin(2 * Math.PI * tSec / 240 + demo.phase)
+                 + 0.05 * Math.sin(2 * Math.PI * tSec / 67);
+  const burst = (nowMs < demo.burstUntilMs) ? demo.burstGain : 1;
+  const scn = (demo.scenario === 'source') ? DEMO_SOURCE_GAIN : 1;
+  return Math.max(0.01, demo.rate * scn * slow * burst * demoGateFactor());
+}
+
+function demoMaybeBurst(nowMs) {
+  if (nowMs < demo.nextBurstMs) return;
+  if (demo.scenario === 'shower') {
+    demo.burstUntilMs = nowMs + 600 + Math.random() * 2400;
+    demo.burstGain    = 4 + Math.random() * 8;
+    demo.nextBurstMs  = nowMs + demoExp(22000);
+  } else {
+    // 通常・線源シナリオでも、ごくたまに小さな群れが来る。
+    demo.burstUntilMs = nowMs + 300 + Math.random() * 900;
+    demo.burstGain    = 2 + Math.random() * 2;
+    demo.nextBurstMs  = nowMs + demoExp(120000);
+  }
+}
+
+function demoInjectBurst() {
+  if (!demo.on) return;
+  const now = performance.now();
+  demo.burstUntilMs = now + 1200 + Math.random() * 1800;
+  demo.burstGain    = 8 + Math.random() * 10;
+  demo.nextBurstMs  = Math.max(demo.nextBurstMs, now + 15000);
+}
+
+// --- 温度 (TMP36) -----------------------------------------------------------
+
+function demoUpdateTemp(dtMs) {
+  const k = dtMs / 1000, s = Math.sqrt(Math.max(0, k));
+  // 電源投入後にじわっと暖まり、その後は室温のゆらぎを追いかけるだけ。
+  demo.temp += (demo.tempGoal - demo.temp) * 0.004 * k + demoRandN() * 0.02 * s;
+  demo.tempGoal += demoRandN() * 0.02 * s;
+  demo.temp = Math.min(45, Math.max(10, demo.temp));
+  demo.tempGoal = Math.min(40, Math.max(12, demo.tempGoal));
+}
+
+// --- イベント ---------------------------------------------------------------
+
+function demoNanoSipmMv(adc) {
+  let v = DEMO_NANO_CAL[0];
+  for (let i = 1; i < DEMO_NANO_CAL.length; i++) v = v * adc + DEMO_NANO_CAL[i];
+  return v;
+}
+
+function demoMakeEvent(tMs) {
+  const p = demoProf(), d = demo.dev, nano = demo.board === 'NANO';
+  const shower = (tMs < demo.burstUntilMs) && Math.random() < 0.75;
+  const adc = demoClipAdc(demoSampleAdcTrue(shower));
+  demo.count++;
+
+  // デッドタイム: 1 イベントの処理 + 信号が RESET まで下がるのを待つ時間（tau の対数）+ 2 秒ごとの OLED 書き換え。
+  // Arduino Nano 版は 1 回ごとにミリ秒へ切り捨てて足すので、イベントの分はほぼ 0 で OLED の分が支配的になる。
+  const over = Math.max(1, adc - p.baseline), gap = Math.max(1, d.rst - p.baseline);
+  let deadUs = p.evtUs + (over > gap ? DEMO_TAU_US * Math.log(over / gap) : 0);
+  if (nano) deadUs = Math.floor(deadUs / 1000) * 1000;
+  demo.deadtimeUs += deadUs;
+  if (d.oled && tMs - demo.lastDisplayMs >= DEMO_DISPLAY_INTERVAL_MS) {
+    demo.lastDisplayMs = tMs;
+    let oled = p.oledUs + Math.round(demoRandN() * 1500);
+    if (nano) oled = Math.floor(oled / 1000) * 1000;
+    demo.deadtimeUs += oled;
+  }
+
+  const timeMs = Math.round(tMs - demo.startMs);
+  const deadMs = Math.floor(demo.deadtimeUs / 1000);
+  // ファームの出力と同じ並び。Nano: "count time adc sipm deadtime temp"、ESP32-S3 はこれに mode が付く。
+  processLine(nano
+    ? [demo.count, timeMs, adc, demoNanoSipmMv(adc).toFixed(2), deadMs, demo.temp.toFixed(2)].join(' ')
+    : [demo.count, timeMs, adc, (adc * 3100 / 4095).toFixed(2), deadMs, demo.temp.toFixed(1), d.mode].join(' '));
+}
+
+// --- 波形（オシロ） ---------------------------------------------------------
+
+function demoEmitWaveform(tMs) {
+  const p = demoProf(), d = demo.dev;
+  const npre = p.scopePre;
+  const ntot = npre + 1 + p.scopePost;
+  const dtUs = p.periodNs / 1000;
+  const base = p.baseline;
+  const shower = (tMs < demo.burstUntilMs) && Math.random() < 0.75;
+  const tau = DEMO_TAU_US * (0.97 + 0.06 * Math.random());
+
+  // v1 の波形はピークホールドではなく素のパルス。トリガ点（t=0）は「しきい値を最初に超えた標本」で、
+  // パルスはその直前の標本間隔のどこかで始まる。立ち上がり（0.7us）は標本間隔よりずっと速いので、
+  // トリガ点ではもうピークの近く（実測でもピークはトリガ点にある）。
+  const delta = DEMO_RISE_US * 3 + Math.random() * Math.max(0, dtUs - DEMO_RISE_US * 3);   // パルス開始からトリガ点までの時間
+  const shape = t => (t <= 0) ? 0 : (1 - Math.exp(-t / DEMO_RISE_US)) * Math.exp(-t / tau);
+  const trig = demoSampleAdcTrue(shower);                      // トリガ点の値（= データ行の ADC に近い）
+  const peak = (trig - base) / shape(delta);
+
+  const raw = new Float64Array(ntot);
+  for (let i = 0; i < ntot; i++) raw[i] = shape((i - npre) * dtUs + delta) * peak;
+
+  // 次の事象が窓の中に入ってくる = パイルアップ。レートを上げると実際に増える。
+  const winSec = ntot * dtUs / 1e6;
+  if (Math.random() < 1 - Math.exp(-demoRate(tMs) * winSec)) {
+    const t2 = Math.random() * p.scopePost * dtUs;
+    const amp2 = demoAmp(false);
+    for (let i = npre; i < ntot; i++) raw[i] += amp2 * shape((i - npre) * dtUs - t2);
+  }
+
+  const max = p.adcMax;
+  const v = new Array(ntot);
+  for (let i = 0; i < ntot; i++) {
+    v[i] = Math.min(max, Math.max(0, Math.round(base + raw[i] + demoRandN() * p.noise)));
+  }
+  // ファームは「RESET 以下から SIGNAL を超えた最初の点」をトリガにするので、そう見えるようにそろえる。
+  if (v[npre] <= d.sig) v[npre] = Math.min(max, d.sig + 1 + Math.floor(Math.random() * 3));
+  for (let i = 0; i < npre; i++) if (v[i] > d.rst) v[i] = d.rst;
+
+  demo.scope.emitted++;
+  processLine('WF,' + demo.scope.emitted + ',' + Math.round(tMs - demo.scope.enterMs) +
+              ',U,' + npre + ',' + ntot + ',' + p.periodNs + ',' + v.join(','));
+}
+
+// --- 本体のループ -----------------------------------------------------------
+
+function demoTick() {
+  if (!demo.on) return;
+  const now = performance.now();
+  // タブが裏に回っていた間ぶんを一気に生成しないよう、1 tick の進みは頭打ちにする。
+  const dt = Math.min(500, Math.max(0, now - demo.lastMs));
+  demo.lastMs = now;
+
+  demoUpdateTemp(dt);
+  demoMaybeBurst(now);
+
+  // ファームの安全装置: 60 秒どのコマンドも来なければ、オシロを自分で閉じて計数に戻る。
+  if (demo.scope.on && now - demo.lastCommandMs >= DEMO_SCOPE_IDLE_MS) {
+    processLine('### SCOPE: no command for 60 s, turning the scope OFF to resume counting.');
+    demoSetScope(false);
+  }
+
+  if (demo.scope.on) {
+    // ファームはオシロ ON の間、計数を止める。デモも同じにしておかないと
+    // 「オシロを開くとレートが落ちる」実機の癖が出ない。
+    const eff = Math.min(demo.scope.rate, demoProf().scopeMaxRate, demoRate(now));
+    let guard = 0;
+    while (demo.scope.nextMs <= now && guard++ < 8) {
+      demoEmitWaveform(demo.scope.nextMs);
+      demo.scope.nextMs += demoExp(1000 / Math.max(0.05, eff));
+    }
+  } else {
+    let guard = 0;
+    while (demo.nextEventMs <= now && guard++ < 600) {
+      demoMakeEvent(demo.nextEventMs);
+      demo.nextEventMs += demoExp(1000 / demoRate(demo.nextEventMs));
+    }
+  }
+
+  if (now - demo.lastInfoMs > 500) {
+    demo.lastInfoMs = now;
+    renderDemoInfo();
+  }
+}
+
+// --- 仮想デバイスのコマンド応答 ---------------------------------------------
+// ファームの executeCommand / handleCommand と同じ文字列を返す。知らないコマンドは黙って無視する
+// （v1 の約束。コンソール側のボード判別がこの沈黙に頼っている）。
+
+function demoCommand(cmd) {
+  if (!demo.on) return;
+  demo.lastCommandMs = performance.now();
+  const p = demoProf(), d = demo.dev, esp = demo.board === 'ESP32S3';
+  const say = (line, ms) => setTimeout(() => { if (demo.on) processLine(line); }, ms == null ? 30 : ms);
+  const clampI = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+  const threshLine = () => 'THRESH:' + d.sig + ',' + d.rst;
+  const scopeLine = () => demo.scope.on ? 'SCOPE:ON' : 'SCOPE:OFF';
+
+  if (cmd.startsWith('SET_THRESH:')) {
+    const arg = cmd.slice(11), comma = arg.indexOf(',');
+    if (comma >= 0) {
+      const sig = parseInt(arg), rst = parseInt(arg.slice(comma + 1));
+      if (!isNaN(sig) && !isNaN(rst) && rst >= 0 && sig > rst && sig <= p.adcMax) { d.sig = sig; d.rst = rst; }
+    } else if (esp) {
+      // ESP32-S3 版は "SET_THRESH:<sig>" も受ける（ギャップを保ったまま SIGNAL だけ動かす）
+      const sig = parseInt(arg);
+      if (!isNaN(sig) && sig >= 0 && sig <= p.adcMax) { d.rst = Math.max(0, sig - (d.sig - d.rst)); d.sig = sig; }
+    }
+    say(threshLine());
+  } else if (cmd === 'GET_THRESH') {
+    say(threshLine());
+  } else if (cmd === 'AUTO_THRESH' || (esp && cmd.startsWith('AUTO_THRESH:'))) {
+    const withMargin = cmd.startsWith('AUTO_THRESH:');
+    if (withMargin) {
+      const m = parseInt(cmd.slice(12));
+      if (!isNaN(m)) d.autoMargin = clampI(m, 0, p.adcMax);
+    }
+    if (esp) say('### Auto-calibrating thresholds...');
+    // 実機はバックグラウンドを眺めてから返す: Nano は 10 点 x 10ms、ESP32-S3 は 100 点 x 10ms。
+    setTimeout(() => {
+      if (!demo.on) return;
+      const mn = Math.max(0, Math.round(p.baseline - Math.abs(demoRandN()) * 2 * p.noise));
+      const mx = Math.round(p.baseline + 2 * p.noise + Math.abs(demoRandN()) * p.noise);
+      if (esp) {
+        const gap = d.sig - d.rst;
+        d.sig = clampI(mx + d.autoMargin, 0, p.adcMax);
+        d.rst = Math.max(0, d.sig - gap);
+        processLine('### Calib: min=' + mn + ' max=' + mx + ' mean=' + p.baseline.toFixed(1) + ' sd=' + p.noise.toFixed(1) +
+                    ' margin=' + d.autoMargin + ' -> sig=' + d.sig + ' rst=' + d.rst);
+      } else {
+        d.sig = mn + 20;
+        d.rst = mn + 15;
+      }
+      processLine(threshLine());
+      if (esp && withMargin) processLine('AUTO_MARGIN:' + d.autoMargin);
+    }, esp ? 1000 : 100);
+  } else if (cmd.startsWith('SET_MODE:')) {
+    const m = parseInt(cmd.slice(9));
+    if (m === 0 || m === 1) d.mode = m;
+    say('MODE:' + d.mode);
+  } else if (cmd === 'GET_MODE') {
+    say('MODE:' + d.mode);
+  } else if (cmd.startsWith('SET_SCOPE_RATE:')) {
+    const r = parseInt(cmd.slice(15));
+    if (r >= 1 && r <= 20) demo.scope.rate = r;
+    say('SCOPE_RATE:' + demo.scope.rate);
+  } else if (cmd === 'GET_SCOPE_RATE') {
+    say('SCOPE_RATE:' + demo.scope.rate);
+  } else if (cmd.startsWith('SET_SCOPE:')) {
+    const arg = cmd.slice(10);
+    const valid = arg === 'ON' || arg === 'OFF';
+    const changed = valid ? demoSetScope(arg === 'ON') : false;
+    // Nano 版はコマンドの最後に必ず SCOPE: を返す。ESP32-S3 版は状態が変わったときだけ
+    // （demoSetScope が出す）で、ON / OFF 以外の引数のときは現在の状態を返す。
+    if (!changed && (!esp || !valid)) say(scopeLine());
+  } else if (cmd === 'GET_SCOPE') {
+    say(scopeLine());
+  } else if (esp) {
+    // ---- ESP32-S3 版だけが答えるコマンド ----
+    if (cmd === 'GET_BOARD') {
+      say('BOARD:ESP32S3,12');
+    } else if (cmd === 'GET_AUTO_MARGIN') {
+      say('AUTO_MARGIN:' + d.autoMargin);
+    } else if (cmd.startsWith('SET_AUTO_MARGIN:')) {
+      const m = parseInt(cmd.slice(16));
+      if (!isNaN(m)) d.autoMargin = clampI(m, 0, p.adcMax);
+      say('AUTO_MARGIN:' + d.autoMargin);
+    } else if (cmd === 'GET_SAMPLE') {
+      say('SAMPLE:' + d.sample);
+    } else if (cmd.startsWith('SET_SAMPLE:')) {
+      const v = cmd.slice(11);
+      if (v === 'PEAK' || v === 'SINGLE') d.sample = v;
+      say('SAMPLE:' + d.sample);
+    } else if (cmd === 'GET_COINC') {
+      say('COINC:' + d.coinc);
+    } else if (cmd.startsWith('SET_COINC:')) {
+      const v = cmd.slice(10);
+      if (v === 'SLAVE' || v === 'OFF' || v === 'PAIR') d.coinc = v;
+      say('COINC:' + d.coinc);
+    } else if (cmd === 'GET_OLED') {
+      say('OLED:' + (d.oled ? 'ON' : 'OFF'));
+    } else if (cmd.startsWith('SET_OLED:')) {
+      const v = cmd.slice(9);
+      if (v === 'ON' || v === 'OFF') d.oled = (v === 'ON');
+      say('OLED:' + (d.oled ? 'ON' : 'OFF'));
+    } else if (cmd === 'GET_BLENAME') {
+      say('BLENAME:' + d.bleName);
+    } else if (cmd === 'GET_BTADDR') {
+      say('BTADDR:DE:A0:C0:DE:00:01');   // 実在しない、見るからにデモ用のアドレス
+    } else if (cmd === 'RESET') {
+      demoResetCounters(performance.now());
+      say('RESET:OK');
+    } else if (cmd.startsWith('SET_BLENAME:')) {
+      const n = cmd.slice(12);
+      if (/^[\x20-\x7E]{1,24}$/.test(n)) {
+        d.bleName = n;
+        say('BLENAME:' + n);
+        say('### BLE name saved. Restarting in 1s...', 40);
+        // 実機はここで 1 秒待って再起動する。待つ間は loop() が止まるので計数もしない。
+        // 再起動すると計数・経過時間・デッドタイムは 0 から、オシロは OFF になる。
+        demo.nextEventMs = Math.max(demo.nextEventMs, performance.now() + 2500);
+        setTimeout(() => {
+          if (!demo.on) return;
+          const now = performance.now();
+          demo.scope.on = false;
+          setScopeDeviceOn(false);
+          demoResetCounters(now);
+          demo.nextEventMs = now + 1000;   // 起動処理の間は計数しない
+          demoBootBanner(true);
+        }, 1500);
+      } else {
+        say('### BLE name invalid (1-24 printable ASCII chars).');
+        say('BLENAME:' + d.bleName, 40);
+      }
+    }
+  }
+}
+
+// RESET と再起動の共通部分: 計数・経過時間・デッドタイムを 0 からやり直す。
+function demoResetCounters(now) {
+  demo.count = 0;
+  demo.deadtimeUs = 0;
+  demo.startMs = now;
+  demo.lastDisplayMs = now;
+  // 予定済みの次のイベントが新しい起点より前に残っていると、最初のイベントの時刻が負になる。
+  if (demo.nextEventMs < now) demo.nextEventMs = now;
+  // オシロ中の RESET は、閉じたときに計上する滞在時間を RESET 以降の分にする（ファームと同じ）。
+  if (demo.scope.on) demo.scope.enterMs = now;
+}
+
+// オシロの ON / OFF。状態が変わったら true（変わったときだけ SCOPE: の行を出す）。
+function demoSetScope(on) {
+  const s = demo.scope;
+  if (on === s.on) return false;
+  const now = performance.now();
+  const esp = demo.board === 'ESP32S3';
+  if (on) {
+    s.on = true;
+    s.enterMs = now;
+    s.emitted = 0;
+    s.nextMs = now + 200;
+    if (esp) {
+      processLine('### SCOPE: ON - counting is PAUSED while the scope is open.');
+      processLine('###        Coincidence is not evaluated. Temperature holds its last value.');
+    } else {
+      processLine('### SCOPE: ON - counting is PAUSED while the scope is open (coincidence is not evaluated).');
+    }
+    processLine('SCOPE:ON');
+  } else {
+    s.on = false;
+    // 実機は「オシロを開いていた時間」をまるごとデッドタイムに足す（Nano はミリ秒単位）。
+    // ここを省くと、閉じたあとの平均レートが実機より高く出てしまう。
+    const dwellUs = (now - s.enterMs) * 1000;
+    demo.deadtimeUs += esp ? Math.round(dwellUs) : Math.floor(dwellUs / 1000) * 1000;
+    demo.nextEventMs = now + demoExp(1000 / demoRate(now));
+    processLine('### SCOPE: OFF - counting resumed.');
+    processLine('SCOPE:OFF');
+  }
+  return true;
+}
+
+// 起動時のバナー。Arduino Nano は USB を開くたびに再起動するので接続のたびに出る。
+// ESP32-S3（ネイティブ USB）は再起動しないので、BLE 名の変更で再起動したときだけ出る。
+function demoBootBanner(reboot) {
+  const d = demo.dev, esp = demo.board === 'ESP32S3';
+  const bar = '#'.repeat(90);
+  const lines = [];
+  if (reboot) lines.push('Booting v1-S3...');
+  lines.push(bar, '### Accel Kitchen', '### https://accel-kitchen.com/', '### info@accel-kitchen.com');
+  if (esp) lines.push('### Board: ESP32-S3 (Nano) ADC:12bit V1-detector');
+  lines.push('### DEMO BOARD - synthetic data, no hardware attached');
+  lines.push('### Signal threshold: ' + d.sig, '### Reset threshold: ' + d.rst);
+  if (esp) {
+    lines.push('MODE:' + d.mode, 'COINC:' + d.coinc, 'SAMPLE:' + d.sample, 'OLED:' + (d.oled ? 'ON' : 'OFF'));
+    lines.push('### Event Time[ms] ADC[0-4095] Vadc[mV] Deadtime[ms] Temp[C] Mode[0:Master,1:Slave]');
+  } else {
+    lines.push('### Event Time[ms] ADC[0-1023] SiPM[mV] Deadtime[ms] Temp[C]');
+  }
+  lines.push(bar);
+  lines.forEach((l, i) => setTimeout(() => { if (demo.on) processLine(l); }, 60 + i * 40));
+}
+
+// --- 接続 / 切断 ------------------------------------------------------------
+
+function connectDemo() {
+  if (state.isConnected) return;
+  const now = performance.now();
+  const board = document.querySelector('#demoBoard button.active')?.dataset.board;
+  demo.board = (board === 'ESP32S3') ? 'ESP32S3' : 'NANO';
+  lsSet('consoleDemoBoard', demo.board);
+  const p = demoProf();
+
+  demo.on = true;
+  demo.startMs = now;
+  demo.lastMs = now;
+  demo.lastDisplayMs = now;
+  demo.lastInfoMs = 0;
+  demo.lastCommandMs = now;
+  // Nano は起動バナーのあとに get_time() と delay(900) があってから計数が始まる
+  demo.nextEventMs = now + (demo.board === 'NANO' ? 1300 : 200);
+  demo.nextBurstMs = now + 15000 + Math.random() * 20000;
+  demo.burstUntilMs = 0;
+  demo.count = 0;
+  demo.deadtimeUs = 0;
+  demo.phase = Math.random() * Math.PI * 2;
+  demo.dev = { sig: p.thr[0], rst: p.thr[1], mode: 0, autoMargin: 60, sample: 'PEAK', coinc: 'SLAVE', oled: true,
+               // BLE 名は画面の入力欄をそのまま名乗る（デモが別名を持ち込んで、実機の名前フィルタを壊さないため）
+               bleName: (($('bleDeviceName').value || 'CosmicRay').trim() || 'CosmicRay') };
+  demo.scope = { on: false, rate: parseInt($('scopeRate').value) || 3, enterMs: 0, emitted: 0, nextMs: 0 };
+
+  state.transport = 'demo';
+  state.isConnected = true;
+  state.sessionStart = new Date();
+  state.conn = { usbVendorId: null, usbProductId: null, bleId: null, bleName: null, btAddr: null, btAddrTimedOut: false };
+  // 前の検出器の波形が残っていると、機種が違うときに時間軸も .wfm も混ざる
+  scope.traces = []; scope.raw = []; scope.count = 0; scope.bad = 0; scope.stamps = [];
+  scopeStats();
+
+  updateConnectionUI(true);
+  if (demo.board === 'NANO') demoBootBanner(false);
+  demo.timer = setInterval(demoTick, DEMO_TICK_MS);
+  // 実機と同じ後処理（ボードの判別、状態の問い合わせ、オシロの画面が開いていれば SET_SCOPE:ON）
+  onConnected();
+}
+
+function demoStop() {
+  if (demo.timer) { clearInterval(demo.timer); demo.timer = null; }
+  demo.on = false;
+  demo.scope.on = false;
+  setScopeDeviceOn(false);
+}
+
+// --- デモ用の画面 -----------------------------------------------------------
+
+function demoSliderToRate(v) {
+  // 端の 0.2 cps から 60 cps まで対数で振る（低レート側の操作性を残すため）。
+  return DEMO_RATE_MIN * Math.pow(DEMO_RATE_MAX / DEMO_RATE_MIN, v / 100);
+}
+
+function demoFmtRate(r) {
+  return r >= 10 ? r.toFixed(0) : r.toFixed(1);
+}
+
+// いま画面にあるのが合成データか（デモをやめたあとも、デモのデータが残っている間はそう言う）
+function isDemoData() {
+  const n = state.events.length;
+  return state.transport === 'demo' || (n > 0 && !!state.events[n - 1].demo);
+}
+
+// 保存するファイルの名前の頭。デモのデータには "DEMO_" を付ける。
+function fileBase() {
+  return (isDemoData() ? 'DEMO_' : '') + ($('filePrefix').value || 'CosmicRay');
+}
+
+function demoFileNote() {
+  return isDemoData() ? DEMO_FILE_NOTE : '';
+}
+
+function renderDemoBand() {
+  const synthetic = isDemoData();
+  if ($('demoBanner').hidden === !synthetic) return;
+  $('demoBanner').hidden = !synthetic;
+  syncHeights();
+}
+
+function renderDemoUI() {
+  $('demoSection').hidden = !demo.on;
+  renderDemoBand();
+  $('demoRateLabel').textContent = t('demo.rate', { r: demoFmtRate(demo.rate) });
+  $('demoScenarioInfo').textContent = t('demo.sc.' + demo.scenario);
+  document.querySelectorAll('#demoScenario button').forEach(b => {
+    b.classList.toggle('active', b.dataset.scenario === demo.scenario);
+  });
+  renderDemoInfo();
+}
+
+function renderDemoInfo() {
+  const el = $('demoInfo');
+  if (!demo.on) { el.textContent = ''; return; }
+  const now = performance.now();
+  const lines = [t('demo.info', {
+    lam: demoFmtRate(demoRate(now)),
+    n: demo.count.toLocaleString(currentLang === 'ja' ? 'ja-JP' : 'en-US'),
+    temp: demo.temp.toFixed(1),
+  })];
+  if (demo.scope.on) lines.push(t('demo.infoScope'));
+  else if (now < demo.burstUntilMs) lines.push(t('demo.infoBurst'));
+  if (demoGateFactor() < 1) lines.push(t('demo.infoSlave'));
+  el.textContent = lines.join('\n');
 }
 
 // ========== Data Processing ==========
@@ -1859,7 +2558,8 @@ function processLine(line) {
     // データ行にモードは含まれない（6項目=互換性維持）ため、受信時点で判明している
     // モード（state.mode: MODE:応答で更新）でタグ付けする。これにより各イベント行・
     // エクスポートに、そのイベント取得時のMaster/Slaveが正しく記録される。
-    mode_flag: parts.length >= 7 ? parseInt(parts[6]) : state.mode
+    mode_flag: parts.length >= 7 ? parseInt(parts[6]) : state.mode,
+    demo: state.transport === 'demo'   // 合成データの印（デモをやめたあとも、帯とファイル名に効く）
   };
 
   if (isNaN(event.count) || isNaN(event.adc)) return;
@@ -2039,16 +2739,17 @@ async function flushAutoSave() {
   if (!as.enabled || !as.dirHandle) return;
 
   const today = new Date().toISOString().substring(0, 10);  // YYYY-MM-DD
-  const prefix = $('filePrefix').value || 'CosmicRay';
+  const prefix = fileBase();
   const format = $('autoSaveFormat').value;
 
-  // 日付が変わった（または初回）の場合はヘッダー行を書く
-  if (today !== as.currentDate) {
+  // 日付が変わった、ファイル名の頭が変わった（デモ ⇄ 実機）、または初回の場合はヘッダー行を書く
+  if (today !== as.currentDate || prefix !== as.currentBase) {
     as.currentDate = today;
+    as.currentBase = prefix;
     const comment = $('fileComment').value;
     let headerDat = '';
     if (comment) headerDat += '# ' + comment.replace(/\n/g, '\n# ') + '\n';
-    headerDat += datHeaderLine();
+    headerDat += demoFileNote() + datHeaderLine();
     const headerCsv = csvHeaderLine();
     try {
       if (format === 'dat' || format === 'both') await appendToFile(as.dirHandle, `${prefix}_${today}.dat`, headerDat);
@@ -2097,7 +2798,7 @@ function updateAutoSaveUI() {
     el.textContent = '';
     return;
   }
-  const prefix = $('filePrefix').value || 'CosmicRay';
+  const prefix = fileBase();
   const format = $('autoSaveFormat').value;
   const ext = format === 'both' ? '.dat / .csv' : '.' + format;
   el.hidden = false;
@@ -2119,9 +2820,13 @@ function renderStatusText() {
     box.title = '';
     return;
   }
-  text.textContent = state.transport === 'ble' ? t('conn.connectedBle') : t('conn.connectedUsb');
+  text.textContent = state.transport === 'demo' ? t('demo.connected')
+                   : state.transport === 'ble'  ? t('conn.connectedBle')
+                   : t('conn.connectedUsb');
   dot.className = 'live on';
-  dev.textContent = state.transport === 'ble' ? (state.conn.bleName || '') : '';
+  dev.textContent = state.transport === 'ble' ? (state.conn.bleName || '')
+                  : (state.transport === 'demo' && demo.board === 'ESP32S3') ? demo.dev.bleName
+                  : '';
   // 上部バーは狭いので、詳細（VID:PID / アドレス）はツールチップに載せる。
   box.title = connDetailLines().join(' / ');
 }
@@ -2134,7 +2839,10 @@ function connDetailLines() {
   const addr = c.btAddr ? c.btAddr
              : (c.btAddrTimedOut ? t('conn.addrUnknown') : t('conn.addrFetching'));
   const lines = [];
-  if (state.transport === 'ble') {
+  if (state.transport === 'demo') {
+    lines.push(t('demo.detail'));
+    lines.push(t('demo.detailNote'));
+  } else if (state.transport === 'ble') {
     lines.push(t('conn.detailBle'));
     if (c.bleName) lines.push(`${t('conn.deviceName')}: ${c.bleName}`);
     lines.push(`${t('conn.address')}: ${addr}`);
@@ -2245,12 +2953,12 @@ function updateRateChart() {
 // ========== File Export ==========
 function exportDat() {
   const comment = $('fileComment').value;
-  const prefix = $('filePrefix').value || 'CosmicRay';
+  const prefix = fileBase();
   const dateStr = formatDateForFile(state.sessionStart || new Date());
 
   let content = '';
   if (comment) content += '# ' + comment.replace(/\n/g, '\n# ') + '\n';
-  content += datHeaderLine();
+  content += demoFileNote() + datHeaderLine();
 
   for (const ev of state.events) {
     const pcTs = new Date(ev.pc_timestamp).toISOString().replace('T', '-').replace(/:/g, '-').substring(0, 26);
@@ -2261,7 +2969,7 @@ function exportDat() {
 }
 
 function exportCsv() {
-  const prefix = $('filePrefix').value || 'CosmicRay';
+  const prefix = fileBase();
   const dateStr = formatDateForFile(state.sessionStart || new Date());
 
   let content = csvHeaderLine();
@@ -2298,7 +3006,7 @@ function saveChartPng(canvasId, baseName) {
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(0, 0, out.width, out.height);
   ctx.drawImage(src, 0, 0);
-  const prefix = $('filePrefix').value || 'CosmicRay';
+  const prefix = fileBase();
   const name = `${prefix}_${baseName}_${formatDateForFile()}.png`;
   out.toBlob(blob => { if (blob) downloadBlob(name, blob); }, 'image/png');
 }
@@ -2689,7 +3397,7 @@ $('scopeSave').addEventListener('click', () => {
   const blob = new Blob([hdr + '\n' + scope.raw.join('\n') + '\n'], { type: 'text/plain' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = `scope_${formatDateForFile()}.wfm`;
+  a.download = `${isDemoData() ? 'DEMO_' : ''}scope_${formatDateForFile()}.wfm`;
   a.click();
   URL.revokeObjectURL(a.href);
 });
@@ -2752,6 +3460,28 @@ $('btnConnectBLE').addEventListener('click', connectBLE);
 $('btnQuickUSB').addEventListener('click', connectSerial);
 $('btnQuickBLE').addEventListener('click', connectBLE);
 $('btnDisconnect').addEventListener('click', disconnect);
+
+// ---- デモ ----
+$('btnConnectDemo').addEventListener('click', connectDemo);
+$('btnQuickDemo').addEventListener('click', connectDemo);
+document.querySelectorAll('#demoBoard button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#demoBoard button').forEach(b => b.classList.toggle('active', b === btn));
+  });
+});
+document.querySelectorAll('#demoScenario button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    demo.scenario = btn.dataset.scenario;
+    demo.burstUntilMs = 0;
+    demo.nextBurstMs = performance.now() + 4000;
+    renderDemoUI();
+  });
+});
+$('demoRate').addEventListener('input', () => {
+  demo.rate = demoSliderToRate(parseInt($('demoRate').value) || 0);
+  $('demoRateLabel').textContent = t('demo.rate', { r: demoFmtRate(demo.rate) });
+});
+$('btnDemoBurst').addEventListener('click', demoInjectBurst);
 
 $('btnSetThresh').addEventListener('click', () => {
   const sig = parseInt($('threshSignal').value);
@@ -2898,6 +3628,13 @@ document.addEventListener('DOMContentLoaded', () => {
       $('bleNameInput').value = savedName;
     }
   } catch (_) {}
+
+  // 前回選んだデモの機種を復元
+  const savedDemoBoard = lsGet('consoleDemoBoard');
+  if (savedDemoBoard === 'NANO' || savedDemoBoard === 'ESP32S3') {
+    document.querySelectorAll('#demoBoard button').forEach(b => b.classList.toggle('active', b.dataset.board === savedDemoBoard));
+  }
+  demo.rate = demoSliderToRate(parseInt($('demoRate').value) || 50);
 
   // Web Bluetooth 非対応ブラウザではボタンを無効化し、理由を出す。
   // （file:// で開いた場合も Chrome は bluetooth を出さないことがある）
