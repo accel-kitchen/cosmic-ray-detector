@@ -326,6 +326,13 @@ uint32_t scopeRate      = 3;   // 波形の出力レート上限[/s]
 static constexpr uint32_t SCOPE_RATE_DEFAULT = 3;
 static constexpr uint32_t SCOPE_RATE_MAX     = 20;
 
+// オシロ中にコマンドがこの時間まったく来なければ、自分で OFF に戻して計数を再開する。
+// コンソールが SET_SCOPE:OFF を送れずに閉じても（タブを閉じた、PC が寝た、ケーブルを抜いた）
+// 夜通し計数が止まったままにならないための安全装置。
+// コンソールはオシロタブを開いている間 15 秒ごとに GET_SCOPE を送る（これが keepalive）。
+static constexpr unsigned long SCOPE_IDLE_TIMEOUT_MS = 60000;
+unsigned long lastCommandMs = 0;
+
 // 出力する窓。12us 間隔なので -0.38ms 〜 +1.54ms。1 行あたり約 800 バイト。
 static constexpr int SCOPE_PRE  = 32;
 static constexpr int SCOPE_POST = 128;
@@ -699,6 +706,9 @@ void i2cScan() {
 //   コマンド処理（Serial / BLE 共通）
 // ==========================================
 void executeCommand(const char* cmd) {
+  // どのコマンドもオシロの無操作タイマーを延長する（GET_SCOPE はその keepalive）。
+  lastCommandMs = millis();
+
   if (strncmp(cmd, "SET_THRESH:", 11) == 0) {
     // "SET_THRESH:<sig>,<rst>" と "SET_THRESH:<sig>" の両方を受ける。
     // 後者は現在のギャップを保ったまま SIGNAL だけ動かす。
@@ -1304,6 +1314,7 @@ void printBootHeader() {
   dualPrintln("### SCOPE: SET_SCOPE:ON streams waveforms (WF,...) via DMA at 83.3kHz.");
   dualPrintln("###        Counting is PAUSED while the scope is on; the time spent there");
   dualPrintln("###        is added to deadtime, so the rate stays correct. Boots OFF.");
+  dualPrintln("###        Turns itself OFF after 60 s without any command (send GET_SCOPE as keepalive).");
 
   dualPrintln("### Event Time[ms] ADC[0-4095] Vadc[mV] Deadtime[ms] Temp[C] Mode[0:Master,1:Slave]");
   dualPrintln(bar);
@@ -2122,6 +2133,12 @@ void loop() {
   if (now - lastTempMs >= TEMP_INTERVAL_MS) {
     lastTempMs = now;
     updateTemperature();
+  }
+
+  // オシロの安全装置: 無操作が続いたら OFF に戻して計数を再開する。
+  if (scopeOn && (millis() - lastCommandMs) >= SCOPE_IDLE_TIMEOUT_MS) {
+    dualPrintln("### SCOPE: no command for 60 s, turning the scope OFF to resume counting.");
+    scopeSetOn(false);
   }
 
   // 検出 / オシロは排他。ADC1 は oneshot と DMA のどちらか一方しか持てない。
