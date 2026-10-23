@@ -351,8 +351,16 @@ async function recoverFromBootloader() {
   }
 }
 
+// Demo (synthetic) and real events are never mixed on one screen: they would share the histogram,
+// the stats and the rate, and a manual export would put real rows under a DEMO_ name with the
+// "NOT a measurement" note (C-6). Ask for a Clear first.
+function mixesDemo(nextIsDemo) {
+  return state.events.some(e => !!e.demo !== nextIsDemo);
+}
+
 async function connectUSB() {
   if (state.isConnected || state.reconnecting) return;
+  if (mixesDemo(false)) { Bus.emit('alert', { key: 'demo.mixedReal' }); return; }
   clearConnError();
 
   let port;
@@ -490,6 +498,7 @@ async function bleAttach(device, stillWanted) {
 
 async function connectBLE() {
   if (state.isConnected || state.reconnecting) return;
+  if (mixesDemo(false)) { Bus.emit('alert', { key: 'demo.mixedReal' }); return; }
   clearConnError();
   const targetName = (settings.bleName || 'CosmicRay').trim() || 'CosmicRay';
 
@@ -2874,6 +2883,7 @@ function demoBootBanner() {
 
 function connectDemo() {
   if (state.isConnected || state.reconnecting) return;
+  if (mixesDemo(true)) { Bus.emit('alert', { key: 'demo.mixedDemo' }); return; }
   const now = performance.now();
 
   demo.on = true;

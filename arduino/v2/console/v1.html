@@ -611,6 +611,8 @@ const I18N = {
     'conn.addrUnknown': '取得できません（古いファーム）',
     'conn.browserId': 'ブラウザ ID',
     'warn.noSerial': 'このブラウザでは USB 接続（Web Serial）が使えません。Chrome か Edge で開いてください。',
+    'demo.mixedReal': 'デモのデータが画面に残っています。実機につなぐ前に「データを消去」してください（合成データが測定データに混ざらないようにするためです）。',
+    'demo.mixedDemo': '実機のデータが画面に残っています。デモを始める前に、必要なら保存してから「データを消去」してください。',
     'warn.noCharts': 'グラフ用のライブラリ（Chart.js）を読み込めませんでした（インターネットにつながっていない可能性があります）。グラフは出ませんが、数値・表・自動保存・オシロは動きます。',
     'warn.noBle': 'このブラウザでは Bluetooth 接続（Web Bluetooth）が使えません。Chrome か Edge で開いてください。',
     'err.usb': 'USB でつなげませんでした: {msg}',
@@ -863,6 +865,8 @@ const I18N = {
     'conn.addrUnknown': 'unavailable (older firmware)',
     'conn.browserId': 'Browser ID',
     'warn.noSerial': 'This browser cannot connect over USB (Web Serial). Please open the page in Chrome or Edge.',
+    'demo.mixedReal': 'Demo data is still on the screen. Clear it before connecting a real detector, so synthetic events never mix with a measurement.',
+    'demo.mixedDemo': 'Data from a real detector is still on the screen. Save it if you need it, then clear it before starting the demo.',
     'warn.noCharts': 'The chart library (Chart.js) could not be loaded (the PC may be offline). The charts are off, but the numbers, the table, auto-save and the scope still work.',
     'warn.noBle': 'This browser cannot connect over Bluetooth (Web Bluetooth). Please open the page in Chrome or Edge.',
     'err.usb': 'Could not connect over USB: {msg}',
@@ -1571,7 +1575,14 @@ const BLE_TX_UUID      = '6e400003-b5a3-f393-e0a9-e50e24dcca9e';  // Notify (dev
 // USB / Bluetooth はそれぞれ専用ボタンから直接呼ぶ。
 // Bluetooth は ESP32-S3 版ファームのみ対応（Arduino Nano 版は Web Serial のみ）。
 
+// デモの合成データと実機のデータを同じ画面に混ぜない。混ざると、実測の行が入ったファイルに
+// DEMO_ の名前と「測定ではない」の注記が付く（最後のイベントでファイル名を決めるため。V-6）。
+function mixesDemo(nextIsDemo) {
+  return state.events.some(e => !!e.demo !== nextIsDemo);
+}
+
 async function connectSerial() {
+  if (mixesDemo(false)) { showMsg(t('demo.mixedReal')); return; }
   try {
     const port = await navigator.serial.requestPort();
     const baudRate = parseInt($('baudRate').value);
@@ -1594,9 +1605,9 @@ async function connectSerial() {
     state.conn.bleName = null;
     state.conn.btAddr = null;
 
-    // Writer
+    // Writer. Keep the pipe's promise: the port can only be closed after the pipe has let go of it (V-2).
     const encoder = new TextEncoderStream();
-    encoder.readable.pipeTo(port.writable);
+    state.writableClosed = encoder.readable.pipeTo(port.writable).catch(() => {});
     state.writer = encoder.writable.getWriter();
 
     updateConnectionUI(true);
@@ -1615,6 +1626,7 @@ async function connectBLE() {
     showMsg(t('warn.noBle'));
     return;
   }
+  if (mixesDemo(false)) { showMsg(t('demo.mixedReal')); return; }
   try {
     const targetName = ($('bleDeviceName').value || 'CosmicRay').trim() || 'CosmicRay';
     const device = await navigator.bluetooth.requestDevice({
@@ -1723,17 +1735,23 @@ async function disconnect() {
       state.ble.txChar = null;
       state.ble.rxChar = null;
     }
+    // Each step on its own: one that fails (the cable was pulled) must not skip the ones after it.
+    // The streams hold a lock on the port until their pipes have finished, so wait for them (V-2);
+    // a pipe that never finishes must not hang the disconnect, hence the time limit.
+    const settled = p => Promise.race([p, new Promise(r => setTimeout(r, 2000))]);
     if (state.reader) {
-      await state.reader.cancel();
+      try { await state.reader.cancel(); } catch (_) {}
       state.reader = null;
     }
+    if (state.readableClosed) { await settled(state.readableClosed); state.readableClosed = null; }
     if (state.writer) {
-      await state.writer.close();
+      try { await state.writer.close(); } catch (_) {}
       state.writer = null;
     }
+    if (state.writableClosed) { await settled(state.writableClosed); state.writableClosed = null; }
     if (state.port) {
-      await state.port.close();
-      state.port = null;
+      try { await state.port.close(); } catch (e) { console.error('Port close failed:', e); }
+      state.port = null;   // forget it either way, so the next connect asks for a port again
     }
   } catch (e) {
     console.error('Disconnect error:', e);
@@ -1744,7 +1762,7 @@ async function disconnect() {
 
 async function readLoop(port) {
   const decoder = new TextDecoderStream();
-  port.readable.pipeTo(decoder.writable);
+  state.readableClosed = port.readable.pipeTo(decoder.writable).catch(() => {});
   const reader = decoder.readable.getReader();
   state.reader = reader;
 
@@ -1768,9 +1786,18 @@ async function readLoop(port) {
   }
 }
 
-async function sendCommand(cmd) {
+// コマンドは 1 本の Promise の鎖で、1 つずつ送る。BLE の GATT は一度に 1 つの書き込みしか受けないので、
+// 待たずに続けて書くと 2 つ目以降が "GATT operation already in progress" で捨てられる（V-5。
+// オシロを開くときの SET_SCOPE_RATE / SET_SCOPE:ON / GET_SCOPE が、この形で続けて呼ばれる）。
+let cmdChain = Promise.resolve();
+function sendCommand(cmd) {
   // デモの仮想検出器へは、書き込む先が無いので直接渡す
-  if (state.transport === 'demo') { demoCommand(cmd); return; }
+  if (state.transport === 'demo') { demoCommand(cmd); return Promise.resolve(); }
+  cmdChain = cmdChain.then(() => sendCommandNow(cmd)).catch(() => {});
+  return cmdChain;
+}
+
+async function sendCommandNow(cmd) {
   const payload = cmd + '\n';
   try {
     if (state.transport === 'ble') {
@@ -2293,6 +2320,7 @@ function demoBootBanner(reboot) {
 
 function connectDemo() {
   if (state.isConnected) return;
+  if (mixesDemo(true)) { showMsg(t('demo.mixedDemo')); return; }
   const now = performance.now();
   const board = document.querySelector('#demoBoard button.active')?.dataset.board;
   demo.board = (board === 'ESP32S3') ? 'ESP32S3' : 'NANO';
@@ -2461,8 +2489,10 @@ function processLine(line) {
     const v = line.substring(8).trim();
     if (v) {
       $('bleNameInput').value = v;
-      $('bleDeviceName').value = v;
-      try { localStorage.setItem('bleDeviceName', v); } catch (_) {}
+      if (state.transport !== 'demo') {   // デモが名乗った名前を、本物の BLE 検索の名前として覚えない
+        $('bleDeviceName').value = v;
+        try { localStorage.setItem('bleDeviceName', v); } catch (_) {}
+      }
     }
     return;
   }
@@ -3684,6 +3714,12 @@ $('btnClearData').addEventListener('click', async () => {
     if (!ok) return;
   }
   document.body.classList.remove('rail-open');
+  // 「デモのデータを消してから」の案内は、消した時点で役目を終える（v2 と同じ）
+  for (const m of $('msgs').querySelectorAll('.msg')) {
+    const txt = m.querySelector('.msg-text')?.textContent;
+    if (txt === t('demo.mixedReal') || txt === t('demo.mixedDemo')) m.remove();
+  }
+  syncHeights();
   state.events = [];
   state.rateHistory = [];
   state.rawLines = [];

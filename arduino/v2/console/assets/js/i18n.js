@@ -224,6 +224,8 @@ const I18N = {
     'demo.connected': '接続中 · デモ',
     'demo.detail': 'デモモード（仮想の検出器）',
     'demo.detailNote': '合成データ — 実機はつながっていません',
+    'demo.mixedReal': 'デモのデータが画面に残っています。実機につなぐ前に「データを消去」してください（合成データが測定データに混ざらないようにするためです）。',
+    'demo.mixedDemo': '実機のデータが画面に残っています。デモを始める前に、必要なら保存してから「データを消去」してください。',
     'demo.uploadBlocked': 'デモのデータはサーバーに送れません。合成データが本物の観測データに混ざらないようにするためです。デモを切断して、実機をつないでから始めてください。',
 
     // --- 詳細設定 ---
@@ -593,6 +595,8 @@ const I18N = {
     'demo.connected': 'Connected · Demo',
     'demo.detail': 'Demo mode (virtual detector)',
     'demo.detailNote': 'Synthetic data — no hardware attached',
+    'demo.mixedReal': 'Demo data is still on the screen. Clear it before connecting a real detector, so synthetic events never mix with a measurement.',
+    'demo.mixedDemo': 'Data from a real detector is still on the screen. Save it if you need it, then clear it before starting the demo.',
     'demo.uploadBlocked': 'Demo data cannot be uploaded: synthetic events must never reach the measurement server. Disconnect the demo and connect a real detector first.',
 
     'advanced.title': 'Advanced settings',

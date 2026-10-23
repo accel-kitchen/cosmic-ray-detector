@@ -932,6 +932,8 @@ Bus.on('status', renderStatus);
 Bus.on('connDetail', renderConnDetail);
 Bus.on('messages', renderMessages);
 Bus.on('alert', a => { uiAlert = a; renderMessages(); });
+// "Clear the demo data first" has done its job once the data is cleared.
+Bus.on('cleared', () => { if (uiAlert && /^demo\.mixed/.test(uiAlert.key)) { uiAlert = null; renderMessages(); } });
 Bus.on('paused', () => { renderTopActions(); renderStatus(); });
 
 Bus.on('conn', connected => {

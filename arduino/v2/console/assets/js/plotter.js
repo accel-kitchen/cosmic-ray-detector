@@ -40,6 +40,7 @@ const I18N = {
     'file.none': '{name} — 読める行がありませんでした',
     'file.v1': 'v1 の形式',
     'file.sessions': '{n} 回の測定を含む（時間は足し合わせ）',
+    'file.skipped': '{n} 行は ADC が 0〜{max} の外なので除外',
     'hist.dataTitle': 'データと表示の範囲',
     'hist.file': '測定データ',
     'hist.binWidth': 'ビン幅',
@@ -156,6 +157,7 @@ const I18N = {
     'file.none': '{name} — no readable rows',
     'file.v1': 'v1 format',
     'file.sessions': '{n} runs in the file (times are summed)',
+    'file.skipped': '{n} rows left out (ADC outside 0–{max})',
     'hist.dataTitle': 'Data and range',
     'hist.file': 'Measurement',
     'hist.binWidth': 'Bin width',
@@ -350,6 +352,12 @@ function switchTab(id) {
 // (Time col 2, ADC col 3, Deadtime col 4, µs), as the original plotter did.
 const DEFAULT_COLS = { time: 2, adc: 3, dead: 4, event: 0, scale: 1, v1: false };
 
+// Rows whose ADC value is outside the converter's range are damaged (a line cut short, two lines
+// glued together) or were read from the wrong column. They are left out and counted, so one such
+// row can no longer stretch the histogram to billions of bins (P-2).
+const ADC_LIMIT = 4095;
+const MAX_BINS = 20000;   // upper bound on the number of histogram bars
+
 function splitRow(line) {
   return line.trim().split(/\t|,|\s+/).filter(s => s !== '');
 }
@@ -379,6 +387,7 @@ function parseDataFile(text) {
   let seg = 0, prevT = NaN, prevD = NaN, prevN = NaN;
   let segStartT = NaN, segMaxT = NaN, cumBefore = 0;   // cumBefore = span of the finished runs
   let sawEvent = false;
+  let skipped = 0;   // rows left out because their ADC value is out of range
   for (const line of lines) {
     if (!line) continue;
     if (line.charAt(0) === '#' || /^[A-Za-z]/.test(line.trim())) {
@@ -390,6 +399,7 @@ function parseDataFile(text) {
     if (f.length <= cols.adc) continue;
     const v = parseInt(f[cols.adc], 10);
     if (isNaN(v)) continue;
+    if (v < 0 || v > ADC_LIMIT) { skipped++; continue; }
     const t = parseFloat(f[cols.time]) * cols.scale;
     const d = cols.dead >= 0 ? parseFloat(f[cols.dead]) * cols.scale : NaN;
     const n = (cols.event >= 0 && cols.event < f.length) ? parseInt(f[cols.event], 10) : NaN;
@@ -420,7 +430,7 @@ function parseDataFile(text) {
   const t0 = firstT === undefined ? 0 : firstT;      // first event time [µs]
   const duration = cumBefore / 1e6;                  // sum of the runs' spans [s]
   const liveTime = computeLiveTime(times, deads, segs);
-  return { adc, times, deads, segs, cums, t0, duration, liveTime, sessions: sawEvent ? seg + 1 : 0, v1: cols.v1 };
+  return { adc, times, deads, segs, cums, t0, duration, liveTime, sessions: sawEvent ? seg + 1 : 0, skipped, v1: cols.v1 };
 }
 
 // Live time [µs] = elapsed span - accumulated deadtime over the given events.
@@ -456,7 +466,7 @@ function readFile(input, onText) {
 // File names shown under the pickers (kept as state so a language switch can redraw them).
 const fileLabels = { fileName: null, bgFileName: null, calFileName: null };
 function setFileLabel(id, name, data) {
-  fileLabels[id] = { name, n: data.adc.length, v1: data.v1, sessions: data.sessions };
+  fileLabels[id] = { name, n: data.adc.length, v1: data.v1, sessions: data.sessions, skipped: data.skipped };
   renderFileNames();
 }
 function renderFileNames() {
@@ -468,13 +478,14 @@ function renderFileNames() {
     let s = f.n ? t('file.loaded', { name: f.name, n: f.n.toLocaleString() }) : t('file.none', { name: f.name });
     if (f.n && f.v1) s += ' · ' + t('file.v1');
     if (f.n && f.sessions > 1) s += ' · ' + t('file.sessions', { n: f.sessions });
+    if (f.skipped) s += ' · ' + t('file.skipped', { n: f.skipped.toLocaleString(), max: ADC_LIMIT });
     el.textContent = s;
     el.title = s;
   }
 }
 
 // ========== ADC histogram ==========
-let signal = { adc: [], times: [], deads: [], segs: [], cums: [], t0: 0, duration: 0, liveTime: 0, sessions: 0 };
+let signal = { adc: [], times: [], deads: [], segs: [], cums: [], t0: 0, duration: 0, liveTime: 0, sessions: 0, skipped: 0 };
 let background = null;
 
 // Auto BG scale = signal live time / background live time (units cancel in the ratio).
@@ -544,7 +555,12 @@ function computeHistogram(vals, binWidth, forceMin, forceMax) {
     if (minV === null) minV = Math.floor(r.mn / binWidth) * binWidth;
     if (maxV === null) maxV = Math.ceil((r.mx + 1) / binWidth) * binWidth;
   }
-  const nBins = Math.max(1, Math.round((maxV - minV) / binWidth));
+  let nBins = Math.round((maxV - minV) / binWidth);
+  if (!isFinite(nBins) || nBins < 1) nBins = 1;
+  if (nBins > MAX_BINS) {   // a forced range or a stray value: widen the bins rather than run out of memory (P-2)
+    binWidth = Math.ceil((maxV - minV) / MAX_BINS);
+    nBins = Math.max(1, Math.round((maxV - minV) / binWidth));
+  }
   const counts = new Array(nBins).fill(0);
   const labels = [];
   for (let i = 0; i < nBins; i++) labels.push(minV + i * binWidth + binWidth / 2);
@@ -552,7 +568,7 @@ function computeHistogram(vals, binWidth, forceMin, forceMax) {
     const idx = Math.floor((v - minV) / binWidth);
     if (idx >= 0 && idx < nBins) counts[idx]++;
   }
-  return { labels, counts };
+  return { labels, counts, binWidth };   // the bin width actually used
 }
 
 function renderAll() {
@@ -577,7 +593,7 @@ function renderAll() {
 
   const subtract = !!(background && $('subtractBg').checked);
   const logY = $('logY').checked;
-  const binWidth = Math.max(1, parseInt($('binWidth').value, 10) || 10);
+  const binWidthWanted = Math.max(1, parseInt($('binWidth').value, 10) || 10);
   const forceMin = $('adcMin').value !== '' ? parseFloat($('adcMin').value) : null;
   const forceMax = $('adcMax').value !== '' ? parseFloat($('adcMax').value) : null;
 
@@ -585,9 +601,11 @@ function renderAll() {
 
   // Shared bin edges across signal (and background when subtracting).
   const { mn, mx } = rangeOf(sig.adc, subtract ? background.adc : []);
-  const minV = forceMin !== null ? forceMin : Math.floor(mn / binWidth) * binWidth;
-  const maxV = forceMax !== null ? forceMax : Math.ceil((mx + 1) / binWidth) * binWidth;
-  const { labels, counts: signalCounts } = computeHistogram(sig.adc, binWidth, minV, maxV);
+  const minV = forceMin !== null ? forceMin : Math.floor(mn / binWidthWanted) * binWidthWanted;
+  const maxV = forceMax !== null ? forceMax : Math.ceil((mx + 1) / binWidthWanted) * binWidthWanted;
+  const hist = computeHistogram(sig.adc, binWidthWanted, minV, maxV);
+  const { labels, counts: signalCounts } = hist;
+  const binWidth = hist.binWidth;   // wider than asked for only when the range needed more than MAX_BINS bars
 
   const forLog = arr => logY ? arr.map(v => (v > 0 ? v : null)) : arr;
   const xDisp = labels.map(toE);
@@ -817,7 +835,7 @@ function updateZenithPlots(fitResult) {
 // ========== Energy calibration ==========
 const CAL_KEY = 'crd_energy_cal_v1';   // same key as the original plotter, so saved calibrations carry over
 
-let calSignal = { adc: [], times: [], deads: [], segs: [], cums: [], t0: 0, duration: 0, liveTime: 0, sessions: 0 };
+let calSignal = { adc: [], times: [], deads: [], segs: [], cums: [], t0: 0, duration: 0, liveTime: 0, sessions: 0, skipped: 0 };
 // calibration: null when not calibrated, else one of
 //   { model:'linear',    a, b,       r2, n, seA, seB,        valid } → E = a·ADC + b
 //   { model:'quadratic', c2, c1, c0, r2, n, seC2, seC1, seC0, valid } → E = c2·ADC² + c1·ADC + c0
@@ -876,8 +894,8 @@ function renderCalHistogram() {
   const { mn, mx } = rangeOf(calSignal.adc);
   const minV = Math.floor(mn / binWidth) * binWidth;
   const maxV = Math.ceil((mx + 1) / binWidth) * binWidth;
-  const { labels, counts } = computeHistogram(calSignal.adc, binWidth, minV, maxV);
-  calHist = { labels, counts, binWidth, minV };
+  const { labels, counts, binWidth: usedWidth } = computeHistogram(calSignal.adc, binWidth, minV, maxV);
+  calHist = { labels, counts, binWidth: usedWidth, minV };   // the width actually used (same as renderAll)
   const y = logY ? counts.map(v => (v > 0 ? v : null)) : counts;
   const binText = labels.map(c => `ADC ${c - binWidth / 2} – ${c + binWidth / 2}`);
 
