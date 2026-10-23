@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>宇宙線検出器 コンソール全体レビュー（第 3 回）</title>
+<style>
+  :root {
+    --accent: #00BCD4;
+    --accent-dark: #0097A7;
+    --bg: #fafafa;
+    --card: #ffffff;
+    --text: #263238;
+    --muted: #607D8B;
+    --border: #CFD8DC;
+    --hi: #E53935;
+    --mid: #FB8C00;
+    --lo: #43A047;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: "Segoe UI", "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    margin: 0;
+    line-height: 1.7;
+  }
+  header {
+    background: linear-gradient(135deg, #006064, var(--accent-dark));
+    color: #fff;
+    padding: 28px 24px 20px;
+  }
+  header h1 { margin: 0 0 4px; font-size: 1.5rem; }
+  header p  { margin: 0; opacity: 0.85; font-size: 0.9rem; }
+  main { max-width: 980px; margin: 0 auto; padding: 24px 16px 64px; }
+  section {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px 24px;
+    margin-bottom: 24px;
+  }
+  h2 {
+    margin: 0 0 12px;
+    font-size: 1.15rem;
+    color: var(--accent-dark);
+    border-bottom: 2px solid var(--accent);
+    padding-bottom: 6px;
+  }
+  h3 { margin: 20px 0 6px; font-size: 1.0rem; }
+  .table-scroll { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: 0.88rem; }
+  th, td { border: 1px solid var(--border); padding: 6px 10px; text-align: left; vertical-align: top; }
+  th { background: #ECEFF1; white-space: nowrap; }
+  code {
+    background: #ECEFF1;
+    border-radius: 3px;
+    padding: 1px 5px;
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 0.85em;
+  }
+  pre {
+    background: #263238;
+    color: #ECEFF1;
+    border-radius: 6px;
+    padding: 10px 14px;
+    overflow-x: auto;
+    font-size: 0.82rem;
+    line-height: 1.5;
+    margin: 8px 0;
+  }
+  pre code { background: none; padding: 0; color: inherit; font-size: inherit; }
+  .pri { font-weight: bold; white-space: nowrap; }
+  .pri-hi  { color: var(--hi); }
+  .pri-mid { color: var(--mid); }
+  .pri-lo  { color: var(--lo); }
+  .tag {
+    display: inline-block;
+    font-size: 0.72rem;
+    border-radius: 10px;
+    padding: 1px 9px;
+    margin-right: 6px;
+    color: #fff;
+    vertical-align: middle;
+  }
+  .tag-hi  { background: var(--hi); }
+  .tag-mid { background: var(--mid); }
+  .tag-lo  { background: var(--lo); }
+  .tag-eff { background: var(--muted); }
+  .note {
+    background: #E0F7FA;
+    border-left: 4px solid var(--accent);
+    padding: 10px 14px;
+    border-radius: 0 6px 6px 0;
+    font-size: 0.88rem;
+    margin: 10px 0;
+  }
+  .idea { margin: 14px 0 18px; padding-left: 4px; }
+  .idea p, .idea li { margin: 4px 0; font-size: 0.92rem; }
+  .idea ul { margin: 4px 0; padding-left: 22px; }
+  .why { color: var(--muted); font-size: 0.86rem; }
+  .label { font-weight: bold; color: var(--accent-dark); }
+  ul.plain { margin: 6px 0; padding-left: 22px; font-size: 0.92rem; }
+  ul.plain li { margin: 3px 0; }
+  ol.order { margin: 6px 0; padding-left: 24px; font-size: 0.92rem; }
+  ol.order li { margin: 6px 0; }
+  .grade { font-weight: bold; font-size: 1.05rem; text-align: center; white-space: nowrap; }
+  footer { text-align: center; color: var(--muted); font-size: 0.8rem; padding: 12px; }
+  .st {
+    display: inline-block;
+    font-size: 0.75rem;
+    border-radius: 10px;
+    padding: 1px 9px;
+    color: #fff;
+    white-space: nowrap;
+  }
+  .st-done { background: var(--lo); }
+  .st-part { background: var(--mid); }
+  .st-open { background: var(--hi); }
+  details.archive > summary {
+    cursor: pointer;
+    font-weight: bold;
+    color: var(--accent-dark);
+    padding: 6px 0;
+  }
+  details.archive section {
+    border: none;
+    border-top: 1px dashed var(--border);
+    border-radius: 0;
+    padding: 12px 0 0;
+    margin: 16px 0 0;
+  }
+
+  .cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+  .kpi { display: flex; flex-wrap: wrap; gap: 10px; margin: 10px 0 4px; }
+  .kpi .box { flex: 1 1 140px; border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; background: #fcfcfc; }
+  .kpi .v { font-size: 1.25rem; font-weight: bold; color: var(--accent-dark); }
+  .kpi .l { font-size: 0.78rem; color: var(--muted); }
+  .sw { display: inline-block; width: 1.1em; height: 1.1em; border: 1px solid #0003; border-radius: 3px; vertical-align: -0.2em; margin-right: 4px; }
+  td.num, th.num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .bad { color: var(--hi); font-weight: bold; }
+  .ok { color: var(--lo); font-weight: bold; }
+  .ref { font-size: 0.82rem; color: var(--muted); }
+</style>
+</head>
+<body>
+<header>
+  <h1>宇宙線検出器 コンソール全体レビュー（第 3 回）</h1>
+  <p>2026-10-23 時点 / 対象: <code>arduino/v2/console/</code>（v2 記録ページ index.html、v1.html、解析ページ plotter.html、マニュアル manual.html、assets/js・css）。約 13,900 行 / 第 2 回レビュー（<code>arduino/review.html</code>）の指摘の対応状況つき</p>
+</header>
+
+<main>
+
+<!-- ============================================================ -->
+<section id="summary">
+<h2>0. サマリ</h2>
+
+<div class="note">
+<b>対象と方法。</b>コンソールの 4 ページ（v2 記録、v1、解析、マニュアル）と、その JS / CSS を対象に、評価・課題・修正案をまとめた。筆者が、ブラウザでの操作と計測（アクセシビリティ、コントラスト、負荷、オフラインの模擬）、pandas と半値幅の実行確認を行い、それに加えて、役割を分けた 4 つの独立したレビュー担当（core.js、画面層、解析ページとマニュアル、v1.html とそのファーム）に別々に全行を読ませた。報告された指摘のうち、高・中のものは、筆者が該当行を読み直してから載せた。表の「確認」の欄に、<b>実行</b>（動かして確認）、<b>コード</b>（筆者が行を読んで確認）、<b>報告</b>（担当の報告で、筆者は再確認していない）を書き分けた。
+行番号は今回の作業ツリーのものです。ファームは <code>fw:</code> と書きます。
+<b>実機（USB / BLE の実際の接続、本物のディスクへの保存）では確認していません</b>（第 9 節）。
+</div>
+
+<div class="kpi">
+  <div class="box"><div class="v">71 件</div><div class="l">課題（高 4 / 中 34 / 低 33）</div></div>
+  <div class="box"><div class="v">15 / 24</div><div class="l">前回の項目のうち対応済み（一部 3、未対応 2、未確認 4）</div></div>
+  <div class="box"><div class="v">全ページ エラー 0</div><div class="l">デモの一連の操作でのコンソールエラー</div></div>
+  <div class="box"><div class="v">4 件</div><div class="l">独立したコードレビュー（全行）</div></div>
+</div>
+
+<h3>総合評価</h3>
+<p><b>v2 の記録ページは、作り直しで前回の課題のほとんどが直り、データを守る設計も堅い。</b>残るのは、壊れた入力への甘さ（C-1）、切断や認証まわりの周辺の挙動（C-3, C-4）、アクセシビリティ（X-2, X-3）。<b>一方、v1 ページと解析ページは、v2 が到達した水準に追いついておらず、測定データの正しさに直結する「高」の課題がそこに集まっている</b>（V-1, V-3, X-1, P-1）。次の作業は、v2 の新しい機能を足すより、この差を埋めるほうが効果が大きい。</p>
+<div class="table-scroll">
+<table>
+  <tr><th>観点</th><th>v2 記録</th><th>v1</th><th>解析</th><th>コメント</th></tr>
+  <tr><td>機能の充実度</td><td class="grade">◎</td><td class="grade">◎</td><td class="grade">○</td><td>v1 も v2 と同じ見た目・オシロ・デモを持つ。解析は、スペクトル、校正、天頂角の当てはめ、背景の差し引きまで揃う</td></tr>
+  <tr><td>堅牢性</td><td class="grade">○</td><td class="grade">△</td><td class="grade">△</td><td>v2 は、自動保存・アップロード・再接続の設計が堅い。v1 は、書き込み失敗でデータを失い（V-3）、CDN が落ちると全部止まる（X-1）。解析は、壊れた 1 行や CDN で止まる（P-2, P-8）</td></tr>
+  <tr><td>数値の正確さ</td><td class="grade">○</td><td class="grade">△</td><td class="grade">△</td><td>v2 の計数率は基板のカウンタから正しく出る。v1 は、オシロ・つなぎ直し・消去のあとに誤る（V-1）。解析は、複数回の測定（P-1）、半値幅（P-3）、R²（P-4）に問題</td></tr>
+  <tr><td>保存データの整合性</td><td class="grade">○</td><td class="grade">△</td><td class="grade">—</td><td>v2: ファイル名の取り違え（C-2）、デモの混入（C-6）、壊れた行（C-1）。v1: 書き込み失敗・ヘッダ・日付（V-3, V-6, V-7）</td></tr>
+  <tr><td>アクセシビリティ</td><td class="grade">△</td><td class="grade">△</td><td class="grade">△</td><td>名前のない部品、オシロ画面のリンク（1.2 : 1）、<code>--ink-4</code> の文字（2.5 : 1）、小さいタップ領域。構造（見出し、alt、フォーカス）は良い</td></tr>
+  <tr><td>保守性</td><td class="grade">○</td><td class="grade">△</td><td class="grade">○</td><td>v2 は 5 ファイルに分割された。v1 は独立した 3,678 行で、v2 の修正が入らない（S-7）。旧版のコピーが追跡されたまま。テストなし（S-5, S-6）</td></tr>
+  <tr><td>文書との整合</td><td class="grade">○</td><td class="grade">○</td><td class="grade">○</td><td>マニュアルの定数は、ほぼコードと合う。ただし pandas の例（M-1）、http の推奨（M-3）、オフラインの記述（M-4）、日本語のみ（M-5）</td></tr>
+</table>
+</div>
+
+<h3>前回の指摘の対応状況</h3>
+<p>24 件中、<span class="st st-done">対応済み</span> 15 件、<span class="st st-part">一部</span> 3 件、<span class="st st-open">未対応</span> 2 件（S-2 v1 との重複、S-4 テスト）、ファーム側の 4 件（N-7〜N-10）は今回は未確認。詳細は第 1 節。</p>
+
+<h3>課題一覧（優先度順、主なもの）</h3>
+<div class="table-scroll">
+<table>
+  <tr><th>#</th><th>区分</th><th>課題</th><th>優先度</th><th>工数</th></tr>
+  <tr><td>X-1 / V-4</td><td>v1・オフライン</td><td>v1.html は Chart.js を CDN から読むので、読めないと初期化が止まり、自動保存の定期書き込みも始まらない</td><td class="pri pri-hi">高</td><td>小</td></tr>
+  <tr><td>V-3</td><td>v1・保存</td><td>自動保存が、書き込みに失敗したぶん・二重実行・閉じる直前のぶんを失う</td><td class="pri pri-hi">高</td><td>中</td></tr>
+  <tr><td>V-1</td><td>v1・計算</td><td>計数率と経過時間が、オシロ後・途中接続・消去後・つなぎ直しで誤る</td><td class="pri pri-hi">高</td><td>中</td></tr>
+  <tr><td>P-1</td><td>解析・計算</td><td>1 ファイルに入った複数回の測定を、1 回として扱い、測定時間・計数率・背景の差し引きがずれる</td><td class="pri pri-hi">高</td><td>中</td></tr>
+  <tr><td>C-1 / V-9</td><td>記録・v1（パーサ）</td><td>つながった行・欠けた行をそのまま受け入れ、範囲も検査しない。壊れた 1 行が、保存と計数率に入る</td><td class="pri pri-mid">中</td><td>小</td></tr>
+  <tr><td>M-1</td><td>文書</td><td>マニュアルの pandas の読み方では、.dat の最初のイベントが消える</td><td class="pri pri-mid">中</td><td>小</td></tr>
+  <tr><td>U-1</td><td>画面</td><td>PWM の入力欄を空にして「設定」を押すと、<code>SET_PWM:0</code> が黙って送られる</td><td class="pri pri-mid">中</td><td>小</td></tr>
+  <tr><td>C-3</td><td>接続</td><td>切断が、サーバーへの最終送信を待つ（最大約 75 秒）あいだ、ポートを掴んだまま「接続中」と出る</td><td class="pri pri-mid">中</td><td>小</td></tr>
+  <tr><td>C-6 / V-6</td><td>保存</td><td>デモと実機のデータが同じ画面で混ざり、実測のファイルに「DEMO_」と「測定ではない」が付く</td><td class="pri pri-mid">中</td><td>小</td></tr>
+  <tr><td>P-2, P-3, P-4</td><td>解析・計算</td><td>範囲外の ADC でタブが固まる、半値幅が 4〜6 割小さい、R² が過大</td><td class="pri pri-mid">中</td><td>小〜中</td></tr>
+  <tr><td>P-8</td><td>解析・オフライン</td><td>Plotly を CDN（SRI なし）から読むので、オフラインでは何も描けない</td><td class="pri pri-mid">中</td><td>小</td></tr>
+  <tr><td>X-2, X-3, U-3, U-10</td><td>画面・a11y</td><td>オシロ画面のリンクが見えない、名前のない部品が約 10 個、英語の上部バーが崩れる、スマホの固定バーが 3 割</td><td class="pri pri-mid">中</td><td>小</td></tr>
+  <tr><td>V-2, V-5</td><td>v1・接続</td><td>USB の切断でポートが開いたまま（実機で未確認）、BLE のコマンドが同時送信で落ちる</td><td class="pri pri-mid">中</td><td>小</td></tr>
+  <tr><td>S-5, S-6, S-7</td><td>構造</td><td>旧版のコピー、テストなし、v1 が独立したコード</td><td class="pri pri-mid">中</td><td>小〜大</td></tr>
+  <tr><td>そのほか</td><td>各種</td><td>第 4〜7 節の表（記録 8、画面 13、解析 5、v1 9、文書 12、構造 2）</td><td class="pri pri-lo">低〜中</td><td>小</td></tr>
+</table>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<section id="status">
+<h2>1. 前回（第 2 回）の指摘の対応状況</h2>
+<p>前回は、旧版の単一ファイル <code>v2/index.html</code>（5,856 行）をレビューした。その後、記録ページは <code>v2/console/</code>（<code>assets/js/</code> の 5 ファイル）に作り直された。前回の指摘が、新しいコードで直っているかを、core.js を全行読んで確かめた（Agent A）。ファーム側の項目（N-2, N-7〜N-10）は、今回はファームを全行は読んでいないので、「ファーム側に修正が入っているように見える」までにとどめる。</p>
+<div class="table-scroll">
+<table>
+  <tr><th>#</th><th>前回の指摘</th><th>状態</th><th>今回見た箇所（core.js）</th><th>残り</th></tr>
+  <tr><td>N-1</td><td>自動保存の書き込み中の切断</td><td><span class="st st-done">対応済み</span></td><td>1316–1319（強制書き込みは実行中のものを待つ）、1338–1339（書き込み先を先に固定）、669 / 676</td><td>—</td></tr>
+  <tr><td>N-2</td><td>オシロ中の RESET（ファーム）</td><td><span class="st st-done">対応済み</span></td><td>ファーム 630–636 に修正。デモも同じ動き（2812–2814）</td><td>ファームは今回、全行は読んでいない</td></tr>
+  <tr><td>N-3</td><td>再送で送信中のバッチが二重</td><td><span class="st st-done">対応済み</span></td><td>1789, 1914（送信中の集合）、1826 / 1840 / 1847 で解除</td><td>—</td></tr>
+  <tr><td>N-4</td><td>デモ直後の書き込みが普通のファイルへ</td><td><span class="st st-done">対応済み</span></td><td>1009, 1290–1296, 2053（イベントごとの <code>demo</code> フラグで判断）</td><td>手動の書き出しは別（C-6）</td></tr>
+  <tr><td>N-5</td><td>「このセッション」の計数率が Clear からの累計</td><td><span class="st st-done">対応済み</span></td><td>1080–1091, 911（「Clear からの値」と定義し、別の基板なら通知）</td><td>Clear で基板の識別が消える（C-5）</td></tr>
+  <tr><td>N-6</td><td>オシロを開いたままで計数が止まる</td><td><span class="st st-done">対応済み</span></td><td>84–85, 771–777, 2276–2291、ui.js:785–791（10 分操作がなければ戻る）</td><td>—</td></tr>
+  <tr><td>N-7〜N-10</td><td>ファームのデッドタイム計上・偽イベント・組み立て途中の行・micros64</td><td><span class="st st-part">未確認</span></td><td>ファーム 1636（N-8）、371（N-9）、1322 / 1325（N-10）に修正が入っているように見える</td><td>今回は対象外</td></tr>
+  <tr><td>N-11</td><td>BLE の再接続の試行中に切断</td><td><span class="st st-done">対応済み</span></td><td>452–489, 587–596, 651–654</td><td>—</td></tr>
+  <tr><td>N-12</td><td>BLE 再接続で一時停止が解除される</td><td><span class="st st-done">対応済み</span></td><td>321–327, 1949–1951</td><td>—</td></tr>
+  <tr><td>N-13</td><td>再送で前の接続のイベントが混ざる</td><td><span class="st st-done">対応済み</span></td><td>1010, 1919（イベントごとの <code>runId</code>）</td><td>—</td></tr>
+  <tr><td>N-14</td><td>旧版のトークンの残骸</td><td><span class="st st-done">対応済み</span></td><td>1428–1430, 1446–1447, 1459–1463</td><td>—</td></tr>
+  <tr><td>N-15</td><td>書き込み間隔が延びた分だけ、閉じたときに失う</td><td><span class="st st-done">対応済み</span></td><td>72–74, 1215–1223, 1370–1373, 2296–2311（pagehide などで強制書き込み）</td><td>—</td></tr>
+  <tr><td>N-16</td><td>デモの不整合</td><td><span class="st st-done">対応済み</span></td><td>893–897, 2811, 2875</td><td>—</td></tr>
+  <tr><td>R-2</td><td>自動保存が壊れる 5 経路</td><td><span class="st st-done">対応済み</span></td><td>a 1287–1296、b 1186–1199、c 1328–1334、d 1278–1307、e 1363–1365</td><td>c の接頭辞の固定に抜け道（C-2）</td></tr>
+  <tr><td>R-3</td><td>再送で重複</td><td><span class="st st-done">対応済み</span></td><td>1800, 1809, 1914, 1918</td><td>—</td></tr>
+  <tr><td>R-9</td><td>認証情報の扱い</td><td><span class="st st-part">一部</span></td><td>トークンは「記憶」したときだけ保存（1446–1464）。http には警告（1892、ui.js:690）。ただし警告だけで、ブロックはしない。「記憶」したときは、パスワードが localStorage に平文で入る（1452–1456）</td><td>C-9、M-3</td></tr>
+  <tr><td>R-17</td><td>100 万件のメモリ</td><td><span class="st st-part">一部</span></td><td>先頭の削除をまとめた（1019–1023）。フィールドを平らにした（1005–1006）</td><td>1 件が約 25 プロパティのオブジェクトのまま。自動保存と送信のキューは、上限を超えても参照を持つ</td></tr>
+  <tr><td>S-1</td><td>単一ファイル（5,856 行）</td><td><span class="st st-done">対応済み</span></td><td>v2/console/ に分割（core 2,939 / ui 1,496 / charts 454 / i18n 829 行 + HTML・CSS）</td><td>旧版のコピー <code>v2/index.html</code>（6,100 行）が、まだ追跡されている（第 6 節）</td></tr>
+  <tr><td>S-2</td><td>v1 との重複</td><td><span class="st st-open">未対応</span></td><td>v1.html（3,678 行）は独立したコードのまま</td><td>第 5 節。V-1, V-3 など</td></tr>
+  <tr><td>S-4</td><td>テストがない</td><td><span class="st st-open">未対応</span></td><td>リポジトリにテストがない（package.json もない）</td><td>第 6 節</td></tr>
+  <tr><td>D-5</td><td>マニュアルの http 推奨</td><td><span class="st st-part">一部</span></td><td>新しい manual.html に引き継がれ、http の推奨が残る（M-3）</td><td>第 7 節</td></tr>
+</table>
+</div>
+<p>D-4（description.md の食い違い）は、今回は照合していない。<code>description.md</code> は、まだコミットされていない（untracked）。</p>
+</section>
+
+<!-- ============================================================ -->
+<section id="good">
+<h2>2. 良い点</h2>
+<ul class="plain">
+  <li><b>作り直しで、前回の指摘のほぼ全部が直った。</b>core.js を全行読んだ範囲では、前回の中・低の課題（N-1, N-3〜N-6, N-11〜N-16, R-2, R-3）が、すべてコードで対応されている（第 1 節）。コメントにも、直した理由が残っている。</li>
+  <li><b>自動保存の設計が堅い。</b>強制書き込みは、実行中の書き込みを待ってから、書き込み先を先に変数に固定する（core.js:1316–1339）。形式ごとのキューは、書けなかった残りだけを戻し、一時ファイルは失敗時に捨てる（1196, 1304）。「記録が正本、サーバーは鏡」という順序が、タイマーの登録順にまで反映されている（2935–2938）。</li>
+  <li><b>計数率が基板のカウンタから正しく出る。</b>区間に分け、ライブタイムで割り（core.js:1093–1148）、グラフは基板時刻で窓を切る（1982–2012）。<code>wall_us</code> は到着時に確定する（1014）。</li>
+  <li><b>アップロードが慎重。</b>送信中の集合、run ID、壊れたイベントの切り離し（1806–1814）、<code>credentials:'omit'</code>・<code>cache:'no-store'</code>・15 秒の中断（1585–1598）。</li>
+  <li><b>オシロの扱い。</b>行の長さを厳しく検査し（2195–2198）、点の数に上限があり（2217–2219）、keepalive と放置時の復帰がある（2263–2291）。ファーム側にも 60 秒の安全装置があり、二重になっている。</li>
+  <li><b>XSS の経路が見つからない。</b>表の <code>innerHTML</code> は、数値の整形結果だけ（ui.js:456–465）。デバイスやユーザーの文字は <code>textContent</code> か <code>esc()</code> を通る。メモは 1 行ずつ <code># </code> を付けて書くので、データ行を注入できない（core.js:1236）。<code>eval</code> も <code>document.write</code> もない。</li>
+  <li><b>解析ページの列の読み取り。</b>ヘッダ行から列の位置を決めるので、v1 / v2 / CSV / SD の各配置、メモ行、CRLF、空行、デモの注記を扱える（plotter.js:351–361）。背景の差し引きは、時間窓ごとのライブタイムで比例させる（441–472）。90 万イベント（86 MB）が 2.0 秒で読める（解析担当の計測）。</li>
+  <li><b>画面の作り込み。</b>ドロワーのフォーカスの出入り、Esc が一番内側から閉じる処理、<code>prefers-reduced-motion</code>、言語切り替えで再描画できるエラー（キー + パラメータで保持）。canvas は devicePixelRatio に対応し、しきい値のドラッグ中は範囲を固定し、<code>aria-valuenow</code> も付く（charts.js:45–58, 289–292, 323–355）。</li>
+  <li><b>翻訳が揃っている。</b>v2 は ja / en の 350 キーが過不足なく一致し、v1 は 234 キー（v1 担当の計数）、解析ページは 77 キー（解析担当の計数）が揃う。マニュアルの定数（100 万件、100 行、BLE 再接続 1〜30 秒、キュー 50,000、バックオフ 60 秒など）はコードと合っている。画像 16 枚はすべて存在し、alt もある。</li>
+  <li><b>全ページでコンソールエラーなし。</b>デモの一連の操作（モデル選択、接続、言語、シナリオ、バースト、ドロワー、しきい値、オート校正、モード、オシロの開閉、改名、消去、切断）を通して、エラーは出なかった。最大レートのデモ（約 400 イベント/秒）でも、メインスレッドの最大の詰まりは 13〜17 ミリ秒。</li>
+</ul>
+</section>
+
+<!-- ============================================================ -->
+<section id="high">
+<h2>3. 課題と修正案（高・中）</h2>
+<p class="ref">ID の頭文字は、<b>C</b> = 記録ページのデータ処理（core.js）、<b>U</b> = 記録ページの画面、<b>P</b> = 解析ページ、<b>M</b> = マニュアル、<b>V</b> = v1.html、<b>X</b> = 複数にまたがるもの、<b>S</b> = 構造。X-1 と V-4、X-2 と U-4、X-3 と U-2・U-8 は、別々のレビュー担当が同じ問題を見つけたもので、1 つにまとめた。</p>
+
+<h3>高</h3>
+
+<div class="idea">
+<h3><span class="tag tag-hi">高</span><span class="tag tag-eff">工数小</span>X-1. v1.html は Chart.js を読み込めないと、初期化が途中で止まって保存も動かない</h3>
+<p><span class="label">現象：</span>v1.html は Chart.js を CDN（<code>cdn.jsdelivr.net</code>）から読む（v1.html:7–9）。読み込めないと <code>initCharts()</code> が <code>TypeError</code> で落ちる。<code>DOMContentLoaded</code> の中では、このあとに <code>renderView()</code>、<code>ResizeObserver</code>、そして <code>setInterval(flushAutoSave)</code> と <code>setInterval(updateRateChart)</code> が続くので、<b>どれも実行されない</b>。</p>
+<p><span class="label">確認：</span>ブラウザ上で <code>Chart</code> を無くした状態を作り、<code>initCharts()</code> と <code>processLine('1 1000 120 25.10 0 24.3')</code> を呼ぶと、前者は <code>Cannot read properties of undefined (reading 'defaults')</code>、後者は <code>(reading 'data')</code> で失敗した。イベント自体は <code>state.events</code> に入るが、統計・表・グラフを更新する処理は、エラーより後ろにあるので走らない。</p>
+<p>v1 担当も、スクリプトタグを外した iframe で再現した（同じ問題を V-4 として報告）。USB の場合は、読み取りループの <code>catch</code>（1755）が、最初のイベントで <code>disconnect()</code> を呼ぶ。書き出しのボタンが有効にならない（2605 より前に例外で止まる）。</p>
+<p><span class="label">影響：</span>検出器は、インターネットにつながらない実験室や屋外で使うことが多い。そこで v1.html を開くと、数字もグラフも動かず、<b>自動保存の定期書き込みも始まらない</b>。保存先を選んでも何も書かれないのに、画面には何も出ない。v2 の記録画面は自前の canvas なので、この問題はない。</p>
+<p><span class="label">修正案：</span></p>
+<ul>
+  <li>最小: <code>initCharts()</code> を <code>try/catch</code> で囲み、失敗しても残りの初期化（定期処理）を続ける。<code>processLine()</code> のグラフ更新も <code>if (histogramChart)</code> で守り、グラフが無いときは画面上部に「グラフを読み込めませんでした。数字と保存は動いています」と出す。</li>
+  <li>根本: Chart.js をリポジトリに置いて（<code>assets/vendor/chart.umd.min.js</code>、約 200 KB）相対パスで読む。あわせてフォントの CDN も、ローカルに置くか、フォールバック指定を確認する（フォントは失敗しても表示は崩れない）。</li>
+</ul>
+<p class="why">根拠: v1.html:7–9、3610–3674（DOMContentLoaded 内の呼び出し順: initCharts 3654 → renderView → ResizeObserver → setInterval 3671, 3674）。実行して確認。</p>
+</div>
+
+<div class="idea">
+<h3><span class="tag tag-hi">高</span><span class="tag tag-eff">工数中</span>V-1. v1.html の計数率と経過時間が、よくある 4 つの場面で間違った値になる</h3>
+<p><span class="label">現象：</span><code>updateStats()</code> は、<b>受信したイベントの数 ÷ 最後のイベントの基板時刻</b>で計数率を出し、デッドタイム列は見ない。経過時間も最後の基板時刻そのもの（v1.html:2656–2679）。v2 のように、基板のカウンタの区間に分けて、ライブタイムで割る処理（core.js:1093–1148）がない。</p>
+<p><span class="label">確認：</span>v1.html に行を流して試した（v1 担当）。計算式は筆者もコードで確認した。</p>
+<div class="table-scroll">
+<table>
+  <tr><th>場面</th><th class="num">表示された計数率</th><th class="num">正しい値</th><th>理由</th></tr>
+  <tr><td>1 cps で定常</td><td class="num ok">1.000</td><td class="num">1.000</td><td>—</td></tr>
+  <tr><td>オシロを 100 秒開いたあと</td><td class="num bad">0.667</td><td class="num">1.000</td><td>オシロ中の時間（計数停止）が分母に入る。確認ダイアログ（757, 1004）は「正しいまま」と案内している</td></tr>
+  <tr><td>3 時間動いている ESP32 に途中から接続</td><td class="num bad">0.000 ± 0.000</td><td class="num">1.000</td><td>BLE・USB-CDC では基板が再起動しないので、最初のイベントの基板時刻がすでに 3 時間。経過時間も 03:00:04</td></tr>
+  <tr><td>「データを消去」のあと</td><td class="num bad">0.032（経過 00:05:10）</td><td class="num">1.000</td><td>Nano には RESET がなく、基板時刻は続く。消去しても分母が戻らない</td></tr>
+  <tr><td><code>RESET:OK</code>（2470、無視している）または Nano の USB つなぎ直し</td><td class="num bad">2.0（10 秒で n=20）</td><td class="num">1.0</td><td>基板のカウンタが戻っても、区間を切らない（Nano は、ポートを開くたびに再起動する）</td></tr>
+</table>
+</div>
+<p><span class="label">影響：</span>画面の「計数率」と「±」は、オシロを一度でも使うと、またはつなぎ直すと、信用できない。v1 のファームはデッドタイムの列を持つので、計算に必要な材料はそろっている。</p>
+<p><span class="label">修正案：</span>v2 の区間の考え方をそのまま移す。<code>count</code>・<code>time</code>・<code>deadtime</code> のどれかが戻ったら区間を閉じる。<code>count === 1</code> のときは基準を 0 にする（途中接続でも、そのイベントから数える）。計数率は Σ(区間のカウント) ÷ Σ(区間の Δt − Δdead)、経過時間も同じライブタイムにする。「データを消去」は、基準を取り直す（Nano には RESET がないので、ページ側で基準を持つ）。</p>
+<pre><code>// 考え方を示す擬似コード（実装は core.js の rateTrack をそのまま移す）
+// v1 の processLine() の中、events.push の前に
+const r = state.rate;                       // { done: 0, doneLive: 0, baseCount, baseTime, baseDead, lastTime, ... }
+if (r.baseCount == null || event.count &lt; r.lastCount || event.timestamp_ms &lt; r.lastTime || event.deadtime_ms &lt; r.lastDead) {
+  closeSegment(r);                          // 前の区間を done / doneLive に足す
+  r.baseCount = event.count - 1; r.baseTime = 0; r.baseDead = 0;   // count===1 なら起点は 0
+}
+// 計数率 = (done + 現区間のカウント) / (doneLive + 現区間の (Δt − Δdead))</code></pre>
+<p class="why">根拠: v1.html:757, 1004, 2470, 2656–2679、core.js:1093–1148（v2 の実装）。v1 に行を流して確認（v1 担当）。</p>
+</div>
+
+<div class="idea">
+<h3><span class="tag tag-hi">高</span><span class="tag tag-eff">工数中</span>V-3. v1.html の自動保存は、書き込みに失敗したぶんと、タブを閉じる直前のぶんを失う</h3>
+<p><span class="label">現象：</span><code>flushAutoSave()</code> は、書き込む前に未保存のバッファを<b>取り出して空にする</b>（<code>as.pending.splice(0)</code>、v1.html:2764）。書き込みが失敗しても、戻さない。</p>
+<ul>
+  <li><b>失敗の例:</b> Excel で開いているファイル、消えたフォルダ、接頭辞に <code>/</code> を入れたとき（接頭辞を整えていない、2742。v2 は 1250–1253 で整えている）。エラーの文言は、次の <code>updateAutoSaveUI</code> で消える。偽のフォルダで試すと、イベント 5・6 は書かれず、再試行もされなかった。</li>
+  <li><b>二重実行:</b> 1 秒ごとのタイマー（3674）に、実行中かどうかの印がない。1.5 秒かかる書き込みでは、2 回目が 1 回目のバッチを上書きした（<code>has8: false</code>）。<code>appendToFile</code> は<code>keepExistingData</code> でファイル全体を一時ファイルに写すので、1 日の終わりごろには、書き込みが 1 秒を超えるのは普通のこと。</li>
+  <li><b>閉じる直前:</b> <code>pagehide</code> / <code>visibilitychange</code> / <code>beforeunload</code> での書き込みがない（<code>beforeunload</code> は <code>SCOPE:OFF</code> を送るだけ、3406）。タブを閉じると、最大 1 秒ぶんが消える。</li>
+</ul>
+<p><span class="label">影響：</span>保存は「正本」のはずなのに、失敗したときに黙って失われる。書き込みの失敗は、遅いディスク、ネットワークドライブ、ウイルス対策ソフトで起こる。v2 には、この 3 点とも対策が入っている（ロック、書けなかった残りの戻し、強制書き込み）。</p>
+<p><span class="label">修正案：</span>v2 の実装（core.js:1278–1368、2296–2311）に合わせる。</p>
+<pre><code>let flushing = false;
+async function flushAutoSave(force) {
+  if (flushing) return;                       // 二重実行しない
+  flushing = true;
+  const batch = as.pending.slice();           // まだ取り出さない
+  try {
+    // …書き込み…
+    as.pending.splice(0, batch.length);       // 成功したぶんだけ取り除く
+  } catch (e) {
+    // バッファは残るので、次の tick で再試行。writable.abort() で一時ファイルも片付ける
+  } finally { flushing = false; }
+}
+document.addEventListener('visibilitychange', () =&gt; { if (document.hidden) flushAutoSave(true); });
+window.addEventListener('pagehide', () =&gt; flushAutoSave(true));</code></pre>
+<p class="why">根拠: v1.html:2727–2785, 2742, 2764, 3406, 3674、core.js:1278–1368, 2296–2311。偽のディレクトリハンドルで再現（v1 担当）。ロックがないこと、<code>pagehide</code> 等の登録がないことは、筆者が grep で確認した。</p>
+</div>
+
+<div class="idea">
+<h3><span class="tag tag-hi">高</span><span class="tag tag-eff">工数中</span>P-1. 解析ページ（plotter）が、1 つのファイルに入った複数回の測定を 1 回の測定として扱う</h3>
+<p><span class="label">現象：</span>自動保存は、同じ日・同じ名前のファイルに追記する（ヘッダは空のファイルにだけ書く。core.js:1186–1199）。つまり、<b>同じ日に測定を何度か止めて再開すると、1 つのファイルに複数回ぶんが並ぶ</b>。記録ページは、基板のカウンタが戻った時点で区間を切って合算する（core.js:1072–1081）。一方、解析ページは区間を切らない。</p>
+<ul>
+  <li>測定時間は、ファイル全体の Time の最小と最大の差（plotter.js:386–389）。</li>
+  <li>ライブタイムは、Time の最大−最小から、デッドタイム累計の最大−最小を引いたもの（397–408）。RESET や再起動でデッドタイムが 0 に戻っても、最大値のほうが残る。</li>
+  <li>背景の差し引き（autoBgScale、444–448）と時間窓の計算（windowedSignal、461–472）も、この「全体の最小・最大」を使う。</li>
+</ul>
+<p><span class="label">確認：</span>解析担当が 3,599 秒と 1,799.5 秒の 2 回を 1 ファイルにした例で、解析ページは測定時間 3,599.5 秒・ライブタイム 3,594.5 秒と表示した。実際の合計は約 5,398 秒・5,391 秒。背景スケールは約 0.67 倍ずれる。（筆者はコードを読んで、同じ式であることを確認した。）</p>
+<p><span class="label">影響：</span>計数率（cps）が本来より大きく出る。背景を差し引く場合は、差し引く量も狂う。数字だけを見ても気づけない。マニュアルは、1 日に何度も測定すること（上限の 64 MB を超えると _02, _03 に分かれること）を前提にしているので、普通の使い方で当たる。</p>
+<p><span class="label">修正案：</span>読み込み時に Time が減った箇所（または Event 番号が減った箇所）で区間を切る。測定時間とライブタイムは区間ごとに計算して足す。時間窓は、区間をつないだ「累計時間」で指定する。ファイルに複数の区間があるときは、画面に「このファイルは N 回の測定を含みます」と表示する。</p>
+<pre><code>// 読み込み時（イベントを順に走査）
+let seg = 0;
+for (let i = 0; i &lt; ev.length; i++) {
+  if (i &gt; 0 &amp;&amp; ev[i].time &lt; ev[i - 1].time) seg++;     // カウンタが戻った = 新しい測定
+  ev[i].seg = seg;
+}
+// 測定時間 = Σ(区間の最後の time − 最初の time)
+// ライブタイム = Σ(区間ごとに (最後の time − 最初の time) − (最後の deadtime − 最初の deadtime))</code></pre>
+<p class="why">根拠: plotter.js:386–389, 397–408, 444–448, 461–472、core.js:1072–1081, 1186–1199。解析担当の再現（2 回分のファイル）。</p>
+</div>
+
+
+<h3>中</h3>
+
+<div class="idea">
+<h3><span class="tag tag-mid">中</span><span class="tag tag-eff">工数小</span>C-1. イベント行の解析が、つながった行や欠けた行をそのまま受け入れ、範囲の検査もしない</h3>
+<p><span class="label">現象：</span><code>processLine()</code> は、トークン数が 13 未満のときだけ捨てる（core.js:979–992）。それ以外は <code>isNaN</code> を見るだけで、ADC やフラグの範囲は見ない。<code>description.md:195</code> にも「13 以上」と書いてある。</p>
+<p><span class="label">いつ起きるか：</span>ファームは、測定中は USB-CDC の送信タイムアウトを 0 にしている（fw:1255, 1627）。PC 側が一瞬止まると、<code>Serial.println</code> の終わり（ふつうは CRLF）が落ちる。BLE の通知も、チャンクが欠けることがある。すると次の行がつながって届き、<b>13 個以上のトークンがあるので受け入れられる</b>。</p>
+<p><span class="label">確認：</span>core.js をそのまま node で動かして再現した（Agent A）。</p>
+<ul>
+  <li>3 番目のイベントの末尾に次の行が連結 → イベント 3 が a3=2954 で保存され、イベント 4 は黙って消えた。</li>
+  <li><code>5 12</code> と <code>6 7305000 …</code> が連結 → count=5、time=126、<b>adc=7305000</b>、deadtime=4005、hum=24.3、press=47.9 のイベントとして受け入れられた。</li>
+</ul>
+<p><span class="label">影響：</span>その行は .dat / .csv にそのまま書かれる。さらに time が前より小さくなるので、<code>rateTrack</code> が区間を閉じ（1104–1106）、新しい区間が壊れた値から始まる。実験では、8 件を 10.83 秒で受けた（0.74 cps）のに、画面の計数率は 0.47 cps になり、Clear するまで直らなかった。湿度・気圧・アナログ値の合計にも異常値が入る。壊れるのは 1 行だけで、あとは正常に流れるので、気づきにくい。実機でどのくらい起きるかは未確認（再現は、受信側にテスト行を流して行った）。</p>
+<p><span class="label">修正案：</span>3 段で守る。<code>description.md:195</code> も合わせて直す。</p>
+<ol>
+  <li><b>トークン数をちょうど 13 にする。</b>行が途中の 2 個目以降で切れてつながると、13 + k − 1 個（14 個以上）になるので、ほとんどの形を弾ける。</li>
+  <li><b>範囲を見る。</b>ADC、フラグ、温度などの範囲外を捨てる（上の 2 つ目の例の <code>adc=7305000</code> はここで弾ける）。</li>
+  <li><b><code>count</code> の連続性を見る。</b>上の 1・2 では通り抜ける形が 2 つある。直前の行が<b>1 トークンだけ</b>残ってつながると、ちょうど 13 個になり、壊れるのは <code>count</code>（例: <code>5</code> + <code>6 …</code> → <code>56</code>）だけで、ほかの項目は正しい。行が丸ごと消えた場合も、きれいな 13 個の行が届く。どちらも <code>count</code> が前の値 + 1 から外れるので、「欠測の疑い」として数え、画面に出す（途中接続や、BLE で行が落ちる場合にもありうるので、捨てずに記録する）。</li>
+</ol>
+<pre><code>if (parts.length !== EVENT_TOKEN_COUNT) return;          // 連結・欠けは捨てる（description.md も「ちょうど 13」に）
+// adc は 0..ADC_MAX、d1〜d3 は 0 か 1、a1〜a3 は 0..ADC_MAX、count ≥ 1、deadtime ≤ time
+if (adc &lt; 0 || adc &gt; ADC_MAX || count &lt; 1 || deadtime &gt; time) return;
+// 温度・湿度・気圧が範囲外（-40..125 / 0..100 / 300..1100）なら NaN にして集計から外す
+// count が last + 1 でも 1（RESET・再起動の直後）でもなければ gapSuspect++（捨てずに数える）</code></pre>
+<p>捨てた行と欠測の疑いの数は、画面のどこかに出しておくと、ケーブルや BLE の品質が分かる。</p>
+<p class="why">根拠: core.js:979–992, 1017–1053, 1101–1113, 1028。ファーム側の送信: fw:1255, 1627。</p>
+</div>
+
+<div class="idea">
+<h3><span class="tag tag-mid">中</span><span class="tag tag-eff">工数小</span>U-1. PWM の入力欄を空にして「設定」を押すと、<code>SET_PWM:0</code> が送られる</h3>
+<p><span class="label">現象：</span>Duty の取り出しが <code>Number($('pwmDuty').value)</code>（ui.js:1207）。<code>Number('')</code> は 0 で、<code>Number.isInteger(0)</code> は真なので、範囲チェックを通り抜ける。Auto PWM の目標値（1213–1217）も同じで、空欄のまま押すと <code>AUTO_PWM:0</code> が送られる。しきい値の欄は <code>parseInt</code> を使うので、空欄はエラーになる（1190–1191）。</p>
+<p><span class="label">確認：</span>UI 担当がブラウザで、送信されるコマンドを捕まえて確認した。画面にエラーは出ない。</p>
+<p><span class="label">影響：</span>数字を消して打ち直す途中で「設定」に触れると、コンパレータの Duty が黙って 0 になる。検出の条件が変わるが、画面には何も出ない。「取得（Get）」で読み直すまで気づけない。</p>
+<p><span class="label">修正案：</span>空欄を先に弾く。</p>
+<pre><code>const raw = $('pwmDuty').value.trim();
+const duty = raw === '' ? NaN : Number(raw);
+if (!Number.isInteger(duty) || duty &lt; 0 || duty &gt; 255) { fieldMsg('pwmMsg', t('alert.pwmRange')); return; }</code></pre>
+<p class="why">根拠: ui.js:1206–1218（比較: 1189–1193 の <code>parseInt</code> 版）。</p>
+</div>
+
+<div class="idea">
+<h3><span class="tag tag-mid">中</span><span class="tag tag-eff">工数小</span>C-3. 切断の処理が、サーバーへの最終送信を待ってから接続を閉じる（USB のケーブルを抜いても同じ）</h3>
+<p><span class="label">現象：</span><code>disconnect()</code> は <code>isConnected = false</code> にしたあと（core.js:615）、<code>await flushUpload({final:true})</code>（623）を待つ。ポートや BLE を閉じ、画面を「未接続」に切り替える処理（<code>applyConnectionState(false)</code>、677）は、その後ろ。</p>
+<p><span class="label">影響：</span>サーバーが無反応（パケットを捨てる状態）だと、1 回の送信は 15 秒のタイムアウトを 5 回ぶん順に待つので<b>約 75 秒</b>、トークンの更新が入ればさらに 15 秒。サーバーが生きていて未送信が溜まっているときは、最終送信が最大 200 周回る（1845）。その間、ヘッダは「接続中」のまま、ポートは掴んだまま（Arduino IDE から開けない）。USB のケーブルを抜いた場合も、読み取りループが <code>disconnect()</code> を呼ぶ（437）ので同じ。BLE の切断側（564）は、<code>await</code> せずに投げっぱなしにしているので、この問題はない。</p>
+<p><span class="label">修正案：</span>BLE 側と同じにする。1 秒ごとの定期送信は <code>u.enabled</code> が生きているので、残りは続けて送られる。</p>
+<pre><code>// disconnect() の中
+flushUpload({ final: true }).catch(() =&gt; {});     // 待たない（onBLEDisconnected と同じ）
+// …そのまま転送路を閉じて applyConnectionState(false) へ</code></pre>
+<p class="why">根拠: core.js:437, 564, 615–623, 677, 1845。コードで確認（実機・遅いサーバーでは未確認）。</p>
+</div>
+
+<div class="idea">
+<h3><span class="tag tag-mid">中</span><span class="tag tag-eff">工数小</span>C-6. デモと実機のイベントが同じ画面で混ざり、手動の書き出しで実測データに「DEMO_」と「測定ではない」の注記が付く</h3>
+<p><span class="label">現象：</span><code>connectDemo</code>（core.js:2857）、<code>connectUSB</code>、<code>connectBLE</code> は、どれも <code>state.events</code> を空にしない。ヒストグラム・統計・計数率の区間は、デモと実機のイベントを一緒に集計する。守りになっているのは「別の基板につなぎ直した」という通知だけで、それには基板のアドレスが要る。測定画面でデータが出ている状態でも、接続前の「クイック接続」にはデモのボタンが出る（index.html:76、ui.js:131）。</p>
+<p><span class="label">影響：</span>(1) 画面上部の帯には「すべての数値は合成です」と出るが（ui.js:609–615）、実測と混ざったデータには当てはまらず、最後のイベントが実機のものになると帯も消える。(2) <code>exportData</code> は、デモのイベントが 1 件でもあれば（2053）、ファイル名に <code>DEMO_</code>、ヘッダに「NOT a measurement」を付ける。<b>実測の行が入ったファイルが「測定ではない」と書かれる</b>ので、読む人が捨ててしまう。自動保存は 1 件ずつ判断するので、この影響は受けない。</p>
+<p><span class="label">修正案：</span>混ざる前に止める。接続の関数の頭で、<code>state.events</code> に「今回と違う種類」が入っていたら、「データを消してから接続してください」と確認する（確認のうえで自動的に Clear する形でもよい）。クイック接続のデモ・ボタンは、実機のデータがあるときは隠す。</p>
+<pre><code>function mixesDemo(nextIsDemo) {
+  return state.events.some(e =&gt; !!e.demo !== nextIsDemo);
+}
+// connectDemo / connectUSB / connectBLE の先頭
+if (mixesDemo(isDemo)) { Bus.emit('alert', { key: 'demo.mixed' }); return; }   // 文言は demo.mixed を追加</code></pre>
+<p class="why">根拠: core.js:2053, 2857–2887, 1290、ui.js:131, 609–615、index.html:76。コードで確認。</p>
+</div>
+
+<div class="idea">
+<h3><span class="tag tag-mid">中</span><span class="tag tag-eff">工数小</span>P-2. 解析ページは、ADC の範囲を検査せず、ビンの数も制限しない（壊れた 1 行でタブが止まる）</h3>
+<p><span class="label">現象：</span>読み込んだ ADC の値に範囲の検査がない（plotter.js:379–380）。ビンの数は <code>round((max−min)/binWidth)</code> で、上限がない（508）。範囲は生の最小・最大から決める（548–551）。ヘッダ行がないファイルは v2 の列配置とみなして読む（349, 368）ので、ファームの SD ログのようなヘッダなしのファイルでは、ADC の列に Deadtime の値（1203000 など）が入る。</p>
+<p><span class="label">確認：</span>解析担当の確認では、<code>computeHistogram([1200, 900, 3e9], 10, 0, 3e9)</code> がメモリ不足で止まる。C-1 の壊れた行が保存されていると、実際にこれが起きる。</p>
+<p><span class="label">影響：</span>ファイルに 1 行でも異常な ADC があると、ヒストグラムの計算でブラウザのタブが固まるか落ちる。ヘッダなしのファイルでは、きれいなスペクトルではなく、不自然に高い値のグラフが出る。</p>
+<p><span class="label">修正案：</span>(1) ADC が 0..4095（ファームが 65535 まで出す設定なら 65535）の外にある行は捨てて、捨てた数を表示する。(2) ビンの数に上限（20,000 程度）を設け、超えたらビン幅を広げる。(3) ヘッダなしのとき、最初の列が数値なら v1 / SD の列配置、日付ならv2 の配置と判定する。</p>
+<pre><code>const ADC_LIMIT = 65535;
+if (!(adc &gt;= 0 &amp;&amp; adc &lt;= ADC_LIMIT)) { skipped++; continue; }
+const MAX_BINS = 20000;
+if ((max - min) / binWidth &gt; MAX_BINS) binWidth = Math.ceil((max - min) / MAX_BINS);</code></pre>
+<p class="why">根拠: plotter.js:349, 368, 379–380, 508, 548–551。コードで確認。</p>
+</div>
+
+<div class="idea">
+<h3><span class="tag tag-mid">中</span><span class="tag tag-eff">工数中</span>P-3. 解析ページの半値幅（FWHM）が、ふつうのシンチレータのピークで 4〜6 割小さく出る</h3>
+<p><span class="label">現象：</span>ピークの当てはめ（<code>refinePeak</code>、plotter.js:929–962）は、窓の幅を<b>±6 ビンで固定</b>し（936）、バックグラウンドを<b>窓の両端</b>を結ぶ直線で引く（940–942）。ピークの裾がまだ大きい位置から引いてしまうので、裾の一部が背景として差し引かれ、幅が細くなる。</p>
+<p><span class="label">確認：</span>筆者が、ガウス分布（ピークに 400 カウント）で 200 回ずつ試した。</p>
+<div class="table-scroll">
+<table>
+  <tr><th>真の σ [ADC]</th><th>ビン幅</th><th class="num">真の FWHM</th><th class="num">表示される FWHM</th><th class="num">比</th></tr>
+  <tr><td>46</td><td>10</td><td class="num">108.3</td><td class="num bad">66.0</td><td class="num">0.61</td></tr>
+  <tr><td>46</td><td>4</td><td class="num">108.3</td><td class="num bad">36.6</td><td class="num">0.34</td></tr>
+  <tr><td>100</td><td>10</td><td class="num">235.5</td><td class="num bad">81.7</td><td class="num">0.35</td></tr>
+  <tr><td>20</td><td>10</td><td class="num">47.1</td><td class="num">44.7</td><td class="num ok">0.95</td></tr>
+</table>
+</div>
+<p>σ が窓（±6 ビン = ±60 ADC）より十分に細いピークでは合う。σ が窓に近いか大きいと、大きく外れる。ビン幅を細かくするほど悪くなる（窓が狭くなるため）。</p>
+<p><span class="label">影響：</span>エネルギー分解能が実際より 4〜6 割良く見える。マニュアル（manual.html:632）は、この値を注意書きなしで載せている。</p>
+<p><span class="label">修正案：</span>窓をピークの幅に合わせる（σ を推定して ±3σ、推定が安定するまで繰り返す）。背景は、窓の外側の点から引く。当てはめは、Gauss + 直線の最小二乗（Gauss-Newton）にする。すぐできる対処としては、画面に「半値幅は目安です（ビン幅・窓の影響を受けます）」と出す。</p>
+<p class="why">根拠: plotter.js:929–962、manual.html:632。筆者のシミュレーションで確認。</p>
+</div>
+
+<div class="idea">
+<h3><span class="tag tag-mid">中</span><span class="tag tag-eff">工数小</span>P-4. 天頂角の当てはめの R² が、点が 1 つでも 1.0000 になり、不確かさの扱いも合っていない</h3>
+<p><span class="label">現象：</span><code>performFit</code>（plotter.js:687–702）は、原点を通る直線で当てはめるのに、R² は平均を引いた式で計算する。<code>ssTot &gt; 0 ? … : 1</code> なので、角度が 1 つだけだと R² = 1.0000 と表示される。σ（659–666）は計算しているのに、当てはめでは重みに使っていない。θ = 0 の行に、比が構成上 1 になるのに <code>sqrt(2/N0)</code> の不確かさが出る（660–662）。</p>
+<p><span class="label">影響：</span>点が少ないときほど「よく合っている」と読める。cos<sup>n</sup>θ のべきを求める解析の信頼度を、画面が過大に伝える。</p>
+<p><span class="label">修正案：</span>R² は原点を通る式（1 − SSres / Σy²）にする。重みは σ<sub>y</sub> = √(1/N + 1/N0) の重みつき最小二乗にし、σ<sub>n</sub> と χ²/自由度を出す。3 点未満では R² を出さない。</p>
+<p class="why">根拠: plotter.js:659–666, 687–702。コードで確認。</p>
+</div>
+
+<div class="idea">
+<h3><span class="tag tag-mid">中</span><span class="tag tag-eff">工数小</span>P-8. 解析ページは Plotly を CDN から読むので、オフラインでは何も動かない（SRI もない）</h3>
+<p><span class="label">現象：</span>plotter.html:12 が、<code>cdn.plot.ly</code> の <code>plotly-basic-2.35.2</code> を、同期の <code>&lt;script&gt;</code> で読む。ローカルのコピーも、SRI（<code>integrity</code>）もない。失敗したときの処理（plotter.js:1464–1468）は、文字のメッセージを出すだけ。v1.html の Chart.js には SRI がある（v1.html:7–9）ので、同じ扱いになっていない。</p>
+<p><span class="label">影響：</span>マニュアル（manual.html:543 付近）は「解析ページは検出器がなくても使える」と書くが、<b>インターネットがないと開いても何も描けない</b>。測定した現場の PC で、その場で見ようとすると動かない。CDN 側が改ざんされても、ブラウザは気づかずに実行する（Plotly は、ローカルのファイルを読む画面なので、実行されるスクリプトの権限は大きい）。Google Fonts も全ページで読むが、こちらは失敗しても表示が崩れるだけ。</p>
+<p><span class="label">修正案：</span>最小は、SRI を付ける（<code>integrity</code> と <code>crossorigin="anonymous"</code>）。根本は、Plotly basic をリポジトリに置いて相対パスで読む（約 1 MB。<code>assets/vendor/plotly-basic-2.35.2.min.js</code>）。Chart.js（X-1）と合わせて置けば、コンソール全体がオフラインで動く。マニュアルの該当箇所（M-4）は、置くまでの間、「初回はインターネットが要る」と書き足す。</p>
+<pre><code>&lt;script src="assets/vendor/plotly-basic-2.35.2.min.js"&gt;&lt;/script&gt;
+&lt;!-- CDN のままなら --&gt;
+&lt;script src="https://cdn.plot.ly/plotly-basic-2.35.2.min.js" integrity="sha384-…" crossorigin="anonymous"&gt;&lt;/script&gt;</code></pre>
+<p class="why">根拠: plotter.html:12、plotter.js:1464–1468、v1.html:7–9（比較）、manual.html:543。コードで確認。ファイルのハッシュと大きさは、置くときに計算する。</p>
+</div>
+
+<div class="idea">
+<h3><span class="tag tag-mid">中</span><span class="tag tag-eff">工数小</span>M-1. マニュアルの pandas の読み方では、.dat の最初のイベントが消える</h3>
+<p><span class="label">現象：</span>manual.html:792 と i18n.js:774 は、.dat ファイルを <code>read_csv(path, sep='\t', comment='#')</code> で読むように案内する。ところが、.dat の列名の行は <code># Event …</code> で始まる（core.js:1225）。<code>comment='#'</code> はこの行を捨てるので、<b>最初のイベントの行が列名として使われる</b>。</p>
+<p><span class="label">確認：</span>pandas 2.2.3 で実際に動かした。3 イベントのファイルが 2 行になり、列名は <code>['1', '2026-10-07-03-12-45.118Z', …]</code> になった。<code>comment='#'</code> が正しいのは .csv の場合だけ。</p>
+<p><span class="label">影響：</span>マニュアルどおりに解析すると、<b>最初の 1 件が必ず欠け</b>、列名もずれる。気づきにくく、列名でアクセスしようとして初めてエラーになる。</p>
+<p><span class="label">修正案：</span>マニュアルの例を、.dat では列名を明示する形にする。</p>
+<pre><code>cols = ['Event','PC_Timestamp','Time_us','ADC','Deadtime_us','Temp_C','Hum_pct','Press_hPa',
+        'Dig1','Dig2','Dig3','Ana1','Ana2','Ana3']          # core.js:1226 の CSV 列名と同じ並び
+df = pd.read_csv(path, sep='\t', comment='#', header=None, names=cols)</code></pre>
+<p>もう一つの方法は、.dat の列名の行を <code>#</code> なしで書くこと（その場合は、メモの行だけを <code>comment='#'</code> で飛ばせる）。どちらにするか決めて、サンプルの .dat 行（M-2）と一緒に直す。</p>
+<p class="why">根拠: manual.html:792、i18n.js:774、core.js:1225。pandas 2.2.3 で実行して確認。</p>
+</div>
+
+<div class="idea">
+<h3><span class="tag tag-mid">中</span><span class="tag tag-eff">工数小</span>X-2. v2 のオシロ画面で、上部バーの「解析」「マニュアル」のリンクがほとんど見えない</h3>
+<p><span class="label">現象：</span>オシロ画面は夜色の配色に切り替わるが、上部バーの 2 つのリンク（<code>#linkPlotter</code>、<code>#linkManual</code>。<code>a.btn.btn-quiet</code>）だけは、通常の文字色（<code>--ink</code> = #2A2730）のまま濃い背景（<code>--night</code> = #171630）に載る。</p>
+<p><span class="label">影響：</span>コントラスト比 <b>1.2 : 1</b>（基準は 4.5 : 1）。リンクとして残してあるのに、見えない。画面を見ると、うっすらとした影のようにしか見えない。</p>
+<p><span class="label">修正案：</span>夜色のルールに追加する（hover も合わせる）。</p>
+<pre><code>body[data-view="scope"] .top-right .btn-quiet { color: var(--night-ink); }
+body[data-view="scope"] .top-right .btn-quiet:hover { background: var(--night-2); }</code></pre>
+<p class="why">根拠: console.css:501–520（夜色のルールは .brand-ver・.lang・.msg・.demo-band だけを塗り替える）、index.html:89–94。ブラウザの計算値で 42,39,48 on 23,22,48 = 1.2:1。</p>
+</div>
+
+<div class="idea">
+<h3><span class="tag tag-mid">中</span><span class="tag tag-eff">工数小</span>X-3. v2 に、名前のない操作部品が 10 個ほどある（入力欄、スイッチ、「詳細設定」ボタン）</h3>
+<p><span class="label">現象：</span>ブラウザ上でアクセシブルネームを計算して数えた（記録・測定・オシロの各画面、ドロワーを開いた状態）。</p>
+<ul>
+  <li><b>ラベルがない入力欄 3 つ。</b>しきい値 <code>#threshSignal</code>（index.html:491）、コンパレータの Duty <code>#pwmDuty</code>（509）、ボーレート <code>#advBaudRate</code>（616）。前にある <code>&lt;h3&gt;</code> とは関連づけられていない。BLE 名 <code>#advBleName</code>（607）は placeholder だけが名前になっている。</li>
+  <li><b>「?」ボタンがラベルを奪っている入力欄 3 つ。</b><code>#scopeRate</code>、<code>#scopePersist</code>（index.html:344–351）、<code>#autoSaveFormat</code>（417–424）は、<code>&lt;label&gt;</code> の中の入力欄より前に <code>.term</code> の <code>&lt;button&gt;</code> がある。<code>for</code> のない <code>&lt;label&gt;</code> は<b>最初のラベル付け可能な子孫</b>に結びつくので、入力欄ではなく「?」ボタンのラベルになる。<code>input.labels.length</code> は 0。「形式」の文字をクリックしても select にフォーカスが移らず、用語の説明が開く（UI 担当の確認では再現）。</li>
+  <li><b>名前が「オン / オフ」になる機能スイッチ 5 つ</b>（microSD、外部検出器、OLED、ブザー、振動）。<code>role="switch"</code> のボタンで、名前は <code>title</code> だけ。<code>title</code> は ui.js が状態に書き換える（ui.js:301–304）。</li>
+  <li><b>「詳細設定」ボタン <code>#btnOpenAdvanced</code>（index.html:95–97）。</b>幅 1240 px 以下ではラベル（<code>.lbl</code>）が <code>display:none</code> になる（console.css:645）。このボタンには <code>title</code> も <code>aria-label</code> もないので、ノート PC の幅では<b>アイコンだけで名前がない</b>。ドロワーへの唯一の入口なので、スクリーンリーダーでは設定画面に行けない。</li>
+</ul>
+<p><span class="label">影響：</span>スクリーンリーダーでは「数値入力」「オン、スイッチ」「ボタン」とだけ読まれ、何の設定か分からない。マウスでも、「形式」を押して説明が開くのは紛らわしい。ほかの入力欄は <code>&lt;label&gt;</code> で包まれているので名前がある（v1.html は全部ある）。</p>
+<p><span class="label">修正案：</span>入力欄は見出しの <code>id</code> を <code>aria-labelledby</code> で指す。「?」ボタンは <code>&lt;label&gt;</code> の外に出す（マージンや PWM 目標の欄がすでにそうしている）。スイッチは左の <code>&lt;span&gt;</code> に <code>id</code> を付けて <code>aria-labelledby</code> にし、状態は <code>aria-checked</code> に任せて <code>title</code> を外す。「詳細設定」には <code>data-i18n-title="advanced.title"</code> と <code>aria-labelledby</code> を付ける。</p>
+<pre><code>&lt;h3 id="lblThresh"&gt;信号しきい値（0〜4095）&lt;/h3&gt;
+&lt;input type="number" id="threshSignal" aria-labelledby="lblThresh" ...&gt;
+
+&lt;label class="mini"&gt;
+  &lt;span data-i18n="scope.rate"&gt;レート上限 [/s]&lt;/span&gt;
+  &lt;input type="number" id="scopeRate" ...&gt;
+&lt;/label&gt;&lt;button type="button" class="term" data-term="scopeRate"&gt;&lt;/button&gt;   &lt;!-- label の外へ --&gt;
+
+&lt;li&gt;&lt;span id="lblSd"&gt;microSD に記録&lt;/span&gt;
+    &lt;button role="switch" aria-labelledby="lblSd" aria-checked="false" ...&gt;
+
+&lt;button id="btnOpenAdvanced" aria-labelledby="lblAdv" ...&gt;&lt;svg .../&gt;&lt;span id="lblAdv" class="lbl" data-i18n="advanced.title"&gt;詳細設定&lt;/span&gt;&lt;/button&gt;</code></pre>
+<p class="why">根拠: index.html:95–97, 344–351, 417–424, 491, 509, 531–535, 607, 616、console.css:645、ui.js:301–304。ブラウザで名前を計算して確認（名前なしの操作部品 3、title のみ 5。「?」ボタンの件と「詳細設定」の件は UI 担当が再現し、HTML と CSS を読んで確認）。</p>
+</div>
+
+<div class="idea">
+<h3><span class="tag tag-mid">中</span><span class="tag tag-eff">工数小</span>U-3. 英語表示のとき、上部バーが 1366 px 幅で崩れ、オシロ画面では横にはみ出す</h3>
+<p><span class="label">現象：</span>UI 担当が、実際のページで幅を変えて測った。</p>
+<ul>
+  <li>英語・1366 px: 「日本語」ボタンが 23 × 70 px に潰されて 1 文字ずつ縦に並び、上部バーの高さが 119 px になる（日本語表示は 89 px）。1536 px なら問題ない。</li>
+  <li>英語・オシロ画面: 上部バーが横にはみ出す。<code>scrollWidth</code> が 375 px 幅で 424、920 px 幅で 1022。日本語でも、375 px で言語ボタンが 70 px の高さに折り返される。</li>
+  <li>英語・920 px 前後（901〜1050 px）: 状態表示 <code>#status</code> の幅が 58 px しかないのに、文字は 126 px あり、「一時停止」ボタンの下に潜る（U-7）。</li>
+</ul>
+<p><span class="label">原因：</span><code>.lang button</code> に <code>white-space: nowrap</code> も <code>flex: none</code> もない（console.css:230–233）。<code>.top-right</code> は折り返さない（226）。<code>.status</code> は <code>min-width: 0</code> で、中の文字は <code>nowrap</code>（201–207）。上部バーが折り返すのは幅 900 px 以下だけ（660）。英語の文は日本語より長く、オシロ画面は <code>scope.close</code> のボタンだけで 218 px ある。</p>
+<p><span class="label">影響：</span>Windows のノート PC でよくある幅（1366 px）で、英語表示だけ上部バーが崩れる。</p>
+<p><span class="label">修正案：</span>CSS の数行で直る。</p>
+<pre><code>.lang { flex: none; }
+.lang button { white-space: nowrap; }
+.top-right { flex-wrap: wrap; }
+@media (max-width: 1400px) { .top-right .lbl { display: none; } }   /* ラベルを隠す幅を広げる（X-3 の aria-labelledby とセットで） */
+@media (max-width: 1100px) { .topbar-row { flex-wrap: wrap; row-gap: 6px; } }   /* 折り返す幅を 900 → 1100 に */</code></pre>
+<p class="why">根拠: console.css:201–207, 226, 230–233, 645, 655–661。UI 担当がブラウザで再現し、筆者が CSS を読んで原因を確認。</p>
+</div>
+
+<div class="idea">
+<h3><span class="tag tag-mid">中</span><span class="tag tag-eff">工数小</span>X-4. v1.html は、背景のタブから戻ると画面が止まる（表の更新が溜まったぶん全部走る）</h3>
+<p><span class="label">現象：</span>画面の更新は <code>requestAnimationFrame</code> で間引いている（背景のタブでは止まる）。戻ったとき、<code>updateTable()</code> は溜まったイベントすべてについて行を作り、あとで 100 行を超えたぶんを削る（v1.html の <code>updateTable</code>）。残すのは 100 行だけなので、作る必要があるのは最新の 100 件だけ。</p>
+<p><span class="label">確認：</span>5,810 件が溜まった状態で <code>updateUI()</code> を 1 回呼ぶと、<b>1,115 ms</b> かかった。</p>
+<p><span class="label">影響：</span>1 cps で 8 時間記録すると約 29,000 件。夜のあいだ背景のタブで記録し、朝に開くと、数秒フリーズする。データは失われないが、表示が止まる。</p>
+<p><span class="label">修正案：</span>ループの開始位置を <code>Math.max(lastTableLength, events.length - maxRows)</code> にする。v2 の <code>updateTable()</code> には、すでに同じ 1 行がある（ui.js:449–450、「残るのは最新の maxRows 件だけなので、それ以外は作らない」）。それを v1 に移すだけで直る。</p>
+<p class="why">根拠: v1.html:2619–2650（updateUI / updateTable。lastTableLength からのループ）。実行して確認。</p>
+</div>
+
+</section>
+
+<!-- ============================================================ -->
+<section id="low">
+<h2>4. そのほかの課題と修正案（中・低）</h2>
+<p class="ref">確認の欄: <b>実行</b> = 実際に動かして確認、<b>コード</b> = 筆者が該当行を読んで確認、<b>報告</b> = レビュー担当の報告で、筆者は再確認していない。</p>
+
+<h3>4.1 記録ページのデータ処理（core.js）</h3>
+<div class="table-scroll">
+<table>
+  <tr><th>#</th><th>優先度</th><th>現象</th><th>箇所</th><th>修正案</th><th>確認</th></tr>
+  <tr><td>C-2</td><td class="pri pri-mid">中</td><td>自動保存のファイル名とヘッダに、<b>前回つないでいた基板の名前</b>が使われることがある。<code>state.bleName</code> は起動時に localStorage から復元され、接続しても消えない。名前が確定する前に強制書き込み（タブを隠した、<code>pagehide</code>）が走ると、接頭辞が古い名前で固定される。ヘッダは空のファイルにしか書かないので、基板 B の行が基板 A の日付ファイルに目印なしで追記される</td><td>ui.js:1455、core.js:317–331, 1239, 1250–1253, 1329, 2308–2311</td><td><code>onConnected</code>（再接続でないとき）で <code>state.bleName = null</code>。<code>getFileBase()</code> は <code>bleNameKnown ? bleName : (conn.bleName || 'CosmicRay')</code>。名前が確定していない間は、隠す・<code>pagehide</code> の書き込みで接頭辞を固定しない</td><td>実行（node + スタブ）</td></tr>
+  <tr><td>C-4</td><td class="pri pri-mid">中</td><td>サーバーへの認証が失敗すると、バックオフが効かず、<b>毎秒</b>更新とログインを繰り返す。<code>if (!await uploadEnsureAuth()) return;</code> が <code>u.attempt</code> と <code>u.nextAttemptMs</code> を更新しない。トークンが切れてサーバーが止まっていると、5 回の定期送信で 10 件のリクエストが出た。サーバー再起動のあとは全観測局が同時に再試行し、ジッタ（1754–1758）が効かない</td><td>core.js:1782, 1754–1758</td><td><code>return</code> の前に <code>u.attempt++; u.nextAttemptMs = Date.now() + uploadBackoffMs(u.attempt);</code></td><td>実行（node + スタブ）</td></tr>
+  <tr><td>C-7</td><td class="pri pri-mid">中</td><td>背景の再ログインが、パスワードを<b>画面の入力欄</b>から読み直す。<code>uploadEnsureAuth</code> → <code>uploadLogin</code> → <code>readUploadForm()</code> が、メモリ上の <code>uploadPassword</code> を入力欄の値で上書きする。ログイン後に欄を空にしていると、トークン更新に失敗したとき（サーバー再起動で JWT の鍵が変わったとき）の再ログインが <code>needFields</code> で失敗し、送信が止まったままになる（ディスクの記録は無事）。236–239 行のコメントの意図と逆</td><td>core.js:1624, 1720、ui.js:696–706</td><td><code>readUploadForm()</code> は「ログイン」ボタンの処理だけで呼ぶ。背景の再ログインは <code>state.upload</code> と <code>uploadPassword</code> をそのまま使う</td><td>コード</td></tr>
+  <tr><td>C-5</td><td class="pri pri-lo">低</td><td>Clear で基板の識別（<code>boardAddr</code>）が消え、「別の基板につなぎ直した」通知が出ない。A に接続 → Clear → A がデータを出し続ける → 切断 → B に接続、の順で、通知が出ず、A と B の合計が混ざる</td><td>core.js:127, 1087–1090, 2915</td><td><code>const a = state.rate.boardAddr; state.rate = newRateState(); state.rate.boardAddr = a;</code></td><td>実行（node + スタブ）</td></tr>
+  <tr><td>C-8</td><td class="pri pri-lo">低</td><td>シリアルの読み取りエラーが、すべて「致命的」扱いで <code>disconnect()</code> される。バッファオーバーラン、フレーミングエラーなどは、<code>port.readable</code> が残っていて、リーダーを取り直せば続けられる。UART ブリッジ付きの基板で、夜のうちに記録が止まり「デバイスが失われた」と出る。ユーザー操作なしに <code>done</code> になった場合（425）も気づかない</td><td>core.js:425, 433–438</td><td>回復できるエラーは、リーダーを取り直して読み取りを続ける。続けられないときだけ切断する</td><td>コード</td></tr>
+  <tr><td>C-9</td><td class="pri pri-lo">低</td><td>アップロードの身元が、トークンとキューに結びついていない。ログアウトしてもキューが残る（1877）ので、観測局 ID を変えてログインして開始すると、古い溜まりが新しい観測局の名前で送られる。サーバー URL を編集して開始すると、サーバー A のトークンがサーバー B に送られる（1855）</td><td>core.js:1855, 1877</td><td>ログイン時に <code>u.tokenFor = url + '|' + station</code> を記録し、<code>uploadStart</code> と <code>flushUpload</code> で比べる。ログアウトでキューを空にする</td><td>コード</td></tr>
+  <tr><td>C-10</td><td class="pri pri-lo">低</td><td>イベント数が上限（100 万件）を超えたあとにビン幅を変えると、ヒストグラムの古いカウントが消える。<code>rebuildHistogram</code> はメモリに残っているイベントだけを数え、統計の <code>n</code> は古い分も含むので、両者がずれる</td><td>core.js:251–263, 1019–1023</td><td>ADC 値ごとのカウント <code>Uint32Array(4096)</code> を別に持ち、そこからビンを作る（正確で、100 万件を走査しなくて済む）</td><td>コード</td></tr>
+  <tr><td>C-11</td><td class="pri pri-lo">低</td><td>エラー経路の細かい点。コマンドの書き込み失敗が握りつぶされ（703–720）、<code>busy.modeSwitch</code> / <code>busy.rename</code> が応答を待ち続ける。保存先フォルダ選択のエラーが画面に出ない（1178）。書き出しの失敗で <code>abort()</code> を呼ばない（2084–2112）。行バッファに上限がない（421–428, 540–542）。自動保存のキューは、書き込みが永久に失敗すると増え続け、イベントの参照を上限より長く持つ（1304）。ダウンロード URL を <code>click()</code> の直後に <code>revokeObjectURL</code> する（2125。大きなファイルで途切れる可能性、未確認）</td><td>core.js:421–428, 540–542, 703–720, 1178, 1304, 2084–2125、ui.js:1224, 1270</td><td>それぞれ、タイムアウト、エラーの表示、<code>abort()</code>、バッファの上限（1 MB など）、キューの上限、<code>setTimeout</code> で後から revoke</td><td>報告</td></tr>
+</table>
+</div>
+
+<h3>4.2 記録ページの画面（index.html, ui.js, console.css, i18n.js）</h3>
+<div class="table-scroll">
+<table>
+  <tr><th>#</th><th>優先度</th><th>現象</th><th>箇所</th><th>修正案</th><th>確認</th></tr>
+  <tr><td>U-6</td><td class="pri pri-mid">中</td><td>生ログの欄が、約 300 ミリ秒ごとに最下部へ引き戻される。データが流れている間は、上にスクロールして読み返せない（0 に動かしても 700 ミリ秒以内に 1704 に戻った）</td><td>ui.js:471–475</td><td>更新の前に「最下部にいるか」（<code>scrollHeight − scrollTop − clientHeight &lt; 8</code>）を見て、そのときだけ追従する</td><td>実行 + コード</td></tr>
+  <tr><td>U-9</td><td class="pri pri-mid">中</td><td>コントラスト不足（第 8 節の表）。<code>--ink-4</code>（2.47 : 1）が、placeholder、「データなし」の文字、グラフの空表示、「?」アイコンに使われている。入力欄・<code>.btn-line</code> の枠線は 1.61 : 1、オフのスイッチの溝は 1.23 : 1 で、操作部品の境界に必要な 3 : 1 に届かない</td><td>console.css:122, 137, 441、charts.js:115</td><td>文字には <code>--ink-3</code>（5.03 : 1）を使う。枠線とスイッチは、<code>--ink-3</code> かそれに近い濃さにする</td><td>計算</td></tr>
+  <tr><td>U-10</td><td class="pri pri-mid">中</td><td>スマホ（幅 375 px）で、上部バーが画面の約 3 割を占める。測定画面でデモを動かすと 217〜245 px（デモの帯 94 px を含む）で、最初のグラフが y=544 から始まる。実機につないだときは約 150 px。固定表示なので、スクロールしても戻らない。固定バーの下に隠れたフォーカス位置への対策（<code>scroll-padding-top</code>）もない</td><td>console.css（<code>.topbar</code>、<code>.demo-band</code>）</td><td>デモの帯を固定部分の外に出す、または狭い画面では 1 行に縮める。<code>html { scroll-padding-top: var(--head-h); }</code></td><td>実行</td></tr>
+  <tr><td>U-13</td><td class="pri pri-lo">低</td><td>メモの説明文が実際と違う。「保存するファイルの先頭に書き込まれます」とあるが、ヘッダはファイルを作るときだけ書かれる。測定を始めたあとに書いたメモは、自動保存のファイルには入らない（手動のダウンロードには入る）</td><td>i18n.js:192, 562、core.js:1186–1199, 1233–1236</td><td>文言を「ファイルを作るときに書き込まれます。測定の前に入力してください」に変える。または、メモが変わったら区切りの行を追記する</td><td>コード</td></tr>
+  <tr><td>U-14</td><td class="pri pri-lo">低</td><td>再接続の途中でオシロ画面を見ていると、「オシロスコープ · 未接続」と出る。メッセージ帯は「切断を押してください」と案内するが、オシロ画面では切断ボタンが隠れている（<code>.top-actions</code> が非表示）ので、いったんオシロを出る必要がある</td><td>ui.js:747、console.css:507–511</td><td>再接続中は <code>conn.reconnectWait</code> を出し、切断ボタンを残す</td><td>コード</td></tr>
+  <tr><td>U-11</td><td class="pri pri-lo">低</td><td><code>.seg</code>（トリガーモード、更新間隔、デモのシナリオ）が <code>overflow: hidden</code> なので、フォーカスの枠（2 px + オフセット 2 px）が外側で切れる</td><td>console.css:71, 156</td><td><code>.seg button:focus-visible { outline-offset: -2px; }</code></td><td>コード（ブラウザ未確認）</td></tr>
+  <tr><td>U-12</td><td class="pri pri-lo">低</td><td>タップ領域が小さい。「?」ボタン 18 × 18、チェックボックス 16 px、スイッチ 40 × 22、<code>.icon-btn</code> と <code>.btn-sm</code> 32 px、フッターのリンク高さ 17〜20 px。WCAG 2.2 の AA は 24 px 以上、スマホでは 44 px が目安</td><td>console.css（<code>.term</code>、<code>.switch</code>、<code>.icon-btn</code>）</td><td><code>@media (pointer: coarse)</code> で当たり判定を広げる（<code>.term::after { inset: -8px }</code> など）</td><td>実行（寸法）</td></tr>
+  <tr><td>U-15</td><td class="pri pri-lo">低</td><td><code>busy.modeSwitch</code> と <code>busy.rename</code> は、基板の応答でしか戻らない。<code>rename</code> は切断でも戻らず、「切り替え中…」「保存して再起動中…」が残り続けることがある</td><td>ui.js:937–942, 1224, 1270</td><td>タイムアウト（10 秒など）を付け、切断の処理で <code>rename</code> も戻す</td><td>コード</td></tr>
+  <tr><td>U-16</td><td class="pri pri-lo">低</td><td>オシロ画面の細かい点。「波形/秒」は、行が届いたときしか更新されず 0 に下がらない。保存・消去ボタンは、波形がなくても押せる。「固定（frozen）」がオシロを閉じて開き直しても残り、画面が止まって見える。スコープ非対応のファームでは「オシロを起動中…」が終わらない</td><td>ui.js:722–730, 1313–1331、core.js:2192–2227</td><td>1 秒の tick で <code>scopeStats</code> を呼ぶ。<code>scope.raw</code> が空ならボタンを無効にする。<code>scopeEnter</code> で <code>frozen</code> を戻す。約 5 秒で <code>scope.fwNote</code> を出す</td><td>報告</td></tr>
+  <tr><td>U-17</td><td class="pri pri-lo">低</td><td>名前の変更を入力しただけ（保存前）でも、入力欄の値が <code>settings.bleName</code> に写り、次の BLE 接続の検索名になる。下書きの名前で探して見つからない</td><td>ui.js:1089–1095</td><td>接続中は写さない。または、下書きを別の変数に持つ</td><td>コード（報告）</td></tr>
+  <tr><td>U-18</td><td class="pri pri-lo">低</td><td>アクセシビリティの細部。用語のポップオーバー（<code>role="tooltip"</code>）が読み上げに出ない。<code>.field-msg</code> に <code>role="alert"</code>、入力欄に <code>aria-invalid</code> がない。<code>btnSaveFab</code> に <code>aria-expanded</code> がない。タブに <code>aria-controls</code> と矢印キーの移動がない。<code>#status</code> が <code>aria-live</code> でない。<code>.seg</code> の選択状態が CSS のクラスだけ（<code>aria-pressed</code> がない）。外部検出器の点（<code>.ext-dot</code>）に名前がない（使われていないキー <code>ext.cellLabel</code> がそのために用意されたと思われる）。canvas に代替テキストがない。英語の <code>nav.plotterTitle</code> が、見えているラベル「Analysis」を含まない（音声操作で呼べない）</td><td>ui.js:852–873、index.html:281–285</td><td>それぞれ属性を足す（X-3 と同じ作業にまとめる）</td><td>コード（報告）</td></tr>
+  <tr><td>U-19</td><td class="pri pri-lo">低</td><td>文言の食い違い。<code>notes.usb</code> は「9600 bps」と言うが、ボーレートは選べる。日本語の統計に「cps」が直書き（ui.js:379–380）で、読み出しは「回/秒」。<code>stats.rate</code> の見出しに「(cps)」があるのに値にも付く。同じ量が「経過時間」と「測定時間」の 2 通り。USB の SecurityError に BLE 向けの <code>err.security</code> が出る。<code>warn.noSerial</code> / <code>warn.noBle</code> は、本当の原因が安全でないコンテキスト（http）のときも「Chrome か Edge で開いてください」と言う</td><td>i18n.js:336, 702、ui.js:184–197, 309, 379–380、core.js:364</td><td>文言を直す。<code>isSecureContext</code> を見て、案内を出し分ける</td><td>コード（報告）</td></tr>
+  <tr><td>U-20</td><td class="pri pri-lo">低</td><td>後始末。使われていないキー（<code>app.tagline</code>, <code>conn.na</code>, <code>ext.cellLabel</code>, <code>scope.countingPaused</code>）、用語集の未使用項目（<code>binWidth</code>。ビン幅の選択に「?」が付かない）、未使用の id（<code>demoSoundLabel</code>）、使われていない <code>downloadFile</code>。数値欄で Enter を押しても「設定」にならない。自動保存を止められない（<code>core.js:1168</code> は <code>enabled = true</code> にするだけ）。「次回から確認しない」（<code>consoleScopeNoConfirm</code>）を戻す手段がない。Google Fonts がレンダリングをブロックする（index.html:13–15）</td><td>i18n.js、ui.js、core.js</td><td>消す／足す。フォントは <code>&lt;link rel="preload"&gt;</code> と <code>font-display: swap</code>、またはローカルに置く</td><td>報告</td></tr>
+</table>
+</div>
+
+<h3>4.3 解析ページ（plotter.html, plotter.js）</h3>
+<div class="table-scroll">
+<table>
+  <tr><th>#</th><th>優先度</th><th>現象</th><th>箇所</th><th>修正案</th><th>確認</th></tr>
+  <tr><td>P-5</td><td class="pri pri-lo">低</td><td>集計の細かい点。ビンの数を <code>Math.round</code> で出すので、範囲がビン幅の倍数でないと上端のイベントが落ちる（ADC の最大 104、ビン幅 10 なら 100〜104 が消える）。統計は時間窓内の全イベントを使い、棒グラフは ADC の最小・最大の範囲だけなので、「Events」と棒の合計が一致しない。「Mean [keV]」は、平均 ADC をエネルギーに変換したもので、エネルギーの平均ではない</td><td>plotter.js:508, 523, 532, 541–551</td><td><code>Math.ceil</code> にする。統計と棒を同じ母集団にそろえる。ラベルを「E(mean ADC)」にするか、エネルギーを先に変換して平均する</td><td>コード</td></tr>
+  <tr><td>P-6</td><td class="pri pri-mid">中</td><td>同じファイルを選び直しても、読み直されない。<code>fileInput</code> / <code>bgFileInput</code> の change の処理が <code>input.value</code> を戻さない（校正の取り込みだけは戻している、1424）。<b>測定中に伸びていく自動保存のファイル</b>を見直すには、ページの再読み込みが必要になる。<code>readFile</code> に <code>onerror</code> がない（410–416）。末尾の行が ADC の桁の途中で切れていると、列数のチェック（378）を通って偽のイベントになる</td><td>plotter.js:378, 410–416, 1424, 1435–1449</td><td>change の処理の最後で <code>e.target.value = ''</code>。<code>onerror</code> を付ける。最終行が改行で終わっていなければ捨てる</td><td>コード</td></tr>
+  <tr><td>P-7</td><td class="pri pri-mid">中</td><td>解析ページは、<code># *** DEMO MODE</code> の行も <code>DEMO_</code> のファイル名も見分けない。校正のテーブルは、変わるたびに localStorage に自動保存される（1305–1308, 1338）。デモのデータで作った校正が、次に開いた実測のデータにそのまま使われうる</td><td>plotter.js:1305–1308, 1338</td><td>デモを検出して画面に帯を出す。デモのデータから作った校正は保存しない</td><td>コード</td></tr>
+  <tr><td>P-9</td><td class="pri pri-lo">低</td><td>グラフの見た目。<code>formatYTick(1000)</code> が「1.0k」になり、対数軸は「1.0k, 10k, …, 1000k」（charts.js:33–42）。最大が 2 以下だと目盛りが 0.2 刻みの小数カウントになる（76–82）。計数率の軸に 1.25 / 3.75（220–223）。スコープの縦軸に、ADC が 0 以上なのに「−150」が出る（340–341）。9 個の横ラベルが 340 px 未満で重なる（437–440）。<code>scopePersist</code> が入力欄の上限 200 に切られず、5000 と打つと 1 フレーム 80 万点になる（ui.js:1305–1308、core.js:2224）</td><td>charts.js、ui.js:1305–1308</td><td>目盛りの整数化、軸の下限、ラベルの間引き、<code>Math.min(200, v)</code></td><td>報告</td></tr>
+  <tr><td>P-10</td><td class="pri pri-lo">低</td><td>解析ページのアクセシビリティ。校正テーブルの行（動的に作られる）で、選択のラジオボタンと「使う」のチェックボックスに名前がなく、ラベル・keV・ADC の入力欄は placeholder だけが名前になる（1034–1042。削除ボタンには <code>aria-label</code> がある）。タブに <code>id</code> / <code>aria-controls</code> / 矢印キーがない（plotter.html:56–60, 63, 115, 163）。Plotly のグラフに代替テキストがない。<code>scrollZoom: true</code> が、ホイールとタッチのスクロールを奪う（297–303）。「任意」ラベルが 2.62 : 1</td><td>plotter.js:297–303, 1034–1042、plotter.html</td><td>行の入力欄に <code>aria-label</code>。タブに ARIA。<code>scrollZoom</code> は修飾キーつきにする</td><td>コード（校正テーブルの名前。残りは報告）</td></tr>
+</table>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<section id="v1">
+<h2>5. v1.html（v1 検出器用）— v2 との差と、固有の課題</h2>
+
+<div class="note">
+v1.html は、v2 の記録ページと見た目・構造をそろえたが、データ処理は <b>v1.html に独立に書かれている</b>（core.js を使わない）。そのため、v2 で直した不具合が v1 には入っていない。V-1 と V-3（第 3 節）、X-1、X-4 もこの節の仲間。ここでは残りの課題と、プロトコルの照合結果をまとめる。
+v1 担当は、v1.html を全行、両方の v1 ファームを読み、偽の USB / BLE / ディレクトリで機構を再現した。実機は使っていない。
+</div>
+
+<h3>5.1 v2 との差（データ処理）</h3>
+<div class="table-scroll">
+<table>
+  <tr><th>項目</th><th>v2（core.js）</th><th>v1.html</th><th>結果</th></tr>
+  <tr><td>計数率</td><td>区間 + ライブタイム（1093–1148）</td><td>n ÷ 最後の時刻（2665–2679）</td><td>V-1</td></tr>
+  <tr><td>自動保存の書き込み</td><td>ロック、書けなかった残りを戻す（1278–1368）</td><td>どちらもなし（2737–2785）</td><td>V-3</td></tr>
+  <tr><td>ヘッダと日付</td><td>ファイルが空かで判断、ローカル日付（1186, 2153）</td><td><code>currentDate</code>、UTC（2741–2746）</td><td>V-7</td></tr>
+  <tr><td>デモの判定</td><td>イベントごと（1290）</td><td>最後のイベントだけ（2346）</td><td>V-6</td></tr>
+  <tr><td>BLE の書き込み</td><td>Promise の鎖で順番に（683）</td><td>直接 <code>writeValue</code>（1763）</td><td>V-5</td></tr>
+  <tr><td>BLE が切れたとき</td><td>自動再接続（548–606）</td><td>何も出ない（1663）</td><td>欠測に気づけない</td></tr>
+  <tr><td>USB の後片付け</td><td>読み取りループの終了を待つ（627–643）</td><td>待たないパイプ（1718）</td><td>V-2</td></tr>
+  <tr><td>USB を開くとき</td><td>DTR / RTS、ROM ブートローダーからの復帰（379, 339, 792）</td><td>なし</td><td>ESP32 がダウンロードモードで止まるかもしれない（未確認）</td></tr>
+  <tr><td>オシロの放置</td><td>10 分で戻る（2284）</td><td>なし</td><td>V-8</td></tr>
+  <tr><td>ページを閉じるとき</td><td>書き込み + 確認（2296–2311）</td><td>なし</td><td>V-3</td></tr>
+  <tr><td>件数の上限・書き出し</td><td>100 万件で上限、分割して書き出し（56, 2042）</td><td>なし</td><td>V-10</td></tr>
+  <tr><td>「データを消去」</td><td>RESET も送り、基準を取り直す（2909–2923）</td><td>ページだけ（3568）</td><td>V-1</td></tr>
+  <tr><td>別の基板への切り替え</td><td>通知（1085）</td><td>なし</td><td>1 つの画面・ファイルに基板が混ざる</td></tr>
+  <tr><td>保存先フォルダ</td><td>接続前に選べる</td><td>接続後にしか出ない</td><td>最初の数イベントが保存されない</td></tr>
+</table>
+</div>
+
+<h3>5.2 課題（中）</h3>
+
+<div class="idea">
+<h3><span class="tag tag-mid">中</span><span class="tag tag-eff">工数小</span>V-2. USB を普通に切断すると、ポートが開いたままになる（実機では未確認）</h3>
+<p><span class="label">現象：</span><code>port.readable.pipeTo(decoder.writable)</code>（v1.html:1739）と <code>encoder.readable.pipeTo(port.writable)</code>（1591）の Promise を捨てている。<code>disconnect()</code>（1718–1729）は、<code>reader.cancel()</code>、<code>writer.close()</code>、<code>port.close()</code> を順に呼ぶが、パイプが終わるのを待たない。ストリームがまだロックされたまま <code>port.close()</code> を呼ぶと、Chrome は <code>Cannot cancel a locked stream</code> で拒否する。</p>
+<p><span class="label">確認：</span>本物のストリームの動作を使い、<code>close()</code> がロック中のストリームを拒否するモックで試すと、3 回中 3 回、拒否された（読み取り側の遅延 0 / 5 / 20 ミリ秒）。拒否されると <code>state.port</code> が残り、catch（1730）はログを出すだけ。次の「もう一度つなぐ」は <code>open()</code> で失敗し、「ほかのアプリを閉じてください」（1574）と、的外れな案内が出る。ページを再読み込みするとデータが消える。<b>実機で起きるかは、確認が必要。</b>Web Serial の標準的な書き方（パイプの Promise を保持して待つ）に反している。</p>
+<p><span class="label">修正案：</span>パイプの Promise を保持し、順に待つ。手順ごとに try/catch を分ける（v2 は core.js:626–646）。</p>
+<pre><code>const readableClosed = port.readable.pipeTo(decoder.writable);
+const writableClosed = encoder.readable.pipeTo(port.writable);
+// disconnect:
+try { await reader.cancel(); } catch (_) {}
+await readableClosed.catch(() =&gt; {});
+try { await writer.close(); } catch (_) {}
+await writableClosed.catch(() =&gt; {});
+try { await port.close(); } catch (_) {}</code></pre>
+<p class="why">根拠: v1.html:1574, 1591, 1718–1735, 1739。モックで 3/3 再現（v1 担当）。</p>
+</div>
+
+<div class="idea">
+<h3><span class="tag tag-mid">中</span><span class="tag tag-eff">工数小</span>V-5. BLE のコマンドを同時に送ると、後ろのものが捨てられる（オシロを開くと「ファームが対応していない」と出る）</h3>
+<p><span class="label">現象：</span>BLE の <code>sendCommand</code> は、<code>await rxChar.writeValue(…)</code> を直接呼ぶ（v1.html:1763–1783）。<code>scopeEnter()</code> は、<code>SET_SCOPE_RATE</code>、<code>SET_SCOPE:ON</code>、<code>GET_SCOPE</code> を、待たずに続けて呼ぶ（3278–3281）。GATT は一度に 1 つの操作しか受けないので、2 つ目以降は拒否され、<code>catch</code> に握りつぶされる（1780）。</p>
+<p><span class="label">確認：</span>1 操作ずつしか受けない GATT のモックで試した（v1 担当）。最初の 1 つしか届かず、<code>SCOPE:</code> の応答が来ない。2.5 秒後（3282）に、「ファームがオシロに対応していません」と誤って表示され、15 秒後の keepalive が <code>SET_SCOPE:ON</code> を 1 つだけ送るまで続く。素早く 2 つ操作したときも同じ。</p>
+<p><span class="label">修正案：</span>コマンドを Promise の鎖で 1 つずつ送る（v2 の core.js:683–688 と同じ）。</p>
+<pre><code>let cmdChain = Promise.resolve();
+function sendCommand(cmd) {
+  if (state.transport === 'demo') { demoCommand(cmd); return Promise.resolve(); }
+  cmdChain = cmdChain.then(() =&gt; sendCommandNow(cmd)).catch(() =&gt; {});
+  return cmdChain;
+}</code></pre>
+<p class="why">根拠: v1.html:1763–1783, 3263, 3278–3286。モックで再現（v1 担当）。<code>scopeEnter</code> の呼び出しの並びは筆者が確認した（USB では <code>writer.write</code> がキューに入るので影響しない。BLE のみ）。</p>
+</div>
+
+<h3>5.3 そのほかの課題（v1.html）</h3>
+<div class="table-scroll">
+<table>
+  <tr><th>#</th><th>優先度</th><th>現象</th><th>箇所</th><th>修正案</th><th>確認</th></tr>
+  <tr><td>V-6</td><td class="pri pri-mid">中</td><td>合成データが、印なしで実測のファイルや画面に入る。<code>DEMO_</code> の接頭辞・ファイルの注記・帯は<b>最後のイベント</b>か現在の接続で決まり（2346–2358）、<code>connect*</code> はイベントを消さない。デモ 78 件のあと、切断して実機の 1 行を受けると、<code>exportDat</code> が 78 行の合成データを <code>CosmicRay_….dat</code>（<code>Board=ArduinoNano</code>、注記なし）に書いた。ほかに、CSV にはデモの注記がない、<code>.wfm</code> に印がない、実機への接続でオシロの波形が消えない（2317 はデモのときだけ）、デモの <code>SET_BLENAME</code> の応答が localStorage の <code>bleDeviceName</code> と BLE 検索の入力欄に残る（<code>Lab1</code> が残ると、次の実機の BLE 接続は「Lab1」を探す。2450–2457）</td><td>v1.html:2317, 2346–2358, 2450–2457</td><td>書き出しと自動保存でイベントの <code>demo</code> ごとに分ける。CSV に <code># DEMO</code> の行を足す。接続の種類が変わるとき、確認するか消す。<code>transport === 'demo'</code> のとき localStorage に書かない</td><td>実行</td></tr>
+  <tr><td>V-7</td><td class="pri pri-mid">中</td><td>自動保存のヘッダとファイル名。(1) <code>selectSaveFolder</code> が <code>currentDate = null</code> にする（2718）ので、同じ日にフォルダを選び直す／再読み込みすると、2 つ目の <code># Board…/# Event…</code> が追記される（CSV ではデータの途中に見出し行）。(2) ヘッダは日付か接頭辞が変わったときだけ書く（2746）ので、dat → both に切り替えると、<code>.csv</code> がヘッダなしになる。Nano → ESP32 を 1 回のセッションで切り替えると、12 ビットの行が「ArduinoNano ADC=0-1023」の見出しの下に追記される。(3) 日付が <code>toISOString()</code>（UTC、2741）なので、日本時間では 9:00 にファイルが替わる。手動のダウンロードはローカル時刻（2957）。表の PC 時刻は、Z なしの UTC で、「この PC の時計」と表示（2636, 251）</td><td>v1.html:251, 2636, 2718, 2741–2746, 2957</td><td>ヘッダはファイルの大きさが 0 かで決める（core.js:1186–1199）。日付はローカルにする（core.js:2153）。基板の種類をファイル名に入れる</td><td>実行</td></tr>
+  <tr><td>V-8</td><td class="pri pri-mid">中</td><td>オシロの放置による自動復帰がない。15 秒ごとの keepalive が、ファームの 60 秒の安全装置を打ち消す（3259–3269）ので、開いたまま放置された画面は、夜通し計数が止まったままになる（上部バーのタイマーだけが手がかり）</td><td>v1.html:3259–3269</td><td>v2 の 10 分操作なしでオシロを閉じる処理（core.js:2284–2291）を移す</td><td>コード</td></tr>
+  <tr><td>V-9</td><td class="pri pri-mid">中</td><td>イベント行をほとんど検査しない（2547–2565 はトークン数とADC の数値化だけ）。<code>'5 1234 56 76 1300 12 3.45 0 25.0 1'</code>（C-1 と同じ、2 行がつながった例）が受け入れられ、<code>state.mode = 3</code> になる（2570–2572）。バッジは「--」、Nano のイベントはモード 3 で保存される。温度の <code>nan</code> が 1 件あると、平均温度がセッション中ずっと NaN になる（2585–2592）。カウンタの逆行も通る</td><td>v1.html:2547–2592</td><td>トークン数を 6（Nano）または 7（ESP32）にちょうど合わせる。全項目を <code>Number.isFinite</code> で検査。モードは 0 / 1 だけ（2494 と同じ）。合計から NaN を除く。<code>count</code> の連続性も見る（C-1 の 3 段目）</td><td>実行</td></tr>
+  <tr><td>V-10</td><td class="pri pri-mid">中</td><td>メモリと書き出しの上限がない。<code>state.events</code> に上限がなく（core.js は 100 万件で警告）、書き出しは 1 つの文字列を組み立てる（2954–2981）。<code>scopePersist</code> は入力した値のまま（3086）。60 cps が数日続くと届く</td><td>v1.html:2954–2981, 3086</td><td>上限と警告を入れる。分割して書き出す</td><td>コード</td></tr>
+  <tr><td>V-11</td><td class="pri pri-lo">低</td><td>統計タブの数値の誤り。温度の標準偏差が、温度の変化が小さいとき「NaN °C」になる（<code>Math.sqrt</code> の中が丸め誤差で負、2684。24.37 が 10 件以上で再現）。「平均デッドタイム」は累計カウンタの平均（2686, 2695。値 5000〜5003 で 5002.4）。<code>mode_flag ?? 0</code>（2769, 2965）は、モードが分からないとき「Master」と書く（<code>MODE:</code> が届く前の Nano のイベントなど）</td><td>v1.html:2684–2695, 2769, 2965</td><td><code>Math.sqrt(Math.max(0, …))</code>。Δデッドタイムとデッド率を出す。不明なときは空欄</td><td>実行（再現）</td></tr>
+  <tr><td>V-12</td><td class="pri pri-lo">低</td><td>オシロのエラーが画面に出ない。ESP32 の DMA 失敗は <code>### SCOPE: failed…</code> を出すだけで、<code>SCOPE:</code> の行を返さない（ファーム 1531）ので、画面は「準備中」のまま。ESP32 は、すでに ON のとき <code>SET_SCOPE:ON</code> に答えない。<code>SCOPE:ON</code> が 1 つ失われると、WF の行が流れていても「準備中」のまま（<code>scopeOnLine</code> が <code>deviceOn</code> を立てない）</td><td>v1.html:3054–3067、v1 ESP32 ファーム:1531</td><td><code>scopeOnLine</code> で <code>setScopeDeviceOn(true)</code> を呼ぶ。<code>### SCOPE: failed</code> と <code>### ERROR</code> を <code>showMsg</code> に出す</td><td>実行</td></tr>
+  <tr><td>V-13</td><td class="pri pri-lo">低</td><td>接続まわり。USB が失われても（1755）、BLE が切れても（1663）、メッセージが出ない。BLE の接続に失敗すると GATT が接続のまま残り（1646–1649。v2 は core.js:514 で切る）、ESP32 の 1 本きりの接続を塞ぐ。<code>onConnected</code> のタイマー（1678–1700）は取り消せず、素早い再接続のあとに古い GET が飛ぶ。計数率のグラフは、切断後も 0 cps の点を足し続け、PC の到着時刻と <code>en-US</code> のラベルを使う（2929–2951）。<code>demoTick</code> のコメントは dt に上限があると言うが、イベントの追いつきには上限がない（2051–2078）</td><td>v1.html</td><td>メッセージを出す。失敗時に <code>gatt.disconnect()</code>。タイマーを世代番号で打ち切る</td><td>コード（一部は再現）</td></tr>
+  <tr><td>V-14</td><td class="pri pri-lo">低</td><td>アクセシビリティ。<code>modeSelect</code>（449）、<code>autoMarginInput</code>（468）、<code>bleNameInput</code>（500）と 3 つの canvas（217 / 229 / 318）に名前がない（v2 は <code>scopeCanvas</code> に role と aria を付けている、index.html:360）。ドロワーは <code>role="dialog"</code> だが <code>aria-modal</code> もフォーカスの閉じ込めもない（413）。タブに <code>aria-controls</code> と矢印キー移動がない（245–247）。FAB に <code>aria-expanded</code> がない（410, 3429）。入力中に Esc を押すとオシロが閉じる（3450–3455）。375 px の上部バーは 159 px（812 px のうち）</td><td>v1.html</td><td>名前と ARIA を足す。Esc は入力欄にフォーカスがあるときは無視する</td><td>コード（名前なしは、筆者も HTML を読んで確認。筆者のブラウザ監査はドロワーを閉じた状態だったので、ここは拾えていなかった）</td></tr>
+</table>
+</div>
+
+<h3>5.4 プロトコルの照合（v1 ファームとの一致）</h3>
+<div class="table-scroll">
+<table>
+  <tr><th>項目</th><th>ファーム</th><th>v1.html</th><th>判定</th></tr>
+  <tr><td>データ行</td><td>Nano: <code>count timeMs adc mV deadMs temp</code>（6 項目）。ESP32 はモードが加わって 7 項目。mV はピンの電圧</td><td>2547–2561（6 以上を受け入れる）。時間はすべて ms</td><td class="ok">一致（厳密さは V-9）</td></tr>
+  <tr><td><code>GET_BOARD</code> / <code>BOARD:ESP32S3,12</code></td><td>Nano は無視する</td><td>1.5 秒で Nano とみなす（1408）。遅れた応答か <code>### Board:</code> のヘッダで直す（2413, 2507）</td><td class="ok">一致。7 項目の行からの切り替えはない</td></tr>
+  <tr><td><code>Booting v1-S3...</code></td><td>ESP32 の Serial のみ（BLE には出ない）。Nano は出さず、ポートを開くたびに再起動する</td><td>2424</td><td>USB の ESP32 の再起動だけ検出できる</td></tr>
+  <tr><td><code>THRESH:s,r</code> / <code>MODE:n</code> / <code>SCOPE_RATE:n</code></td><td>空白なし。Nano は sig &gt; rst、1023 以下</td><td>2476–2501、確認 3489</td><td class="ok">一致</td></tr>
+  <tr><td><code>SET_SCOPE</code> の応答</td><td>Nano は必ず返す。ESP32 は状態が変わったときだけ（DMA 失敗では返さない）</td><td>バックストップに <code>GET_SCOPE</code>（3281）</td><td>失敗時は V-12</td></tr>
+  <tr><td>WF 行</td><td>Nano 16 / 145 / 6500 ns。ESP32 は ≤32 / 161 / 12000 ns。n は 0 から</td><td><code>p.length === 7 + ntot</code>（3058）。デモの大きさも合う（デモの n は 1 から、無視される）</td><td class="ok">一致</td></tr>
+  <tr><td><code>### SCOPE:</code> のテキスト行</td><td>両機種</td><td>2504 が 2532 より先</td><td class="ok">一致</td></tr>
+  <tr><td><code>RESET</code></td><td>ESP32 のみ、<code>RESET:OK</code></td><td>2470 は文字を出すだけ</td><td>統計の基準が戻らない（V-1）</td></tr>
+  <tr><td>接続時の GET 9 個</td><td>Nano は 7 個を無視</td><td>1677–1690</td><td>一致。Nano の 64 バイトの受信バッファが、後ろのものを落とす可能性（未確認）</td></tr>
+  <tr><td>ESP32 の機能</td><td><code>SET_WINDOW</code>、<code>AUTO_THRESH:&lt;m&gt;</code>、<code>COINCSTAT</code>、<code>TESTLINE</code></td><td>UI なし</td><td>情報</td></tr>
+</table>
+</div>
+<p>デモのふるまいはファームと合っている（1813–1826, 1985, 2059, 2150–2156）。デモの ESP32 は <code>SET_BLENAME</code> のあとも接続が続くが（2203）、実機はおそらく USB か BLE が切れる（未確認）。</p>
+</section>
+
+<!-- ============================================================ -->
+<section id="structure">
+<h2>6. 構造・保守性</h2>
+
+<h3>6.1 規模と依存</h3>
+<div class="table-scroll">
+<table>
+  <tr><th>ファイル</th><th class="num">行</th><th class="num">バイト</th><th>メモ</th></tr>
+  <tr><td>index.html（v2 記録）</td><td class="num">710</td><td class="num">46,679</td><td>構造だけ。JS / CSS は assets/ に分離</td></tr>
+  <tr><td>assets/js/core.js</td><td class="num">2,939</td><td class="num">113,537</td><td>接続・解析・自動保存・アップロード・デモ・オシロのデータ側</td></tr>
+  <tr><td>assets/js/ui.js</td><td class="num">1,496</td><td class="num">59,346</td><td>画面の切り替え、ドロワー、ダイアログ</td></tr>
+  <tr><td>assets/js/charts.js</td><td class="num">454</td><td class="num">17,570</td><td>自前の canvas 描画（外部ライブラリなし）</td></tr>
+  <tr><td>assets/js/i18n.js</td><td class="num">829</td><td class="num">53,790</td><td>ja / en 各 350 キー</td></tr>
+  <tr><td>assets/js/plotter.js</td><td class="num">1,484</td><td class="num">64,630</td><td>解析ページ（Plotly 依存）</td></tr>
+  <tr><td>assets/css/console.css + pages.css</td><td class="num">709 + 329</td><td class="num">35,419 + 19,664</td><td></td></tr>
+  <tr><td>v1.html</td><td class="num">3,678</td><td class="num">164,996</td><td>JS / CSS を含む単独ページ（Chart.js は CDN）</td></tr>
+  <tr><td>plotter.html / manual.html</td><td class="num">280 / 1,035</td><td class="num">17,703 / 89,179</td><td>マニュアルの画像 16 枚（481 KB）</td></tr>
+  <tr><td><b>合計</b></td><td class="num">約 13,900</td><td class="num"></td><td></td></tr>
+</table>
+</div>
+<p>外部への依存は、Google Fonts（全 4 ページ）、Chart.js 4.5.1（v1.html のみ。<code>cdn.jsdelivr.net</code>、SRI あり）、Plotly basic 2.35.2（解析ページ。<code>cdn.plot.ly</code>、SRI なし）。<code>Content-Security-Policy</code> はどこにもない。<code>html lang="ja"</code> は全ページ（言語を切り替えても変わらない。軽微）。</p>
+
+<div class="idea">
+<h3><span class="tag tag-mid">中</span><span class="tag tag-eff">工数小</span>S-5. 旧版のコピーが追跡されたままで、開くと古い不具合つきのアプリが動く</h3>
+<p><span class="label">現象：</span><code>v2/index.html</code>（6,100 行）は、作り直し前の単一ファイル版の記録ページで、リダイレクトではない。<code>arduino/plotter.html</code>（1,747 行）、<code>MANUAL.html</code>（804 行）、<code>wave_plotter.html</code>（1,466 行）、<code>idea.html</code>（307 行）も追跡されている。<code>v1/index.html</code> は 12 行のリダイレクトで、これが正しい扱い。</p>
+<p><span class="label">影響：</span>ブックマークや過去の案内から旧版を開くと、第 1 節で「直った」ことになっている不具合（N-1 など）が残ったまま動く。同じ名前の機能が 2 か所にあり、どちらを直すか迷う。</p>
+<p><span class="label">修正案：</span>旧ファイルを、新しいページへの 12 行のリダイレクトに置き換える（<code>v1/index.html</code> と同じ形）。履歴は git に残るので、削除してもよい。</p>
+<p class="why">根拠: <code>git ls-files</code> と行数の計測。</p>
+</div>
+
+<div class="idea">
+<h3><span class="tag tag-mid">中</span><span class="tag tag-eff">工数中</span>S-6. テストがリポジトリにない（前回から継続）</h3>
+<p>package.json もテストのフォルダもない。今回のレビューで、<b>core.js はブラウザ API を最小限のスタブにすれば node でそのまま動く</b>ことが分かった（Agent A のハーネスが、C-1, C-2, C-4, C-5 をこの方法で再現した）。v1.html も、スクリプト部分を取り出せば同じ方法で動く（この作業で、オシロの検査 2 本を node で書いた）。</p>
+<p><span class="label">修正案：</span>これらをリポジトリに入れ、<code>npm test</code> で動くようにする。最初に入れる価値が高いもの:</p>
+<ul>
+  <li>パーサ: 連結した行・欠けた行・範囲外の値を捨てる（C-1, V-9）。</li>
+  <li>計数率: RESET・再起動・オシロ・Clear の各場面で値が合う（V-1 を直した後の回帰防止）。</li>
+  <li>自動保存: 書き込み失敗でバッファが戻る、二重実行しない、ヘッダは空のファイルにだけ（V-3, V-7）。</li>
+  <li>解析ページ: 複数区間を含むファイルの測定時間（P-1）、範囲外の ADC（P-2）、半値幅（P-3）。</li>
+</ul>
+</div>
+
+<div class="idea">
+<h3><span class="tag tag-mid">中</span><span class="tag tag-eff">工数大</span>S-7. v1.html を v2 の core.js に統合するか、共通部分を切り出す</h3>
+<p>第 5 節の差の表のとおり、v1.html には、v2 で直した不具合が、V-1, V-3, V-5, V-7, V-9, V-10 として残る。個別に移植すると、同じ修正を 2 回するうえ、次に v2 を直したときにまたずれる。</p>
+<p><span class="label">修正案：</span>core.js を「プロトコルの差だけを外から渡す」形にする。受け取る行の形（Nano 6 項目 / ESP32 7 項目 / v2 13 項目）と、時間の単位（ms / µs）、コマンドの一覧を、プロトコルの定義として渡し、区間・自動保存・アップロード・デモ・オシロは共有する。v1 の画面（v1.html）は、描画と文言だけにする。大きな変更なので、V-1, V-3, X-1 を v1.html に先に移植して当面をしのぎ、そのあとで統合を進めるのが現実的。</p>
+</div>
+
+<div class="idea">
+<h3><span class="tag tag-lo">低</span><span class="tag tag-eff">工数小</span>S-8. プロトコルの正本 <code>description.md</code> などが、git に入っていない</h3>
+<p><code>arduino/description.md</code>（データ行・コマンド・保存形式の仕様書）、<code>review.html</code>（前回のレビュー）、<code>server-plan.html</code>、<code>shaping.html</code>、サンプルデータが、未追跡のまま。特に <code>description.md</code> は、コード中のコメントや、マニュアルの説明（M-2）が参照する前提になっているので、コミットしておくとよい。C-1 を直すときに、195 行の「13 以上」を「ちょうど 13」に書き換える。</p>
+</div>
+
+<div class="idea">
+<h3><span class="tag tag-lo">低</span><span class="tag tag-eff">工数小</span>S-9. 外部 CDN と CSP</h3>
+<p>X-1（Chart.js）と P-8（Plotly）を、<code>assets/vendor/</code> に置けば、コンソールはオフラインで動く。そのうえで CSP（<code>Content-Security-Policy</code>）を入れるかは、優先度が低い。送信先 URL を利用者が入力する設計なので <code>connect-src</code> は絞れず、現時点で XSS の経路も見つかっていない。入れるなら、<code>script-src 'self'</code> と、インラインのスクリプトのハッシュ指定が現実的な範囲。</p>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<section id="docs">
+<h2>7. マニュアル・文書との整合</h2>
+<p>M-1（pandas の読み方）は第 3 節。解析担当が manual.html と画面・コードを照合した結果のうち、そのほかを示す。<code>確認</code> の見方は第 4 節と同じ。</p>
+<div class="table-scroll">
+<table>
+  <tr><th>#</th><th>優先度</th><th>食い違い</th><th>箇所</th><th>修正案</th><th>確認</th></tr>
+  <tr><td>M-3</td><td class="pri pri-mid">中</td><td>マニュアルが http を勧めている。<code>http://localhost</code> で開くことを「おすすめ」とし、サーバーの例が <code>http://accel-kitchen.com:3000</code>。一方、アプリは、http だとパスワードとデータが暗号化されずに送られると警告し、https を案内する（i18n.js の <code>upload.insecure</code>）。<code>python -m http.server</code> は、既定ですべてのインターフェースに公開される</td><td>manual.html:129–134, 141, 496, 666</td><td>https の例にそろえる。<code>python -m http.server --bind 127.0.0.1</code> と書く</td><td>コード</td></tr>
+  <tr><td>M-4</td><td class="pri pri-mid">中</td><td>解析ページは「検出器がなくても、どのブラウザでも使える」と書かれているが、<code>cdn.plot.ly</code> と Google Fonts が要る。オフラインの注意がない</td><td>manual.html:543</td><td>P-8 を直すまでの間、「初回はインターネットが要ります」と書く</td><td>コード</td></tr>
+  <tr><td>M-5</td><td class="pri pri-mid">中</td><td>マニュアルは日本語だけで、言語の切り替えがない。英語 UI の「Manual」リンクが、日本語のページを開く</td><td>manual.html（<code>lang="ja"</code> のみ）</td><td>英語版を作るか、英語 UI のリンクに「（日本語）」を付ける</td><td>コード</td></tr>
+  <tr><td>M-2</td><td class="pri pri-lo">低</td><td>.dat の例の行が実際と違う。時刻が ISO 形式（<code>2026-10-07T03:12:45.118Z</code>）だが、実際は <code>2026-10-07-03-12-45.118Z</code>（core.js:1262）。<code># Source:</code> の文言、Board address、PWM duty の行、2 行の説明、デモの注記がない。.csv の列名の説明がない。ファイル名の日付はローカル、<code>PC_Timestamp</code> は UTC</td><td>manual.html:788、core.js:1238–1245, 2153, 1262</td><td>core.js の <code>buildFileHeader</code> が出す形をそのまま載せる。日付がローカルであることを書く</td><td>コード</td></tr>
+  <tr><td>M-6</td><td class="pri pri-lo">低</td><td>v1 の使い方を「画面左の注意事項・ヒント」と案内するが、v1 のページには、もう左のサイドバーがない。いまは「詳細設定 › ヘルプ」</td><td>manual.html:118</td><td>文言を直す</td><td>コード</td></tr>
+  <tr><td>M-7</td><td class="pri pri-lo">低</td><td>OLED の表示例がファームと合わない。ファームは <code>T:0:05:42</code>（時が桁埋めなし）、<code>T:24.3C 48%</code> のあとに <code>1013.2hPa</code> を出す</td><td>manual.html:991–996、ファーム:1768–1802</td><td>実際の出力に合わせる</td><td>報告</td></tr>
+  <tr><td>M-8</td><td class="pri pri-lo">低</td><td>数値の書き方がページ内でばらつく。「計数停止中 mm:ss」と書くが、画面は hh:mm:ss。ミューオンのピークが「ADC 1000」（285 行）、「1100」（566 行）、デモは 1150</td><td>manual.html:285, 352, 566</td><td>1 つにそろえる（「例」と断る）</td><td>報告</td></tr>
+  <tr><td>M-9</td><td class="pri pri-lo">低</td><td>書かれていないこと。ファーム自身の「60 秒コマンドがなければオシロを OFF」（ページ側の 10 分だけが書かれている）。解析ページは 1 ファイルずつ読むこと（64 MB で <code>_02</code>、<code>_03</code> に分かれるファイルは連結が必要）。複数回の測定が 1 つのファイルに入ること（P-1）。<code>.wfm</code> の開き方</td><td>manual.html（全体を grep）</td><td>該当する節に、それぞれ数行を足す</td><td>コード（grep）</td></tr>
+  <tr><td>M-10</td><td class="pri pri-lo">低</td><td>構成図の文字が、スマホで 5 px 前後になる（viewBox 幅 780 に対し、文字は 13 / 11.5 ユニット。375 px では約 4.6〜5.2 px）</td><td>pages.css:189–196</td><td>スマホでは図を横スクロールにする（<code>min-width</code>）か、文字を増やした縦長の図に差し替える</td><td>報告</td></tr>
+  <tr><td>M-11</td><td class="pri pri-lo">低</td><td>マニュアルのアクセシビリティの細部。画像リンクの中の番号（<code>.pin</code>）が名前に混ざる（「1 2 3」）。<code>target="_blank"</code> が伝わらない。目次の現在位置がクラスだけ（<code>aria-current</code> がない）</td><td>manual.html</td><td><code>aria-hidden="true"</code>、<code>aria-current</code>、リンクに「（新しいタブ）」</td><td>報告</td></tr>
+  <tr><td>D-7</td><td class="pri pri-lo">低</td><td><code>CHECKLIST.md</code>（機能の対応表と、実機で確認する 14 項目）が、作り直しのあとの状態を反映していない。K5 は「v1: デモ（中身は旧ページのまま）」と書くが、v1.html はすでに v2 のレイアウトで作り直され、デモも持つ。P1 は MANUAL.html を書き直したと言うが、旧 MANUAL.html が残っている（S-5）。実機の確認項目に、今回の指摘を確かめる項目がない</td><td>CHECKLIST.md:21, 27, 135–150</td><td>K5 の文言を直す。実機の項目に足す: (a) 受信側を一瞬止めても行がつながらないか（C-1）、(b) 到達できないサーバーを指定したままケーブルを抜く（C-3）、(c) v1 で USB を切断して「もう一度つなぐ」（V-2）、(d) v1 をオフラインで開く（X-1）</td><td>コード</td></tr>
+  <tr><td>D-6</td><td class="pri pri-lo">低</td><td>description.md の 195 行が「13 以上」と書いている（C-1）。仕様の側を「ちょうど 13」にして、コードと合わせる</td><td>description.md:195</td><td>C-1 と一緒に直す</td><td>報告</td></tr>
+</table>
+</div>
+<p>マニュアルのうち、コードと合っていることを確認した項目: 100 万件、100 行、統計 18 項目、BLE 再接続 1〜30 秒、キュー 50,000 件、バックオフ 60 秒、オシロの放置 10 分、計数率の上限 1〜20（既定 3）、BLE 名 19 文字、ボーレート 9600、ブザー 500 / 4000 / 25。画像 16 枚は全部あり、大きさの宣言も合っている。内部リンクとアンカーはすべて解決する。</p>
+<p class="ref">未確認: manual.html:133–135 などの「file:// では Bluetooth が使えない」という記述は、Chrome が file:// を「信頼できるコンテキスト」として扱うことがあるので、正しいか確認が要る（解析担当の指摘）。</p>
+</section>
+
+<!-- ============================================================ -->
+<section id="a11y">
+<h2>8. アクセシビリティとデザイン</h2>
+
+<div class="note">
+ブラウザ（Chrome のペイン、ローカルサーバー）で、アクセシブルネームの計算、タップ領域の寸法、計算後の文字色と背景色のコントラスト、横スクロールの有無を、スクリプトで調べた。画面は、記録・測定・オシロの各ビューで、ドロワーを開いた状態と閉じた状態を調べた（v1.html はドロワーを閉じた状態のみ。ドロワーの中は HTML を読んで確認した）。スクリーンリーダーでの確認はしていない。
+</div>
+
+<h3>8.1 結果の要約</h3>
+<div class="table-scroll">
+<table>
+  <tr><th>項目</th><th>v2 記録</th><th>v1</th><th>解析</th><th>マニュアル</th></tr>
+  <tr><td>名前のない操作部品</td><td class="bad">ドロワーに 3 + スイッチ 5（title のみ）+「?」に奪われた 3 + 「詳細設定」（X-3）</td><td class="bad">ドロワーに 3（V-14）、canvas 3</td><td class="bad">校正テーブルの行のラジオとチェックボックス（P-10。行は動的に作られるので、筆者の監査では出ていなかった）</td><td class="ok">なし（画像 16 枚すべて alt あり）</td></tr>
+  <tr><td>横スクロール（幅 375 px）</td><td class="ok">なし（英語のオシロ画面を除く。U-3）</td><td class="ok">なし</td><td class="ok">なし</td><td class="ok">なし</td></tr>
+  <tr><td>固定の上部バーの高さ（375 px）</td><td class="bad">217 px（デモの帯 94 px を含む）、オシロ画面 247 px。実機接続時は約 150 px</td><td>158 px（帯 73 px を含む）</td><td>—</td><td>—</td></tr>
+  <tr><td>タップ領域 24 px 未満</td><td class="bad">「?」18 × 18 を 8 個、チェックボックス 16 px、フッターのリンク 17〜20 px、<code>.link-btn</code> 21〜22 px。44 px 未満は測定画面で 21 個、ドロワーで 64 個</td><td>17〜21 px のリンク</td><td>16 × 16 のチェックボックス</td><td>—</td></tr>
+  <tr><td>見出し</td><td>—</td><td>—</td><td>—</td><td class="ok">h1 が 1 つ、段の飛びなし</td></tr>
+  <tr><td>コンソールエラー</td><td class="ok">なし</td><td class="ok">なし</td><td class="ok">なし</td><td class="ok">なし</td></tr>
+</table>
+</div>
+
+<h3>8.2 配色のコントラスト（console.css の変数から計算）</h3>
+<div class="table-scroll">
+<table>
+  <tr><th>前景 / 背景</th><th class="num">比</th><th>判定</th><th>使われ方</th></tr>
+  <tr><td>ink / paper</td><td class="num">13.59</td><td class="ok">合格</td><td>本文</td></tr>
+  <tr><td>ink-2 / paper</td><td class="num">8.04</td><td class="ok">合格</td><td>補足の文字</td></tr>
+  <tr><td>ink-3 / paper</td><td class="num">5.03</td><td class="ok">合格</td><td>注記、バージョン表記。paper-3（斜線の背景）の上では 4.09 で不合格</td></tr>
+  <tr><td>ink-3 / paper-2、rail</td><td class="num">4.57、4.77</td><td class="ok">合格</td><td></td></tr>
+  <tr><td><b>ink-4 / paper</b></td><td class="num bad">2.47</td><td class="bad">不合格</td><td>「データなし」、グラフの空表示、「?」アイコン（charts.js:115、console.css:122, 441）</td></tr>
+  <tr><td><b>ink-4 / field</b></td><td class="num bad">2.62</td><td class="bad">不合格</td><td>placeholder（console.css:137）。解析ページの「任意」ラベルも同じ</td></tr>
+  <tr><td>ink-4 / paper-3、rail</td><td class="num bad">2.01、2.34</td><td class="bad">不合格</td><td></td></tr>
+  <tr><td>coral-2 / paper、coral-pale</td><td class="num">5.26、4.65</td><td class="ok">合格</td><td>警告・危険</td></tr>
+  <tr><td>signal-ink / paper、signal-pale</td><td class="num">5.63、5.28</td><td class="ok">合格</td><td></td></tr>
+  <tr><td>night / signal</td><td class="num">10.27</td><td class="ok">合格</td><td>オシロ画面のボタン</td></tr>
+  <tr><td>night-ink / night、night-2</td><td class="num">14.27、12.15</td><td class="ok">合格</td><td>オシロ画面の文字</td></tr>
+  <tr><td>night-ink-2 / night、night-2</td><td class="num">7.25、6.17</td><td class="ok">合格</td><td></td></tr>
+  <tr><td><b>ink / night</b>（オシロ画面の上部バーのリンク）</td><td class="num bad">1.20</td><td class="bad">不合格</td><td>X-2。リンクがほぼ見えない</td></tr>
+  <tr><td>入力欄・<code>.btn-line</code> の枠線 / paper（非テキスト）</td><td class="num bad">1.61</td><td class="bad">3:1 に不足</td><td>U-9</td></tr>
+  <tr><td>オフのスイッチの溝 / paper、rail（非テキスト）</td><td class="num bad">1.23、1.17</td><td class="bad">3:1 に不足</td><td>U-9</td></tr>
+  <tr><td>フォーカスの枠 signal-2 / paper、rail、ink、night</td><td class="num">3.66、3.47、3.71、4.45</td><td class="ok">合格</td><td>ただし <code>.seg</code> で切れる（U-11）</td></tr>
+</table>
+</div>
+<p>本文のパレットは、<code>--ink-4</code> を除いて AA を満たしている。<code>--ink-4</code> は、本来「無効・装飾」の色として作られていて、そのまま内容のある文字（placeholder、空表示、「?」）に使われているのが問題。文字は <code>--ink-3</code> に寄せるだけで直る。</p>
+
+<h3>8.3 直す順（アクセシビリティ）</h3>
+<ol class="order">
+  <li><b>X-2</b>（オシロ画面のリンク）— CSS 2 行。</li>
+  <li><b>X-3 と U-18</b>（名前のない部品、「?」の位置、スイッチ、「詳細設定」）— HTML の属性。まとめて 1 回で終わる。</li>
+  <li><b>U-3</b>（英語の上部バー）と <b>U-10</b>（スマホの固定バー）— CSS。</li>
+  <li><b>U-9</b>（<code>--ink-4</code> の文字・枠線・スイッチの溝）、<b>U-12</b>（<code>pointer: coarse</code> でタップ領域）。</li>
+  <li>v1 は V-14、解析ページは P-10。v2 と同じ属性を足す。</li>
+</ol>
+</section>
+
+<!-- ============================================================ -->
+<section id="verify">
+<h2>9. 検証の記録</h2>
+<div class="table-scroll">
+<table>
+  <tr><th>対象</th><th>方法</th><th>結果</th></tr>
+  <tr><td>構文・整合（全ページ）</td><td><code>node --check</code>（assets/js の 5 ファイル、index / v1 / manual のインラインスクリプト）。id の重複、JS が参照する id の有無、i18n のキーの過不足、<code>innerHTML</code> の使用箇所、<code>eval</code> などの検索</td><td>構文エラーなし。重複 id なし。参照される id はすべて存在。v2 の ja / en は 350 キーが過不足なく一致。<code>innerHTML</code>: ui.js 10、plotter.js 4、v1.html 9、core.js 0、charts.js 0。<code>eval</code> / <code>document.write</code> / <code>new Function</code> はない</td></tr>
+  <tr><td>ブラウザでの操作</td><td>Chrome のペインで、デモの一連の操作（モデル選択、デモ接続、言語、シナリオ、バースト、ドロワー、しきい値、オート校正、モード、オシロの開閉、改名、消去、切断）を v2 と v1 の両方で実行し、コンソールを確認</td><td>全ページ（index / v1 / plotter / manual）でエラーなし</td></tr>
+  <tr><td>アクセシビリティ監査</td><td>ページ内スクリプトで、アクセシブルネーム、タップ領域、計算後のコントラスト、横スクロールを測定（第 8 節）</td><td>X-2, X-3 などを検出。v1 はドロワーを閉じた状態だったので、ドロワーの中は HTML を読んで補った（V-14）</td></tr>
+  <tr><td>配色</td><td>console.css の変数から、WCAG のコントラスト比を計算（UI 担当の計算と一致）</td><td>第 8.2 節</td></tr>
+  <tr><td>負荷</td><td>デモを最大レート（約 360〜435 イベント/秒）で 15 秒</td><td>v2: 435 /秒、メインスレッドの最大の詰まり 17 ミリ秒、表は 100 行のまま。v1: 387 /秒、13 ミリ秒（画面の更新は <code>requestAnimationFrame</code> で、背景のペインでは動かないため、v1 の描画側は測れていない）</td></tr>
+  <tr><td>オフラインの模擬</td><td>v1.html から Chart.js を外して、<code>initCharts()</code> と <code>processLine()</code> を実行</td><td>X-1 を再現（<code>initCharts</code> は <code>reading 'defaults'</code>、<code>processLine</code> は <code>reading 'data'</code> で失敗。定期処理が始まらない）</td></tr>
+  <tr><td>v1 の後追い</td><td>溜まったイベント 5,810 件で <code>updateUI()</code> を 1 回</td><td>1,115 ミリ秒（X-4）。v2 は最新 100 件だけを作る（ui.js:449–450）</td></tr>
+  <tr><td>pandas</td><td>pandas 2.2.3 で、マニュアルの <code>read_csv(path, sep='\t', comment='#')</code> を .dat に使った</td><td>最初のイベントが列名に化ける（M-1）</td></tr>
+  <tr><td>半値幅</td><td>解析ページの <code>refinePeak</code> を、ガウス分布で 200 回ずつ試した</td><td>P-3 の表のとおり</td></tr>
+  <tr><td>独立した 4 件のコードレビュー</td><td>core.js、画面層（index.html / ui.js / console.css / i18n.js）、解析ページとマニュアル、v1.html とそのファームを、別々のレビュー担当に読ませた。一部は node / ブラウザ / 偽のディレクトリ / モックで再現</td><td>報告された指摘のうち、本書の高・中のものは、筆者が該当行を読んで確認した（表の「確認」の欄に、実行 / コード / 報告を分けて書いた）。「報告」は、筆者が再確認していない</td></tr>
+  <tr><td>この作業で追加した v1 のコード</td><td>スコープ、keepalive、デモのコードも、他の部分と同じ基準でレビューに含めた（V-5, V-8, V-12 などは、このコードにもかかわる）。node の回帰検査 2 本（<code>check_scope.js</code>、<code>check_keepalive.js</code>）</td><td>2 本とも通過</td></tr>
+  <tr><td>実機</td><td>—</td><td><b>未確認。</b>USB（Web Serial）と BLE の実際の接続、File System Access の本物のディスクでの挙動（偽のディレクトリでしか試していない）、V-2 の <code>port.close()</code> の拒否、C-1 のような行の連結が実機でどのくらい起きるか、オシロの実機での放置。<code>CHECKLIST.md</code> の「実機で確認すること」14 項目も、今回は実施していない（D-7 に追加すべき項目を挙げた）</td></tr>
+  <tr><td>そのほか未実施</td><td>—</td><td>スクリーンリーダーでの確認。ファームは grep と部分的な読みのみ。サーバー（<code>server.js</code>）は読んでいない（サーバー側の挙動は <code>server-plan.html</code> から）。日本語の文言の校正</td></tr>
+</table>
+</div>
+<p class="ref">ブラウザのペインは、背景のタブでは <code>requestAnimationFrame</code> が動かず、スクリーンショットが 1 フレーム遅れ、画像の <code>complete</code> 判定が不正確になる。これらはテストの都合で、画面の状態は JS の値で確認した。</p>
+</section>
+
+<!-- ============================================================ -->
+<section id="order">
+<h2>10. 推奨する対応順</h2>
+<ol class="order">
+  <li><b>X-1 / V-4（v1 の Chart.js）。</b>CDN に頼らずリポジトリに置き（<code>assets/vendor/</code>）、<code>initCharts</code> を <code>try/catch</code> にする。オフラインで記録が全部止まる、という最悪の形を消す。小さい。P-8（Plotly）と同時に。</li>
+  <li><b>V-3（v1 の自動保存）。</b>ロック、書けなかったぶんを戻す、<code>pagehide</code> で書き込む。v2 の実装を写せる。測定のたびにデータを失う可能性がある。</li>
+  <li><b>V-1（v1 の計数率）。</b>区間とライブタイムを移す。画面の主役の数字が、オシロ・つなぎ直し・消去のあとに誤る。</li>
+  <li><b>P-1（解析ページの複数区間）。</b>Time が戻った所で区間を切る。科学的な数値が黙ってずれる。</li>
+  <li><b>C-1 / V-9（パーサの厳密化）、M-1（pandas の例）。</b>どちらも数行で直る。連結した行が 1 日の記録を静かに汚す入口を塞ぐ。マニュアルの例は、読んだ人が最初の 1 件を失う。</li>
+  <li><b>U-1（PWM 空欄）、C-3（切断待ち）、C-4（認証失敗の連打）。</b>それぞれ数行。</li>
+  <li><b>アクセシビリティと見た目をまとめて 1 回:</b> X-2, X-3, U-3, U-10, U-9, U-12, U-18（第 8.3 節）。HTML の属性と CSS だけ。</li>
+  <li><b>C-6 / V-6（デモの混入）。</b>接続の前に確認する。書き出しの印の付け方を、イベントごとにそろえる。</li>
+  <li><b>解析ページの数値:</b> P-2（範囲）、P-3（半値幅）、P-4（R²）、P-6（再読み込み）、P-7（デモの校正）。P-3 は、直すまで画面に「目安」と注記する。</li>
+  <li><b>V-2、V-5、V-7、V-8（v1 の BLE / USB / ヘッダ / オシロの放置）。</b>V-2 は、症状が出ていたら優先度を上げる。</li>
+  <li><b>C-2, C-7, C-9, C-10、低の課題とマニュアルの食い違い（M-2〜M-11）。</b>独立していて小さい。</li>
+  <li><b>S-5（旧版のコピー）→ S-6（テスト）→ S-7（v1 の統合）。</b>先にテストを入れて、上の修正の回帰を防いでから、v1 の統合に進む。</li>
+</ol>
+</section>
+
+</main>
+
+<footer>Accel Kitchen — Cosmic Ray Detector V2 / v2/console/review.html（コンソール全体のコードレビュー・第 3 回）</footer>
+
+</body>
+</html>
