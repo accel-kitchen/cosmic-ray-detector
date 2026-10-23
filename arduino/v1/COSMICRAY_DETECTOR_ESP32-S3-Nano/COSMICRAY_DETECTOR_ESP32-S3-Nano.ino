@@ -357,7 +357,15 @@ static uint64_t scopeWritten = 0;  // 通算サンプル数
 static constexpr size_t SCOPE_READ_BYTES = 512;  // 4 byte/sample なので 128 点
 static uint8_t scopeReadBuf[SCOPE_READ_BYTES];
 
-bool     scopeArmed      = false;  // 直前に RESET を下回ったか
+// 再アームの水準 = SIGNAL_THRESHOLD − scopeRearmOffset。波形を 1 本取ると、A0 がこの水準以下に
+// 戻るまで次のトリガーを受け付けない。オフセットの既定は 5（SET_SCOPE_REARM:<offset> で変える）。
+// 水準をしきい値からの差で持つので、しきい値を動かすと再アームの水準も一緒に動く。
+// 計数のリセットしきい値 RESET_THRESHOLD（THRESH:<sig>,<rst>）とは別で、オシロだけが使う。
+int      scopeRearmOffset = 5;
+// 連続撮影（トリガーなし）。SET_SCOPE_TRIG:FREE で ON。
+// トリガーを待たず、いちばん新しい窓（SCOPE_PRE + 1 + SCOPE_POST 点）を scopeRate の間隔で出し続ける。
+bool     scopeFree       = false;
+bool     scopeArmed      = false;  // 直前に再アームの水準以下まで下がったか
 bool     scopePendValid  = false;
 uint64_t scopePendTrigG  = 0;
 uint32_t scopeEmitted    = 0;
@@ -550,6 +558,9 @@ bool scopeSetOn(bool on);
 void scopeService();
 void printScope();
 void printScopeRate();
+void printScopeRearm();
+void printScopeTrig();
+int  scopeRearmLevel();
 
 // BLE コールバック（core0）から呼ばれる。キューに積むだけで実行はしない。
 bool enqueueCommand(const char* cmd) {
@@ -880,6 +891,24 @@ void executeCommand(const char* cmd) {
   } else if (strcmp(cmd, "GET_SCOPE_RATE") == 0) {
     printScopeRate();
 
+  } else if (strncmp(cmd, "SET_SCOPE_REARM:", 16) == 0) {
+    // オフセット（しきい値より何下で再アームするか）0..ADC_MAX。範囲外・読めない値は無視して、いまの値を返す。
+    int v;
+    if (sscanf(cmd + 16, "%d", &v) == 1 && v >= 0 && v <= ADC_MAX) scopeRearmOffset = v;
+    printScopeRearm();
+
+  } else if (strcmp(cmd, "GET_SCOPE_REARM") == 0) {
+    printScopeRearm();
+
+  } else if (strncmp(cmd, "SET_SCOPE_TRIG:", 15) == 0) {
+    const char* a = cmd + 15;
+    if (strcmp(a, "FREE") == 0)        scopeFree = true;
+    else if (strcmp(a, "NORMAL") == 0) scopeFree = false;
+    printScopeTrig();
+
+  } else if (strcmp(cmd, "GET_SCOPE_TRIG") == 0) {
+    printScopeTrig();
+
   } else if (strcmp(cmd, "GET_BLENAME") == 0) {
     printBleName();
 
@@ -1059,6 +1088,20 @@ void printScopeRate() {
   snprintf(buf, sizeof(buf), "SCOPE_RATE:%lu", (unsigned long)scopeRate);
   dualPrintln(buf);
 }
+
+// 再アームの水準 = しきい値 − オフセット（0 未満にはしない）。
+int scopeRearmLevel() {
+  const int lvl = SIGNAL_THRESHOLD - scopeRearmOffset;
+  return lvl < 0 ? 0 : lvl;
+}
+
+void printScopeRearm() {
+  char buf[32];
+  snprintf(buf, sizeof(buf), "SCOPE_REARM:%d", scopeRearmOffset);
+  dualPrintln(buf);
+}
+
+void printScopeTrig() { dualPrintln(scopeFree ? "SCOPE_TRIG:FREE" : "SCOPE_TRIG:NORMAL"); }
 
 // 診断: "COINCSTAT:<singles>,<accepted>,<window_us>,<reset_timeouts>"
 //   singles        = 自分のしきい値を超えた回数（コインシデンス判定より前）
@@ -1315,6 +1358,7 @@ void printBootHeader() {
   dualPrintln("###        Counting is PAUSED while the scope is on; the time spent there");
   dualPrintln("###        is added to deadtime, so the rate stays correct. Boots OFF.");
   dualPrintln("###        Turns itself OFF after 60 s without any command (send GET_SCOPE as keepalive).");
+  dualPrintln("###        SET_SCOPE_REARM:<n> re-arms at THRESH-n (default 5); SET_SCOPE_TRIG:FREE captures without a trigger.");
 
   dualPrintln("### Event Time[ms] ADC[0-4095] Vadc[mV] Deadtime[ms] Temp[C] Mode[0:Master,1:Slave]");
   dualPrintln(bar);
@@ -1479,6 +1523,9 @@ void scopeService() {
     scopeArmed = false;
   }
 
+  // 再アームの水準 = しきい値 − オフセット。
+  const int rearm = scopeRearmLevel();
+
   // レート制限は「出力するとき」に millis() で見る（下の scopeLastEmitMs）。
   // 拾う側は scopePendValid で 1 窓ずつに制限してあるので、ここでは何もしない。
   for (int iter = 0; iter < 8; iter++) {
@@ -1496,10 +1543,11 @@ void scopeService() {
       scopeRing[g & SCOPE_RING_MASK] = v;
       scopeWritten = g + 1;
 
+      if (scopeFree) continue;       // 連続撮影はトリガーを使わない
       if (scopePendValid) continue;  // 既に確定待ちの窓がある
 
       if (!scopeArmed) {
-        if ((int)v <= RESET_THRESHOLD) scopeArmed = true;
+        if ((int)v <= rearm) scopeArmed = true;
         continue;
       }
       if ((int)v <= SIGNAL_THRESHOLD) continue;
@@ -1508,6 +1556,18 @@ void scopeService() {
       scopePendTrigG = g;
       scopePendValid = true;
     }
+  }
+
+  // 連続撮影: いちばん新しい窓（SCOPE_PRE + 1 + SCOPE_POST 点）を一定間隔で出す。
+  if (scopeFree) {
+    const unsigned long now = millis();
+    const unsigned long minMs = (scopeRate > 0) ? (1000UL / scopeRate) : 0UL;
+    if (scopeWritten >= (uint64_t)(SCOPE_PRE + 1 + SCOPE_POST) &&
+        (minMs == 0 || (now - scopeLastEmitMs) >= minMs)) {
+      scopeEmit(scopeWritten - 1 - (uint64_t)SCOPE_POST);
+      scopeLastEmitMs = now;
+    }
+    return;
   }
 
   // 後続サンプルが揃ったら出す
@@ -1545,6 +1605,18 @@ bool scopeSetOn(bool on) {
 #endif
     dualPrintln("### SCOPE: ON - counting is PAUSED while the scope is open.");
     dualPrintln("###        Coincidence is not evaluated. Temperature holds its last value.");
+    {
+      // 波形が出ないときの手がかり: どの水準で取っているかを毎回ログに残す
+      char info[96];
+      if (scopeFree) {
+        snprintf(info, sizeof(info), "###        FREE-RUN: no trigger, one window every %lu ms.",
+                 (unsigned long)(scopeRate > 0 ? 1000UL / scopeRate : 0UL));
+      } else {
+        snprintf(info, sizeof(info), "###        trigger above %d, re-arm at or below %d (threshold - %d).",
+                 SIGNAL_THRESHOLD, scopeRearmLevel(), scopeRearmOffset);
+      }
+      dualPrintln(info);
+    }
     if (bleDeviceConnected) {
       dualPrintln("### WARN: scope over BLE is slow (one waveform = several notifications).");
     }

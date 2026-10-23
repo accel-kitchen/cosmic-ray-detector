@@ -233,6 +233,17 @@ unsigned long coinOffUs = 0;
 bool     scopeOn   = false;
 uint32_t scopeRate = 3;
 static constexpr uint32_t SCOPE_RATE_MAX = 20;
+// 再アームの水準 = SIGNAL_THRESHOLD − scopeRearmOffset。波形を 1 本取ると、A0 がこの水準以下に
+// 戻るまで次のトリガーを受け付けない。オフセットの既定は 5（SET_SCOPE_REARM:<offset> で変える）。
+// 水準をしきい値からの差で持つので、しきい値を動かすと再アームの水準も一緒に動く。
+// 以前は「しきい値の半分」に固定していた。実機の A0 のベースラインは約 86 なので、
+// しきい値が 120〜170 のあいだ（既定 120、自動校正でもこのあたり）は半分が 60〜85 となり、
+// ベースラインより下に出られずに、開いても波形が 1 本も出なかった。
+int      scopeRearmOffset = 5;
+// 連続撮影（トリガーなし）。SET_SCOPE_TRIG:FREE で ON。
+// トリガーを待たず、いちばん新しい 161 点の窓を scopeRate の間隔で出し続ける。
+// しきい値を超えない小さな信号や、ベースラインそのものを見るためのモード。
+bool     scopeFree = false;
 // オシロ中にコマンドがこの時間まったく来なければ、自分で OFF に戻して計数を再開する。
 // ダッシュボードが SET_SCOPE:OFF を送れずに閉じても（タブを閉じた、PC が寝た、
 // ケーブルを抜いた）夜通し計数が止まったままにならないための安全装置。
@@ -778,6 +789,20 @@ void executeCommand(const char* cmd) {
     printScopeRate();
   } else if (strcmp(cmd, "GET_SCOPE_RATE") == 0) {
     printScopeRate();
+  } else if (strncmp(cmd, "SET_SCOPE_REARM:", 16) == 0) {
+    // オフセット（しきい値より何下で再アームするか）0..ADC_MAX。範囲外・読めない値は無視して、いまの値を返す。
+    int v;
+    if (sscanf(cmd + 16, "%d", &v) == 1 && v >= 0 && v <= ADC_MAX) scopeRearmOffset = v;
+    printScopeRearm();
+  } else if (strcmp(cmd, "GET_SCOPE_REARM") == 0) {
+    printScopeRearm();
+  } else if (strncmp(cmd, "SET_SCOPE_TRIG:", 15) == 0) {
+    const char* a = cmd + 15;
+    if (strcmp(a, "FREE") == 0)        scopeFree = true;
+    else if (strcmp(a, "NORMAL") == 0) scopeFree = false;
+    printScopeTrig();
+  } else if (strcmp(cmd, "GET_SCOPE_TRIG") == 0) {
+    printScopeTrig();
   } else if (strcmp(cmd, "GET_BLENAME") == 0) {
     printBleName();
   } else if (strcmp(cmd, "GET_BTADDR") == 0) {
@@ -1543,8 +1568,8 @@ void scopeService() {
     scopeArmed = false;
   }
 
-  // ホールド出力なので、放電されて十分下がったところで再アームする
-  const int rearm = SIGNAL_THRESHOLD / 2;
+  // 再アームの水準 = しきい値 − オフセット。
+  const int rearm = scopeRearmLevel();
 
   for (int iter = 0; iter < 8; iter++) {
     uint32_t outLen = 0;
@@ -1561,6 +1586,7 @@ void scopeService() {
       scopeRing[g & SCOPE_RING_MASK] = v;
       scopeWritten = g + 1;
 
+      if (scopeFree) continue;   // 連続撮影はトリガーを使わない
       if (scopePendValid) continue;
       if (!scopeArmed) {
         if ((int)v <= rearm) scopeArmed = true;
@@ -1571,6 +1597,20 @@ void scopeService() {
       scopePendTrigG = g;
       scopePendValid = true;
     }
+  }
+
+  if (scopeFree) {
+    // 連続撮影: いちばん新しい窓（SCOPE_PRE + 1 + SCOPE_POST 点）を一定間隔で出す。
+    // A0 はピークホールドなので、出すたびに放電しないと、最後の波高が張り付いたままになる。
+    const unsigned long now = millis();
+    const unsigned long minMs = (scopeRate > 0) ? (1000UL / scopeRate) : 0UL;
+    if (scopeWritten >= (uint64_t)(SCOPE_PRE + 1 + SCOPE_POST) &&
+        (minMs == 0 || (now - scopeLastEmitMs) >= minMs)) {
+      scopeEmit(scopeWritten - 1 - (uint64_t)SCOPE_POST);
+      scopeLastEmitMs = now;
+      scopeHoldReset();
+    }
+    return;
   }
 
   if (scopePendValid && scopeWritten >= scopePendTrigG + (uint64_t)SCOPE_POST + 1) {
@@ -1593,6 +1633,19 @@ void printScopeRate() {
   dualPrintln(buf);
 }
 
+// 再アームの水準 = しきい値 − オフセット（0 未満にはしない）。
+int scopeRearmLevel() {
+  const int lvl = SIGNAL_THRESHOLD - scopeRearmOffset;
+  return lvl < 0 ? 0 : lvl;
+}
+
+void printScopeRearm() {
+  char buf[32];
+  snprintf(buf, sizeof(buf), "SCOPE_REARM:%d", scopeRearmOffset);
+  dualPrintln(buf);
+}
+void printScopeTrig() { dualPrintln(scopeFree ? "SCOPE_TRIG:FREE" : "SCOPE_TRIG:NORMAL"); }
+
 bool scopeSetOn(bool on) {
   if (on == scopeOn) return true;
 
@@ -1614,6 +1667,18 @@ bool scopeSetOn(bool on) {
 #endif
     dualPrintln("### SCOPE: ON - counting is PAUSED while the scope is open.");
     dualPrintln("###        A0 is the PEAK-HOLD output, not the raw amplifier pulse.");
+    {
+      // 波形が出ないときの手がかり: どの水準で取っているかを毎回ログに残す
+      char info[96];
+      if (scopeFree) {
+        snprintf(info, sizeof(info), "###        FREE-RUN: no trigger, one window every %lu ms.",
+                 (unsigned long)(scopeRate > 0 ? 1000UL / scopeRate : 0UL));
+      } else {
+        snprintf(info, sizeof(info), "###        trigger above %d, re-arm at or below %d (threshold - %d).",
+                 SIGNAL_THRESHOLD, scopeRearmLevel(), scopeRearmOffset);
+      }
+      dualPrintln(info);
+    }
     if (bleDeviceConnected) {
       dualPrintln("### WARN: scope over BLE is slow (one waveform = several notifications).");
     }

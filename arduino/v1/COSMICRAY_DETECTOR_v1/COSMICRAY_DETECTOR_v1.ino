@@ -75,6 +75,12 @@ unsigned long scopeLastEmitMs = 0;
 unsigned long scopeEmitted = 0;           // 出力した波形の数
 uint16_t      scopeRing[SCOPE_RING];      // トリガ前＋トリガ点（循環）
 uint16_t      scopePost[SCOPE_POST];      // トリガ後
+// 再アームの水準 = SIGNAL_THRESHOLD − scopeRearmOffset（既定 5。SET_SCOPE_REARM:<offset> で変える）。
+// 波形を 1 本取ると、A0 がこの水準以下に戻るまで次のトリガーを受け付けない。しきい値を動かすと一緒に動く。
+// 計数のリセットしきい値 RESET_THRESHOLD（THRESH:<sig>,<rst>）とは別で、オシロだけが使う。
+int           scopeRearmOffset = 5;
+// 連続撮影（トリガーなし）。SET_SCOPE_TRIG:FREE で ON。いまの 17 点の直後から POST 点を続けて取って出す。
+bool          scopeFree = false;
 
 // オシロ中にコマンドがこの時間まったく来なければ、自分で OFF に戻して計数を再開する。
 // コンソールが SET_SCOPE:OFF を送れずに閉じても（タブを閉じた、PC が寝た、ケーブルを抜いた）
@@ -310,6 +316,22 @@ void handleCommand(const char* cmd) {
     printScopeRate();
   } else if (strcmp(cmd, "GET_SCOPE_RATE") == 0) {
     printScopeRate();
+  // 新しいコマンドの文字列は PSTR（フラッシュ）に置く。ATmega328 は RAM が 2KB しかない。
+  } else if (strncmp_P(cmd, PSTR("SET_SCOPE_REARM:"), 16) == 0) {
+    // オフセット（しきい値より何下で再アームするか）0..1023。読めない・範囲外の値は無視して、いまの値を返す。
+    if (cmd[16] >= '0' && cmd[16] <= '9') {
+      const int v = atoi(cmd + 16);
+      if (v >= 0 && v <= 1023) scopeRearmOffset = v;
+    }
+    printScopeRearm();
+  } else if (strcmp_P(cmd, PSTR("GET_SCOPE_REARM")) == 0) {
+    printScopeRearm();
+  } else if (strncmp_P(cmd, PSTR("SET_SCOPE_TRIG:"), 15) == 0) {
+    if (strcmp_P(cmd + 15, PSTR("FREE")) == 0)        scopeFree = true;
+    else if (strcmp_P(cmd + 15, PSTR("NORMAL")) == 0) scopeFree = false;
+    printScopeTrig();
+  } else if (strcmp_P(cmd, PSTR("GET_SCOPE_TRIG")) == 0) {
+    printScopeTrig();
   }
   // 未知コマンドは無視（旧挙動を壊さない）
 }
@@ -342,6 +364,10 @@ void processSerialCommand() {
 //   GET_SCOPE            -> SCOPE:ON / SCOPE:OFF（コンソールはこれを 15 秒ごとに送る keepalive にも使う）
 //   SET_SCOPE_RATE:<n>   -> SCOPE_RATE:<n>   波形を出す間隔の下限（1〜20 /s）
 //   GET_SCOPE_RATE       -> SCOPE_RATE:<n>
+//   SET_SCOPE_REARM:<n>  -> SCOPE_REARM:<n>  再アームの水準 = SIGNAL_THRESHOLD − n（既定 5）
+//   GET_SCOPE_REARM      -> SCOPE_REARM:<n>
+//   SET_SCOPE_TRIG:NORMAL|FREE -> SCOPE_TRIG:NORMAL|FREE  FREE = トリガーなしで撮り続ける
+//   GET_SCOPE_TRIG       -> SCOPE_TRIG:NORMAL|FREE
 //   どのコマンドも来ないまま SCOPE_IDLE_TIMEOUT_MS（60 秒）が過ぎたら、自分で OFF に戻る。
 //
 // 波形は 1 イベント 1 行（ESP32-S3 版と同じ書式）。v[npre] がトリガ点で t=0、値は 10bit の生値:
@@ -403,6 +429,16 @@ void printScopeRate() {
   Serial.println(scopeRate);
 }
 
+void printScopeRearm() {
+  Serial.print(F("SCOPE_REARM:"));
+  Serial.println(scopeRearmOffset);
+}
+
+void printScopeTrig() {
+  if (scopeFree) Serial.println(F("SCOPE_TRIG:FREE"));
+  else           Serial.println(F("SCOPE_TRIG:NORMAL"));
+}
+
 // 溜めた窓を 1 行で出す。oldest はリングの中で最も古い点の位置（その次がトリガ前の続き、
 // 最後がトリガ点）。ここでは millis() の取りこぼしを気にしなくてよい（計数は止めている）。
 void scopeEmit(uint8_t oldest) {
@@ -446,7 +482,27 @@ void scopeService() {
   uint8_t filled = 0;     // リングに積んだ点数（SCOPE_RING で頭打ち）
   uint8_t n = 0;
   uint16_t laps = 0;      // 受信を見た回数（一周したら loop() に戻る）
-  bool armed = false;     // 直前に RESET_THRESHOLD 以下まで下がったか
+
+  if (scopeFree) {
+    // 連続撮影: トリガーを待たない。リングを SCOPE_RING 点だけ満たし、その直後から SCOPE_POST 点を続けて取る。
+    // 17 点目が「トリガ点」の位置になる（窓の形を変えないための取り決めで、信号がそこで立ち上がるわけではない）。
+    for (uint8_t i = 0; i < SCOPE_RING; i++) {
+      scopeRing[head] = scopeNext();
+      if (++head == SCOPE_RING) head = 0;
+    }
+    noInterrupts();
+    for (uint8_t i = 0; i < SCOPE_POST; i++) scopePost[i] = scopeNext();
+    interrupts();
+    scopeEmit(head);
+    scopeEmitted++;
+    scopeLastEmitMs = millis();
+    return;
+  }
+
+  // 再アームの水準 = しきい値 − オフセット（0 未満にはしない）。ループの中は 1 点 6.5us の枠なので、先に 1 回だけ求める。
+  int rearm = SIGNAL_THRESHOLD - scopeRearmOffset;
+  if (rearm < 0) rearm = 0;
+  bool armed = false;     // 直前に再アームの水準以下まで下がったか
 
   for (;;) {
     const uint16_t v = scopeNext();
@@ -455,10 +511,10 @@ void scopeService() {
     if (filled < SCOPE_RING) filled++;
 
     if (!armed) {
-      if ((int)v <= RESET_THRESHOLD) armed = true;
+      if ((int)v <= rearm) armed = true;
     } else if ((int)v > SIGNAL_THRESHOLD) {
       if (filled < SCOPE_RING) {
-        armed = false;    // トリガ前の点が揃う前のパルスは途中からになる。捨てて RESET まで下がるのを待つ
+        armed = false;    // トリガ前の点が揃う前のパルスは途中からになる。捨てて再アームの水準まで下がるのを待つ
       } else {
         noInterrupts();
         for (uint8_t i = 0; i < SCOPE_POST; i++) scopePost[i] = scopeNext();
@@ -495,6 +551,20 @@ void scopeSetOn(bool on) {
     scopeOn = true;
     scopeAdcStart();
     Serial.println(F("### SCOPE: ON - counting is PAUSED while the scope is open (coincidence is not evaluated)."));
+    // 波形が出ないときの手がかり: どの水準で取っているかを毎回ログに残す
+    if (scopeFree) {
+      Serial.println(F("###        FREE-RUN: no trigger."));
+    } else {
+      int rearm = SIGNAL_THRESHOLD - scopeRearmOffset;
+      if (rearm < 0) rearm = 0;
+      Serial.print(F("###        trigger above "));
+      Serial.print(SIGNAL_THRESHOLD);
+      Serial.print(F(", re-arm at or below "));
+      Serial.print(rearm);
+      Serial.print(F(" (threshold - "));
+      Serial.print(scopeRearmOffset);
+      Serial.println(F(")."));
+    }
     return;
   }
 
