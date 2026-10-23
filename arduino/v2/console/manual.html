@@ -342,7 +342,7 @@ python -m http.server 8000</code></pre>
 
     <!-- ============================================================ -->
     <h2 id="scope"><span class="no">07</span>オシロスコープ</h2>
-    <p>上の帯の <span class="ui">オシロスコープ</span> を押すと、確認のあと画面が夜色になり、検出器から届く信号の波形（12 µs ごとに 1 点）を表示します。</p>
+    <p>上の帯の <span class="ui">オシロスコープ</span> を押すと、確認のあと画面がオシロスコープの表示に切り替わり、検出器から届く信号の波形（12 µs ごとに 1 点）を表示します。</p>
     <div class="side">
       <figure class="shot">
         <a class="shot-frame" href="assets/img/manual/scope-confirm.webp" target="_blank" rel="noopener"><img src="assets/img/manual/scope-confirm.webp" width="520" height="340" alt="オシロスコープを開くときの確認" loading="lazy"></a>
@@ -352,32 +352,49 @@ python -m http.server 8000</code></pre>
         <p>上の帯に「計数停止中 mm:ss」が出ます。止まっていた時間はデッドタイムに入るので、平均カウントレートは正しいままです。<span class="ui">閉じて計数に戻る</span>（または <kbd>Esc</kbd>）で戻ります。10 分間操作しないと自動で閉じて計数に戻ります。</p>
       </div></div>
     </div>
-    <figure class="shot shot-night">
+    <figure class="shot">
       <a class="shot-frame" href="assets/img/manual/scope.webp" target="_blank" rel="noopener">
-        <img src="assets/img/manual/scope.webp" width="1366" height="768" alt="オシロスコープの画面。夜色の背景に、立ち上がってゆっくり下がる波形が重なっている" loading="lazy">
+        <img src="assets/img/manual/scope.webp" width="1366" height="768" alt="オシロスコープの画面。計数の画面と同じ紙色の背景に、立ち上がってゆっくり下がる波形が重なっている" loading="lazy">
         <span class="pin" style="left:25%;top:7.4%">1</span>
         <span class="pin" style="left:79.6%;top:7.4%">2</span>
-        <span class="pin" style="left:9.7%;top:15.9%">3</span>
-        <span class="pin" style="left:20.4%;top:15.9%">4</span>
-        <span class="pin" style="left:27.1%;top:15.9%">5</span>
-        <span class="pin" style="left:72.9%;top:15.9%">6</span>
-        <span class="pin" style="left:88.6%;top:15.9%">7</span>
-        <span class="pin" style="left:9%;top:24%">8</span>
-        <span class="pin" style="left:36.5%;top:89.8%">9</span>
+        <span class="pin" style="left:13.5%;top:16%">3</span>
+        <span class="pin" style="left:22.9%;top:16%">4</span>
+        <span class="pin" style="left:40.5%;top:16%">5</span>
+        <span class="pin" style="left:51.2%;top:16%">6</span>
+        <span class="pin" style="left:57.8%;top:16%">7</span>
+        <span class="pin" style="left:72.9%;top:16%">8</span>
+        <span class="pin" style="left:88.6%;top:16%">9</span>
+        <span class="pin" style="left:9%;top:24%">10</span>
+        <span class="pin" style="left:36.5%;top:89.8%">11</span>
       </a>
       <ol class="legend">
         <li><span class="n">1</span><span><b>計数停止中</b> — 止まっている時間</span></li>
         <li><span class="n">2</span><span><b>閉じて計数に戻る</b></span></li>
-        <li><span class="n">3</span><span><b>レート上限</b> — 1 秒に送る波形の数（1〜20）。Bluetooth では低めに</span></li>
-        <li><span class="n">4</span><span><b>残光</b> — 前の波形を薄く残す本数</span></li>
-        <li><span class="n">5</span><span><b>縦軸を自動で合わせる</b></span></li>
-        <li><span class="n">6</span><span><b>一時停止 / クリア</b></span></li>
-        <li><span class="n">7</span><span><b>.wfm で保存</b> — 表示中の波形をファイルに</span></li>
-        <li><span class="n">8</span><span><b>波形</b> — いちばん新しいものが明るい線。点線はしきい値で、<strong>線（右端のつまみ）をつかんで上下にドラッグ</strong>すると、離したところが基板に設定されます。↑↓ キーでも動かせます（Shift で 10、PageUp / PageDown で 100）</span></li>
-        <li><span class="n">9</span><span><b>ピーク ADC・t_peak・波形の数・波形/秒・壊れた行</b></span></li>
+        <li><span class="n">3</span><span><b>トリガー / 連続</b> — しきい値を超えたときに撮るか、撮り続けるか</span></li>
+        <li><span class="n">4</span><span><b>レート上限</b> — 1 秒に送る波形の数（1〜20）。Bluetooth では低めに</span></li>
+        <li><span class="n">5</span><span><b>再アーム（しきい値 −）</b> — 次を撮れる状態に戻す水準は、しきい値からいくつ下か（初期値 5）</span></li>
+        <li><span class="n">6</span><span><b>残光</b> — 前の波形を薄く残す本数</span></li>
+        <li><span class="n">7</span><span><b>縦軸を自動で合わせる</b> — 初期値はオフ（写真はオンで撮っています）</span></li>
+        <li><span class="n">8</span><span><b>一時停止 / クリア</b></span></li>
+        <li><span class="n">9</span><span><b>.wfm で保存</b> — 表示中の波形をファイルに</span></li>
+        <li><span class="n">10</span><span><b>波形</b> — いちばん新しいものが濃い線。赤い点線がしきい値で、<strong>線（右端のつまみ）をつかんで上下にドラッグ</strong>すると、離したところが基板に設定されます。↑↓ キーでも動かせます（Shift で 10、PageUp / PageDown で 100）。青緑の点線が再アームの水準で、しきい値と一緒に動きます</span></li>
+        <li><span class="n">11</span><span><b>ピーク ADC・t_peak・波形の数・波形/秒・壊れた行</b></span></li>
       </ol>
     </figure>
     <p>見えているのはアンプの生の信号ではなく、ピークホールド回路の出力です。立ち上がって頂点で止まり、ゆっくり下がってからリセットされる形になります（<a href="#a-hardware">付録 C</a> の図）。</p>
+
+    <h3>撮り方（トリガー / 連続）と再アーム</h3>
+    <p>上の画面写真の 3 が <span class="ui">トリガー / 連続</span> の切り替え、5 が <span class="ui">再アーム（しきい値 −）</span> の入力欄です。縦軸を自動で合わせる設定（7）は、初期値ではオフです（縦軸は 0〜4095 のまま）。</p>
+    <ul>
+      <li><b>トリガー</b>（初期値）— A0 がしきい値を超えたときだけ波形を撮ります。1 本撮ると、A0 が<b>再アーム</b>の水準以下に戻るまで次を撮りません。</li>
+      <li><b>再アーム</b> — 再アームの水準は「<b>しきい値 − 入力欄の値</b>」です（初期値 5。しきい値が 120 なら 115）。波形の画面に青緑の点線で常に出て、<b>しきい値の線をドラッグすると一緒に動きます</b>。入力欄の値を大きくすると、再アームの線がしきい値から離れます。空欄にして外へ出ると、初期値の 5 に戻ります。</li>
+      <li><b>連続</b> — トリガーを待たずに、いちばん新しい 161 点の窓を、レート上限の間隔で撮り続けます。ベースラインやノイズを見るときや、しきい値に届かない小さな信号を探すときに使います。トリガーの縦の点線はなくなり、横軸は「窓の中の時間」になります。</li>
+    </ul>
+    <div class="note note-warn"><svg class="i"><use href="#i-alert"/></svg><div>
+      <b>開いても波形が 1 本も出ないとき</b>
+      <p>トリガーのままで、A0 のベースラインが<b>再アームの水準（しきい値 − 入力欄の値）より下まで下がらない</b>と、波形は出ません（ベースラインは、基板によりますが 86 前後の例があります）。しきい値をベースラインより十分上に、入力欄の値をベースラインのゆらぎより小さくしてください。しきい値の線をドラッグして動かせます。受信ログに、取り方を示す行（<code>### trigger above … , re-arm at or below …</code>）が出ます。確かめるだけなら <span class="ui">連続</span> にすると、ベースラインが見えます。</p>
+    </div></div>
+    <p><a href="v1.html">v1 のページ</a>のオシロにも、同じ <span class="ui">トリガー / 連続</span> と <span class="ui">再アーム（しきい値 −）</span> があります（v1 の 2 つのファーム、ESP32-S3 版と Arduino Nano 版を、更新したスケッチに書き込み直したとき）。再アームの水準は、v1 でも「しきい値 − 入力欄の値」（初期値 5）で、<strong>オシロだけが使います</strong>。計数のリセットしきい値（<code>THRESH:信号,リセット</code>）とは別です。v1 のページでも、<strong>しきい値の線（右端のつまみ）をつかんで上下にドラッグ</strong>でき（↑↓ キーでも。Shift で 10、PageUp / PageDown で 100）、再アームの線が一緒に動きます。離したところで <code>SET_THRESH:信号,リセット</code> を 1 回送ります。Arduino Nano 版はこの 2 つの値の形しか受けないので、リセットのしきい値は「信号 − 今の差」で一緒に決めて送ります（差は引く前のまま。信号を下げすぎてリセットが 0 になっても、差は覚えています）。ESP32-S3 版にも同じ形で送ります。</p>
 
     <!-- ============================================================ -->
     <h2 id="settings"><span class="no">08</span>詳細設定</h2>
@@ -826,6 +843,10 @@ df = pd.read_csv(path, sep='\t', comment='#', header=None, names=cols)</code></p
       <p>波形を送るモードを切り替えます。応答は <code>SCOPE:ON</code> / <code>SCOPE:OFF</code>。ON の間は<strong>計数が止まり</strong>、その時間はデッドタイムに入ります。波形は <code>WF,…</code> で始まる行で届きます。</p></div>
     <div class="cmd"><div class="syntax">SET_SCOPE_RATE:&lt;n&gt; / GET_SCOPE_RATE</div>
       <p>1 秒に送る波形の数の上限（1〜20、初期値 3）を読む / 設定します。応答は <code>SCOPE_RATE:&lt;n&gt;</code>。</p></div>
+    <div class="cmd"><div class="syntax">SET_SCOPE_REARM:&lt;offset&gt; / GET_SCOPE_REARM</div>
+      <p>波形を 1 本撮ったあと、A0 が「しきい値 − <code>offset</code>」以下に戻ったら次を撮る、という差 <code>offset</code> を読む / 設定します（0〜4095、初期値 5）。応答は <code>SCOPE_REARM:&lt;offset&gt;</code>。保存されません。</p></div>
+    <div class="cmd"><div class="syntax">SET_SCOPE_TRIG:NORMAL|FREE / GET_SCOPE_TRIG</div>
+      <p>撮り方を読む / 設定します。<code>NORMAL</code>（初期値）はしきい値を超えたときだけ、<code>FREE</code> はトリガーなしで最新の窓を撮り続けます。応答は <code>SCOPE_TRIG:NORMAL</code> / <code>SCOPE_TRIG:FREE</code>。保存されません。</p></div>
 
     <h3>ブザー</h3>
     <div class="cmd"><div class="syntax">GET_BEEP / SET_BEEP:&lt;min_hz&gt;,&lt;max_hz&gt;,&lt;ms&gt;</div>

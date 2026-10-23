@@ -43,8 +43,10 @@ const settings = {
   histLog: false,
   threshSignal: 120,         // signal-threshold input box (also stamped into .wfm)
   scopeRate: 3,
+  scopeRearm: '5',           // re-arm level = threshold - this offset (kept as typed)
+  scopeTrig: 'NORMAL',       // 'NORMAL' (trigger on the threshold) | 'FREE' (free-run, no trigger)
   scopePersist: 20,
-  scopeAutoY: true,
+  scopeAutoY: false,         // off: the axis stays 0..4095, so a threshold being dragged does not make it jump
 };
 
 // ========== Firmware constants (match description.md) ==========
@@ -979,6 +981,17 @@ function processLine(line) {
   if (line.startsWith('SCOPE_RATE:')) {
     const v = parseInt(line.substring(11));
     if (!isNaN(v)) { settings.scopeRate = v; Bus.emit('device', 'scopeRate'); }
+    return;
+  }
+  // SCOPE_REARM:<offset> (the re-arm level is the threshold minus this), SCOPE_TRIG:NORMAL | SCOPE_TRIG:FREE
+  if (line.startsWith('SCOPE_REARM:')) {
+    const a = line.substring(12).trim();
+    if (/^\d+$/.test(a)) { settings.scopeRearm = String(parseInt(a)); Bus.emit('device', 'scopeRearm'); }
+    return;
+  }
+  if (line.startsWith('SCOPE_TRIG:')) {
+    const a = line.substring(11).trim().toUpperCase();
+    if (a === 'FREE' || a === 'NORMAL') { settings.scopeTrig = a; Bus.emit('device', 'scopeTrig'); }
     return;
   }
 
@@ -2259,13 +2272,16 @@ function scopeOnLine(line) {
 }
 
 // Called when the tab opens, and again after (re)connecting or a reboot while
-// it is open. The two commands go through the command queue in order.
+// it is open. The commands go through the command queue in order: the settings first,
+// then ON, so that the first waveform already follows them.
 function scopeEnter() {
   if (!scope.active) scope.enteredAtMs = Date.now();
   scope.active = true;
   Bus.emit('scopeMode');
   if (state.isConnected) {
     sendCommand('SET_SCOPE_RATE:' + (parseInt(settings.scopeRate) || 3));
+    sendCommand('SET_SCOPE_TRIG:' + (settings.scopeTrig === 'FREE' ? 'FREE' : 'NORMAL'));
+    sendCommand('SET_SCOPE_REARM:' + (parseInt(settings.scopeRearm) >= 0 ? parseInt(settings.scopeRearm) : 5));
     sendCommand('SET_SCOPE:ON');
   }
   scopeStartKeepalive();
@@ -2395,7 +2411,7 @@ const demo = {
     vibMin: 20, vibMax: 120,
     bleName: 'CosmicRay',
   },
-  scope: { on: false, rate: 3, enterMs: 0, emitted: 0, nextMs: 0 },
+  scope: { on: false, rate: 3, enterMs: 0, emitted: 0, nextMs: 0, rearm: 5, trig: 'NORMAL' },
   audio: null,
 };
 
@@ -2565,32 +2581,39 @@ function demoMakeEvent(tMs) {
 
 // --- 波形 (オシロ) ----------------------------------------------------------
 
-function demoEmitWaveform(tMs) {
+// free = 連続撮影（トリガーなし）。トリガーを待たずに窓を出すので、たいていはベースライン
+// とノイズだけで、窓の中に事象が入ったときだけパルスが見える。
+function demoEmitWaveform(tMs, free) {
   const npre = DEMO_SCOPE_PRE;
   const ntot = DEMO_SCOPE_PRE + 1 + DEMO_SCOPE_POST;
   const dtUs = DEMO_SCOPE_PERIOD_NS / 1000;
   const base = demoBaseline();
+  const winSec = ntot * dtUs / 1e6;
   const shower = (tMs < demo.burstUntilMs) && Math.random() < 0.75;
-  const amp = demoSampleAdcTrue(shower) - base;
+  const pulse = !free || Math.random() < 1 - Math.exp(-demoRate(tMs) * winSec);
+  const amp = pulse ? demoSampleAdcTrue(shower) - base : 0;
 
   // パルスの起点はトリガ点の 4〜12us 前。コンパレータが出てから DMA のトリガ点まで
   // に ISR ぶんの遅れがあるので、実機でもトリガ点ではピークホールドが既に頂点に
   // 達している (実測平均波形も t=-12us は地、t=0 が頂点)。どこにずれるかは事象ごとに
   // 違うので、頂点直後の減衰の位相が少しずつばらつく。
-  const tStart = -(4 + 8 * Math.random());
+  // 連続撮影ではトリガ点がないので、窓のどこに来てもよい。
+  const tStart = free ? Math.random() * (ntot * dtUs - 100) - npre * dtUs
+                      : -(4 + 8 * Math.random());
   const tau = DEMO_TAU_US * (0.88 + 0.24 * Math.random());
 
   const raw = new Float64Array(ntot);
   let mx = 0;
-  for (let i = 0; i < ntot; i++) {
-    const t = (i - npre) * dtUs - tStart;
-    const s = (t < 0) ? 0 : (1 - Math.exp(-t / DEMO_RISE_US)) * Math.exp(-t / tau);
-    raw[i] = s;
-    if (s > mx) mx = s;
+  if (pulse) {
+    for (let i = 0; i < ntot; i++) {
+      const t = (i - npre) * dtUs - tStart;
+      const s = (t < 0) ? 0 : (1 - Math.exp(-t / DEMO_RISE_US)) * Math.exp(-t / tau);
+      raw[i] = s;
+      if (s > mx) mx = s;
+    }
   }
   // 次の事象が窓の中に入ってくる = パイルアップ。レートを上げると実際に増える。
-  const winSec = ntot * dtUs / 1e6;
-  if (Math.random() < 1 - Math.exp(-demoRate(tMs) * winSec)) {
+  if (pulse && !free && Math.random() < 1 - Math.exp(-demoRate(tMs) * winSec)) {
     const t2 = Math.random() * (ntot - npre) * dtUs;
     const amp2 = (demoSampleAdc(false) - base) / Math.max(1, amp);
     const tau2 = DEMO_TAU_US * (0.88 + 0.24 * Math.random());
@@ -2613,6 +2636,17 @@ function demoEmitWaveform(tMs) {
   demo.scope.emitted++;
   processLine('WF,' + demo.scope.emitted + ',' + Math.round(tMs - demo.scope.enterMs) +
               ',U,' + npre + ',' + ntot + ',' + DEMO_SCOPE_PERIOD_NS + ',' + v.join(','));
+}
+
+// ファームの再アームの規則。トリガーモードでは、ベースライン（約 86）が再アームの水準より
+// 下まで来ないと、波形は 1 本も出ない。水準 = しきい値 − オフセット（既定 5）。
+function demoScopeRearmLevel() {
+  return Math.max(0, demo.dev.threshold - demo.scope.rearm);
+}
+function demoScopeCanArm() {
+  // 再アームは、ベースラインがノイズで水準以下まで落ちたときに掛かる。水準が、ベースラインの
+  // 4σ 下より低いと、その落ち込みがほとんど来ないので、波形は実質出ない。
+  return demoScopeRearmLevel() >= DEMO_BASELINE - Math.ceil(4 * DEMO_NOISE_LSB);
 }
 
 // --- ブザー (Web Audio) -----------------------------------------------------
@@ -2663,11 +2697,19 @@ function demoTick() {
   if (demo.scope.on) {
     // ファームはオシロ ON の間、計数を止める (### SCOPE: ON - counting is PAUSED)。
     // デモも同じにしておかないと「オシロを開くとレートが落ちる」実機の癖が出ない。
+    const free = demo.scope.trig === 'FREE';
     const eff = Math.min(demo.scope.rate, demoRate(now));
     let guard = 0;
     while (demo.scope.nextMs <= now && guard++ < 8) {
-      demoEmitWaveform(demo.scope.nextMs);
-      demo.scope.nextMs += demoExp(1000 / Math.max(0.05, eff));
+      // 連続撮影は一定の間隔で窓を出す。トリガーモードは事象が来たときだけ、しかも
+      // ベースラインが再アームの水準より下に出られるときだけ（出られなければ 1 本も出ない）。
+      if (free) {
+        demoEmitWaveform(demo.scope.nextMs, true);
+        demo.scope.nextMs += 1000 / Math.max(1, demo.scope.rate);
+      } else {
+        if (demoScopeCanArm()) demoEmitWaveform(demo.scope.nextMs, false);
+        demo.scope.nextMs += demoExp(1000 / Math.max(0.05, eff));
+      }
     }
   } else {
     let guard = 0;
@@ -2805,6 +2847,18 @@ function demoCommand(cmd) {
     say('SCOPE_RATE:' + demo.scope.rate);
   } else if (cmd === 'GET_SCOPE_RATE') {
     say('SCOPE_RATE:' + demo.scope.rate);
+  } else if (cmd.startsWith('SET_SCOPE_REARM:')) {
+    const a = cmd.slice(16).trim();
+    if (/^\d+$/.test(a) && parseInt(a) <= ADC_MAX) demo.scope.rearm = parseInt(a);
+    say('SCOPE_REARM:' + demo.scope.rearm);
+  } else if (cmd === 'GET_SCOPE_REARM') {
+    say('SCOPE_REARM:' + demo.scope.rearm);
+  } else if (cmd.startsWith('SET_SCOPE_TRIG:')) {
+    const a = cmd.slice(15).toUpperCase();
+    if (a === 'FREE' || a === 'NORMAL') demo.scope.trig = a;
+    say('SCOPE_TRIG:' + demo.scope.trig);
+  } else if (cmd === 'GET_SCOPE_TRIG') {
+    say('SCOPE_TRIG:' + demo.scope.trig);
   } else if (cmd.startsWith('SET_SCOPE:')) {
     demoSetScope(cmd.slice(10).toUpperCase() === 'ON');
   } else if (cmd === 'GET_SCOPE') {
@@ -2853,6 +2907,10 @@ function demoSetScope(on) {
     s.nextMs = now + 200;
     processLine('### SCOPE: ON - counting is PAUSED while the scope is open.');
     processLine('###        A0 is the PEAK-HOLD output, not the raw amplifier pulse.');
+    processLine(s.trig === 'FREE'
+      ? '###        FREE-RUN: no trigger, one window every ' + Math.round(1000 / Math.max(1, s.rate)) + ' ms.'
+      : '###        trigger above ' + demo.dev.threshold + ', re-arm at or below ' + demoScopeRearmLevel() +
+        ' (threshold - ' + s.rearm + ').');
     processLine('SCOPE:ON');
   } else {
     s.on = false;

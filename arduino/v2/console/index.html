@@ -341,19 +341,27 @@
     <!-- ===== 3. Oscilloscope: a mode of its own, counting is stopped ===== -->
     <section class="view-scope" id="viewScope" hidden>
       <div class="scope-tools">
+        <div class="seg" id="scopeTrig" role="group" data-i18n-aria="scope.trigAria">
+          <button type="button" data-trig="NORMAL" class="active" aria-pressed="true" data-i18n="scope.trigNormal">トリガー</button>
+          <button type="button" data-trig="FREE" aria-pressed="false" data-i18n="scope.trigFree">連続</button>
+        </div><button type="button" class="term" data-term="scopeTrig"></button>
         <label class="mini" for="scopeRate">
           <span id="lblScopeRate" data-i18n="scope.rate">レート上限 [/s]</span><button type="button" class="term" data-term="scopeRate"></button>
           <input type="number" id="scopeRate" value="3" min="1" max="20" aria-labelledby="lblScopeRate">
+        </label>
+        <label class="mini" for="scopeRearm" id="scopeRearmBox">
+          <span id="lblScopeRearm" data-i18n="scope.rearm">再アーム（しきい値 −）</span><button type="button" class="term" data-term="scopeRearm"></button>
+          <input type="number" id="scopeRearm" value="5" min="0" max="4095" step="1" aria-labelledby="lblScopeRearm">
         </label>
         <label class="mini" for="scopePersist">
           <span id="lblScopePersist" data-i18n="scope.persist">残光</span><button type="button" class="term" data-term="persistence"></button>
           <input type="number" id="scopePersist" value="20" min="0" max="200" aria-labelledby="lblScopePersist">
         </label>
-        <label class="mini check"><input type="checkbox" id="scopeAutoY" checked><span data-i18n="scope.autoY">縦軸を自動で合わせる</span></label>
+        <label class="mini check"><input type="checkbox" id="scopeAutoY"><span data-i18n="scope.autoY">縦軸を自動で合わせる</span></label>
         <span class="tools-gap"></span>
-        <button type="button" class="btn btn-night btn-sm" id="scopeFreeze"><svg class="i"><use href="#i-pause"/></svg><span id="scopeFreezeLabel"></span></button>
-        <button type="button" class="btn btn-night btn-sm" id="scopeClear"><svg class="i"><use href="#i-trash"/></svg><span data-i18n="scope.clear">クリア</span></button>
-        <button type="button" class="btn btn-night btn-sm" id="scopeSave"><svg class="i"><use href="#i-download"/></svg><span data-i18n="scope.save">.wfm で保存</span></button>
+        <button type="button" class="btn btn-line btn-sm" id="scopeFreeze"><svg class="i"><use href="#i-pause"/></svg><span id="scopeFreezeLabel"></span></button>
+        <button type="button" class="btn btn-line btn-sm" id="scopeClear"><svg class="i"><use href="#i-trash"/></svg><span data-i18n="scope.clear">クリア</span></button>
+        <button type="button" class="btn btn-line btn-sm" id="scopeSave"><svg class="i"><use href="#i-download"/></svg><span data-i18n="scope.save">.wfm で保存</span></button>
       </div>
       <p class="scope-warn" id="scopeBleWarn" hidden><svg class="i"><use href="#i-alert"/></svg><span data-i18n="scope.bleWarn"></span></p>
       <div class="scope-wrap" id="scopeWrap">
@@ -370,6 +378,7 @@
         <summary><span data-i18n="scope.about">このモードについて</span><svg class="i"><use href="#i-chevron"/></svg></summary>
         <p data-i18n="scope.desc"></p>
         <p><span data-i18n="scope.holdNote"></span><button type="button" class="term" data-term="peakHold"></button></p>
+        <p data-i18n="scope.trigNote"></p>
         <p data-i18n="scope.fwNote"></p>
       </details>
     </section>

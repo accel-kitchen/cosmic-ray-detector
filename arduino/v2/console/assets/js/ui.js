@@ -756,7 +756,22 @@ function renderScopeState() {
   }
 }
 
+// The trigger buttons and the re-arm box follow the settings (which the board's replies also set).
+// Free-run has no trigger, so there is nothing to re-arm.
+function renderScopeTrig() {
+  const free = settings.scopeTrig === 'FREE';
+  document.querySelectorAll('#scopeTrig button').forEach(b => {
+    const on = b.dataset.trig === (free ? 'FREE' : 'NORMAL');
+    b.classList.toggle('active', on);
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
+  $('scopeRearm').value = settings.scopeRearm;
+  $('scopeRearm').disabled = free;
+  $('scopeRearmBox').classList.toggle('muted', free);
+}
+
 function renderScopeControls() {
+  renderScopeTrig();
   $('scopeBleWarn').hidden = state.connectionType !== 'ble';
   $('scopeFreezeLabel').textContent = t(scope.frozen ? 'scope.unfreeze' : 'scope.freeze');
   $('scopeFreeze').querySelector('use').setAttribute('href', scope.frozen ? '#i-play' : '#i-pause');
@@ -1002,6 +1017,11 @@ Bus.on('device', key => {
       break;
     case 'scopeRate':
       $('scopeRate').value = settings.scopeRate;
+      break;
+    case 'scopeRearm':
+    case 'scopeTrig':
+      renderScopeTrig();
+      if (scope.active) drawScope($('scopeCanvas'));
       break;
   }
 });
@@ -1307,6 +1327,28 @@ function bindControls() {
     settings.scopeRate = v;
     if (state.isConnected && scope.active) sendCommand('SET_SCOPE_RATE:' + v);
   });
+  // Re-arm: how far below the threshold the signal has to fall before the next waveform is taken
+  // (default 5). The line follows the threshold, also while it is dragged. An empty or unreadable
+  // box goes back to the default. The board answers with SCOPE_REARM:, which settles the box.
+  $('scopeRearm').addEventListener('change', () => {
+    let v = parseInt($('scopeRearm').value);
+    if (isNaN(v)) v = 5;
+    v = Math.min(ADC_MAX, Math.max(0, v));
+    settings.scopeRearm = String(v);
+    $('scopeRearm').value = settings.scopeRearm;
+    if (state.isConnected && scope.active) sendCommand('SET_SCOPE_REARM:' + v);
+    drawScope($('scopeCanvas'));
+  });
+  // Trigger / free-run. The waveforms already on screen belong to the other kind: start over.
+  document.querySelectorAll('#scopeTrig button').forEach(btn => btn.addEventListener('click', () => {
+    const next = btn.dataset.trig === 'FREE' ? 'FREE' : 'NORMAL';
+    if (next === settings.scopeTrig) return;
+    settings.scopeTrig = next;
+    scope.traces = [];
+    renderScopeTrig();
+    if (state.isConnected && scope.active) sendCommand('SET_SCOPE_TRIG:' + next);
+    drawScope($('scopeCanvas'));
+  }));
   $('scopePersist').addEventListener('change', () => {
     settings.scopePersist = $('scopePersist').value;
     drawScope($('scopeCanvas'));

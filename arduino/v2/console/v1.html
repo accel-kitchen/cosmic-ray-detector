@@ -298,24 +298,32 @@
          ファームはオシロ中 ADC1 を占有するため計数を止める（滞在時間はデッドタイムに計上）。 -->
     <section class="view-scope" id="viewScope" hidden>
       <div class="scope-tools">
+        <div class="seg" id="scopeTrig" role="group" data-i18n-aria="scope.trigAria">
+          <button type="button" data-trig="NORMAL" class="active" aria-pressed="true" data-i18n="scope.trigNormal">トリガー</button>
+          <button type="button" data-trig="FREE" aria-pressed="false" data-i18n="scope.trigFree">連続</button>
+        </div>
         <label class="mini">
           <span data-i18n="scope.rate">レート上限 [/s]</span>
           <input type="number" id="scopeRate" value="3" min="1" max="20">
+        </label>
+        <label class="mini" id="scopeRearmBox">
+          <span data-i18n="scope.rearm">再アーム（しきい値 −）</span>
+          <input type="number" id="scopeRearm" value="5" min="0" max="4095" step="1">
         </label>
         <label class="mini">
           <span data-i18n="scope.persist">残光</span>
           <input type="number" id="scopePersist" value="20" min="0" max="200">
         </label>
-        <label class="mini check"><input type="checkbox" id="scopeAutoY" checked><span data-i18n="scope.autoY">縦軸を自動で合わせる</span></label>
+        <label class="mini check"><input type="checkbox" id="scopeAutoY"><span data-i18n="scope.autoY">縦軸を自動で合わせる</span></label>
         <span class="tools-gap"></span>
-        <button type="button" class="btn btn-night btn-sm" id="scopeFreeze"><svg class="i"><use href="#i-pause"/></svg><span id="scopeFreezeLabel"></span></button>
-        <button type="button" class="btn btn-night btn-sm" id="scopeClear"><svg class="i"><use href="#i-trash"/></svg><span data-i18n="scope.clear">クリア</span></button>
-        <button type="button" class="btn btn-night btn-sm" id="scopeSave"><svg class="i"><use href="#i-download"/></svg><span data-i18n="scope.save">.wfm で保存</span></button>
+        <button type="button" class="btn btn-line btn-sm" id="scopeFreeze"><svg class="i"><use href="#i-pause"/></svg><span id="scopeFreezeLabel"></span></button>
+        <button type="button" class="btn btn-line btn-sm" id="scopeClear"><svg class="i"><use href="#i-trash"/></svg><span data-i18n="scope.clear">クリア</span></button>
+        <button type="button" class="btn btn-line btn-sm" id="scopeSave"><svg class="i"><use href="#i-download"/></svg><span data-i18n="scope.save">.wfm で保存</span></button>
       </div>
       <p class="scope-warn" id="scopeUnsupported" style="display:none;"><svg class="i"><use href="#i-alert"/></svg><span data-i18n="scope.unsupported"></span></p>
       <p class="scope-warn" id="scopeBleWarn" style="display:none;"><svg class="i"><use href="#i-alert"/></svg><span data-i18n="scope.bleWarn"></span></p>
       <div class="scope-wrap" id="scopeWrap">
-        <canvas id="scopeCanvas"></canvas>
+        <canvas id="scopeCanvas" tabindex="0" role="slider" aria-orientation="vertical" aria-valuemin="1" aria-valuemax="1023" data-i18n-aria="scope.threshAria"></canvas>
       </div>
       <dl class="scope-stats">
         <div><dt data-i18n="scope.peak">ピーク ADC</dt><dd class="num" id="scopePeak">--</dd></div>
@@ -328,6 +336,7 @@
         <summary><span data-i18n="scope.about">このモードについて</span><svg class="i"><use href="#i-chevron"/></svg></summary>
         <p data-i18n="scope.desc"></p>
         <p data-i18n="scope.idleNote"></p>
+        <p data-i18n="scope.trigNote"></p>
       </details>
     </section>
 
@@ -765,6 +774,16 @@ const I18N = {
     'scope.unsupported': 'このファームはオシロスコープに対応していません。更新したスケッチを書き込み直してください（Arduino Nano は COSMICRAY_DETECTOR_v1.ino、ESP32-S3 は COSMICRAY_DETECTOR_ESP32-S3-Nano.ino）。同じスケッチでも古い版にはオシロスコープがありません。',
     'scope.bleWarn': 'Bluetooth では 1 本の波形がいくつもの通知に分かれて届きます。レート上限は低めにしてください。',
     'scope.rate': 'レート上限 [/s]',
+    'scope.trigNormal': 'トリガー',
+    'scope.trigFree': '連続',
+    'scope.trigAria': '撮り方（トリガーを待つ／連続で撮る）',
+    'scope.rearm': '再アーム（しきい値 −）',
+    'scope.rearmLine': '再アーム',
+    'scope.threshDrag': '線をドラッグして変更',
+    'scope.threshAria': 'しきい値（↑↓キーで変更、Shift で 10、PageUp/PageDown で 100）',
+    'scope.trigNote': '「トリガー」は、A0 が信号のしきい値を超えたときだけ波形を撮ります。1 本撮ったあとは、A0 が「再アーム」の水準以下に戻るまで次を撮りません。再アームの水準は「しきい値 − 入力欄の値」（初期値 5）で、青緑の点線で表示され、しきい値を変えると一緒に動きます（計数のリセットしきい値とは別です）。ベースラインがこの水準より下に出ないと、開いても波形が 1 本も出ません。「連続」は、トリガーを待たずに窓を一定の間隔で撮り続けるモードで、ベースラインやしきい値に届かない小さな信号を見るのに使います。',
+    'scope.waitingFree': '波形を撮っています…',
+    'scope.xTitleFree': '窓の中の時間 [µs]',
     'scope.persist': '残光',
     'scope.autoY': '縦軸を自動で合わせる',
     'scope.freeze': '一時停止',
@@ -1015,6 +1034,16 @@ const I18N = {
     'scope.unsupported': 'This firmware does not support the oscilloscope. Write the updated sketch again (COSMICRAY_DETECTOR_v1.ino for Arduino Nano, COSMICRAY_DETECTOR_ESP32-S3-Nano.ino for ESP32-S3); older builds of the same sketches have no scope mode.',
     'scope.bleWarn': 'Over Bluetooth each waveform arrives in several notifications. Keep the rate limit low.',
     'scope.rate': 'Rate limit [/s]',
+    'scope.trigNormal': 'Triggered',
+    'scope.trigFree': 'Free-run',
+    'scope.trigAria': 'Capture mode (wait for a trigger / free-run)',
+    'scope.rearm': 'Re-arm (threshold −)',
+    'scope.rearmLine': 'Re-arm',
+    'scope.threshDrag': 'drag the line to change',
+    'scope.threshAria': 'Threshold (arrow keys to change, Shift for 10, PageUp/PageDown for 100)',
+    'scope.trigNote': 'Triggered mode captures a waveform only when A0 goes above the signal threshold. After one capture it waits until A0 is back at or below the re-arm level. The level is the threshold minus the value in the box (default 5); it is the dotted teal line and moves with the threshold (it is separate from the reset threshold used for counting). If the baseline never gets down to this level, no waveform ever appears. Free-run does not wait for a trigger: it keeps capturing a window at a fixed interval, to look at the baseline or at signals too small to reach the threshold.',
+    'scope.waitingFree': 'Capturing…',
+    'scope.xTitleFree': 'Time within the window [µs]',
     'scope.persist': 'Persistence',
     'scope.autoY': 'Fit the vertical axis automatically',
     'scope.freeze': 'Pause',
@@ -1171,6 +1200,9 @@ const state = {
   mode: null,  // null=不明, 0=Master(単体), 1=Slave(コインシデンス)
   threshSig: null,  // 直近のTHRESH:応答（言語切替時の再描画用）
   threshRst: null,
+  // オシロの線をドラッグするとき、リセットしきい値は「信号 − ギャップ」で一緒に動かす。そのギャップ。
+  // 信号を 0 近くまで下げるとリセットが 0 で頭打ちになるので、頭打ちの値は覚えずに、直近の頭打ちでない値を使う。
+  threshGap: null,
   // 自動保存用
   autoSave: {
     dirHandle: null,   // FileSystemDirectoryHandle
@@ -1430,7 +1462,8 @@ const CH = {
   bar: 'rgba(42,39,48,0.80)', area: 'rgba(42,39,48,0.06)',
   signal: '#5CD6EA', signal2: '#2E8BA0',
   coral: '#C8654E',
-  night: '#171630', nightPlot: '#1C1B3A', nightInk: '#E9E6F0', nightInk2: '#A9A3BC',
+  coral2: '#A84A37',
+  paper: '#FAF6EB', field: '#FFFDF7', signalInk: '#1F6B7C',
   ui: '"Noto Sans JP", "Yu Gothic UI", "Hiragino Sans", "Meiryo", sans-serif',
   mono: '"IBM Plex Mono", Consolas, Menlo, monospace',
 };
@@ -1891,7 +1924,7 @@ const demo = {
   tempGoal: 25.5,
   // 仮想デバイスの設定値（ファームの Preferences 相当）
   dev: { sig: 30, rst: 25, mode: 0, autoMargin: 60, sample: 'PEAK', coinc: 'SLAVE', oled: true, bleName: 'CosmicRay' },
-  scope: { on: false, rate: 3, enterMs: 0, emitted: 0, nextMs: 0 },
+  scope: { on: false, rate: 3, enterMs: 0, emitted: 0, nextMs: 0, rearm: 5, trig: 'NORMAL' },
 };
 
 const demoProf = () => DEMO_PROFILES[demo.board];
@@ -2036,29 +2069,34 @@ function demoMakeEvent(tMs) {
 
 // --- 波形（オシロ） ---------------------------------------------------------
 
-function demoEmitWaveform(tMs) {
+// free = 連続撮影（トリガーなし）。窓のどこに来てもよく、たいていはベースラインとノイズだけで、
+// 窓の中に事象が入ったときだけパルスが見える。
+function demoEmitWaveform(tMs, free) {
   const p = demoProf(), d = demo.dev;
   const npre = p.scopePre;
   const ntot = npre + 1 + p.scopePost;
   const dtUs = p.periodNs / 1000;
   const base = p.baseline;
+  const winSec = ntot * dtUs / 1e6;
   const shower = (tMs < demo.burstUntilMs) && Math.random() < 0.75;
   const tau = DEMO_TAU_US * (0.97 + 0.06 * Math.random());
+  const pulse = !free || Math.random() < 1 - Math.exp(-demoRate(tMs) * winSec);
 
   // v1 の波形はピークホールドではなく素のパルス。トリガ点（t=0）は「しきい値を最初に超えた標本」で、
   // パルスはその直前の標本間隔のどこかで始まる。立ち上がり（0.7us）は標本間隔よりずっと速いので、
   // トリガ点ではもうピークの近く（実測でもピークはトリガ点にある）。
-  const delta = DEMO_RISE_US * 3 + Math.random() * Math.max(0, dtUs - DEMO_RISE_US * 3);   // パルス開始からトリガ点までの時間
+  // 連続撮影ではトリガ点がないので、パルスは窓のどこから始まってもよい。
+  const delta = free ? -((Math.random() * (ntot - 8) - npre) * dtUs)
+                     : DEMO_RISE_US * 3 + Math.random() * Math.max(0, dtUs - DEMO_RISE_US * 3);   // パルス開始からトリガ点までの時間
   const shape = t => (t <= 0) ? 0 : (1 - Math.exp(-t / DEMO_RISE_US)) * Math.exp(-t / tau);
-  const trig = demoSampleAdcTrue(shower);                      // トリガ点の値（= データ行の ADC に近い）
-  const peak = (trig - base) / shape(delta);
+  const trig = pulse ? demoSampleAdcTrue(shower) : base;       // トリガ点の値（= データ行の ADC に近い）
+  const peak = pulse ? (free ? (trig - base) : (trig - base) / shape(delta)) : 0;
 
   const raw = new Float64Array(ntot);
-  for (let i = 0; i < ntot; i++) raw[i] = shape((i - npre) * dtUs + delta) * peak;
+  if (pulse) for (let i = 0; i < ntot; i++) raw[i] = shape((i - npre) * dtUs + delta) * peak;
 
   // 次の事象が窓の中に入ってくる = パイルアップ。レートを上げると実際に増える。
-  const winSec = ntot * dtUs / 1e6;
-  if (Math.random() < 1 - Math.exp(-demoRate(tMs) * winSec)) {
+  if (pulse && !free && Math.random() < 1 - Math.exp(-demoRate(tMs) * winSec)) {
     const t2 = Math.random() * p.scopePost * dtUs;
     const amp2 = demoAmp(false);
     for (let i = npre; i < ntot; i++) raw[i] += amp2 * shape((i - npre) * dtUs - t2);
@@ -2069,13 +2107,26 @@ function demoEmitWaveform(tMs) {
   for (let i = 0; i < ntot; i++) {
     v[i] = Math.min(max, Math.max(0, Math.round(base + raw[i] + demoRandN() * p.noise)));
   }
-  // ファームは「RESET 以下から SIGNAL を超えた最初の点」をトリガにするので、そう見えるようにそろえる。
-  if (v[npre] <= d.sig) v[npre] = Math.min(max, d.sig + 1 + Math.floor(Math.random() * 3));
-  for (let i = 0; i < npre; i++) if (v[i] > d.rst) v[i] = d.rst;
+  if (!free) {
+    // ファームは「再アームの水準以下から SIGNAL を超えた最初の点」をトリガにするので、そう見えるようにそろえる。
+    if (v[npre] <= d.sig) v[npre] = Math.min(max, d.sig + 1 + Math.floor(Math.random() * 3));
+    const rl = demoScopeRearmLevel();
+    for (let i = 0; i < npre; i++) if (v[i] > rl) v[i] = rl;
+  }
 
   demo.scope.emitted++;
   processLine('WF,' + demo.scope.emitted + ',' + Math.round(tMs - demo.scope.enterMs) +
               ',U,' + npre + ',' + ntot + ',' + p.periodNs + ',' + v.join(','));
+}
+
+// ファームの再アームの規則。水準 = しきい値 − オフセット（既定 5）。トリガーモードでは、ベースラインが
+// ノイズで水準以下まで落ちないと次は撮れない。水準がベースラインの 4σ 下より低いと、実質出ない。
+function demoScopeRearmLevel() {
+  return Math.max(0, demo.dev.sig - demo.scope.rearm);
+}
+function demoScopeCanArm() {
+  const p = demoProf();
+  return demoScopeRearmLevel() >= p.baseline - Math.ceil(4 * p.noise);
 }
 
 // --- 本体のループ -----------------------------------------------------------
@@ -2099,11 +2150,20 @@ function demoTick() {
   if (demo.scope.on) {
     // ファームはオシロ ON の間、計数を止める。デモも同じにしておかないと
     // 「オシロを開くとレートが落ちる」実機の癖が出ない。
-    const eff = Math.min(demo.scope.rate, demoProf().scopeMaxRate, demoRate(now));
+    const free = demo.scope.trig === 'FREE';
+    const cap = demoProf().scopeMaxRate;
+    const eff = Math.min(demo.scope.rate, cap, demoRate(now));
     let guard = 0;
     while (demo.scope.nextMs <= now && guard++ < 8) {
-      demoEmitWaveform(demo.scope.nextMs);
-      demo.scope.nextMs += demoExp(1000 / Math.max(0.05, eff));
+      // 連続撮影は一定の間隔で窓を出す。トリガーモードは事象が来たときだけ、しかもベースラインが
+      // 再アームの水準以下まで落ちるときだけ（落ちなければ 1 本も出ない）。
+      if (free) {
+        demoEmitWaveform(demo.scope.nextMs, true);
+        demo.scope.nextMs += 1000 / Math.max(1, Math.min(demo.scope.rate, cap));
+      } else {
+        if (demoScopeCanArm()) demoEmitWaveform(demo.scope.nextMs, false);
+        demo.scope.nextMs += demoExp(1000 / Math.max(0.05, eff));
+      }
     }
   } else {
     let guard = 0;
@@ -2182,6 +2242,18 @@ function demoCommand(cmd) {
     say('SCOPE_RATE:' + demo.scope.rate);
   } else if (cmd === 'GET_SCOPE_RATE') {
     say('SCOPE_RATE:' + demo.scope.rate);
+  } else if (cmd.startsWith('SET_SCOPE_REARM:')) {
+    const a = cmd.slice(16).trim();
+    if (/^\d+$/.test(a) && parseInt(a) <= p.adcMax) demo.scope.rearm = parseInt(a);
+    say('SCOPE_REARM:' + demo.scope.rearm);
+  } else if (cmd === 'GET_SCOPE_REARM') {
+    say('SCOPE_REARM:' + demo.scope.rearm);
+  } else if (cmd.startsWith('SET_SCOPE_TRIG:')) {
+    const a = cmd.slice(15).trim().toUpperCase();
+    if (a === 'FREE' || a === 'NORMAL') demo.scope.trig = a;
+    say('SCOPE_TRIG:' + demo.scope.trig);
+  } else if (cmd === 'GET_SCOPE_TRIG') {
+    say('SCOPE_TRIG:' + demo.scope.trig);
   } else if (cmd.startsWith('SET_SCOPE:')) {
     const arg = cmd.slice(10);
     const valid = arg === 'ON' || arg === 'OFF';
@@ -2281,6 +2353,11 @@ function demoSetScope(on) {
     } else {
       processLine('### SCOPE: ON - counting is PAUSED while the scope is open (coincidence is not evaluated).');
     }
+    // 波形が出ないときの手がかり（ファームも同じ行を出す）
+    processLine(s.trig === 'FREE'
+      ? '###        FREE-RUN: no trigger' + (esp ? ', one window every ' + Math.round(1000 / Math.max(1, s.rate)) + ' ms.' : '.')
+      : '###        trigger above ' + demo.dev.sig + ', re-arm at or below ' + demoScopeRearmLevel() +
+        ' (threshold - ' + s.rearm + ').');
     processLine('SCOPE:ON');
   } else {
     s.on = false;
@@ -2343,7 +2420,9 @@ function connectDemo() {
   demo.dev = { sig: p.thr[0], rst: p.thr[1], mode: 0, autoMargin: 60, sample: 'PEAK', coinc: 'SLAVE', oled: true,
                // BLE 名は画面の入力欄をそのまま名乗る（デモが別名を持ち込んで、実機の名前フィルタを壊さないため）
                bleName: (($('bleDeviceName').value || 'CosmicRay').trim() || 'CosmicRay') };
-  demo.scope = { on: false, rate: parseInt($('scopeRate').value) || 3, enterMs: 0, emitted: 0, nextMs: 0 };
+  demo.scope = { on: false, rate: parseInt($('scopeRate').value) || 3, enterMs: 0, emitted: 0, nextMs: 0,
+                 rearm: parseInt($('scopeRearm').value) >= 0 ? parseInt($('scopeRearm').value) : 5,
+                 trig: scope.trig === 'FREE' ? 'FREE' : 'NORMAL' };
 
   state.transport = 'demo';
   state.isConnected = true;
@@ -2522,6 +2601,7 @@ function processLine(line) {
       $('threshReset').value = rst;
       state.threshSig = sig;
       state.threshRst = rst;
+      if (sig > rst && (rst > 0 || state.threshGap == null)) state.threshGap = sig - rst;
       renderThreshInfo();
       if (state.isConnected) $('btnAutoThresh').disabled = false;
     }
@@ -2580,6 +2660,17 @@ function processLine(line) {
   if (line.startsWith('SCOPE_RATE:')) {
     const v = parseInt(line.substring(11));
     if (!isNaN(v)) $('scopeRate').value = v;
+    return;
+  }
+  // SCOPE_REARM:<offset>（再アームの水準 = しきい値 − offset）、SCOPE_TRIG:NORMAL | SCOPE_TRIG:FREE
+  if (line.startsWith('SCOPE_REARM:')) {
+    const a = line.substring(12).trim();
+    if (/^\d+$/.test(a)) { $('scopeRearm').value = parseInt(a); if (scope.active) scopeDraw(); }
+    return;
+  }
+  if (line.startsWith('SCOPE_TRIG:')) {
+    const a = line.substring(11).trim().toUpperCase();
+    if (a === 'FREE' || a === 'NORMAL') { scope.trig = a; renderScopeControls(); if (scope.active) scopeDraw(); }
     return;
   }
 
@@ -3051,6 +3142,7 @@ function updateConnectionUI(connected) {
     state.mode = null;
     state.threshSig = null;
     state.threshRst = null;
+    state.threshGap = null;
     state.conn = { usbVendorId: null, usbProductId: null, bleId: null, bleName: null, btAddr: null, btAddrTimedOut: false };
     // 切断されたらオシロも止まる。次に繋いだとき scopeEnter() が改めて ON を送る。
     // scope はこの関数より後ろで宣言されているが、updateConnectionUI() を呼ぶのは
@@ -3186,6 +3278,7 @@ const scope = {
   bad: 0,
   stamps: [],        // レート計算用の受信時刻
   drawPending: false,
+  trig: 'NORMAL',    // 'NORMAL'（しきい値で撮る） | 'FREE'（トリガーなしで撮り続ける）
 };
 
 function scopeOnLine(line) {
@@ -3245,6 +3338,29 @@ function scopeStats() {
   $('scopeFps').textContent = (recent.length / 5).toFixed(1);
 }
 
+// 描画の状態（データではなく見え方）。しきい値の線はドラッグで動かせる（つかむ・離すの処理は下の handler）。
+// プロットの位置はつかめるかの判定に使う。縦のレンジはドラッグの間だけ固定する:
+// 自動調整のままだと、波形が来るたびにポインタの下で目盛りが動いてしまう。
+const scopeView = {
+  plot: null,    // 直近の描画の { padL, padT, pw, ph, yLo, yHi, thrY }。thrY は線がつかめないとき null
+  drag: null,    // 線をつかんでいる間の { thr, start, yLo, yHi, dy, gap }
+  hover: false,  // ポインタが線の上にある
+  range: null,   // 縦を自動調整したときの直近の [yLo, yHi]
+};
+
+// キャンバスの y 行にあたる ADC 値。しきい値は 1 以上（SET_THRESH:信号,リセット は信号 > リセット ≧ 0 が条件）。
+function scopeValueAtY(y, lo, hi) {
+  const p = scopeView.plot;
+  const a = lo + (1 - (y - p.padT) / p.ph) * (hi - lo);
+  return Math.round(Math.min(Math.min(state.adcMax, hi), Math.max(Math.max(1, lo), a)));
+}
+
+// 信号のしきい値を sig にするとき一緒に送るリセットのしきい値。ギャップを保つ（0 未満にはしない）。
+// Nano 版は SET_THRESH:信号,リセット の形しか受けないので、ESP32-S3 版にも同じ形で送る。
+function scopeThreshPair(sig, gap) {
+  return { sig, rst: Math.max(0, sig - Math.max(1, gap)) };
+}
+
 function scopeDraw() {
   const cv = $('scopeCanvas');
   if (!cv) return;
@@ -3263,11 +3379,15 @@ function scopeDraw() {
 
   const padL = 64, padR = 16, padT = 12, padB = 46;
   const pw = W - padL - padR, ph = H - padT - padB;
+  scopeView.plot = null;
   if (pw <= 0 || ph <= 0) return;
 
-  // 夜色の画面（v2 のオシロと同じ配色）
-  ctx.fillStyle = CH.nightPlot;
+  // 計数の画面と同じ、紙とインクの配色（v2 のオシロと同じ）
+  ctx.fillStyle = CH.field;
   ctx.fillRect(padL, padT, pw, ph);
+  ctx.strokeStyle = CH.axis;
+  ctx.lineWidth = 1;
+  ctx.strokeRect(padL + 0.5, padT + 0.5, pw - 1, ph - 1);
 
   const traces = scope.traces;
   // 時間レンジは全トレース共通（ファームの pre/post は固定）。最初の波形が来るまでは機種の既定で。
@@ -3276,9 +3396,17 @@ function scopeDraw() {
   const t0 = ref ? -ref.npre * ref.dtUs : (esp ? -384 : -104);
   const t1 = ref ? (ref.ntot - 1 - ref.npre) * ref.dtUs : (esp ? 1536 : 832);
 
+  // しきい値。つかんでいる間はその値が優先（箱や board の値はまだ古い）。
+  const thr = scopeView.drag ? scopeView.drag.thr : state.threshSig;
+  const thrOk = thr != null && isFinite(thr);
+  if (thrOk) cv.setAttribute('aria-valuenow', String(thr));
+  cv.setAttribute('aria-valuemax', String(state.adcMax));
+
   // 縦レンジ
   let yLo, yHi;
-  if ($('scopeAutoY').checked) {
+  if (scopeView.drag) {
+    yLo = scopeView.drag.yLo; yHi = scopeView.drag.yHi;
+  } else if ($('scopeAutoY').checked) {
     yLo = 0; yHi = 400;
     if (traces.length) {
       yLo = Infinity; yHi = -Infinity;
@@ -3290,7 +3418,16 @@ function scopeDraw() {
       }
       const pad = Math.max(4, (yHi - yLo) * 0.08);
       yLo -= pad; yHi += pad;
+    } else if (scopeView.range) {
+      // 波形が（まだ）無い間は、線を最後に出したときのレンジのまま。離したときに跳ばないように。
+      [yLo, yHi] = scopeView.range;
     }
+    // しきい値の線もレンジに入れる。外に出ると、つかめなくなる。
+    if (thrOk && (thr < yLo || thr > yHi)) {
+      const tp = Math.max(4, (yHi - yLo) * 0.08);
+      yLo = Math.min(yLo, thr - tp); yHi = Math.max(yHi, thr + tp);
+    }
+    scopeView.range = [yLo, yHi];
   } else {
     yLo = 0; yHi = state.adcMax;
   }
@@ -3301,7 +3438,7 @@ function scopeDraw() {
 
   // グリッド。幅が狭いときは横軸の目盛りを減らして、数字が重ならないようにする。
   const nx = pw >= 520 ? 8 : 4;
-  ctx.strokeStyle = 'rgba(233,230,240,0.07)';
+  ctx.strokeStyle = CH.grid;
   ctx.lineWidth = 1;
   for (let k = 1; k < nx; k++) {
     const x = Math.round(padL + pw * k / nx) + 0.5;
@@ -3312,37 +3449,84 @@ function scopeDraw() {
     ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(padL + pw, y); ctx.stroke();
   }
 
-  // しきい値の線。信号はコーラル、リセットは灰紫の点線。
-  const drawLevel = (val, stroke, fill, label) => {
-    if (val === null || val === undefined || isNaN(val)) return;
-    if (val < yLo || val > yHi) return;
-    const y = yOf(val);
-    ctx.strokeStyle = stroke;
-    ctx.lineWidth = 1;
-    ctx.setLineDash([5, 4]);
+  // 連続撮影にはトリガー点も再アームもない。
+  const free = scope.trig === 'FREE';
+
+  // しきい値の線（コーラル）。ドラッグで動かせる。つかめるときだけ、つまみとヒントを出す。
+  let thrY = null;
+  if (thrOk && (scopeView.drag || (thr >= yLo && thr <= yHi))) {
+    const y = Math.min(padT + ph, Math.max(padT, yOf(thr)));
+    const live = !!scopeView.drag, hot = live || scopeView.hover;
+    const grab = state.isConnected;
+    thrY = grab ? y : null;
+    ctx.strokeStyle = hot ? CH.coral2 : 'rgba(200,101,78,0.9)';
+    ctx.lineWidth = hot ? 2 : 1;
+    ctx.setLineDash(live ? [] : [5, 4]);
     ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(padL + pw, y); ctx.stroke();
     ctx.setLineDash([]);
-    ctx.fillStyle = fill;
-    ctx.font = `12px ${CH.ui}`;
+    ctx.lineWidth = 1;
+
+    const up = y - padT >= 24;   // 名前は線の上。いちばん上にあるときは下
+    ctx.fillStyle = CH.coral2;
+    ctx.font = `${live ? '600 14px' : '12px'} ${CH.ui}`;
     ctx.textAlign = 'left';
-    ctx.textBaseline = (y - padT >= 20) ? 'bottom' : 'top';
-    ctx.fillText(label + ' ' + val, padL + 6, (y - padT >= 20) ? y - 4 : y + 4);
-  };
-  drawLevel(state.threshSig, 'rgba(200,101,78,0.9)', '#F4B4A3', t('scope.sigLevel'));
-  drawLevel(state.threshRst, 'rgba(169,163,188,0.8)', CH.nightInk2, t('scope.rstLevel'));
+    ctx.textBaseline = up ? 'bottom' : 'top';
+    const label = t('scope.sigLevel') + ' ' + thr;
+    ctx.fillText(label, padL + 6, up ? y - 4 : y + 4);
+    if (grab && !live && pw >= 360) {
+      const lw = ctx.measureText(label).width;
+      ctx.fillStyle = CH.ink3;
+      ctx.font = `12px ${CH.ui}`;
+      ctx.fillText(t('scope.threshDrag'), padL + 6 + lw + 10, up ? y - 4 : y + 4);
+    }
+
+    if (grab) {
+      const gw = 34, gh = 18, gx = padL + pw - gw - 6, cx = gx + gw / 2;
+      ctx.fillStyle = hot ? CH.coral2 : 'rgba(200,101,78,0.95)';
+      ctx.beginPath();
+      if (ctx.roundRect) ctx.roundRect(gx, y - gh / 2, gw, gh, 9); else ctx.rect(gx, y - gh / 2, gw, gh);
+      ctx.fill();
+      ctx.fillStyle = CH.paper;
+      ctx.beginPath();
+      ctx.moveTo(cx, y - 6); ctx.lineTo(cx - 5, y - 1.5); ctx.lineTo(cx + 5, y - 1.5);
+      ctx.moveTo(cx, y + 6); ctx.lineTo(cx - 5, y + 1.5); ctx.lineTo(cx + 5, y + 1.5);
+      ctx.fill();
+    }
+  }
+  scopeView.plot = { padL, padT, pw, ph, yLo, yHi, thrY };
+
+  // 再アームの水準 = しきい値 − オフセット。トリガーモードでは常に出す。しきい値は今の値（ドラッグ中はその値）から
+  // 求めるので、しきい値の線と一緒に動く。（計数のリセットしきい値とは別のもので、この画面には出さない。）
+  const rearmOffset = parseInt($('scopeRearm').value);
+  const rearm = (thrOk && rearmOffset >= 0) ? Math.max(0, thr - rearmOffset) : NaN;
+  if (!free && isFinite(rearm) && rearm >= yLo && rearm <= yHi) {
+    const y = yOf(rearm);
+    ctx.strokeStyle = 'rgba(46,139,160,0.85)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([2, 3]);
+    ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(padL + pw, y); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = CH.signalInk;
+    ctx.font = `12px ${CH.ui}`;
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'top';   // しきい値のラベルは線の上（いちばん上のときは下）。こちらは自分の線の下に出す
+    ctx.fillText(t('scope.rearmLine') + ' ' + rearm, padL + pw - 6, y + 3);
+  }
 
   // t=0（トリガの点）
-  ctx.strokeStyle = 'rgba(233,230,240,0.35)';
-  ctx.setLineDash([4, 4]);
-  ctx.beginPath(); ctx.moveTo(xOf(0), padT); ctx.lineTo(xOf(0), padT + ph); ctx.stroke();
-  ctx.setLineDash([]);
+  if (!free) {
+    ctx.strokeStyle = CH.axis;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath(); ctx.moveTo(xOf(0), padT); ctx.lineTo(xOf(0), padT + ph); ctx.stroke();
+    ctx.setLineDash([]);
+  }
 
   // 波形。古いものほど薄く、最新だけシグナル色。
   for (let k = 0; k < traces.length; k++) {
     const tr = traces[k];
     const newest = (k === traces.length - 1);
     const age = traces.length > 1 ? k / (traces.length - 1) : 1;
-    ctx.strokeStyle = newest ? CH.signal : `rgba(92,214,234,${(0.06 + 0.26 * age).toFixed(3)})`;
+    ctx.strokeStyle = newest ? CH.signal2 : `rgba(46,139,160,${(0.07 + 0.30 * age).toFixed(3)})`;
     ctx.lineWidth = newest ? 2 : 1;
     ctx.beginPath();
     for (let i = 0; i < tr.ntot; i++) {
@@ -3353,7 +3537,7 @@ function scopeDraw() {
   }
 
   // 軸の数字と題
-  ctx.fillStyle = CH.nightInk2;
+  ctx.fillStyle = CH.ink3;
   ctx.font = `13px ${CH.ui}`;
   ctx.textBaseline = 'top';
   for (let k = 0; k <= nx; k++) {
@@ -3368,7 +3552,7 @@ function scopeDraw() {
   ctx.font = `500 13px ${CH.ui}`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'bottom';
-  ctx.fillText(t('scope.xTitle'), padL + pw / 2, H - 2);
+  ctx.fillText(t(free ? 'scope.xTitleFree' : 'scope.xTitle'), padL + pw / 2, H - 2);
   ctx.save();
   ctx.translate(13, padT + ph / 2);
   ctx.rotate(-Math.PI / 2);
@@ -3377,11 +3561,11 @@ function scopeDraw() {
   ctx.restore();
 
   if (!traces.length) {
-    ctx.fillStyle = CH.nightInk2;
+    ctx.fillStyle = CH.ink3;
     ctx.font = `14px ${CH.ui}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(state.isConnected ? t('scope.waiting') : t('scope.notConnected'), padL + pw / 2, padT + ph * 0.28);
+    ctx.fillText(state.isConnected ? t(free ? 'scope.waitingFree' : 'scope.waiting') : t('scope.notConnected'), padL + pw / 2, padT + ph * 0.28);
   }
 }
 
@@ -3416,7 +3600,11 @@ function scopeEnter() {
   clearTimeout(scopeAckTimer);
   scope.deviceOn = false;   // 前回の古い応答を引きずらない（OFF を受け取れないまま切れた場合など）
   if (state.isConnected) {
+    // 設定を先に、そのあと ON。最初の波形から設定どおりになる。
     sendCommand('SET_SCOPE_RATE:' + (parseInt($('scopeRate').value) || 3));
+    sendCommand('SET_SCOPE_TRIG:' + (scope.trig === 'FREE' ? 'FREE' : 'NORMAL'));
+    const ro = parseInt($('scopeRearm').value);
+    sendCommand('SET_SCOPE_REARM:' + (ro >= 0 ? ro : 5));
     sendCommand('SET_SCOPE:ON');
     // ESP32-S3 版は既に ON のとき SET_SCOPE:ON に応えない。GET_SCOPE には両機種とも必ず応える。
     sendCommand('GET_SCOPE');
@@ -3476,6 +3664,15 @@ function renderScopeBadge() {
 }
 
 function renderScopeControls() {
+  // 撮り方のボタンと再アームの欄。連続撮影にはトリガーがないので、再アームの欄は使えなくする。
+  const free = scope.trig === 'FREE';
+  document.querySelectorAll('#scopeTrig button').forEach(b => {
+    const on = b.dataset.trig === (free ? 'FREE' : 'NORMAL');
+    b.classList.toggle('active', on);
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
+  $('scopeRearm').disabled = free;
+  $('scopeRearmBox').classList.toggle('muted', free);
   $('scopeFreezeLabel').textContent = t(scope.frozen ? 'scope.unfreeze' : 'scope.freeze');
   $('scopeFreeze').querySelector('use').setAttribute('href', scope.frozen ? '#i-play' : '#i-pause');
 }
@@ -3517,6 +3714,110 @@ $('scopeRate').addEventListener('change', () => {
   const v = Math.min(20, Math.max(1, parseInt($('scopeRate').value) || 3));
   $('scopeRate').value = v;
   if (state.isConnected && scope.active) sendCommand('SET_SCOPE_RATE:' + v);
+});
+// 再アーム: しきい値より何下で次を撮れる状態に戻すか（既定 5）。空欄や読めない値は 5 に戻す。
+// ファームは SCOPE_REARM: で答えて、欄をそろえる。
+$('scopeRearm').addEventListener('change', () => {
+  let v = parseInt($('scopeRearm').value);
+  if (isNaN(v)) v = 5;
+  v = Math.min(state.adcMax || 4095, Math.max(0, v));
+  $('scopeRearm').value = v;
+  if (state.isConnected && scope.active) sendCommand('SET_SCOPE_REARM:' + v);
+  scopeDraw();
+});
+// トリガー / 連続。いま出ている波形は、もう一方の撮り方のものなので、消して始め直す。
+document.querySelectorAll('#scopeTrig button').forEach(btn => btn.addEventListener('click', () => {
+  const next = btn.dataset.trig === 'FREE' ? 'FREE' : 'NORMAL';
+  if (next === scope.trig) return;
+  scope.trig = next;
+  scope.traces = [];
+  renderScopeControls();
+  if (state.isConnected && scope.active) sendCommand('SET_SCOPE_TRIG:' + next);
+  scopeDraw();
+}));
+// --- オシロのしきい値の線: つかむ、引く、離す
+// 新しい値は、離したときに 1 回だけ board に送る（矢印キーは最後に押してから少しあとに）。
+// ポインタが動くたびに送ると、シリアル / Bluetooth のコマンドが詰まる。
+// Nano 版は SET_THRESH:信号,リセット の形しか受けない。リセットのしきい値も、信号 − ギャップ（ギャップは今の差のまま）で
+// 一緒に決めて、どちらの機種にも常にその形で送る。リセットは計数が使うもので、オシロの再アームとは別。
+const scopeCv = $('scopeCanvas');
+const thrGap = () => state.threshGap != null ? state.threshGap : Math.max(1, (state.threshSig || 0) - (state.threshRst || 0));
+const thrNear = (x0, y0, touch) => {
+  const p = scopeView.plot;
+  if (!p || p.thrY == null || !scope.active || !state.isConnected) return false;
+  const r = scopeCv.getBoundingClientRect();
+  const x = x0 - r.left, y = y0 - r.top;
+  return x >= p.padL - 6 && x <= p.padL + p.pw + 6 && Math.abs(y - p.thrY) <= (touch ? 18 : 10);
+};
+// 設定ドロワーの欄を、今の state にそろえる（引いている間は、引いている値で）。
+const thrBoxes = (sig, rst) => { $('threshSignal').value = sig; $('threshReset').value = rst; };
+// 値を決める。state と欄を先に変える（board の THRESH: 応答が来るまで線が元に戻らないように）。
+const thrApply = (sig, gap) => {
+  const p = scopeThreshPair(sig, gap);
+  state.threshSig = p.sig; state.threshRst = p.rst;
+  thrBoxes(p.sig, p.rst);
+  renderThreshInfo();
+  return p;
+};
+const thrSend = p => { if (state.isConnected) sendCommand(`SET_THRESH:${p.sig},${p.rst}`); };
+const thrHover = on => {
+  if (scopeView.hover === on) return;
+  scopeView.hover = on;
+  scopeCv.classList.toggle('thr-hot', on);
+  scopeDraw();
+};
+const thrEnd = (e, commit) => {
+  const d = scopeView.drag;
+  if (!d) return;
+  scopeView.drag = null;
+  scopeCv.classList.remove('thr-drag');
+  if (commit && d.thr !== d.start) {
+    thrSend(thrApply(d.thr, d.gap));
+  } else {
+    thrBoxes(state.threshSig, state.threshRst);   // 取り消し、または元の場所に戻した
+  }
+  scopeView.hover = thrNear(e.clientX, e.clientY, e.pointerType === 'touch');
+  scopeCv.classList.toggle('thr-hot', scopeView.hover);
+  scopeDraw();
+};
+scopeCv.addEventListener('pointerdown', e => {
+  if (e.button !== 0 || !thrNear(e.clientX, e.clientY, e.pointerType === 'touch')) return;
+  const p = scopeView.plot, start = state.threshSig;
+  scopeView.drag = { thr: start, start, gap: thrGap(), yLo: p.yLo, yHi: p.yHi, dy: e.clientY - scopeCv.getBoundingClientRect().top - p.thrY };
+  scopeCv.classList.add('thr-drag');
+  try { scopeCv.setPointerCapture(e.pointerId); } catch (_) { /* ポインタはもう無い */ }
+  e.preventDefault();
+  scopeDraw();
+});
+scopeCv.addEventListener('pointermove', e => {
+  const d = scopeView.drag;
+  if (!d) { thrHover(thrNear(e.clientX, e.clientY, e.pointerType === 'touch')); return; }
+  const v = scopeValueAtY(e.clientY - scopeCv.getBoundingClientRect().top - d.dy, d.yLo, d.yHi);
+  if (v === d.thr) return;
+  d.thr = v;
+  const p = scopeThreshPair(v, d.gap);
+  thrBoxes(p.sig, p.rst);
+  scopeDraw();
+});
+scopeCv.addEventListener('pointerup', e => thrEnd(e, true));
+scopeCv.addEventListener('lostpointercapture', e => thrEnd(e, false));   // pointerup のあとは、することが残っていない
+scopeCv.addEventListener('pointerleave', () => { if (!scopeView.drag) thrHover(false); });
+// 線の上から始まるタッチは、ページのスクロールにしない（touch-action は場所ごとには切り替えられない）。
+scopeCv.addEventListener('touchstart', e => {
+  const tp = e.touches[0];
+  if (tp && thrNear(tp.clientX, tp.clientY, true)) e.preventDefault();
+}, { passive: false });
+let thrKeyTimer = null;
+scopeCv.addEventListener('keydown', e => {
+  const step = { ArrowUp: 1, ArrowDown: -1, PageUp: 100, PageDown: -100 }[e.key];
+  const cur = state.threshSig;
+  if (!step || cur == null || scopeView.drag || !scope.active || !state.isConnected) return;
+  e.preventDefault();
+  const v = Math.min(state.adcMax, Math.max(1, cur + (e.shiftKey && Math.abs(step) === 1 ? step * 10 : step)));
+  const p = thrApply(v, thrGap());
+  scopeDraw();
+  clearTimeout(thrKeyTimer);
+  thrKeyTimer = setTimeout(() => thrSend(p), 400);
 });
 $('scopePersist').addEventListener('change', scopeDraw);
 $('scopeAutoY').addEventListener('change', scopeDraw);
@@ -3631,6 +3932,7 @@ $('btnSetThresh').addEventListener('click', () => {
     showMsg(t('alert.threshRange', { max: state.adcMax }));
     return;
   }
+  state.threshGap = sig - rst;   // 自分で決めた差。オシロの線をドラッグするときも、これを保つ
   sendCommand(`SET_THRESH:${sig},${rst}`);
 });
 

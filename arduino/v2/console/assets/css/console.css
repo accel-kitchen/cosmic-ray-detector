@@ -3,7 +3,7 @@
  * 配色は accel-kitchen.com（Stardust Notebook）から: 紙とインクがベース。
  * シグナル（シアン）は「いま動いているもの・測っているもの」だけに使う
  * — 接続中の点、届いたばかりのイベント、最新の値。装飾には使わない。
- * コーラルはエラー・計数停止・消去、夜色はオシロスコープ表示中だけ。
+ * コーラルはエラー・計数停止・消去。オシロスコープも、同じ紙とインクの配色で表示する。
  */
 
 :root {
@@ -27,12 +27,6 @@
   --coral:      #C8654E;
   --coral-2:    #A84A37;
   --coral-pale: #FBE4D8;
-
-  --night:   #171630;
-  --night-2: #24224A;
-  --night-ink:   #E9E6F0;
-  --night-ink-2: #A9A3BC;
-  --night-rule:  rgba(233, 230, 240, .14);
 
   --f-ui:   "Noto Sans JP", "Yu Gothic UI", "Hiragino Sans", "Meiryo", system-ui, sans-serif;
   --f-num:  "IBM Plex Mono", "Consolas", "Menlo", monospace;
@@ -89,10 +83,8 @@ a { color: var(--ink); text-underline-offset: 3px; }
 .btn-quiet:hover:not(:disabled) { background: var(--paper-2); }
 .btn-danger { color: var(--coral-2); padding-left: 8px; padding-right: 10px; }
 .btn-danger:hover:not(:disabled) { background: var(--coral-pale); }
-.btn-signal { background: var(--signal); color: var(--night); font-weight: 700; }
+.btn-signal { background: var(--signal); color: var(--ink); font-weight: 700; }
 .btn-signal:hover { background: #7fe0f0; }
-.btn-night { color: var(--night-ink); border-color: var(--night-rule); }
-.btn-night:hover:not(:disabled) { background: var(--night-2); }
 .btn:disabled { color: var(--ink-4); cursor: not-allowed; }
 .btn-primary:disabled { background: var(--paper-3); color: var(--ink-4); }
 .btn-line:disabled { border-color: var(--rule); }
@@ -497,13 +489,9 @@ body[data-view="model"] .brand-ver { display: none; }
 /* Save button for narrow screens (the rail becomes a sheet) */
 .save-fab { display: none; }
 
-/* ===== 3. Scope view (night) ===== */
-body[data-view="scope"] { background: var(--night); color: var(--night-ink); }
-body[data-view="scope"] .topbar { background: var(--night); border-bottom-color: var(--night-rule); }
-body[data-view="scope"] .brand-ver,
-body[data-view="scope"] .lang,
-body[data-view="scope"] .lang button { color: var(--night-ink-2); }
-body[data-view="scope"] .lang button.active { color: var(--night-ink); text-decoration-color: var(--night-ink); }
+/* ===== 3. Scope view =====
+   Same paper and ink as the rest of the console. While it is open the counting chrome is hidden
+   and the "counting stopped" timer takes its place. */
 body[data-view="scope"] .status,
 body[data-view="scope"] .top-actions,
 body[data-view="scope"] #btnOpenScope,
@@ -511,24 +499,14 @@ body[data-view="scope"] #btnOpenAdvanced,
 body[data-view="scope"] .scope-chip { display: none; }
 body[data-view="scope"] .scope-state { display: flex; }
 body[data-view="scope"] #btnCloseScope { display: inline-flex; }
-body[data-view="scope"] .msg { background: var(--night-2); color: var(--night-ink); }
-body[data-view="scope"] .demo-band {
-  color: var(--night-ink-2); border-top-color: var(--night-rule);
-  background: repeating-linear-gradient(135deg, var(--night) 0 9px, var(--night-2) 9px 18px);
-}
-body[data-view="scope"] .demo-tag { background: var(--night); color: var(--night-ink); border-color: var(--night-ink-2); }
-body[data-view="scope"] .msg .i { color: var(--night-ink-2); }
-/* The Analysis / Manual links stay on in the night view; keep them readable (they were ink on night, 1.2:1). */
-body[data-view="scope"] .top-right .btn-quiet { color: var(--night-ink); }
-body[data-view="scope"] .top-right .btn-quiet:hover:not(:disabled) { background: var(--night-2); }
 
 .scope-state {
-  align-items: center; gap: 10px; padding-left: 16px; border-left: 1px solid var(--night-rule);
+  align-items: center; gap: 10px; padding-left: 16px; border-left: 1px solid var(--rule-strong);
   font-weight: 700; font-size: 15px; white-space: nowrap;
 }
 .scope-state .stop-mark { width: 10px; height: 10px; background: var(--coral); flex: none; }
-.scope-state .stop-text { color: #F4B4A3; font-family: var(--f-num); font-variant-numeric: tabular-nums; }
-.scope-state .mode-text { font-weight: 500; font-size: 13px; color: var(--night-ink-2); }
+.scope-state .stop-text { color: var(--coral-2); font-family: var(--f-num); font-variant-numeric: tabular-nums; }
+.scope-state .mode-text { font-weight: 500; font-size: 13px; color: var(--ink-3); }
 
 .view-scope {
   display: flex; flex-direction: column; gap: 12px;
@@ -536,31 +514,27 @@ body[data-view="scope"] .top-right .btn-quiet:hover:not(:disabled) { background:
   min-height: 480px; padding: 16px 28px 18px;
 }
 .scope-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; }
-.view-scope .mini, .view-scope .check { color: var(--night-ink-2); }
-.view-scope input[type="number"] { background: var(--night-2); border-color: var(--night-rule); color: var(--night-ink); }
-.view-scope .check input { accent-color: var(--signal); }
-.view-scope .term { color: var(--night-ink-2); }
-.view-scope .term:hover { color: var(--night-ink); }
+.view-scope .check input { accent-color: var(--signal-2); }
 .tools-gap { flex: 1; }
-.scope-warn { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #F4B4A3; }
+.scope-warn { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--coral-2); }
 .scope-wrap { position: relative; flex: 1 1 auto; min-height: 240px; }
 .scope-wrap canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 /* the threshold line can be dragged (ui.js) */
 .scope-wrap canvas.thr-hot { cursor: ns-resize; }
 .scope-wrap canvas.thr-drag { cursor: grabbing; user-select: none; }
 .scope-wrap canvas:focus { outline: none; }
-.scope-wrap canvas:focus-visible { outline: 2px solid var(--signal); outline-offset: -2px; }
+.scope-wrap canvas:focus-visible { outline: 2px solid var(--signal-2); outline-offset: -2px; }
 .scope-stats { display: flex; flex-wrap: wrap; gap: 8px 40px; }
-.scope-stats dt { display: flex; align-items: center; font-size: 12px; color: var(--night-ink-2); }
-.scope-stats dd { font-size: 20px; color: var(--night-ink); }
+.scope-stats dt { display: flex; align-items: center; font-size: 12px; color: var(--ink-3); }
+.scope-stats dd { font-size: 20px; color: var(--ink); }
 .scope-about summary {
   display: inline-flex; align-items: center; gap: 4px; cursor: pointer; list-style: none;
-  font-size: 13px; color: var(--night-ink-2);
+  font-size: 13px; color: var(--ink-3);
 }
 .scope-about summary::-webkit-details-marker { display: none; }
 .scope-about summary .i { width: 15px; height: 15px; transition: transform .15s; }
 .scope-about[open] summary .i { transform: rotate(180deg); }
-.scope-about p { font-size: 13px; color: var(--night-ink-2); max-width: 60em; margin-top: 6px; }
+.scope-about p { font-size: 13px; color: var(--ink-3); max-width: 60em; margin-top: 6px; }
 
 /* ===== Advanced drawer ===== */
 .drawer {

@@ -11,8 +11,8 @@ const CH = {
   grid: 'rgba(42,39,48,0.09)', gridMinor: 'rgba(42,39,48,0.045)', axis: 'rgba(42,39,48,0.40)',
   bar: 'rgba(42,39,48,0.80)', area: 'rgba(42,39,48,0.06)',
   signal: '#5CD6EA', signal2: '#2E8BA0',
-  coral: '#C8654E',
-  night: '#171630', nightPlot: '#1C1B3A', nightInk: '#E9E6F0', nightInk2: '#A9A3BC',
+  coral: '#C8654E', coral2: '#A84A37',
+  paper: '#FAF6EB', field: '#FFFDF7', signalInk: '#1F6B7C',
   ui: '"Noto Sans JP", "Yu Gothic UI", "Hiragino Sans", "Meiryo", sans-serif',
   mono: '"IBM Plex Mono", Consolas, Menlo, monospace',
 };
@@ -310,8 +310,11 @@ function drawScope(canvas) {
   scopeView.plot = null;
   if (pw <= 0 || ph <= 0) return;
 
-  ctx.fillStyle = CH.nightPlot;
+  ctx.fillStyle = CH.field;
   ctx.fillRect(padL, padT, pw, ph);
+  ctx.strokeStyle = CH.axis;
+  ctx.lineWidth = 1;
+  ctx.strokeRect(padL + 0.5, padT + 0.5, pw - 1, ph - 1);
 
   // The axes and the threshold line are drawn before the first waveform too: with the
   // threshold set too high none ever arrives, and the line is the way to bring it down.
@@ -357,7 +360,7 @@ function drawScope(canvas) {
   const xOf = us => padL + (us - t0) / (t1 - t0) * pw;
   const yOf = a  => padT + (1 - (a - yLo) / (yHi - yLo)) * ph;
 
-  ctx.strokeStyle = 'rgba(233,230,240,0.07)';
+  ctx.strokeStyle = CH.grid;
   ctx.lineWidth = 1;
   for (let k = 1; k < 8; k++) {
     const x = Math.round(padL + pw * k / 8) + 0.5;
@@ -375,7 +378,7 @@ function drawScope(canvas) {
     const live = !!scopeView.drag, hot = live || scopeView.hover;
     const grab = state.isConnected;
     thrY = grab ? y : null;
-    ctx.strokeStyle = hot ? '#F4B4A3' : 'rgba(200,101,78,0.9)';
+    ctx.strokeStyle = hot ? CH.coral2 : 'rgba(200,101,78,0.9)';
     ctx.lineWidth = hot ? 2 : 1;
     ctx.setLineDash(live ? [] : [5, 4]);
     ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(padL + pw, y); ctx.stroke();
@@ -383,7 +386,7 @@ function drawScope(canvas) {
     ctx.lineWidth = 1;
 
     const up = y - padT >= 24;   // the label sits above the line, below it when the line is at the top
-    ctx.fillStyle = '#F4B4A3';
+    ctx.fillStyle = CH.coral2;
     ctx.font = `${live ? '600 14px' : '12px'} ${CH.ui}`;
     ctx.textAlign = 'left';
     ctx.textBaseline = up ? 'bottom' : 'top';
@@ -391,18 +394,18 @@ function drawScope(canvas) {
     ctx.fillText(label, padL + 6, up ? y - 4 : y + 4);
     if (grab && !live && pw >= 360) {
       const lw = ctx.measureText(label).width;
-      ctx.fillStyle = 'rgba(169,163,188,0.8)';
+      ctx.fillStyle = CH.ink3;
       ctx.font = `12px ${CH.ui}`;
       ctx.fillText(t('scope.threshDrag'), padL + 6 + lw + 10, up ? y - 4 : y + 4);
     }
 
     if (grab) {
       const gw = 34, gh = 18, gx = padL + pw - gw - 6, cx = gx + gw / 2;
-      ctx.fillStyle = hot ? '#F4B4A3' : 'rgba(200,101,78,0.95)';
+      ctx.fillStyle = hot ? CH.coral2 : 'rgba(200,101,78,0.95)';
       ctx.beginPath();
       if (ctx.roundRect) ctx.roundRect(gx, y - gh / 2, gw, gh, 9); else ctx.rect(gx, y - gh / 2, gw, gh);
       ctx.fill();
-      ctx.fillStyle = CH.night;
+      ctx.fillStyle = CH.paper;
       ctx.beginPath();
       ctx.moveTo(cx, y - 6); ctx.lineTo(cx - 5, y - 1.5); ctx.lineTo(cx + 5, y - 1.5);
       ctx.moveTo(cx, y + 6); ctx.lineTo(cx - 5, y + 1.5); ctx.lineTo(cx + 5, y + 1.5);
@@ -411,17 +414,41 @@ function drawScope(canvas) {
   }
   scopeView.plot = { padL, padT, pw, ph, yLo, yHi, thrY };
 
+  // Free-run has no trigger point and nothing to re-arm.
+  const free = settings.scopeTrig === 'FREE';
+
+  // re-arm level = threshold - offset. Always drawn in triggered mode; it is computed from the
+  // threshold as it is now (also the value being dragged), so the two lines move together.
+  const rearmOffset = parseInt(settings.scopeRearm);
+  const rearm = isFinite(thr) && rearmOffset >= 0 ? Math.max(0, thr - rearmOffset) : NaN;
+  if (!free && isFinite(rearm) && rearm >= yLo && rearm <= yHi) {
+    const y = yOf(rearm);
+    ctx.strokeStyle = 'rgba(46,139,160,0.85)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([2, 3]);
+    ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(padL + pw, y); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = CH.signalInk;
+    ctx.font = `12px ${CH.ui}`;
+    ctx.textAlign = 'right';
+    // the threshold label is above its line (or below it at the very top): this one goes under its own line
+    ctx.textBaseline = 'top';
+    ctx.fillText(t('scope.rearmLine') + ' ' + rearm, padL + pw - 46, y + 3);
+  }
+
   // trigger point
-  ctx.strokeStyle = 'rgba(233,230,240,0.35)';
-  ctx.setLineDash([4, 4]);
-  ctx.beginPath(); ctx.moveTo(xOf(0), padT); ctx.lineTo(xOf(0), padT + ph); ctx.stroke();
-  ctx.setLineDash([]);
+  if (!free) {
+    ctx.strokeStyle = CH.axis;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath(); ctx.moveTo(xOf(0), padT); ctx.lineTo(xOf(0), padT + ph); ctx.stroke();
+    ctx.setLineDash([]);
+  }
 
   for (let k = 0; k < traces.length; k++) {
     const tr = traces[k];
     const newest = (k === traces.length - 1);
     const age = traces.length > 1 ? k / (traces.length - 1) : 1;
-    ctx.strokeStyle = newest ? CH.signal : `rgba(92,214,234,${(0.06 + 0.26 * age).toFixed(3)})`;
+    ctx.strokeStyle = newest ? CH.signal2 : `rgba(46,139,160,${(0.07 + 0.30 * age).toFixed(3)})`;
     ctx.lineWidth = newest ? 2 : 1;
     ctx.beginPath();
     for (let i = 0; i < tr.ntot; i++) {
@@ -431,7 +458,7 @@ function drawScope(canvas) {
     ctx.stroke();
   }
 
-  ctx.fillStyle = CH.nightInk2;
+  ctx.fillStyle = CH.ink3;
   ctx.font = `13px ${CH.ui}`;
   ctx.textBaseline = 'top';
   for (let k = 0; k <= 8; k++) {
@@ -443,12 +470,12 @@ function drawScope(canvas) {
   for (let k = 0; k <= 5; k++) {
     ctx.fillText((yLo + (yHi - yLo) * (1 - k / 5)).toFixed(0), padL - 7, padT + ph * k / 5);
   }
-  drawAxisTitles(ctx, W, H, padL, padT, pw, ph, t('scope.xTitle'), t('scope.yTitle'), CH.nightInk2);
+  drawAxisTitles(ctx, W, H, padL, padT, pw, ph, t(free ? 'scope.xTitleFree' : 'scope.xTitle'), t('scope.yTitle'), CH.ink3);
 
   if (!traces.length) {
     // on the half of the plot the threshold line is not in
     const mid = padT + ph / 2, ty = thrY == null ? mid : thrY;
-    drawEmpty(ctx, state.isConnected ? t('scope.waiting') : t('scope.notConnected'),
-              padL + pw / 2, ty < mid ? padT + ph * 0.72 : padT + ph * 0.28, CH.nightInk2);
+    drawEmpty(ctx, state.isConnected ? t(free ? 'scope.waitingFree' : 'scope.waiting') : t('scope.notConnected'),
+              padL + pw / 2, ty < mid ? padT + ph * 0.72 : padT + ph * 0.28, CH.ink3);
   }
 }
