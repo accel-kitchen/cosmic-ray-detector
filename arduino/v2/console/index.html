@@ -92,8 +92,8 @@
       <a class="btn btn-quiet btn-sm" id="linkManual" href="manual.html" target="_blank" rel="noopener" data-i18n-title="nav.manualTitle">
         <svg class="i"><use href="#i-book"/></svg><span class="lbl" data-i18n="nav.manual">マニュアル</span>
       </a>
-      <button type="button" class="btn btn-quiet btn-sm" id="btnOpenAdvanced" aria-controls="drawer" aria-expanded="false">
-        <svg class="i"><use href="#i-sliders"/></svg><span class="lbl" data-i18n="advanced.title">詳細設定</span>
+      <button type="button" class="btn btn-quiet btn-sm" id="btnOpenAdvanced" aria-controls="drawer" aria-expanded="false" aria-labelledby="lblOpenAdvanced">
+        <svg class="i"><use href="#i-sliders"/></svg><span class="lbl" id="lblOpenAdvanced" data-i18n="advanced.title">詳細設定</span>
       </button>
       <button type="button" class="btn btn-signal btn-sm" id="btnCloseScope">
         <svg class="i"><use href="#i-back"/></svg><span data-i18n="scope.close">閉じて計数に戻る</span>
@@ -341,13 +341,13 @@
     <!-- ===== 3. Oscilloscope: a mode of its own, counting is stopped ===== -->
     <section class="view-scope" id="viewScope" hidden>
       <div class="scope-tools">
-        <label class="mini">
-          <span data-i18n="scope.rate">レート上限 [/s]</span><button type="button" class="term" data-term="scopeRate"></button>
-          <input type="number" id="scopeRate" value="3" min="1" max="20">
+        <label class="mini" for="scopeRate">
+          <span id="lblScopeRate" data-i18n="scope.rate">レート上限 [/s]</span><button type="button" class="term" data-term="scopeRate"></button>
+          <input type="number" id="scopeRate" value="3" min="1" max="20" aria-labelledby="lblScopeRate">
         </label>
-        <label class="mini">
-          <span data-i18n="scope.persist">残光</span><button type="button" class="term" data-term="persistence"></button>
-          <input type="number" id="scopePersist" value="20" min="0" max="200">
+        <label class="mini" for="scopePersist">
+          <span id="lblScopePersist" data-i18n="scope.persist">残光</span><button type="button" class="term" data-term="persistence"></button>
+          <input type="number" id="scopePersist" value="20" min="0" max="200" aria-labelledby="lblScopePersist">
         </label>
         <label class="mini check"><input type="checkbox" id="scopeAutoY" checked><span data-i18n="scope.autoY">縦軸を自動で合わせる</span></label>
         <span class="tools-gap"></span>
@@ -414,9 +414,9 @@
         <div class="row">
           <button type="button" class="btn btn-primary" id="btnSelectFolder"><svg class="i"><use href="#i-folder"/></svg><span id="selectFolderLabel"></span></button>
         </div>
-        <label class="field field-row">
-          <span><span data-i18n="autosave.format">形式</span><button type="button" class="term" data-term="format"></button></span>
-          <select id="autoSaveFormat">
+        <label class="field field-row" for="autoSaveFormat">
+          <span><span id="lblAutoFormat" data-i18n="autosave.format">形式</span><button type="button" class="term" data-term="format"></button></span>
+          <select id="autoSaveFormat" aria-labelledby="lblAutoFormat">
             <option value="dat" data-i18n="autosave.datOnly">.dat</option>
             <option value="csv" data-i18n="autosave.csvOnly">.csv</option>
             <option value="both" data-i18n="autosave.both">.dat と .csv</option>
@@ -486,9 +486,9 @@
         </div>
 
         <div class="group">
-          <div class="group-head"><h3 data-i18n="thresh.signalLabel">信号しきい値（0〜4095）</h3><button type="button" class="term" data-term="threshold"></button></div>
+          <div class="group-head"><h3 id="lblThresh" data-i18n="thresh.signalLabel">信号しきい値（0〜4095）</h3><button type="button" class="term" data-term="threshold"></button></div>
           <div class="frow">
-            <input type="number" class="num-input" id="threshSignal" min="0" max="4095" value="120">
+            <input type="number" class="num-input" id="threshSignal" min="0" max="4095" value="120" aria-labelledby="lblThresh">
             <button type="button" class="btn btn-line btn-sm" id="btnSetThresh" disabled data-i18n="common.set">設定</button>
             <button type="button" class="icon-btn" id="btnGetThresh" disabled data-i18n-title="common.get"><svg class="i"><use href="#i-refresh"/></svg></button>
           </div>
@@ -504,9 +504,9 @@
         </div>
 
         <div class="group">
-          <div class="group-head"><h3 data-i18n="pwm.label">コンパレータしきい値</h3><button type="button" class="term" data-term="pwm"></button></div>
+          <div class="group-head"><h3 id="lblPwm" data-i18n="pwm.label">コンパレータしきい値</h3><button type="button" class="term" data-term="pwm"></button></div>
           <div class="frow">
-            <input type="number" class="num-input" id="pwmDuty" min="0" max="255" value="96">
+            <input type="number" class="num-input" id="pwmDuty" min="0" max="255" value="96" aria-labelledby="lblPwm">
             <button type="button" class="btn btn-line btn-sm" id="btnSetPwm" disabled data-i18n="common.set">設定</button>
             <button type="button" class="icon-btn" id="btnGetPwm" disabled data-i18n-title="common.get"><svg class="i"><use href="#i-refresh"/></svg></button>
           </div>
@@ -528,11 +528,11 @@
       <div class="adv-body">
         <p class="hint" data-i18n="feat.desc"></p>
         <ul class="switches">
-          <li><span data-i18n="feat.sd">microSD に記録</span><button type="button" class="switch" role="switch" aria-checked="false" data-feature="SD" disabled><span class="knob"></span></button></li>
-          <li><span><span data-i18n="feat.ext">外部検出器の読み取り</span><button type="button" class="term" data-term="external"></button></span><button type="button" class="switch" role="switch" aria-checked="false" data-feature="EXT" disabled><span class="knob"></span></button></li>
-          <li><span data-i18n="feat.oled">OLED 画面</span><button type="button" class="switch" role="switch" aria-checked="false" data-feature="OLED" disabled><span class="knob"></span></button></li>
-          <li><span data-i18n="feat.buzzer">ブザー</span><button type="button" class="switch" role="switch" aria-checked="false" data-feature="BUZZER" disabled><span class="knob"></span></button></li>
-          <li><span data-i18n="feat.vib">振動モーター</span><button type="button" class="switch" role="switch" aria-checked="false" data-feature="VIB" disabled><span class="knob"></span></button></li>
+          <li><span id="lblFeatSd" data-i18n="feat.sd">microSD に記録</span><button type="button" class="switch" role="switch" aria-checked="false" aria-labelledby="lblFeatSd" data-feature="SD" disabled><span class="knob"></span></button></li>
+          <li><span><span id="lblFeatExt" data-i18n="feat.ext">外部検出器の読み取り</span><button type="button" class="term" data-term="external"></button></span><button type="button" class="switch" role="switch" aria-checked="false" aria-labelledby="lblFeatExt" data-feature="EXT" disabled><span class="knob"></span></button></li>
+          <li><span id="lblFeatOled" data-i18n="feat.oled">OLED 画面</span><button type="button" class="switch" role="switch" aria-checked="false" aria-labelledby="lblFeatOled" data-feature="OLED" disabled><span class="knob"></span></button></li>
+          <li><span id="lblFeatBuzzer" data-i18n="feat.buzzer">ブザー</span><button type="button" class="switch" role="switch" aria-checked="false" aria-labelledby="lblFeatBuzzer" data-feature="BUZZER" disabled><span class="knob"></span></button></li>
+          <li><span id="lblFeatVib" data-i18n="feat.vib">振動モーター</span><button type="button" class="switch" role="switch" aria-checked="false" aria-labelledby="lblFeatVib" data-feature="VIB" disabled><span class="knob"></span></button></li>
         </ul>
       </div>
     </details>
@@ -602,18 +602,18 @@
           <ul class="conn-detail" id="connDetail"></ul>
         </div>
         <div class="group">
-          <div class="group-head"><h3 data-i18n="conn.bleNameAdv">Bluetooth の名前</h3></div>
+          <div class="group-head"><h3 id="lblAdvBleName" data-i18n="conn.bleNameAdv">Bluetooth の名前</h3></div>
           <div class="frow">
-            <input type="text" id="advBleName" maxlength="19" placeholder="CosmicRay" spellcheck="false" autocomplete="off">
+            <input type="text" id="advBleName" maxlength="19" placeholder="CosmicRay" spellcheck="false" autocomplete="off" aria-labelledby="lblAdvBleName">
             <button type="button" class="btn btn-line btn-sm" id="btnSetBleName" disabled data-i18n="conn.renameReboot">名前を変えて再起動</button>
           </div>
           <p class="field-msg" id="bleNameMsg" hidden></p>
           <p class="state" id="bleNameInfo"></p>
         </div>
         <div class="group">
-          <div class="group-head"><h3 data-i18n="conn.baud">ボーレート（USB）</h3></div>
+          <div class="group-head"><h3 id="lblBaud" data-i18n="conn.baud">ボーレート（USB）</h3></div>
           <div class="frow">
-            <select id="advBaudRate">
+            <select id="advBaudRate" aria-labelledby="lblBaud">
               <option value="9600" selected>9600</option>
               <option value="115200">115200</option>
             </select>

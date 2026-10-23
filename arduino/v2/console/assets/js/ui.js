@@ -1204,13 +1204,16 @@ function bindControls() {
   });
   // Comparator threshold (D2 PWM), R-4.
   $('btnSetPwm').addEventListener('click', () => {
-    const duty = Number($('pwmDuty').value);
+    // Number('') is 0, which would send SET_PWM:0 from an empty box
+    const raw = $('pwmDuty').value.trim();
+    const duty = raw === '' ? NaN : Number(raw);
     if (!Number.isInteger(duty) || duty < 0 || duty > 255) { fieldMsg('pwmMsg', t('alert.pwmRange')); return; }
     sendCommand(`SET_PWM:${duty}`);
   });
   $('btnGetPwm').addEventListener('click', () => sendCommand('GET_PWM'));
   $('btnAutoPwm').addEventListener('click', () => {
-    const target = Number($('pwmTarget').value);
+    const rawTarget = $('pwmTarget').value.trim();
+    const target = rawTarget === '' ? NaN : Number(rawTarget);
     if (!Number.isInteger(target) || target < 0) { fieldMsg('pwmTargetMsg', t('alert.pwmTarget')); return; }
     pwmCalTarget = target;
     setPwmCalibrating(true);

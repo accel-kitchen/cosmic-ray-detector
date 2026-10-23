@@ -620,7 +620,10 @@ async function disconnect() {
   // Persist any events still queued for auto-save before tearing down.
   // Disk first (it is the record), then drain the network queue.
   try { await flushAutoSave({ force: true }); } catch (_) {}
-  try { await flushUpload({ final: true }); } catch (_) {}
+  // Do not wait for the network: with a server that never answers, the final drain can take
+  // over a minute while the port stays open and the header still says "connected" (C-3).
+  // The 1 s tick keeps draining the queue because u.enabled is untouched.
+  flushUpload({ final: true }).catch(() => {});
 
   if (state.connectionType === 'usb') {
     try {
@@ -975,28 +978,37 @@ function processLine(line) {
   // event count will show a gap once logging resumes.
   if (state.paused) return;
 
-  // Event line: 13 whitespace-separated tokens.
+  // Event line: exactly 13 whitespace-separated tokens. A line that lost its CR/LF and was
+  // glued to the next one has more, a truncated one has fewer: drop both (C-1). The firmware
+  // sets the USB-CDC TX timeout to 0 while counting, so a stalled host can lose a line's tail.
   const parts = line.split(/\s+/);
-  if (parts.length < EVENT_TOKEN_COUNT) return;
+  if (parts.length !== EVENT_TOKEN_COUNT) return;
 
   const count       = parseInt(parts[0]);
   const timestampUs = parseInt(parts[1]);   // device Time, microseconds (v2 firmware)
   const adc         = parseInt(parts[2]);
   const deadtimeUs  = parseInt(parts[3]);   // device cumulative Deadtime, microseconds (v2)
-  const tempC       = parseFloat(parts[4]);
-  const humPct      = parseFloat(parts[5]);
-  const pressHpa    = parseFloat(parts[6]);
+  // The BME280 values are only plausible numbers or "nan" (no sensor); anything else is noise.
+  const plausible = (v, lo, hi) => (v >= lo && v <= hi ? v : NaN);
+  const tempC       = plausible(parseFloat(parts[4]), -40, 125);
+  const humPct      = plausible(parseFloat(parts[5]), 0, 100);
+  const pressHpa    = plausible(parseFloat(parts[6]), 300, 1100);
   const dig = [parseInt(parts[7]),  parseInt(parts[8]),  parseInt(parts[9])];
   const ana = [parseInt(parts[10]), parseInt(parts[11]), parseInt(parts[12])];
 
-  if (isNaN(count) || isNaN(adc) || isNaN(timestampUs)) return;
+  // Range checks: a glued or cut line shows up as an impossible value. Digital inputs are
+  // 0/1 (digitalRead), analog inputs and the ADC are 12-bit.
+  const inAdc = v => Number.isInteger(v) && v >= 0 && v <= ADC_MAX;
+  if (!(Number.isInteger(count) && count >= 1 && Number.isInteger(timestampUs) && timestampUs >= 0 &&
+        inAdc(adc) && Number.isInteger(deadtimeUs) && deadtimeUs >= 0 &&
+        dig.every(d => d === 0 || d === 1) && ana.every(inAdc))) return;
 
   const event = {
     count,
     timestamp_us: timestampUs,
     pc_timestamp: Date.now(),
     adc,
-    deadtime_us: isNaN(deadtimeUs) ? 0 : deadtimeUs,
+    deadtime_us: deadtimeUs,
     temp_c: tempC,
     hum_pct: humPct,
     press_hpa: pressHpa,
@@ -1779,7 +1791,13 @@ async function flushUpload(opts) {
   try {
     let rounds = 0;
     do {
-      if (!await uploadEnsureAuth()) return;
+      if (!await uploadEnsureAuth()) {
+        // A failed refresh or login backs off like any other failure. Without this the
+        // refresh and the login are retried every second, by every station at once (C-4).
+        u.attempt++;
+        u.nextAttemptMs = Date.now() + uploadBackoffMs(u.attempt);
+        return;
+      }
 
       const batch = u.queue.splice(0, UPLOAD_LEGACY_BATCH);
       if (batch.length === 0) return;

@@ -787,10 +787,13 @@ python -m http.server 8000</code></pre>
 # Trigger mode: ANALOG
 # Signal threshold: 120 / 4095
 # Event	PC_Timestamp	Time[us]	ADC[0-4095]	Deadtime[us]	Temp[C]	Hum[%]	Press[hPa]	Dig1	Dig2	Dig3	Ana1	Ana2	Ana3
-1	2026-10-07T03:12:45.118Z	18732450	1940	1203000	24.3	48.2	1013.2	1	0	1	2448	112	2804</code></pre>
+1	2026-10-07-03-12-45.118Z	18732450	1940	1203000	24.3	48.2	1013.2	1	0	1	2448	112	2804</code></pre>
     <div class="note note-ok"><svg class="i"><use href="#i-check"/></svg><div>
-      <p><code>#</code> で始まる行はメモと見出しです。Python の pandas なら <code>read_csv(path, sep='\t', comment='#')</code>（.csv は <code>sep</code> なし）で読めます。</p>
+      <p><code>#</code> で始まる行はメモです。Python の pandas で読むときは、<strong>.csv</strong> なら <code>read_csv(path, comment='#')</code> でそのまま読めます（列名の行は <code>#</code> なしで入っています）。<strong>.dat</strong> は列名の行も <code>#</code> で始まるので、<code>comment='#'</code> だけだと最初のイベントが列名として扱われ、1 件欠けます。列名を自分で渡してください。</p>
     </div></div>
+    <pre><code>cols = ['Event', 'PC_Timestamp', 'Time_us', 'ADC', 'Deadtime_us', 'Temp_C', 'Hum_pct', 'Press_hPa',
+        'Dig1', 'Dig2', 'Dig3', 'Ana1', 'Ana2', 'Ana3']
+df = pd.read_csv(path, sep='\t', comment='#', header=None, names=cols)</code></pre>
 
     <!-- ============================================================ -->
     <h2 id="a-commands"><span class="no">付録 B</span>コマンド一覧</h2>

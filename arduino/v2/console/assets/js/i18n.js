@@ -771,7 +771,7 @@ const GLOSSARY = {
     scopeRate: ['レート上限', '1 秒あたりに送ってもらう波形の最大数です。Bluetooth のときは低めにします。'],
     tPeak: ['t_peak', 'トリガーの瞬間から、信号がいちばん高くなるまでの時間です。'],
     env: ['温度・湿度・気圧', '基板の BME280 センサーの値（最新のイベントの時点）。宇宙線の数は気圧によって少し変わります。'],
-    format: ['保存形式', '.dat はタブ区切り、.csv はカンマ区切りのテキストです。どちらも先頭の # の行はメモです（pandas では comment=\'#\'）。'],
+    format: ['保存形式', '.dat はタブ区切り、.csv はカンマ区切りのテキストです。どちらも先頭の # の行はメモです（pandas の .csv は comment=\'#\'。.dat は列名の行も # なので、names で列名を渡します。マニュアルの付録 A）。'],
   },
   en: {
     event: ['Event', 'One count: the detector decided a particle went through. Each one is recorded with its signal size (ADC) and time.'],
@@ -794,7 +794,7 @@ const GLOSSARY = {
     scopeRate: ['Rate limit', 'The most waveforms per second the detector sends. Keep it low over Bluetooth.'],
     tPeak: ['t_peak', 'Time from the trigger to the highest point of the signal.'],
     env: ['Temperature, humidity, pressure', 'Readings of the BME280 sensor on the board at the latest event. The cosmic-ray rate changes slightly with air pressure.'],
-    format: ['File format', '.dat is tab-separated, .csv comma-separated text. In both, lines starting with # are notes (pandas: comment=\'#\').'],
+    format: ['File format', '.dat is tab-separated, .csv comma-separated text. In both, lines starting with # are notes (pandas: comment=\'#\' for .csv; in .dat the column-name row also starts with #, so pass the names yourself, see Appendix A of the manual).'],
   },
 };
 

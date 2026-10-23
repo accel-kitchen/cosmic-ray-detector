@@ -223,12 +223,12 @@ input::placeholder, textarea::placeholder { color: var(--ink-4); }
 .quick-connect { display: flex; align-items: center; gap: 6px; }
 .quick-label { font-size: 13px; color: var(--ink-3); white-space: nowrap; }
 
-.top-right { margin-left: auto; display: flex; align-items: center; gap: 4px; }
+.top-right { margin-left: auto; display: flex; align-items: center; flex-wrap: wrap; justify-content: flex-end; gap: 4px; }
 a.btn { text-decoration: none; }
 .help-links { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
-.lang { display: flex; align-items: center; gap: 2px; margin-left: 10px; font-size: 13px; color: var(--ink-4); }
+.lang { display: flex; align-items: center; flex: none; gap: 2px; margin-left: 10px; font-size: 13px; color: var(--ink-4); }
 .lang button {
-  border: 0; background: none; padding: 4px 5px; cursor: pointer; color: var(--ink-3);
+  border: 0; background: none; padding: 4px 5px; cursor: pointer; color: var(--ink-3); white-space: nowrap;
   text-decoration: underline 2px transparent; text-underline-offset: 6px;
 }
 .lang button:hover { color: var(--ink); }
@@ -518,6 +518,9 @@ body[data-view="scope"] .demo-band {
 }
 body[data-view="scope"] .demo-tag { background: var(--night); color: var(--night-ink); border-color: var(--night-ink-2); }
 body[data-view="scope"] .msg .i { color: var(--night-ink-2); }
+/* The Analysis / Manual links stay on in the night view; keep them readable (they were ink on night, 1.2:1). */
+body[data-view="scope"] .top-right .btn-quiet { color: var(--night-ink); }
+body[data-view="scope"] .top-right .btn-quiet:hover:not(:disabled) { background: var(--night-2); }
 
 .scope-state {
   align-items: center; gap: 10px; padding-left: 16px; border-left: 1px solid var(--night-rule);
@@ -654,6 +657,10 @@ body[data-view="scope"] .msg .i { color: var(--night-ink-2); }
   .charts { grid-template-columns: minmax(0, 1fr); gap: 22px; }
   .chart-box { height: 300px; flex: none; }
   .status-device { display: none; }
+}
+
+@media (max-width: 1100px) {
+  .topbar-row { flex-wrap: wrap; row-gap: 6px; }
 }
 
 @media (max-width: 900px) {

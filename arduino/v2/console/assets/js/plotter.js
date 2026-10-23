@@ -39,6 +39,7 @@ const I18N = {
     'file.loaded': '{name}（{n} 件）',
     'file.none': '{name} — 読める行がありませんでした',
     'file.v1': 'v1 の形式',
+    'file.sessions': '{n} 回の測定を含む（時間は足し合わせ）',
     'hist.dataTitle': 'データと表示の範囲',
     'hist.file': '測定データ',
     'hist.binWidth': 'ビン幅',
@@ -154,6 +155,7 @@ const I18N = {
     'file.loaded': '{name} ({n} events)',
     'file.none': '{name} — no readable rows',
     'file.v1': 'v1 format',
+    'file.sessions': '{n} runs in the file (times are summed)',
     'hist.dataTitle': 'Data and range',
     'hist.file': 'Measurement',
     'hist.binWidth': 'Bin width',
@@ -346,7 +348,7 @@ function switchTab(id) {
 //   v1 page .dat:                   # Event PC_Timestamp Time[ms] ADC[0-1023] SiPM[mV] Deadtime[ms] ...
 // Times end up in microseconds. Without a column row the v2 .dat layout is assumed
 // (Time col 2, ADC col 3, Deadtime col 4, µs), as the original plotter did.
-const DEFAULT_COLS = { time: 2, adc: 3, dead: 4, scale: 1, v1: false };
+const DEFAULT_COLS = { time: 2, adc: 3, dead: 4, event: 0, scale: 1, v1: false };
 
 function splitRow(line) {
   return line.trim().split(/\t|,|\s+/).filter(s => s !== '');
@@ -354,19 +356,29 @@ function splitRow(line) {
 function columnsFromHeader(line) {
   const names = splitRow(line.replace(/^#+/, '')).map(s => s.toLowerCase());
   const find = re => names.findIndex(n => re.test(n));
-  const time = find(/^time/), adc = find(/^adc/), dead = find(/^dead/);
+  const time = find(/^time/), adc = find(/^adc/), dead = find(/^dead/), event = find(/^event/);
   if (time < 0 || adc < 0) return null;
   const ms = /ms/.test(names[time]);
-  return { time, adc, dead, scale: ms ? 1000 : 1, v1: ms };
+  return { time, adc, dead, event, scale: ms ? 1000 : 1, v1: ms };
 }
 
+// A file can hold several measurements one after another: the recorder appends to one file
+// per day, so stopping and restarting (or a RESET / reboot) puts a second run in the same
+// file. The board's counters start over at each run, so one run ends where the event number
+// or the time or the cumulative deadtime goes backwards. Spans and dead time are summed per
+// run; measured over the whole file the duration, the live time and the background scale
+// would all be wrong (P-1).
 function parseDataFile(text) {
   const lines = text.split(/\r?\n/);
   const adc = [];
   const times = [];   // per-event time [µs] (NaN when unparseable)
   const deads = [];   // per-event cumulative deadtime [µs] (NaN when unparseable)
+  const segs = [];    // per-event run number (0, 1, ...)
+  const cums = [];    // per-event time since the first event, runs laid end to end [µs] (NaN without a time)
   let cols = DEFAULT_COLS;
-  let minTime = Infinity, maxTime = -Infinity;
+  let seg = 0, prevT = NaN, prevD = NaN, prevN = NaN;
+  let segStartT = NaN, segMaxT = NaN, cumBefore = 0;   // cumBefore = span of the finished runs
+  let sawEvent = false;
   for (const line of lines) {
     if (!line) continue;
     if (line.charAt(0) === '#' || /^[A-Za-z]/.test(line.trim())) {
@@ -380,31 +392,57 @@ function parseDataFile(text) {
     if (isNaN(v)) continue;
     const t = parseFloat(f[cols.time]) * cols.scale;
     const d = cols.dead >= 0 ? parseFloat(f[cols.dead]) * cols.scale : NaN;
+    const n = (cols.event >= 0 && cols.event < f.length) ? parseInt(f[cols.event], 10) : NaN;
+    if (sawEvent && ((!isNaN(t) && !isNaN(prevT) && t < prevT) ||
+                     (!isNaN(d) && !isNaN(prevD) && d < prevD) ||
+                     (!isNaN(n) && !isNaN(prevN) && n <= prevN))) {
+      // a new run starts: the finished one contributes its own span
+      if (!isNaN(segMaxT) && !isNaN(segStartT)) cumBefore += segMaxT - segStartT;
+      seg++;
+      segStartT = NaN; segMaxT = NaN;
+    }
+    sawEvent = true;
+    if (!isNaN(t)) {
+      if (isNaN(segStartT)) segStartT = t;
+      if (isNaN(segMaxT) || t > segMaxT) segMaxT = t;
+    }
     adc.push(v);
     times.push(t);
     deads.push(d);
-    if (!isNaN(t)) { if (t < minTime) minTime = t; if (t > maxTime) maxTime = t; }
+    segs.push(seg);
+    cums.push(isNaN(t) || isNaN(segStartT) ? NaN : cumBefore + (t - segStartT));
+    if (!isNaN(t)) prevT = t;
+    if (!isNaN(d)) prevD = d;
+    if (!isNaN(n)) prevN = n;
   }
-  const t0 = (minTime === Infinity) ? 0 : minTime;                      // first event time [µs]
-  const duration = (maxTime > minTime) ? (maxTime - minTime) / 1e6 : 0;  // total span [s]
-  const liveTime = computeLiveTime(times, deads);
-  return { adc, times, deads, t0, duration, liveTime, v1: cols.v1 };
+  if (!isNaN(segMaxT) && !isNaN(segStartT)) cumBefore += segMaxT - segStartT;   // the last run
+  const firstT = times.find(x => !isNaN(x));
+  const t0 = firstT === undefined ? 0 : firstT;      // first event time [µs]
+  const duration = cumBefore / 1e6;                  // sum of the runs' spans [s]
+  const liveTime = computeLiveTime(times, deads, segs);
+  return { adc, times, deads, segs, cums, t0, duration, liveTime, sessions: sawEvent ? seg + 1 : 0, v1: cols.v1 };
 }
 
 // Live time [µs] = elapsed span - accumulated deadtime over the given events.
 // deads is the firmware's cumulative deadtime counter, so its span = dead time
-// spent between the first and last event in the set.
-function computeLiveTime(times, deads) {
-  let minT = Infinity, maxT = -Infinity, minD = Infinity, maxD = -Infinity;
+// spent between the first and last event in the set. Computed per run (segs) and summed.
+function computeLiveTime(times, deads, segs) {
+  const runs = new Map();   // run number -> { minT, maxT, minD, maxD }
   for (let i = 0; i < times.length; i++) {
+    const key = segs ? segs[i] : 0;
+    let r = runs.get(key);
+    if (!r) { r = { minT: Infinity, maxT: -Infinity, minD: Infinity, maxD: -Infinity }; runs.set(key, r); }
     const tt = times[i], d = deads[i];
-    if (!isNaN(tt)) { if (tt < minT) minT = tt; if (tt > maxT) maxT = tt; }
-    if (!isNaN(d)) { if (d < minD) minD = d; if (d > maxD) maxD = d; }
+    if (!isNaN(tt)) { if (tt < r.minT) r.minT = tt; if (tt > r.maxT) r.maxT = tt; }
+    if (!isNaN(d)) { if (d < r.minD) r.minD = d; if (d > r.maxD) r.maxD = d; }
   }
-  if (maxT <= minT) return 0;
-  const elapsed = maxT - minT;
-  const dead = (maxD >= minD && maxD !== -Infinity) ? (maxD - minD) : 0;
-  return Math.max(0, elapsed - dead);
+  let live = 0;
+  for (const r of runs.values()) {
+    if (r.maxT <= r.minT) continue;
+    const dead = (r.maxD >= r.minD && r.maxD !== -Infinity) ? (r.maxD - r.minD) : 0;
+    live += Math.max(0, (r.maxT - r.minT) - dead);
+  }
+  return live;
 }
 
 function readFile(input, onText) {
@@ -418,7 +456,7 @@ function readFile(input, onText) {
 // File names shown under the pickers (kept as state so a language switch can redraw them).
 const fileLabels = { fileName: null, bgFileName: null, calFileName: null };
 function setFileLabel(id, name, data) {
-  fileLabels[id] = { name, n: data.adc.length, v1: data.v1 };
+  fileLabels[id] = { name, n: data.adc.length, v1: data.v1, sessions: data.sessions };
   renderFileNames();
 }
 function renderFileNames() {
@@ -429,13 +467,14 @@ function renderFileNames() {
     el.classList.add('has');
     let s = f.n ? t('file.loaded', { name: f.name, n: f.n.toLocaleString() }) : t('file.none', { name: f.name });
     if (f.n && f.v1) s += ' · ' + t('file.v1');
+    if (f.n && f.sessions > 1) s += ' · ' + t('file.sessions', { n: f.sessions });
     el.textContent = s;
     el.title = s;
   }
 }
 
 // ========== ADC histogram ==========
-let signal = { adc: [], times: [], deads: [], t0: 0, duration: 0, liveTime: 0 };
+let signal = { adc: [], times: [], deads: [], segs: [], cums: [], t0: 0, duration: 0, liveTime: 0, sessions: 0 };
 let background = null;
 
 // Auto BG scale = signal live time / background live time (units cancel in the ratio).
@@ -461,14 +500,14 @@ function getTimeWindow() {
 function windowedSignal() {
   const { from, to } = getTimeWindow();
   if (from <= 0 && to === Infinity) return { adc: signal.adc, liveTime: signal.liveTime };
-  const adc = [], times = [], deads = [];
+  const adc = [], times = [], deads = [], segs = [];
   for (let i = 0; i < signal.adc.length; i++) {
     const tt = signal.times[i];
     if (isNaN(tt)) continue;   // events without a timestamp can't be windowed
-    const rel = (tt - signal.t0) / 1e6;
-    if (rel >= from && rel <= to) { adc.push(signal.adc[i]); times.push(tt); deads.push(signal.deads[i]); }
+    const rel = signal.cums[i] / 1e6;   // seconds from the start, with the runs laid end to end
+    if (rel >= from && rel <= to) { adc.push(signal.adc[i]); times.push(tt); deads.push(signal.deads[i]); segs.push(signal.segs[i]); }
   }
-  return { adc, liveTime: computeLiveTime(times, deads) };
+  return { adc, liveTime: computeLiveTime(times, deads, segs) };
 }
 
 function updateTimeHints() {
@@ -778,7 +817,7 @@ function updateZenithPlots(fitResult) {
 // ========== Energy calibration ==========
 const CAL_KEY = 'crd_energy_cal_v1';   // same key as the original plotter, so saved calibrations carry over
 
-let calSignal = { adc: [], times: [], deads: [], t0: 0, duration: 0, liveTime: 0 };
+let calSignal = { adc: [], times: [], deads: [], segs: [], cums: [], t0: 0, duration: 0, liveTime: 0, sessions: 0 };
 // calibration: null when not calibrated, else one of
 //   { model:'linear',    a, b,       r2, n, seA, seB,        valid } → E = a·ADC + b
 //   { model:'quadratic', c2, c1, c0, r2, n, seC2, seC1, seC0, valid } → E = c2·ADC² + c1·ADC + c0

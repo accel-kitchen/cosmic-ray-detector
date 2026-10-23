@@ -611,6 +611,7 @@ const I18N = {
     'conn.addrUnknown': '取得できません（古いファーム）',
     'conn.browserId': 'ブラウザ ID',
     'warn.noSerial': 'このブラウザでは USB 接続（Web Serial）が使えません。Chrome か Edge で開いてください。',
+    'warn.noCharts': 'グラフ用のライブラリ（Chart.js）を読み込めませんでした（インターネットにつながっていない可能性があります）。グラフは出ませんが、数値・表・自動保存・オシロは動きます。',
     'warn.noBle': 'このブラウザでは Bluetooth 接続（Web Bluetooth）が使えません。Chrome か Edge で開いてください。',
     'err.usb': 'USB でつなげませんでした: {msg}',
     'err.usbOpen': 'シリアルポートを開けませんでした（{msg}）。ポートを使っている他のアプリ（Arduino IDE のシリアルモニタ、別のブラウザタブなど）を閉じてから、もう一度試してください。',
@@ -862,6 +863,7 @@ const I18N = {
     'conn.addrUnknown': 'unavailable (older firmware)',
     'conn.browserId': 'Browser ID',
     'warn.noSerial': 'This browser cannot connect over USB (Web Serial). Please open the page in Chrome or Edge.',
+    'warn.noCharts': 'The chart library (Chart.js) could not be loaded (the PC may be offline). The charts are off, but the numbers, the table, auto-save and the scope still work.',
     'warn.noBle': 'This browser cannot connect over Bluetooth (Web Bluetooth). Please open the page in Chrome or Edge.',
     'err.usb': 'Could not connect over USB: {msg}',
     'err.usbOpen': 'Could not open the serial port ({msg}). Close any other app using the port (the Arduino IDE serial monitor, another browser tab) and try again.',
@@ -1131,6 +1133,13 @@ function applyLanguage() {
 }
 
 // ========== State ==========
+function newStats() {
+  return {
+    nTemp: 0, sumTemp: 0, sumTemp2: 0, minTemp: Infinity, maxTemp: -Infinity,
+    sumDead: 0, sumAdc: 0, maxAdc: 0, sumSipm: 0
+  };
+}
+
 const state = {
   port: null,
   reader: null,
@@ -1153,20 +1162,18 @@ const state = {
   sessionStart: null,
   rawLines: [],
   // インクリメンタル統計用
-  stats: {
-    sumTemp: 0, sumTemp2: 0, minTemp: Infinity, maxTemp: -Infinity,
-    sumDead: 0, sumAdc: 0, maxAdc: 0, sumSipm: 0
-  },
+  stats: newStats(),
+  rate: newRateState(),   // 計数率（基板のカウンタの区間）
   mode: null,  // null=不明, 0=Master(単体), 1=Slave(コインシデンス)
   threshSig: null,  // 直近のTHRESH:応答（言語切替時の再描画用）
   threshRst: null,
   // 自動保存用
   autoSave: {
     dirHandle: null,   // FileSystemDirectoryHandle
-    pending: [],       // 書き込み待ちのデータ行
-    currentDate: null, // 現在の日付文字列 (YYYY-MM-DD)
-    currentBase: null, // 直近に書いたファイル名の頭（DEMO_ が付くか）。変わったらヘッダを書き直す
+    queues: { dat: [], csv: [] },  // 書き込み待ちのイベント。形式ごとに持つので、片方だけ失敗しても重複しない
+    currentDate: null, // 直近に書いたファイルの日付 (YYYY-MM-DD)。表示用
     lineCount: 0,      // 書き込み済みイベント数
+    lastError: null,   // 直近の書き込みエラー。成功するまで画面に残す
     enabled: false,
   },
 };
@@ -1540,6 +1547,7 @@ function applyHistScale() {
 }
 
 function rebuildHistogram() {
+  if (!histogramChart) return;   // グラフ用ライブラリが読めなかったとき
   const binWidth = parseInt($('binWidth').value);
   const numBins = Math.ceil((state.adcMax + 1) / binWidth);
   const counts = new Array(numBins).fill(0);
@@ -1656,7 +1664,7 @@ function handleBLEData(event) {
   const lines = state.ble.buffer.split('\n');
   state.ble.buffer = lines.pop();
   for (const line of lines) {
-    processLine(line.trim());
+    try { processLine(line.trim()); } catch (e) { console.error('processLine error:', e, line); }
   }
 }
 
@@ -1749,7 +1757,7 @@ async function readLoop(port) {
       const lines = buffer.split('\n');
       buffer = lines.pop();
       for (const line of lines) {
-        processLine(line.trim());
+        try { processLine(line.trim()); } catch (e) { console.error('processLine error:', e, line); }
       }
     }
   } catch (e) {
@@ -2350,7 +2358,9 @@ function isDemoData() {
 
 // 保存するファイルの名前の頭。デモのデータには "DEMO_" を付ける。
 function fileBase() {
-  return (isDemoData() ? 'DEMO_' : '') + ($('filePrefix').value || 'CosmicRay');
+  // ファイル名に使えない文字は _ にする（v2 の getFileBase と同じ）
+  const name = ($('filePrefix').value || 'CosmicRay').trim().replace(/[^A-Za-z0-9_\-]/g, '_') || 'CosmicRay';
+  return (isDemoData() ? 'DEMO_' : '') + name;
 }
 
 function demoFileNote() {
@@ -2544,8 +2554,9 @@ function processLine(line) {
   }
 
   // Parse data line
+  // Nano は 6 項目、ESP32-S3 は末尾にモードが付いて 7 項目。それ以外（行が連結した・欠けた）は捨てる。
   const parts = line.split(/\s+/);
-  if (parts.length < 6) return;
+  if (parts.length !== 6 && parts.length !== 7) return;
 
   const event = {
     count: parseInt(parts[0]),
@@ -2558,11 +2569,17 @@ function processLine(line) {
     // データ行にモードは含まれない（6項目=互換性維持）ため、受信時点で判明している
     // モード（state.mode: MODE:応答で更新）でタグ付けする。これにより各イベント行・
     // エクスポートに、そのイベント取得時のMaster/Slaveが正しく記録される。
-    mode_flag: parts.length >= 7 ? parseInt(parts[6]) : state.mode,
+    mode_flag: parts.length === 7 ? Number(parts[6]) : state.mode,
     demo: state.transport === 'demo'   // 合成データの印（デモをやめたあとも、帯とファイル名に効く）
   };
 
-  if (isNaN(event.count) || isNaN(event.adc)) return;
+  // 範囲の検査。つながった行は、桁が崩れた値（ADC が 4095 超など）になりやすい。温度だけは、センサーなしの nan を許す。
+  if (!(Number.isInteger(event.count) && event.count >= 1 &&
+        Number.isInteger(event.timestamp_ms) && event.timestamp_ms >= 0 &&
+        Number.isInteger(event.adc) && event.adc >= 0 && event.adc <= 4095 &&
+        Number.isFinite(event.sipm_mv) &&
+        Number.isInteger(event.deadtime_ms) && event.deadtime_ms >= 0)) return;
+  if (parts.length === 7 && event.mode_flag !== 0 && event.mode_flag !== 1) return;
 
   // バッジは原則 MODE: 応答（接続時のGET_MODE / SET_MODEのエコー）で駆動する。
   // 現行ファームは6項目データ行のため mode_flag===state.mode となり下のブロックは何もしない。
@@ -2572,20 +2589,26 @@ function processLine(line) {
     updateModeBadge(state.mode);
   }
 
+  rateTrack(event);
   state.events.push(event);
   pingLiveDot();
 
   // 自動保存バッファに追加
   if (state.autoSave.enabled) {
-    state.autoSave.pending.push(event);
+    const fmt = $('autoSaveFormat').value;
+    if (fmt === 'dat' || fmt === 'both') state.autoSave.queues.dat.push(event);
+    if (fmt === 'csv' || fmt === 'both') state.autoSave.queues.csv.push(event);
   }
 
   // インクリメンタル統計更新
   const s = state.stats;
-  s.sumTemp += event.temp_c;
-  s.sumTemp2 += event.temp_c * event.temp_c;
-  if (event.temp_c < s.minTemp) s.minTemp = event.temp_c;
-  if (event.temp_c > s.maxTemp) s.maxTemp = event.temp_c;
+  if (Number.isFinite(event.temp_c)) {   // センサーがないと nan が来る
+    s.nTemp++;
+    s.sumTemp += event.temp_c;
+    s.sumTemp2 += event.temp_c * event.temp_c;
+    if (event.temp_c < s.minTemp) s.minTemp = event.temp_c;
+    if (event.temp_c > s.maxTemp) s.maxTemp = event.temp_c;
+  }
   s.sumDead += event.deadtime_ms;
   s.sumAdc += event.adc;
   if (event.adc > s.maxAdc) s.maxAdc = event.adc;
@@ -2595,10 +2618,12 @@ function processLine(line) {
   const binWidth = parseInt($('binWidth').value);
   const numBins = Math.ceil((state.adcMax + 1) / binWidth);
   const bin = Math.min(Math.floor(event.adc / binWidth), numBins - 1);
-  if (histogramChart.data.datasets[0].data.length === numBins) {
-    histogramChart.data.datasets[0].data[bin]++;
-  } else {
-    rebuildHistogram();
+  if (histogramChart) {
+    if (histogramChart.data.datasets[0].data.length === numBins) {
+      histogramChart.data.datasets[0].data[bin]++;
+    } else {
+      rebuildHistogram();
+    }
   }
 
   // Enable export buttons
@@ -2619,7 +2644,7 @@ function processLine(line) {
 function updateUI() {
   updateTable();
   updateStats();
-  histogramChart.update();
+  if (histogramChart) histogramChart.update();
   $('noDataMsg').style.display = state.events.length > 0 ? 'none' : '';
 }
 
@@ -2630,8 +2655,9 @@ function updateTable() {
   const events = state.events;
   const maxRows = 100;
 
-  // 新しいイベントのみ追加
-  for (let i = lastTableLength; i < events.length; i++) {
+  // 新しいイベントのみ追加。残るのは最新の maxRows 件だけなので、それより前は作らない
+  // （背景のタブから戻ったとき、溜まった全件ぶんの行を作って固まるのを避ける）。
+  for (let i = Math.max(lastTableLength, events.length - maxRows); i < events.length; i++) {
     const ev = events[i];
     const ts = new Date(ev.pc_timestamp).toISOString().replace('T', ' ').substring(0, 23);
     const row = tbody.insertRow(0);
@@ -2642,7 +2668,7 @@ function updateTable() {
       <td>${ev.adc}</td>
       <td>${ev.sipm_mv.toFixed(2)}</td>
       <td>${ev.deadtime_ms}</td>
-      <td>${ev.temp_c.toFixed(1)}</td>
+      <td>${tempStr(ev)}</td>
       <td>${modeLabel}</td>`;
   }
   lastTableLength = events.length;
@@ -2653,6 +2679,69 @@ function updateTable() {
   }
 }
 
+// ========== 計数率（基板のカウンタ） ==========
+// 「受信したイベント数 ÷ 最後の基板時刻」では、オシロで止めていた時間や、動作中の基板への
+// 途中接続、データ消去、つなぎ直し（Nano は USB を開くたびに再起動する）で値が狂う。
+// v2 と同じく、基板の count / time / deadtime の差を区間ごとに取り、ライブタイムで割る。
+// 区間は、カウンタが戻ったとき（RESET・再起動）に閉じて、あとで足し合わせる。
+// 合計は「データを消去」からの値（総イベント数・ヒストグラムと同じ範囲）。
+function newRateState() {
+  return {
+    seg: null,   // { base: {count,timeMs,deadMs}, last: {count,timeMs,deadMs} }
+    done: { counts: 0, elapsedMs: 0, deadMs: 0 },   // 閉じた区間の合計
+  };
+}
+
+function rateBaseOf(ev) {
+  // count が 1 なら、基板が数え始めた直後（起動・RESET）なので、0 からこのイベントまでも数える。
+  return ev.count === 1
+    ? { count: 0, timeMs: 0, deadMs: 0 }
+    : { count: ev.count, timeMs: ev.timestamp_ms, deadMs: ev.deadtime_ms };
+}
+
+function rateSegDiff(seg) {
+  if (!seg || !seg.last) return { counts: 0, elapsedMs: 0, deadMs: 0 };
+  return {
+    counts:    seg.last.count  - seg.base.count,
+    elapsedMs: seg.last.timeMs - seg.base.timeMs,
+    deadMs:    seg.last.deadMs - seg.base.deadMs,
+  };
+}
+
+function rateCloseSegment() {
+  const r = state.rate;
+  if (!r.seg) return;
+  const d = rateSegDiff(r.seg);
+  r.done.counts    += d.counts;
+  r.done.elapsedMs += d.elapsedMs;
+  r.done.deadMs    += d.deadMs;
+  r.seg = null;
+}
+
+function rateTrack(ev) {
+  const r = state.rate;
+  if (r.seg && (ev.count <= r.seg.last.count || ev.timestamp_ms < r.seg.last.timeMs ||
+                ev.deadtime_ms < r.seg.last.deadMs)) {
+    rateCloseSegment();
+  }
+  if (!r.seg) r.seg = { base: rateBaseOf(ev), last: null };
+  r.seg.last = { count: ev.count, timeMs: ev.timestamp_ms, deadMs: ev.deadtime_ms };
+}
+
+function rateSummary() {
+  const r = state.rate;
+  const d = rateSegDiff(r.seg);
+  const counts    = r.done.counts    + d.counts;
+  const elapsedMs = r.done.elapsedMs + d.elapsedMs;
+  const deadMs    = r.done.deadMs    + d.deadMs;
+  const liveSec   = (elapsedMs - deadMs) / 1000;
+  return {
+    counts, elapsedMs, deadMs,
+    rate:    liveSec > 0 ? counts / liveSec : 0,
+    rateStd: liveSec > 0 ? Math.sqrt(counts) / liveSec : 0,
+  };
+}
+
 function updateStats() {
   const events = state.events;
   const n = events.length;
@@ -2661,37 +2750,36 @@ function updateStats() {
 
   if (n === 0) return;
 
-  // Elapsed time
-  const elapsedMs = events[n - 1].timestamp_ms;
-  const elapsedStr = formatTime(elapsedMs);
+  // 経過時間と計数率は、基板のカウンタから（区間ごとに、ライブタイムで割る）
+  const r = rateSummary();
+  const elapsedStr = formatTime(r.elapsedMs);
   $('statElapsed').textContent = elapsedStr;
-  $('ds_elapsed').textContent = elapsedStr + ` (${(elapsedMs / 1000).toFixed(1)}s)`;
-
-  // Average rate
-  const elapsedSec = elapsedMs / 1000;
-  const rate = elapsedSec > 0 ? (n / elapsedSec) : 0;
-  $('statRate').textContent = rate.toFixed(3);
-  $('ds_rate').textContent = rate.toFixed(4) + ' cps';
-
-  // Rate std
-  const rateStd = elapsedSec > 0 ? (Math.sqrt(n) / elapsedSec) : 0;
-  $('ds_rateStd').textContent = rateStd.toFixed(4) + ' cps';
-  $('statRateErr').textContent = elapsedSec > 0 ? rateStd.toFixed(3) : '—';
+  $('ds_elapsed').textContent = elapsedStr + ` (${(r.elapsedMs / 1000).toFixed(1)}s)`;
+  $('statRate').textContent = r.rate.toFixed(3);
+  $('ds_rate').textContent = r.rate.toFixed(4) + ' cps';
+  $('ds_rateStd').textContent = r.rateStd.toFixed(4) + ' cps';
+  $('statRateErr').textContent = r.rate > 0 ? r.rateStd.toFixed(3) : '—';
 
   // インクリメンタル統計から計算（ループ不要）
   const s = state.stats;
-  const avgTemp = s.sumTemp / n;
-  const tempStd = Math.sqrt(s.sumTemp2 / n - avgTemp * avgTemp);
   const avgDead = s.sumDead / n;
   const avgAdc = s.sumAdc / n;
   const avgSipm = s.sumSipm / n;
 
-  $('statTemp').textContent = avgTemp.toFixed(1);
+  if (s.nTemp > 0) {
+    const avgTemp = s.sumTemp / s.nTemp;
+    // 丸め誤差で √ の中が負になると NaN になる
+    const tempStd = Math.sqrt(Math.max(0, s.sumTemp2 / s.nTemp - avgTemp * avgTemp));
+    $('statTemp').textContent = avgTemp.toFixed(1);
+    $('ds_temp').textContent = avgTemp.toFixed(2) + ' °C';
+    $('ds_tempStd').textContent = tempStd.toFixed(2) + ' °C';
+    $('ds_tempMax').textContent = s.maxTemp.toFixed(1) + ' °C';
+    $('ds_tempMin').textContent = s.minTemp.toFixed(1) + ' °C';
+  } else {
+    $('statTemp').textContent = '--';
+    for (const id of ['ds_temp', 'ds_tempStd', 'ds_tempMax', 'ds_tempMin']) $(id).textContent = '--';
+  }
   $('statDeadtime').textContent = avgDead.toFixed(0);
-  $('ds_temp').textContent = avgTemp.toFixed(2) + ' °C';
-  $('ds_tempStd').textContent = tempStd.toFixed(2) + ' °C';
-  $('ds_tempMax').textContent = s.maxTemp.toFixed(1) + ' °C';
-  $('ds_tempMin').textContent = s.minTemp.toFixed(1) + ' °C';
   $('ds_deadtime').textContent = avgDead.toFixed(1) + ' ms';
   $('ds_adcMean').textContent = avgAdc.toFixed(1);
   $('ds_adcMax').textContent = s.maxAdc;
@@ -2715,73 +2803,96 @@ async function selectSaveFolder() {
     const as = state.autoSave;
     as.dirHandle = dirHandle;
     as.enabled = true;
-    as.currentDate = null;  // 次回 flush 時にヘッダーを書かせる
-    as.lineCount = 0;
+    as.currentDate = null;
+    as.lastError = null;
+    as.lineCount = 0;   // ヘッダーは「ファイルが空のとき」に書くので、選び直しても二重にならない
     updateAutoSaveUI();
   } catch (e) {
     if (e.name !== 'AbortError') console.error('Folder select error:', e);
   }
 }
 
-// ファイル末尾に追記する
-async function appendToFile(dirHandle, filename, content) {
+// ファイル末尾に追記する。ファイルが空のときだけ、先頭にヘッダーを付ける
+// （フォルダを選び直した・同じ日に再読み込みした、でヘッダーが二重にならない）。
+// 書き込みに失敗したら一時ファイルを捨てて、呼び出し側に投げる。
+async function appendToFile(dirHandle, filename, content, header) {
   const fileHandle = await dirHandle.getFileHandle(filename, { create: true });
   const file = await fileHandle.getFile();
   const writable = await fileHandle.createWritable({ keepExistingData: true });
-  await writable.seek(file.size);
-  await writable.write(content);
-  await writable.close();
+  try {
+    await writable.seek(file.size);
+    await writable.write((file.size === 0 && header ? header : '') + content);
+    await writable.close();
+  } catch (e) {
+    try { await writable.abort(); } catch (_) {}
+    throw e;
+  }
 }
 
-// バッファをまとめてファイルに書き込む（1秒インターバルで呼ばれる）
-async function flushAutoSave() {
+function tempStr(ev) { return Number.isFinite(ev.temp_c) ? ev.temp_c.toFixed(1) : ''; }
+
+function datLine(ev) {
+  const pcTs = new Date(ev.pc_timestamp).toISOString().replace('T', '-').replace(/:/g, '-').substring(0, 26);
+  return `${ev.count}\t${pcTs}\t${ev.timestamp_ms}\t${ev.adc}\t${ev.sipm_mv.toFixed(6)}\t${ev.deadtime_ms}\t${tempStr(ev)}\t${ev.mode_flag ?? 0}\n`;
+}
+function csvLine(ev) {
+  return `${ev.count},${new Date(ev.pc_timestamp).toISOString()},${ev.timestamp_ms},${ev.adc},${ev.sipm_mv.toFixed(6)},${ev.deadtime_ms},${tempStr(ev)},${ev.mode_flag ?? 0}\n`;
+}
+function datFileHeader() {
+  const comment = $('fileComment').value;
+  let h = '';
+  if (comment) h += '# ' + comment.replace(/\n/g, '\n# ') + '\n';
+  return h + demoFileNote() + datHeaderLine();
+}
+
+// バッファをまとめてファイルに書き込む（1 秒ごと、ページを隠す・閉じるときは force で即時）。
+//  - 実行中は次の呼び出しを待たせる（二重に走らない）。force のときは実行中のものが終わってから書く。
+//  - 書けたぶんだけキューから外す。失敗したぶんは残り、次の周期でやり直す。
+//  - 書き込み先（フォルダ・ファイル名）は最初に固定する。途中で変わっても混ざらない。
+let autoSaveRun = null;
+async function flushAutoSave(force) {
   const as = state.autoSave;
   if (!as.enabled || !as.dirHandle) return;
+  if (autoSaveRun) {
+    if (!force) return;
+    try { await autoSaveRun; } catch (_) {}
+    if (!as.enabled || !as.dirHandle) return;
+  }
+  autoSaveRun = flushAutoSaveNow();
+  try { await autoSaveRun; } finally { autoSaveRun = null; }
+}
 
+async function flushAutoSaveNow() {
+  const as = state.autoSave;
+  const dir = as.dirHandle;
   const today = new Date().toISOString().substring(0, 10);  // YYYY-MM-DD
   const prefix = fileBase();
-  const format = $('autoSaveFormat').value;
+  let wroteAny = false;
+  let counted = 0;       // 書き込み済み件数は、主な形式（.csv だけなら csv、それ以外は dat）で数える
+  let failure = null;
+  const primary = $('autoSaveFormat').value === 'csv' ? 'csv' : 'dat';
 
-  // 日付が変わった、ファイル名の頭が変わった（デモ ⇄ 実機）、または初回の場合はヘッダー行を書く
-  if (today !== as.currentDate || prefix !== as.currentBase) {
-    as.currentDate = today;
-    as.currentBase = prefix;
-    const comment = $('fileComment').value;
-    let headerDat = '';
-    if (comment) headerDat += '# ' + comment.replace(/\n/g, '\n# ') + '\n';
-    headerDat += demoFileNote() + datHeaderLine();
-    const headerCsv = csvHeaderLine();
+  for (const fmt of ['dat', 'csv']) {
+    const queue = as.queues[fmt];
+    if (queue.length === 0) continue;
+    const batch = queue.slice();
+    const lines = batch.map(fmt === 'dat' ? datLine : csvLine).join('');
     try {
-      if (format === 'dat' || format === 'both') await appendToFile(as.dirHandle, `${prefix}_${today}.dat`, headerDat);
-      if (format === 'csv' || format === 'both') await appendToFile(as.dirHandle, `${prefix}_${today}.csv`, headerCsv);
+      await appendToFile(dir, `${prefix}_${today}.${fmt}`, lines, fmt === 'dat' ? datFileHeader() : csvHeaderLine());
+      queue.splice(0, batch.length);   // 書けたぶんだけ外す（その間に届いたイベントは後ろに残る）
+      wroteAny = true;
+      if (fmt === primary) counted += batch.length;
     } catch (e) {
-      console.error('Auto-save header write error:', e);
+      console.error('Auto-save write error:', e);
+      failure = e;
     }
   }
 
-  if (as.pending.length === 0) return;
-
-  const batch = as.pending.splice(0);  // バッファを取り出しクリア
-  let datLines = '';
-  let csvLines = '';
-  for (const ev of batch) {
-    const pcTs = new Date(ev.pc_timestamp).toISOString().replace('T', '-').replace(/:/g, '-').substring(0, 26);
-    datLines += `${ev.count}\t${pcTs}\t${ev.timestamp_ms}\t${ev.adc}\t${ev.sipm_mv.toFixed(6)}\t${ev.deadtime_ms}\t${ev.temp_c.toFixed(1)}\t${ev.mode_flag ?? 0}\n`;
-    csvLines += `${ev.count},${new Date(ev.pc_timestamp).toISOString()},${ev.timestamp_ms},${ev.adc},${ev.sipm_mv.toFixed(6)},${ev.deadtime_ms},${ev.temp_c.toFixed(1)},${ev.mode_flag ?? 0}\n`;
-  }
-
-  try {
-    if (format === 'dat' || format === 'both') await appendToFile(as.dirHandle, `${prefix}_${today}.dat`, datLines);
-    if (format === 'csv' || format === 'both') await appendToFile(as.dirHandle, `${prefix}_${today}.csv`, csvLines);
-    as.lineCount += batch.length;
-    updateAutoSaveUI();
-  } catch (e) {
-    console.error('Auto-save write error:', e);
-    const el = $('autoSaveStatus');
-    el.hidden = false;
-    el.className = 'autosave-status as-error';
-    el.innerHTML = `<div class="as-head">${esc(t('autosave.writeError', { msg: e.message }))}</div>`;
-  }
+  if (wroteAny) as.currentDate = today;
+  as.lineCount += counted;
+  if (failure) as.lastError = t('autosave.writeError', { msg: failure.message });
+  else if (wroteAny) as.lastError = null;
+  if (wroteAny || failure) updateAutoSaveUI();
 }
 
 function updateAutoSaveUI() {
@@ -2802,8 +2913,8 @@ function updateAutoSaveUI() {
   const format = $('autoSaveFormat').value;
   const ext = format === 'both' ? '.dat / .csv' : '.' + format;
   el.hidden = false;
-  el.className = 'autosave-status';
-  el.innerHTML = `<div class="as-head">${esc(t('autosave.saving'))}</div>` +
+  el.className = 'autosave-status' + (as.lastError ? ' as-error' : '');
+  el.innerHTML = `<div class="as-head">${esc(as.lastError || t('autosave.saving'))}</div>` +
                  `<div class="as-file">${esc(`${prefix}_${as.currentDate || '...'}${ext}`)}</div>` +
                  `<div class="as-count">${esc(t('autosave.written', { n: as.lineCount }))}</div>`;
 }
@@ -2927,7 +3038,7 @@ function updateConnectionUI(connected) {
 
 // ========== Rate Calculation ==========
 function updateRateChart() {
-  if (state.events.length === 0) return;
+  if (!rateChart || state.events.length === 0) return;
 
   const now = Date.now();
   const windowMs = 10000;
@@ -2962,7 +3073,7 @@ function exportDat() {
 
   for (const ev of state.events) {
     const pcTs = new Date(ev.pc_timestamp).toISOString().replace('T', '-').replace(/:/g, '-').substring(0, 26);
-    content += `${ev.count}\t${pcTs}\t${ev.timestamp_ms}\t${ev.adc}\t${ev.sipm_mv.toFixed(6)}\t${ev.deadtime_ms}\t${ev.temp_c.toFixed(1)}\t${ev.mode_flag ?? 0}\n`;
+    content += `${ev.count}\t${pcTs}\t${ev.timestamp_ms}\t${ev.adc}\t${ev.sipm_mv.toFixed(6)}\t${ev.deadtime_ms}\t${tempStr(ev)}\t${ev.mode_flag ?? 0}\n`;
   }
 
   downloadFile(`${prefix}_${dateStr}.dat`, content);
@@ -2974,7 +3085,7 @@ function exportCsv() {
 
   let content = csvHeaderLine();
   for (const ev of state.events) {
-    content += `${ev.count},${new Date(ev.pc_timestamp).toISOString()},${ev.timestamp_ms},${ev.adc},${ev.sipm_mv.toFixed(6)},${ev.deadtime_ms},${ev.temp_c.toFixed(1)},${ev.mode_flag ?? 0}\n`;
+    content += `${ev.count},${new Date(ev.pc_timestamp).toISOString()},${ev.timestamp_ms},${ev.adc},${ev.sipm_mv.toFixed(6)},${ev.deadtime_ms},${tempStr(ev)},${ev.mode_flag ?? 0}\n`;
   }
 
   downloadFile(`${prefix}_${dateStr}.csv`, content);
@@ -3576,10 +3687,8 @@ $('btnClearData').addEventListener('click', async () => {
   state.events = [];
   state.rateHistory = [];
   state.rawLines = [];
-  state.stats = {
-    sumTemp: 0, sumTemp2: 0, minTemp: Infinity, maxTemp: -Infinity,
-    sumDead: 0, sumAdc: 0, maxAdc: 0, sumSipm: 0
-  };
+  state.stats = newStats();
+  state.rate = newRateState();   // 基準を取り直す（Nano には RESET がないので、ページ側で持つ）
   lastTableLength = 0;
   $('dataTableBody').innerHTML = '';
   $('rawDataDisplay').textContent = t('raw.waiting');
@@ -3587,9 +3696,11 @@ $('btnClearData').addEventListener('click', async () => {
   $('btnExportDat').disabled = true;
   $('btnExportCsv').disabled = true;
   rebuildHistogram();
-  rateChart.data.labels = [];
-  rateChart.data.datasets[0].data = [];
-  rateChart.update();
+  if (rateChart) {
+    rateChart.data.labels = [];
+    rateChart.data.datasets[0].data = [];
+    rateChart.update();
+  }
   $('rateDataCount').textContent = 0;
   // updateStats() は件数 0 のとき何も書き換えないので、最初の値に戻しておく
   $('statRateErr').textContent = '—';
@@ -3650,8 +3761,22 @@ document.addEventListener('DOMContentLoaded', () => {
   state.board = null;   // 「まだ判別していない」状態に戻す（表示だけ 10bit 既定）
   updateBoardBadge();
 
+  // 定期処理は、グラフの初期化より先に登録する（グラフが失敗しても自動保存は動かす）
+  setInterval(updateRateChart, 10000);   // 10 秒ごとに計数率のグラフ
+  setInterval(() => flushAutoSave(), 1000);   // 1 秒ごとに自動保存
+  // ページを隠す・閉じるときは、溜まっているぶんをすぐ書く
+  document.addEventListener('visibilitychange', () => { if (document.hidden) flushAutoSave(true); });
+  window.addEventListener('pagehide', () => flushAutoSave(true));
+
   applyLanguage();   // before initCharts so a CDN failure can't block localization
-  initCharts();      // chart axis titles use t() at creation
+  try {
+    initCharts();    // chart axis titles use t() at creation
+  } catch (e) {
+    // Chart.js を CDN から読めないとき（オフライン）。グラフ以外は動かし続ける。
+    console.error('Chart init failed:', e);
+    histogramChart = rateChart = undefined;
+    showMsg(t('warn.noCharts'));
+  }
   renderView();
   syncHeights();
 
@@ -3666,12 +3791,6 @@ document.addEventListener('DOMContentLoaded', () => {
   if (document.fonts && document.fonts.ready) {
     document.fonts.ready.then(() => { syncHeights(); if (scope.active) scopeDraw(); });
   }
-
-  // Update rate chart every 10 seconds
-  setInterval(updateRateChart, 10000);
-
-  // Auto-save flush every 1 second
-  setInterval(flushAutoSave, 1000);
 });
 </script>
 </body>
