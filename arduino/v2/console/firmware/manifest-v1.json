@@ -1,0 +1,14 @@
+{
+  "name": "CosmicRay Recorder v1 (ESP32-S3) firmware",
+  "version": "2026-10-24",
+  "new_install_prompt_erase": false,
+  "new_install_improv_wait_time": 0,
+  "builds": [
+    {
+      "chipFamily": "ESP32-S3",
+      "parts": [
+        { "path": "cosmicray-v1-esp32s3.bin", "offset": 0 }
+      ]
+    }
+  ]
+}
