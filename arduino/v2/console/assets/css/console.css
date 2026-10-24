@@ -336,18 +336,11 @@ button.model:hover .model-fig .model-sticker { transform: rotate(0deg) translate
 .model-word { font-family: var(--f-num); font-weight: 500; letter-spacing: .06em; }
 .model-jp { font-family: var(--f-disp); font-weight: 700; font-size: 20px; letter-spacing: .04em; }
 .model-ver { font-family: var(--f-num); font-size: 12px; font-weight: 500; color: var(--ink-3); padding: 1px 7px; border: 1px solid var(--rule-strong); border-radius: 3px; }
-.model-clues { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
-.clue { display: grid; grid-template-columns: 5.6em minmax(0, 1fr); gap: 10px; align-items: start; padding-top: 10px; border-top: 1px solid var(--rule); }
-.clue-k { font-size: 12px; font-weight: 500; letter-spacing: .04em; color: var(--ink-3); padding-top: 2px; }
-.clue-v { display: flex; align-items: center; gap: 10px; font-size: 13.5px; line-height: 1.65; color: var(--ink-2); }
-.swatch { flex: none; width: 22px; height: 30px; border-radius: 3px; background: var(--tone); box-shadow: inset 0 0 0 1px rgba(42, 39, 48, .25), inset -4px -4px 0 -1px rgba(171, 52, 37, .9); }
-.clue .shape { flex: none; width: 64px; height: 48px; object-fit: contain; border-radius: 3px; background: var(--paper-2); }
 .model-go {
-  display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: auto;
+  display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 8px;
   padding: 10px 12px; border-radius: var(--r); background: var(--ink); color: var(--paper);
   font-size: 14px; font-weight: 500; letter-spacing: .04em; transition: background .15s;
 }
-.model-main .clue:last-of-type { margin-bottom: 8px; }
 button.model:hover .model-go { background: #AB3425; }
 .model-go .i { width: 16px; height: 16px; transform: rotate(-90deg); }
 .hero-title { font-family: var(--f-disp); font-weight: 700; font-size: 46px; line-height: 1.25; margin: 8px 0 12px; letter-spacing: .02em; }
@@ -694,7 +687,6 @@ body[data-view="scope"] #btnCloseScope { display: inline-flex; }
   .model-soon .model-desc { font-size: 12.5px; padding-bottom: 12px; }
   .model-main { padding: 0 16px 16px; }
   .model-main .model-fig { margin: 0 -16px 4px; }
-  .clue { grid-template-columns: minmax(0, 1fr); gap: 4px; }
 }
 
 /* Tablet portrait and below: the rail becomes a sheet opened from a fixed Save button */
