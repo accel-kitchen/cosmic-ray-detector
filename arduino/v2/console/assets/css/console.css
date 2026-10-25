@@ -316,8 +316,8 @@ button.model:hover img { transform: translateY(-3px); }
 /* OWAN / OHASHI cards: a real photo, the sticker that goes on the box, and what to look for */
 .models { grid-template-columns: minmax(0, 1.25fr) minmax(0, 1.25fr) minmax(0, .8fr); align-items: stretch; }
 .model-main { gap: 10px; border-top: 6px solid var(--tone); }
-.model-owan { --tone: #BCB98C; }
-.model-ohashi { --tone: #D3B184; }
+.model-owan { --tone: #0B4F57; }
+.model-ohashi { --tone: #1F2A80; }
 .model-main .model-fig { position: relative; background: #F4F1EA; margin-bottom: 4px; }
 .model-main .model-fig .model-photo { object-fit: cover; }
 .model-fig .model-sticker {
