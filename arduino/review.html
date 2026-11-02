@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>宇宙線検出器 V2 — ダッシュボードレビュー（第 2 回）</title>
+<style>
+  :root {
+    --accent: #00BCD4;
+    --accent-dark: #0097A7;
+    --bg: #fafafa;
+    --card: #ffffff;
+    --text: #263238;
+    --muted: #607D8B;
+    --border: #CFD8DC;
+    --hi: #E53935;
+    --mid: #FB8C00;
+    --lo: #43A047;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: "Segoe UI", "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    margin: 0;
+    line-height: 1.7;
+  }
+  header {
+    background: linear-gradient(135deg, #006064, var(--accent-dark));
+    color: #fff;
+    padding: 28px 24px 20px;
+  }
+  header h1 { margin: 0 0 4px; font-size: 1.5rem; }
+  header p  { margin: 0; opacity: 0.85; font-size: 0.9rem; }
+  main { max-width: 980px; margin: 0 auto; padding: 24px 16px 64px; }
+  section {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px 24px;
+    margin-bottom: 24px;
+  }
+  h2 {
+    margin: 0 0 12px;
+    font-size: 1.15rem;
+    color: var(--accent-dark);
+    border-bottom: 2px solid var(--accent);
+    padding-bottom: 6px;
+  }
+  h3 { margin: 20px 0 6px; font-size: 1.0rem; }
+  .table-scroll { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: 0.88rem; }
+  th, td { border: 1px solid var(--border); padding: 6px 10px; text-align: left; vertical-align: top; }
+  th { background: #ECEFF1; white-space: nowrap; }
+  code {
+    background: #ECEFF1;
+    border-radius: 3px;
+    padding: 1px 5px;
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 0.85em;
+  }
+  pre {
+    background: #263238;
+    color: #ECEFF1;
+    border-radius: 6px;
+    padding: 10px 14px;
+    overflow-x: auto;
+    font-size: 0.82rem;
+    line-height: 1.5;
+    margin: 8px 0;
+  }
+  pre code { background: none; padding: 0; color: inherit; font-size: inherit; }
+  .pri { font-weight: bold; white-space: nowrap; }
+  .pri-hi  { color: var(--hi); }
+  .pri-mid { color: var(--mid); }
+  .pri-lo  { color: var(--lo); }
+  .tag {
+    display: inline-block;
+    font-size: 0.72rem;
+    border-radius: 10px;
+    padding: 1px 9px;
+    margin-right: 6px;
+    color: #fff;
+    vertical-align: middle;
+  }
+  .tag-hi  { background: var(--hi); }
+  .tag-mid { background: var(--mid); }
+  .tag-lo  { background: var(--lo); }
+  .tag-eff { background: var(--muted); }
+  .note {
+    background: #E0F7FA;
+    border-left: 4px solid var(--accent);
+    padding: 10px 14px;
+    border-radius: 0 6px 6px 0;
+    font-size: 0.88rem;
+    margin: 10px 0;
+  }
+  .idea { margin: 14px 0 18px; padding-left: 4px; }
+  .idea p, .idea li { margin: 4px 0; font-size: 0.92rem; }
+  .idea ul { margin: 4px 0; padding-left: 22px; }
+  .why { color: var(--muted); font-size: 0.86rem; }
+  .label { font-weight: bold; color: var(--accent-dark); }
+  ul.plain { margin: 6px 0; padding-left: 22px; font-size: 0.92rem; }
+  ul.plain li { margin: 3px 0; }
+  ol.order { margin: 6px 0; padding-left: 24px; font-size: 0.92rem; }
+  ol.order li { margin: 6px 0; }
+  .grade { font-weight: bold; font-size: 1.05rem; text-align: center; white-space: nowrap; }
+  footer { text-align: center; color: var(--muted); font-size: 0.8rem; padding: 12px; }
+  .st {
+    display: inline-block;
+    font-size: 0.75rem;
+    border-radius: 10px;
+    padding: 1px 9px;
+    color: #fff;
+    white-space: nowrap;
+  }
+  .st-done { background: var(--lo); }
+  .st-part { background: var(--mid); }
+  .st-open { background: var(--hi); }
+  details.archive > summary {
+    cursor: pointer;
+    font-weight: bold;
+    color: var(--accent-dark);
+    padding: 6px 0;
+  }
+  details.archive section {
+    border: none;
+    border-top: 1px dashed var(--border);
+    border-radius: 0;
+    padding: 12px 0 0;
+    margin: 16px 0 0;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>宇宙線検出器 V2 — ダッシュボード（v2/index.html）レビュー（第 2 回）</h1>
+  <p>2026-10-06 時点 / 第 1 回レビュー（同日）の指摘を修正したあとの作業ツリー。v2/index.html 5,856 行、v2 本番ファーム 1,785 行、description.md を照合</p>
+</header>
+
+<main>
+
+<!-- ============================================================ -->
+<section id="summary">
+<h2>0. サマリ</h2>
+
+<div class="note">
+<b>対象と方法。</b>第 1 回の指摘（付録）を直したあとのコードを読み直し、指摘ごとの対応状況と、修正で新しく入った問題・残っている問題を調べました。筆者の通読に加えて、修正の経緯を知らない別のレビュー担当（エージェント）にも独立に読ませ、出てきた指摘はすべてコードで確認してから載せています。
+行番号は今回の作業ツリーのものです。ファームは <code>fw:</code>（<code>v2/COSMICRAY_DETECTOR_ESP32-S3-Nano-v2.ino</code>）と書きます。
+実機（USB / BLE の接続、Auto PWM、オシロ）ではまだ確認していません（第 7 節）。
+</div>
+
+<h3>総合評価</h3>
+<div class="table-scroll">
+<table>
+  <tr><th>観点</th><th>前回</th><th>今回</th><th>コメント</th></tr>
+  <tr><td>機能の充実度</td><td class="grade">◎</td><td class="grade">◎</td><td>PWM の操作、BLE の自動再接続、接続エラーの表示、オシロ中の「計数停止」表示が加わった</td></tr>
+  <tr><td>堅牢性</td><td class="grade">○</td><td class="grade">○</td><td>BLE の書き込み衝突は待ち行列で解消し、再接続も入った。代わりに、自動保存の書き込み中の切断（N-1）と、再接続の試行中の切断（N-11）に競合が残る</td></tr>
+  <tr><td>数値の正確さ</td><td class="grade">△</td><td class="grade">○</td><td>計数率は基板のカウンタとライブタイムで計算するようになった。ファーム側のデッドタイムの計上に穴がある（N-2, N-7, N-8）</td></tr>
+  <tr><td>保存データの整合性</td><td class="grade">△</td><td class="grade">○</td><td>前回の自動保存の a〜d は解消。書き込み中の切断（N-1）、デモデータの混入（N-4）、再送の重複（N-3）が残る</td></tr>
+  <tr><td>ファームとの整合</td><td class="grade">○</td><td class="grade">◎</td><td>PWM の UI、BLE 名の上限、description.md の全面更新で揃った。食い違いは 3 点（D-4）</td></tr>
+  <tr><td>保守性</td><td class="grade">△</td><td class="grade">△</td><td>5,856 行（前回から +809 行）が 1 ファイル。v1 ページは同じ不具合を抱えたまま（S-2）。テストはリポジトリにない（S-4）</td></tr>
+  <tr><td>UX</td><td class="grade">○</td><td class="grade">◎</td><td>接続がサイドバーの先頭に来て、失敗が画面に出るようになった。MANUAL.html が古いまま（D-5）</td></tr>
+</table>
+</div>
+
+<h3>前回の指摘の対応状況</h3>
+<p>28 件中、<span class="st st-done">対応済み</span> 20 件、<span class="st st-part">一部</span> 5 件、<span class="st st-open">未対応</span> 3 件。詳細は第 1 節。</p>
+
+<h3>今回の課題一覧（優先度順）</h3>
+<div class="table-scroll">
+<table>
+  <tr><th>#</th><th>区分</th><th>課題</th><th>優先度</th><th>工数</th></tr>
+  <tr><td>N-1</td><td>保存</td><td>自動保存の書き込み中に切断やフォルダ変更をすると、<code>null_日付.csv</code> や別のフォルダに書き、切断時の最後の書き込みも飛ばされる</td><td class="pri pri-hi">高</td><td>小</td></tr>
+  <tr><td>N-2</td><td>計算（ファーム）</td><td>オシロ中に RESET すると、デッドタイムが経過時間を超え、計数率が 0 や負になる</td><td class="pri pri-mid">中</td><td>小</td></tr>
+  <tr><td>N-3</td><td>送信</td><td>「再送」で、送信中のバッチ（最大 20 件）が二重に送られる（R-3 の残り）</td><td class="pri pri-mid">中</td><td>小</td></tr>
+  <tr><td>N-4</td><td>保存</td><td>デモを止めた直後の書き込みが、<code>DEMO_</code> の付かない普通のファイルに入ることがある</td><td class="pri pri-mid">中</td><td>小</td></tr>
+  <tr><td>N-5</td><td>計算</td><td>「このセッション」と表示している計数率は Clear からの累計で、別の基板につなぎ直すと値が混ざる</td><td class="pri pri-mid">中</td><td>小</td></tr>
+  <tr><td>N-6</td><td>オシロ</td><td>オシロのタブを開いたままにすると、keepalive によって計数がいつまでも止まったままになる（R-6 の残り）</td><td class="pri pri-mid">中</td><td>小</td></tr>
+  <tr><td>N-7〜N-16</td><td>各種</td><td>ファームのデッドタイム計上、BLE の細かい競合、トークンの残骸、デモの不整合など（第 4 節の表）</td><td class="pri pri-lo">低</td><td>小</td></tr>
+  <tr><td>D-4, D-5</td><td>文書</td><td>description.md に食い違いが 3 点。MANUAL.html が今回の変更に追いついていない</td><td class="pri pri-mid">中</td><td>小</td></tr>
+  <tr><td>S-1, S-2, S-4</td><td>構造</td><td>単一ファイル、v1 との重複（v1 には R-1 などが残る）、テストがない（前回から継続）</td><td class="pri pri-mid">中</td><td>中〜大</td></tr>
+</table>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<section id="status">
+<h2>1. 前回の指摘の対応状況</h2>
+<div class="table-scroll">
+<table>
+  <tr><th>#</th><th>前回の指摘</th><th>状態</th><th>対応内容（箇所）</th><th>残り</th></tr>
+  <tr><td>R-1</td><td>計数率の計算</td><td><span class="st st-done">対応済み</span></td><td>基板の count・time・deadtime の差分をライブタイムで割る。count などが戻ったら区間を切り替えて合算（3320–3375）。経過時間・デッドタイムの表示も同じ基準（3377–）</td><td>「セッション」の範囲（N-5）、ファーム側の計上（N-2, N-7）</td></tr>
+  <tr><td>R-2</td><td>自動保存が壊れる 5 経路</td><td><span class="st st-part">一部</span></td><td>a: ローカル日付でイベントごとに振り分け（3577–3602）。b: ヘッダはファイルが空のときだけ（3515–3530）。c: 接頭辞を最初の書き込みで固定（3615–3623）。d: 形式ごとのキュー。e: 書き込み時間から間隔を 1〜60 秒で調整（3637–3644）</td><td>e は間隔を延ばしただけで、1 回の書き込みは依然ファイル全体のコピー。間隔が延びた分だけタブを閉じたときの損失が増える（N-15）。新たな競合（N-1）</td></tr>
+  <tr><td>R-3</td><td>再送で重複</td><td><span class="st st-part">一部</span></td><td>成功・拒否を記録し、再送から除外（4105, 4114, 4277–4298）。デモのイベントも除外</td><td>送信中のバッチ（N-3）、前の接続のイベント（N-13）</td></tr>
+  <tr><td>R-4</td><td>PWM の UI がない</td><td><span class="st st-done">対応済み</span></td><td>Duty の入力、Set/Get、Auto PWM（目標値つき）、<code>PWM:</code> の解析、「/ 255」表示（684–702, 3007–3018, 2873–2893）</td><td>—</td></tr>
+  <tr><td>R-5</td><td>BLE の書き込み衝突</td><td><span class="st st-done">対応済み</span></td><td>全コマンドを 1 本の待ち行列で送る。<code>writeValueWithResponse()</code> を使う（2701–2740）。接続後の問い合わせも順送り（2743–2765）</td><td>—</td></tr>
+  <tr><td>R-6</td><td>オシロの状態のずれ</td><td><span class="st st-part">一部</span></td><td>接続・再起動時にオシロを入れ直す、<code>GET_SCOPE</code> を問い合わせて取り残しを OFF にする（3149–3156）、ヘッダに「計数停止中」（2895–2901）、ファームの 60 秒の安全装置（fw:240, 1317）</td><td>タブを開いたまま放置したときの計数停止は、表示が出るようになっただけ（N-6）</td></tr>
+  <tr><td>R-7</td><td>BLE 名の長さ</td><td><span class="st st-done">対応済み</span></td><td>ページは 19 文字まで、<code>BLENAME:</code> を受けてから保存（5617–5632）。ファームのコマンドは 47 文字まで、長すぎる行は丸ごと捨てる（fw:270–310）</td><td>—</td></tr>
+  <tr><td>R-8</td><td>接続失敗が出ない</td><td><span class="st st-done">対応済み</span></td><td>画面上部にエラー表示。キャンセルは無視、ポート使用中は案内を出す、途中で失敗したらポートを閉じる（2324–2450）</td><td>—</td></tr>
+  <tr><td>R-9</td><td>認証情報</td><td><span class="st st-part">一部</span></td><td>入力例を https に、http のときは警告（4263–4271）。「記憶」オフのときトークンは sessionStorage（3699–3708, 3753–3770）</td><td>旧版が残したトークン（N-14）。MANUAL.html は今も http のサーバーを推奨（D-5）。サーバーの TLS 化は範囲外</td></tr>
+  <tr><td>R-10</td><td>BLE の自動再接続</td><td><span class="st st-done">対応済み</span></td><td>1〜30 秒の間隔で再試行。自動保存と計数率の区間を引き継ぐ（2572–2631）</td><td>試行中の切断（N-11）、一時停止の解除（N-12）</td></tr>
+  <tr><td>R-11</td><td>送信時刻のぶれ</td><td><span class="st st-done">対応済み</span></td><td>到着時に <code>ev.wall_us</code> を確定（3203）</td><td>—</td></tr>
+  <tr><td>R-12</td><td>BME280 の nan</td><td><span class="st st-done">対応済み</span></td><td>項目ごとに有効件数で割り、無ければ「--」</td><td>—</td></tr>
+  <tr><td>R-13</td><td>表の PC 時刻が UTC</td><td><span class="st st-done">対応済み</span></td><td>ローカル時刻で表示（4680–）。ファイルは UTC（末尾 Z）と明記</td><td>—</td></tr>
+  <tr><td>R-14</td><td>計数率グラフ</td><td><span class="st st-done">対応済み</span></td><td>基板時刻で 10 秒以上の区間ごとに計算し、横軸を時刻軸に。時刻の書式は表示言語に合わせる（4468–4505, 2180–）</td><td>—</td></tr>
+  <tr><td>R-15</td><td>保存形式の不統一</td><td><span class="st st-done">対応済み</span></td><td>ヘッダを 1 つの関数に（3537–3551）。CSV にも <code>#</code> 行、気圧は小数 1 桁、列のずれを明記</td><td>CSV を pandas で読むときは <code>comment='#'</code> が必要になった（互換性の変化）</td></tr>
+  <tr><td>R-16</td><td>オシロがぼやける</td><td><span class="st st-done">対応済み</span></td><td>表示サイズ × devicePixelRatio で描く（4761–）</td><td>—</td></tr>
+  <tr><td>R-17</td><td>100 万件のメモリ</td><td><span class="st st-part">一部</span></td><td>先頭の削除を 5 万件ごとにまとめた（3208）。dig/ana の配列をやめて平らなフィールドに</td><td>1 件 1 オブジェクトのまま（型付き配列にはしていない）</td></tr>
+  <tr><td>R-18</td><td>Clear が RESET も送る</td><td><span class="st st-done">対応済み</span></td><td>ボタン名・説明・確認文で明記。接続中はデータが無くても確認する（5730–）</td><td>—</td></tr>
+  <tr><td>S-1</td><td>単一ファイル</td><td><span class="st st-open">未対応</span></td><td>前回の推奨どおり後回し</td><td>5,047 → 5,856 行</td></tr>
+  <tr><td>S-2</td><td>v1 との重複</td><td><span class="st st-open">未対応</span></td><td>—</td><td>v1 には R-1 などがそのまま残る（第 5 節）</td></tr>
+  <tr><td>S-3</td><td>サイドバーの並び</td><td><span class="st st-done">対応済み</span></td><td>接続 → しきい値 → モード → 自動保存 → ファイル。残りは折りたたみの「詳細設定」（開閉を記憶）（611–937）</td><td>—</td></tr>
+  <tr><td>S-4</td><td>テストがない</td><td><span class="st st-open">未対応</span></td><td>修正時に jsdom で 47 項目の確認をしたが、リポジトリの外</td><td>第 5 節</td></tr>
+  <tr><td>D-1</td><td>description.md のずれ</td><td><span class="st st-done">対応済み</span></td><td>µs、2 種類のしきい値、全コマンド、<code>WF,</code> 行、計数率の式、保存形式まで書き直し</td><td>新たな食い違い 3 点（D-4）</td></tr>
+  <tr><td>D-2</td><td>v1 ページとの非互換</td><td><span class="st st-done">対応済み</span></td><td>注意事項と description.md に明記（933）</td><td>—</td></tr>
+  <tr><td>D-3</td><td>波形ファームとの非互換</td><td><span class="st st-done">対応済み</span></td><td>オシロタブに wave_plotter.html を使うよう明記（1112）</td><td>—</td></tr>
+  <tr><td>fw</td><td><code>getValue().c_str()</code> の解放済み領域</td><td><span class="st st-done">対応済み</span></td><td><code>String rx = getValue()</code> で受けて <code>length()</code> を使う（fw:379）</td><td>—</td></tr>
+  <tr><td>fw</td><td>BLE コールバックからの直接実行</td><td><span class="st st-done">対応済み</span></td><td>キューに積み、<code>loop()</code> で実行（fw:302–310, 802–809）</td><td>組み立て途中の行が切断後も残る（N-9）</td></tr>
+  <tr><td>fw</td><td>起動ヘッダの <code>Hum[%%]</code>、オシロの「生波形」表記</td><td><span class="st st-done">対応済み</span></td><td>fw:541、オシロの説明文</td><td>—</td></tr>
+</table>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<section id="good">
+<h2>2. 良くなった点</h2>
+<ul class="plain">
+  <li><b>計数率が OLED と同じ式になった。</b>動作中の基板への途中接続、オシロ、RESET、再起動、記録の一時停止のどれでも、基板のカウンタとライブタイムから正しい値が出る（3320–3375）。<code>description.md</code> の 5.1 節の例（0.679 cps）とも一致する。</li>
+  <li><b>自動保存の各経路が「ファイルの状態」を基準に判断するようになった。</b>ヘッダはファイルが空のときだけ書き、日付はイベントごとのローカル日付で振り分ける。失敗した形式だけを戻すので、もう一方の形式に重複が出ない（3515–3650）。</li>
+  <li><b>書き込み間隔が実測で決まる。</b>書き込みにかかった時間の 20 倍（＝I/O を壁時計の 5% 以下に抑える）を次の間隔にするので、PC やファイルサイズに合わせて自動で調整される（3637–3644）。</li>
+  <li><b>コマンド送信が 1 本の待ち行列になった。</b>接続後の問い合わせも世代番号で古い実行を打ち切るので、再起動が重なっても二重に走らない（2701–2765）。</li>
+  <li><b>ファームの受信が安全になった。</b>BLE の受信はキューを経て <code>loop()</code> で実行され、長すぎる行は切り詰めずに丸ごと捨ててエラーを返す（fw:270–310, 781–809）。</li>
+  <li><b>オシロの取り残しに二重の安全装置がある。</b>ページは接続時に状態を問い合わせて OFF に戻し、ファームは 60 秒コマンドが来なければ自分で OFF に戻る。</li>
+  <li><b>変更の理由がコメントに残っている。</b>修正箇所には対応する指摘番号（R-1 など）と、なぜそうしたかが書かれている。翻訳は en/ja が 274 キーずつ揃っている。</li>
+</ul>
+</section>
+
+<!-- ============================================================ -->
+<section id="high">
+<h2>3. 新しい課題と修正案（高・中）</h2>
+
+<div class="idea">
+<h3><span class="tag tag-hi">高</span><span class="tag tag-eff">工数小</span>N-1. 自動保存の書き込み中に切断すると、別名のファイルに書き、最後の書き込みも飛ばされる</h3>
+<p><span class="label">現象：</span><code>flushAutoSave()</code> は、書き込みの最中だと強制（<code>force</code>）でもすぐ戻る（3610）。書き込み中の処理は、<code>await</code> のたびに <code>as.prefix</code> と <code>as.dirHandle</code> を読み直している（3592）。</p>
+<p><span class="label">影響：</span></p>
+<ul>
+  <li>保存形式が「両方」で、.dat の書き込み中（ファイルが大きいと数秒かかる）に切断すると、切断側の強制書き込みは何もせずに戻る。続いて <code>endAutoSaveSession()</code> が接頭辞を <code>null</code> にする（2694）ので、そのあとの .csv は <code>null_2026-10-06.csv</code> に書かれる。日付をまたぐバッチなら、形式が 1 つでも起こる。</li>
+  <li>書き込みの最中に届いたイベントはキューに残ったまま次の接続に持ち越され、次の基板の名前のファイルに入る。</li>
+  <li>書き込みの最中にフォルダを選び直すと（3495）、残りが新しいフォルダに書かれ、書き込み件数のカウンタも途中でリセットされる。</li>
+</ul>
+<p>ファイルが大きいほど 1 回の書き込みが長くなるので、長時間の測定ほど起こりやすい。強制書き込みが飛ばされるのは以前からだが、<code>null_</code> のファイルは前回の修正（R-2 c の接頭辞の固定）で入った問題。</p>
+<p><span class="label">修正案：</span>書き込み先を最初に変数へ固定し、強制書き込みは実行中のものが終わるのを待ってから残りを書く。</p>
+<pre><code>let autoSaveRun = null;   // 実行中の書き込み
+
+async function flushAutoSave(opts) {
+  const force = !!(opts &amp;&amp; opts.force);
+  if (as.flushing) {
+    if (!force) return;
+    await autoSaveRun;          // 終わるのを待ってから、残りを書く
+  }
+  ...
+  const dir = as.dirHandle, prefix = as.prefix;   // 途中で変わっても混ざらない
+  autoSaveRun = (async () =&gt; { /* flushAutoSaveFormat(fmt, dir, prefix) */ })();
+  await autoSaveRun;
+}</code></pre>
+<p class="why">根拠: 3592, 3604–3646, 2646, 2694, 3495–3500。</p>
+</div>
+
+<div class="idea">
+<h3><span class="tag tag-mid">中</span><span class="tag tag-eff">工数小</span>N-2. オシロ中に RESET すると、デッドタイムが経過時間を超える（ファーム）</h3>
+<p><span class="label">現象：</span><code>RESET</code> は <code>start_time_us</code> と <code>total_deadtime_us</code> を 0 からやり直すが、オシロを開いた時刻 <code>scopeEnterUs</code> はそのまま（fw:604–608）。オシロを閉じると、RESET より前の分も含めた滞在時間がデッドタイムに足される（fw:1596）。</p>
+<p><span class="label">影響：</span>サイドバーの「データを消去」はオシロタブからも押せる。オシロを 10 分開いた状態で押し、10 秒後にタブを閉じると、次のイベントは time ≈ 10 秒、deadtime ≈ 610 秒になる。ページのライブタイムは −600 秒になって計数率は 0、「ライブタイム」は負の表示。その後も 1 時間たって約 2 割高く出る。OLED は <code>uint64</code> の引き算が桁あふれし、SD のログにも経過時間より大きいデッドタイムが残る。</p>
+<p><span class="label">修正案：</span>1 行で直る。</p>
+<pre><code>} else if (strcmp(cmd, "RESET") == 0) {
+  count = 0;
+  start_time_us = micros64();
+  total_deadtime_us = 0ULL;
+  if (scopeOn) scopeEnterUs = start_time_us;   // RESET 以降の滞在だけを計上する</code></pre>
+<p class="why">根拠: fw:604–608, 1570, 1596。</p>
+</div>
+
+<div class="idea">
+<h3><span class="tag tag-mid">中</span><span class="tag tag-eff">工数小</span>N-3. 「再送」で、送信中のバッチが二重に送られる（R-3 の残り）</h3>
+<p><span class="label">現象：</span><code>flushUpload()</code> は送る前にバッチをキューから取り出し（4092）、応答が返ってから <code>uploaded</code> を付ける（4105）。<code>uploadResend()</code> は「キューにあるもの」だけを重複とみなす（4281）ので、送信中の最大 20 件をもう一度積む。</p>
+<p><span class="label">影響：</span>回線が遅く未送信が溜まっていると、1 秒ごとの送信のほとんどの時間でバッチが送信中になる。ちょうど再送ボタンを押したくなる状況で、サーバー側の行が重複する。</p>
+<p><span class="label">修正案：</span>送信中のイベントを集合で持ち、再送の除外に加える。</p>
+<pre><code>const batch = u.queue.splice(0, UPLOAD_LEGACY_BATCH);
+u.inFlight = new Set(batch);
+try { ... } finally { u.inFlight = null; }
+
+// uploadResend()
+const already = new Set(u.queue);
+if (u.inFlight) for (const ev of u.inFlight) already.add(ev);</code></pre>
+<p class="why">根拠: 4092, 4105, 4277–4298。</p>
+</div>
+
+<div class="idea">
+<h3><span class="tag tag-mid">中</span><span class="tag tag-eff">工数小</span>N-4. デモを止めた直後の書き込みが、普通のファイルに入ることがある</h3>
+<p><span class="label">現象：</span><code>disconnect()</code> はデモを止めて <code>demo.on</code> を false にしてから（2642）、最後の書き込みをする（2646）。ファイル名の <code>DEMO_</code> とヘッダの注記は、書き込みの時点の <code>demo.on</code> で決まる（3541, 3558）。</p>
+<p><span class="label">影響：</span>接頭辞は BLE 名などの応答を待ってから固定するので（3615–3623）、デモ開始から 1〜2 秒以内に切断すると、最初の書き込みがこの最後の書き込みになり、合成データが <code>CosmicRay_日付.dat</code> に注記なしで入る。同じ日に実機で測ったファイルがあれば、そこに混ざる。書き込みが失敗してキューに残った場合も、次の実機の接続のファイルに入る。</p>
+<p>以前からあった問題（修正前は、デモを切断するたびに最後の 1 秒分が普通のファイルに入っていた）。接頭辞の固定で起こる範囲は狭まったが、残っている。</p>
+<p><span class="label">修正案：</span>デモかどうかは、書く時点の状態ではなくイベント自身の印（<code>ev.demo</code>）で決める。<code>flushAutoSaveFormat()</code> で日付と同じように <code>ev.demo</code> でも振り分け、デモのものは <code>DEMO_</code> 付きのファイルと注記入りのヘッダにする。</p>
+<p class="why">根拠: 2642–2646, 3537–3558, 3615–3623。</p>
+</div>
+
+<div class="idea">
+<h3><span class="tag tag-mid">中</span><span class="tag tag-eff">工数小</span>N-5. 「このセッション」の計数率に、別の基板の値が混ざる</h3>
+<p><span class="label">現象：</span>計数率の区間は切断で閉じるが、合計（<code>state.rate.done</code>）は「データを消去」でしか 0 に戻らない（5737）。画面は「検出器の計数（このセッション）」（1432, 1708）、description.md は「この接続セッションの値」（description.md:280）と書いている。</p>
+<p><span class="label">影響：</span>基板 A で測ったあと、消去せずに基板 B につなぐと、平均計数率・経過時間・デッドタイムが A と B を足した値になる。総イベント数も同じく累計なので数字どうしは矛盾しないが、表示の「セッション」とは意味が違う。</p>
+<p><span class="label">修正案：</span>どちらかに揃える。</p>
+<ul>
+  <li>「データを消去から」の累計と定義し直し、表示と description.md の文言を直す。基板アドレス（<code>BTADDR:</code>）が前と変わったら、画面上部に「別の基板です。消去してから測ることを勧めます」と出す。</li>
+  <li>または、新しく接続した基板のアドレスが前と違えば、区間の合計を自動で 0 に戻す。</li>
+</ul>
+<p class="why">根拠: 3351–3375, 5737, 1432, 1708, description.md:280。</p>
+</div>
+
+<div class="idea">
+<h3><span class="tag tag-mid">中</span><span class="tag tag-eff">工数小</span>N-6. オシロのタブを開いたままにすると、計数が止まり続ける（R-6 の残り）</h3>
+<p><span class="label">現象：</span>オシロのタブを開いている間、ページは 15 秒ごとに keepalive を送り（4902–4912）、ファームの 60 秒の安全装置を延長し続ける。</p>
+<p><span class="label">影響：</span>オシロを見たままタブを切り替えずに夜通し放置すると、朝まで計数がない。ヘッダの「計数停止中」で気付けるようにはなったが、離席していれば見えない。安全装置が効くのはページが閉じた・寝た場合だけ。</p>
+<p><span class="label">修正案：</span>オシロのタブで一定時間（例: 10 分）操作がなければ、解析タブに戻して計数を再開する。戻したことは画面上部に出す。あわせて、ヘッダの「計数停止中」に停止してからの経過時間を出す。</p>
+<p class="why">根拠: 4879–4912, fw:240, 1317。</p>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<section id="low">
+<h2>4. 新しい課題と修正案（低）</h2>
+<div class="table-scroll">
+<table>
+  <tr><th>#</th><th>現象</th><th>箇所</th><th>修正案</th></tr>
+  <tr><td>N-7</td><td>ファームのデッドタイムに二重計上と計上漏れがある。オシロ中も OLED の更新が走り、その時間（滞在時間の約 2%）を足す。オシロ中の <code>AUTO_PWM</code>（約 6.6 秒）と <code>VIB_TEST</code> も、すでに計上している滞在時間に重ねて足す。逆に <code>AUTO_THRESH</code> の約 1 秒と、BLE 切断時の <code>delay(500)</code> は計上されない</td><td>fw:1354–1359, 1765, 1127, 719, 970–1022, 1328</td><td>オシロ中は OLED の更新と他の加算を止める。<code>AUTO_THRESH</code> と <code>delay(500)</code> の時間は計上する</td></tr>
+  <tr><td>N-8</td><td>DIGITAL モードでオシロを閉じた直後に、偽のイベントが 1 件記録される。オシロ中もコンパレータの割り込みが <code>triggerFlag</code> を立て、OFF にしたときに消していないため。ホールドを放電した直後に読むので ADC はベースライン付近になる</td><td>fw:1160, 1349, 1590–1599</td><td><code>scopeSetOn(false)</code> の最後で <code>triggerFlag = false</code></td></tr>
+  <tr><td>N-9</td><td>BLE の受信で組み立て途中の行が、切断後も残る。<code>SET_BLENAME:LabStation01</code> の 20 バイト目で切れると、再接続後の <code>GET_BLENAME</code> とつながって <code>SET_BLENAME:LabStatiGET_BLENAME</code> になり、有効な名前として保存・再起動する</td><td>fw:310, 366–371</td><td><code>onConnect</code> / <code>onDisconnect</code> で <code>bleCmdLine</code> を空にする（どちらも BLE タスクで走るので競合しない）</td></tr>
+  <tr><td>N-10</td><td>OLED を OFF にしてオシロを 71.6 分以上開くと、<code>micros64()</code> が誰にも呼ばれず、32 ビットの桁上がりを 1 回取りこぼす。経過時間とタイムスタンプが巻き戻る。オシロは開いたままにできる（N-6）ので、長時間のオシロは現実に起こる</td><td>fw:1206–1213, 1500–</td><td><code>loop()</code> の先頭で毎回 <code>micros64()</code> を呼ぶ</td></tr>
+  <tr><td>N-11</td><td>BLE の再接続を試行している最中に「切断」を押すと、試行中の接続は止まらない（<code>gatt.connected</code> のときしか切らない）。接続が終わると、<code>bleAttach()</code> が状態とリスナーを書き戻し、そのあと同じ機器を切断する。その間に利用者が同じ基板へつなぎ直していれば、その接続が切られる</td><td>2500–2509, 2619–2621, 2676</td><td><code>disconnect()</code> では常に <code>gatt.disconnect()</code> を呼ぶ。<code>bleAttach()</code> は世代番号を受け取り、取り消されていたら状態に書き込まない</td></tr>
+  <tr><td>N-12</td><td>BLE が一瞬切れると、利用者が押した「記録を停止」が解除される。再接続後は自動保存のファイルにまた書き始める</td><td>4373, 4379</td><td>再接続中と再接続後は一時停止の状態を保つ</td></tr>
+  <tr><td>N-13</td><td>「再送」はメモリ上の全イベントを対象にするので、前の接続（別の基板かもしれない）のイベントも、今の観測局・今の <code>run_id</code> で送る</td><td>4283, 3853</td><td>イベントに到着時の <code>run_id</code> を持たせ、今の run のものだけを再送する</td></tr>
+  <tr><td>N-14</td><td>「記憶」がオフでも、旧版が localStorage に保存したトークンを読み込み時に消していない。設定を一度保存するまで残る</td><td>3697–3708</td><td><code>loadUploadConfig()</code> の最後で <code>saveUploadConfig()</code> を呼んで掃除する</td></tr>
+  <tr><td>N-15</td><td>書き込み間隔が最長 60 秒まで延びるので、タブを閉じたりブラウザが落ちたりすると、その分のイベントが失われる。未保存の件数も画面に出ない</td><td>1868, 3637–3644, 4942</td><td><code>pagehide</code> / <code>visibilitychange</code> で強制書き込みをする。状態欄に未保存件数を出す。上限を 10〜15 秒にし、それ以上はファイルを 1 時間単位に分けて抑える</td></tr>
+  <tr><td>N-16</td><td>デモの不整合 2 点。デモで名前を変えると、再起動 → <code>GET_BLENAME</code> の経路で localStorage に保存される（5487 のコメントと逆）。デモの RESET 直後、最初のイベントの時刻が負になることがある（予定時刻が新しい起点より前に残る）</td><td>5355–5358, 5166, 3085, 5487</td><td>デモの BLENAME は保存しない（<code>state.connectionType === 'demo'</code> を見る）。RESET で <code>nextEventMs</code> を新しい起点以降に送る</td></tr>
+</table>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<section id="structure">
+<h2>5. 構造・保守性（前回から継続）</h2>
+
+<div class="idea">
+<h3><span class="tag tag-mid">中</span><span class="tag tag-eff">工数中</span>S-1. 5,856 行が 1 ファイルに入っている</h3>
+<p>前回から 809 行増えた。増えたのは接続まわり（再接続・エラー表示・待ち行列）、自動保存、計数率の区間管理。前回の修正案（機能ごとに <code>&lt;script src&gt;</code> で分割）はそのまま有効。N-1〜N-6 を直したあとに行う。</p>
+</div>
+
+<div class="idea">
+<h3><span class="tag tag-mid">中</span><span class="tag tag-eff">工数大</span>S-2. v1/index.html に、v2 で直した不具合が残っている</h3>
+<p>同じ名前の関数は 40 個（前回 39 個）。v2 の修正は v1 に入っていない。</p>
+<ul>
+  <li>R-1 の計数率（受信数 ÷ 最後の基板時刻）: v1/index.html:1971–1977</li>
+  <li>R-2 a・b の自動保存（UTC の日付、フォルダを選ぶたびにヘッダを再び書く）: v1/index.html:2040–2057</li>
+  <li>R-5 の BLE の書き込み（<code>writeValue()</code> を待ち行列なしで呼ぶ）: v1/index.html:1687</li>
+  <li>R-14 の計数率グラフ（ブラウザの受信時刻で計算）: v1/index.html:2229</li>
+</ul>
+<p>v1 のファームはコマンドが 48 バイトなので、R-7（BLE 名）は v1 では起きない。</p>
+<p><span class="label">修正案：</span>前回と同じ。v1 を v2 のページに統合するか、共通部分を切り出して両方から読み込む。統合までの間に v1 で測る予定があるなら、R-1 と R-2 a・b だけは v1 にも移植する。</p>
+</div>
+
+<div class="idea">
+<h3><span class="tag tag-mid">中</span><span class="tag tag-eff">工数小</span>S-4. テストがリポジトリにない</h3>
+<p>前回の修正では、jsdom でページを読み込んで 47 項目を確かめた（計数率の区間、自動保存のヘッダと形式ごとの再試行、再送の除外、待ち行列、BLE 再接続の模擬、デモ接続など）。ただしリポジトリの外に置いたままで、今回の N-1〜N-16 のような回帰は次に誰かが直したときに検出できない。</p>
+<p><span class="label">修正案：</span>このテストを <code>arduino/test/</code> などに入れ、<code>npm test</code> で動くようにする。N-1（書き込み中の切断）、N-3（送信中の再送）、N-4（デモの直後の切断）は、偽のディレクトリと遅い書き込みを使えば jsdom で再現できる。</p>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<section id="protocol">
+<h2>6. ファーム・ドキュメントとの整合</h2>
+
+<h3>食い違い</h3>
+<div class="table-scroll">
+<table>
+  <tr><th>#</th><th>内容</th><th>箇所</th><th>影響</th></tr>
+  <tr><td>D-4</td><td>description.md の食い違い 3 点。
+    <ul class="plain">
+      <li>4 節は計数率・経過時間を「この接続セッションの値」と書くが、実際は消去からの累計（N-5）</li>
+      <li>2.3 節と 3.4 節は <code>SET_SCOPE:ON/OFF</code> に必ず応答があるように書くが、ファームはすでにその状態なら何も返さない。デモは返すので、デモと実機でも違う</li>
+      <li>4 節は保存ファイルの名前を「自動保存・ダウンロード共通で <code>&lt;BLE 名&gt;_&lt;日付&gt;</code>」と書くが、ダウンロードは <code>&lt;BLE 名&gt;_YYYY-MM-DD_HH-MM-SS</code></li>
+    </ul></td>
+    <td>description.md:280, 251–252, 283<br>fw:1561<br>5434, 4553–4554</td><td>仕様書どおりに <code>SET_SCOPE:ON</code> の応答を待つ実装を書くと、すでに ON の基板では待ち続ける。ページは <code>GET_SCOPE</code> で状態を取り直しているので実害はない</td></tr>
+  <tr><td>D-5</td><td>MANUAL.html が今回の変更に追いついていない。
+    <ul class="plain">
+      <li>10.1 節は「<code>http://localhost</code> で開いて http のサーバーへ送る」のを推奨している（R-9 の方針と逆）</li>
+      <li>8.3 節は <code>SET_SCOPE_RATE</code> を「サンプルレート」と書くが、実際は 1 秒あたりに送る波形の上限（サンプル間隔は 12 µs で固定）</li>
+      <li>オシロの 60 秒の安全装置、コマンドの 47 文字制限、BLE の自動再接続、CSV の <code>#</code> 行、サイドバーの「詳細設定」、「データを消去」が RESET も送ることの説明がない</li>
+    </ul></td>
+    <td>MANUAL.html:591–628, 458–459</td><td>利用者向けの文書なので、CSV を読むスクリプトの変更（<code>comment='#'</code>）とオシロの自動 OFF は特に伝えておく必要がある</td></tr>
+</table>
+</div>
+
+<h3>一致を確認した項目</h3>
+<ul class="plain">
+  <li>コマンドの組み立て: <code>\r\n</code> の扱い、長すぎる行を丸ごと捨てること、47 文字目での終端、BLE のキューへのコピー、<code>getValue()</code> の寿命（fw:270–310, 377–393）</li>
+  <li>オシロの安全装置: BLE 経由の keepalive も <code>loop()</code> で実行されて <code>lastCommandMs</code> を更新する。keepalive とタブの開閉のコマンドは待ち行列で順序が保たれる</li>
+  <li>計数率: 区間は count・time・deadtime のどれかが戻ったら閉じる。一時停止中も値は正しい。グラフの区間探索は同じ区間の中で止まる</li>
+  <li>自動保存: ヘッダは空のファイルだけ、失敗した形式だけを戻す、日付はローカル、形式の切り替えは新しいイベントにだけ効く</li>
+  <li>送信: <code>wall_us</code> は到着時に確定し、RESET・再起動で基準を取り直す。トークンの保存先は「記憶」の切り替えに追従する</li>
+  <li>行の判定: <code>PWM:</code> はイベント行の判定より前で処理され、<code>VIBMS:</code> / <code>SD:</code> / <code>SCOPE_RATE:</code> と前方一致で取り違えない</li>
+  <li>メモリ: 5 万件ごとの削除と、表の行番号（<code>lastTableLength</code>）の補正</li>
+</ul>
+</section>
+
+<!-- ============================================================ -->
+<section id="verify">
+<h2>7. 検証の記録</h2>
+<div class="table-scroll">
+<table>
+  <tr><th>対象</th><th>方法</th><th>結果</th></tr>
+  <tr><td>v2/index.html</td><td>jsdom でページを読み込み、偽の USB / BLE / ディレクトリを差し込んで 47 項目を確認（R-1〜R-18 の主要な挙動、デモ接続、BLE 再接続の模擬）</td><td>全項目通過。ただし N-1・N-3・N-4 は「書き込みが遅い」「送信中」の状況を作っていなかったため、このテストでは見つからなかった</td></tr>
+  <tr><td>v2 本番ファーム</td><td>arduino-cli 1.5.2 + esp32 core 3.3.10（Arduino Nano ESP32）でコンパイル</td><td>成功。スケッチ由来の警告は以前からある 3 件のみ（ISR の section 属性、<code>volatile</code> の <code>++</code>、<code>BLE2902</code> の非推奨）</td></tr>
+  <tr><td>全体</td><td>修正の経緯を知らない別のレビュー担当による独立レビュー</td><td>中 3 件・低 8 件・文書 3 件。すべてコードで確認し、本書に反映</td></tr>
+  <tr><td>実機</td><td>—</td><td><b>未確認。</b>USB / BLE の接続とエラー表示、BLE の自動再接続（模擬でしか試していない）、Auto PWM、オシロの開閉と 60 秒の自動 OFF</td></tr>
+</table>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<section id="order">
+<h2>8. 推奨する対応順</h2>
+<ol class="order">
+  <li><b>N-1 自動保存の競合。</b>正本のデータを別名のファイルに書く。前回の修正で入った問題で、修正は小さい。</li>
+  <li><b>N-2 オシロ中の RESET。</b>ファームの 1 行。計数率が負になる。</li>
+  <li><b>N-3、N-4。</b>サーバーとローカルファイルの両方を汚す経路。どちらも小さい。</li>
+  <li><b>N-5 の定義を決める。</b>「消去からの累計」にするか「基板が変わったらリセット」にするかを決めてから、表示と description.md を直す。</li>
+  <li><b>N-6、N-12。</b>夜通しの測定で、気付かないうちに計数や記録が止まる・始まる経路。</li>
+  <li><b>低の課題。</b>ファームの N-7〜N-10 はまとめて 1 回の書き込みで済む。ページの N-11、N-13〜N-16 は独立していて小さい。</li>
+  <li><b>D-4、D-5 の文書。</b>特に MANUAL.html で、CSV の読み方とオシロの自動 OFF を利用者に伝える。</li>
+  <li><b>S-4 → S-1 → S-2。</b>先にテストをリポジトリに入れ、N-1 などの回帰を防いでから構造を分ける。</li>
+</ol>
+</section>
+
+<!-- ============================================================ -->
+<section id="archive">
+<h2>付録. 第 1 回レビュー</h2>
+<p class="why">修正前のコードに対するレビュー。行番号は当時のもので、今の作業ツリーとは合わない。</p>
+<details class="archive">
+<summary>第 1 回レビューの全文を開く</summary>
+<!-- ============================================================ -->
+<section id="r1-summary">
+<h2>0. サマリ</h2>
+
+<div class="note">
+<b>対象について。</b><code>arduino/index.html</code> は <code>v2/index.html</code> の古いコピーで、そのファイルにしかない行はありません。そのため現行の <code>v2/index.html</code> をレビュー対象にしました。
+本文中の行番号はレビュー時点の作業ツリーのものです。<code>v2/index.html</code> には未コミットの変更が約 2,000 行あるため、コミットや編集のあとは行番号がずれることがあります。
+ファームの行番号は <code>fw:</code>（<code>v2/COSMICRAY_DETECTOR_ESP32-S3-Nano-v2.ino</code>）、波形ファームは <code>wf:</code> と書きます。
+</div>
+
+<h3>総合評価</h3>
+<div class="table-scroll">
+<table>
+  <tr><th>観点</th><th>評価</th><th>コメント</th></tr>
+  <tr><td>機能の充実度</td><td class="grade">◎</td><td>USB/BLE 接続、自動保存、サーバー送信、オシロ、デモ、日英切り替えまで揃っている</td></tr>
+  <tr><td>堅牢性</td><td class="grade">○</td><td>自動保存とサーバー送信は、二重実行の防止・失敗時の再キュー・バックオフまで丁寧に作られている。BLE 経路は弱い（R-5, R-10）</td></tr>
+  <tr><td>数値の正確さ</td><td class="grade">△</td><td>中心となる計数率の計算に誤りがある（R-1）</td></tr>
+  <tr><td>保存データの整合性</td><td class="grade">△</td><td>自動保存ファイルが壊れる経路が複数ある（R-2）。サーバーでデータが重複する（R-3）</td></tr>
+  <tr><td>ファームとの整合</td><td class="grade">○</td><td>イベント行と応答行の解析は一致。PWM 系の UI がない（R-4）。BLE 名の長さ制限が食い違う（R-7）</td></tr>
+  <tr><td>保守性</td><td class="grade">△</td><td>5,047 行が 1 ファイル。v1 版と関数名が 39 個重複していて、修正が 2 か所に必要</td></tr>
+  <tr><td>UX</td><td class="grade">○</td><td>見た目は整理されている。接続ボタンがサイドバーの 5 番目に埋もれ、接続失敗が画面に出ない</td></tr>
+</table>
+</div>
+
+<h3>課題一覧（優先度順）</h3>
+<div class="table-scroll">
+<table>
+  <tr><th>#</th><th>区分</th><th>課題</th><th>優先度</th><th>工数</th></tr>
+  <tr><td>R-1</td><td>計算</td><td>計数率がデッドタイムを差し引かず、受信数と基板の経過時間の基準も合っていない</td><td class="pri pri-hi">高</td><td>小</td></tr>
+  <tr><td>R-2</td><td>保存</td><td>自動保存ファイルが壊れる経路が 5 つある</td><td class="pri pri-hi">高</td><td>中</td></tr>
+  <tr><td>R-3</td><td>送信</td><td>「再送」で送信済みのイベントまで送り、サーバーでデータが重複する</td><td class="pri pri-hi">高</td><td>小</td></tr>
+  <tr><td>R-4</td><td>機能</td><td>PWM（コンパレータしきい値）を操作する UI がない</td><td class="pri pri-hi">高</td><td>小</td></tr>
+  <tr><td>R-5</td><td>通信</td><td>BLE の書き込みが衝突し、コマンドが失われる</td><td class="pri pri-mid">中</td><td>小</td></tr>
+  <tr><td>R-6</td><td>オシロ</td><td>オシロの ON/OFF 状態がページとファームでずれる</td><td class="pri pri-mid">中</td><td>小</td></tr>
+  <tr><td>R-7</td><td>通信</td><td>BLE 名の長さ制限がファームと合っていない</td><td class="pri pri-mid">中</td><td>小</td></tr>
+  <tr><td>R-8</td><td>UX</td><td>接続に失敗しても画面に何も出ない</td><td class="pri pri-mid">中</td><td>小</td></tr>
+  <tr><td>R-9</td><td>安全</td><td>パスワードを平文の HTTP で送り、認証トークンを常に保存する</td><td class="pri pri-mid">中</td><td>小〜中</td></tr>
+  <tr><td>R-10</td><td>通信</td><td>BLE の自動再接続がない</td><td class="pri pri-mid">中</td><td>中</td></tr>
+  <tr><td>R-11</td><td>送信</td><td>送信のたびに時刻を計算し、再送時に時刻がぶれる</td><td class="pri pri-mid">中</td><td>小</td></tr>
+  <tr><td>R-12〜R-18</td><td>各種</td><td>表示・保存形式・メモリなどの細かい問題（第 4 節の表）</td><td class="pri pri-lo">低</td><td>小</td></tr>
+  <tr><td>S-1〜S-4</td><td>構造</td><td>単一ファイル、v1 との重複、サイドバーの並び、テストがない</td><td class="pri pri-mid">中</td><td>中〜大</td></tr>
+  <tr><td>D-1〜D-3</td><td>文書</td><td>description.md が実装とずれている。v1 ページと波形ファームは v2 本番ファームと非互換</td><td class="pri pri-mid">中</td><td>小</td></tr>
+</table>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<section id="r1-good">
+<h2>1. 良い点</h2>
+<ul class="plain">
+  <li><b>外部ライブラリに依存しない。</b>グラフは Chart.js を使わず canvas に直接描いている（1836–2036）。ファイルをそのまま開けば動く。</li>
+  <li><b>自動保存の基本設計がしっかりしている。</b>再入を防ぐロック（2963–2966）があり、書き込みに失敗したバッチは先頭に戻す（3005–3007）。</li>
+  <li><b>エクスポートは大量データに強い。</b><code>showSaveFilePicker</code> でディスクに直接ストリーム書き込みし、巨大な文字列を作らない（3846–3895）。</li>
+  <li><b>サーバー送信の方針が一貫している。</b>「ディスクが正本、サーバーはミラー」と位置づけている。バックオフにジッターを入れ（3395–3399）、HTTP 400 は受理不能イベントとして隔離する（3443–3449）。取りこぼしは必ず数えて画面に出す（3541–3550）。</li>
+  <li><b>翻訳に過不足がない。</b>en/ja が 246 キーずつ揃っている。言語を切り替えると、状態に応じて変わる文言も描き直す（1686–1707）。</li>
+  <li><b>デモモードは実機と同じ経路を通る。</b>合成した行を <code>processLine()</code> に流すので、デモ専用の分岐がない（4182–4185）。デモのデータは、ファイル名の <code>DEMO_</code> 接頭辞、ヘッダの注記、サーバー送信の禁止によって本物と混ざらない（2946, 3197, 3559）。</li>
+  <li><b>ESP32-S3 のネイティブ USB の癖に対処している。</b>ポートを開くとブートローダーに入ってしまう問題を DTR/RTS の操作で回避し（2125–2130）、入った場合も自動で抜ける（2100–2116）。</li>
+  <li><b>コメントが「なぜそうしたか」を説明している。</b>Web Serial で COM 番号が取れない理由、BLE の device.id が MAC アドレスではない理由など。</li>
+</ul>
+</section>
+
+<!-- ============================================================ -->
+<section id="r1-high">
+<h2>2. 課題と修正案（高）</h2>
+
+<div class="idea">
+<h3><span class="tag tag-hi">高</span><span class="tag tag-eff">工数小</span>R-1. 計数率の計算が誤っている</h3>
+<p><span class="label">現象：</span>計数率を「ブラウザで受信したイベント数 ÷ 最後のイベントの基板時刻」で計算している（2827–2838）。基板時刻は起動か RESET からの経過時間で、デッドタイムも差し引いていない。</p>
+<p><span class="label">影響：</span></p>
+<ul>
+  <li>動作中の基板に Clear せずに接続すると、受信数は少ないのに経過時間は長いため、ほぼ 0 cps と表示される。<code>screenshot1.png</code> が実例で、Total Events 4、Elapsed 07:02:20、Avg. Rate 0.000 と写っている。</li>
+  <li>オシロを使ったあとや、記録を一時停止したあとは低く出る。オシロの説明文（1281, 1529）には「滞在時間はデッドタイムに計上されるので計数率は正しい」とあるが、ページ側の計算はそうなっていない。</li>
+  <li>BLE 名の変更で基板が再起動すると（fw:723）、時刻だけが 0 に戻るので逆に高く出る。</li>
+  <li>上限の 100 万件を超えると、件数は頭打ちのまま時間だけ伸びるので、計数率が下がっていく。</li>
+</ul>
+<p><span class="label">修正案：</span>ファームの OLED 表示（fw:1645–1652）と同じく、基板側のカウンタ・時刻・デッドタイムの差分を使い、ライブタイムで割る。</p>
+<pre><code>const first = events[0], last = events[n - 1];
+const counts = last.count - first.count;
+const liveUs = (last.timestamp_us - first.timestamp_us)
+             - (last.deadtime_us  - first.deadtime_us);
+const rate    = liveUs &gt; 0 ? counts / (liveUs / 1e6) : 0;
+const rateStd = liveUs &gt; 0 ? Math.sqrt(counts) / (liveUs / 1e6) : 0;</code></pre>
+<p>count が減ったとき（RESET や再起動）は区間を切り替え、区間ごとの計数とライブタイムを足し合わせる。経過時間と合計デッドタイムの表示もセッション基準にそろえる。</p>
+<p class="why">根拠: 2827–2838、2848（合計デッドタイムも起動時からの累積のまま）、fw:1645–1652、screenshot1.png。</p>
+</div>
+
+<div class="idea">
+<h3><span class="tag tag-hi">高</span><span class="tag tag-eff">工数中</span>R-2. 自動保存ファイルが壊れる経路が 5 つある</h3>
+<div class="table-scroll">
+<table>
+  <tr><th>#</th><th>現象</th><th>箇所</th><th>影響</th></tr>
+  <tr><td>a</td><td>日付を <code>toISOString()</code>（UTC）で判定している</td><td>2969</td><td>日本ではファイルが朝 9 時に切り替わる。手動エクスポートのファイル名はローカル時刻（3946–3954）なので、両者の日付が合わない</td></tr>
+  <tr><td>b</td><td>同じ日に再接続すると、ヘッダを再び追記する（フォルダを選ぶたびに <code>currentDate</code> が null に戻る）</td><td>2921, 2973–2986</td><td>CSV のヘッダは <code>#</code> で始まらないので、ファイルの途中にヘッダ行が混ざり、pandas などで読むと列の型が崩れる</td></tr>
+  <tr><td>c</td><td>ファイル名の接頭辞が BLE 名で決まり、BLE 名は接続から約 2.4 秒後に届く</td><td>2941–2947, 2344</td><td>最初の書き込みのあとで接頭辞が変わり、ヘッダのない別ファイルに分かれて保存される</td></tr>
+  <tr><td>d</td><td>保存形式が「両方」のとき、.dat が成功して .csv が失敗すると、バッチ全体を再キューする</td><td>2998–3010</td><td>再試行のたびに .dat の行が重複する</td></tr>
+  <tr><td>e</td><td>毎秒 <code>createWritable({ keepExistingData: true })</code> で開き直している</td><td>2929–2936</td><td>Chrome は開くたびに既存ファイル全体を一時ファイルにコピーする。ファイルが大きくなるほど 1 回の書き込みが重くなる（線源測定で 1 日数百 MB になると顕著）</td></tr>
+</table>
+</div>
+<p><span class="label">修正案：</span></p>
+<ul>
+  <li>a: 日付はローカル時刻で作る（<code>formatDateForFile()</code> と同じ方式）。</li>
+  <li>b: ヘッダは「ファイルサイズが 0 のときだけ」書く。<code>appendToFile()</code> の中で <code>file.size === 0</code> を確認すればよい。</li>
+  <li>c: 接頭辞はセッション開始時（フォルダを選んだときか接続したとき）に決め、<code>state.autoSave.prefix</code> に保持する。</li>
+  <li>d: 形式ごとに未書き込みのキューを分け、成功した形式は進め、失敗した形式だけ再試行する。</li>
+  <li>e: ファイルを 1 時間単位などで分けてサイズを抑えるか、ファイルが大きくなったら書き込み間隔を延ばす。</li>
+</ul>
+<p class="why">根拠: ディスクを正本とする設計（3032–3034）なので、ここの整合性がデータの信頼性を左右する。</p>
+</div>
+
+<div class="idea">
+<h3><span class="tag tag-hi">高</span><span class="tag tag-eff">工数小</span>R-3. 「再送」でサーバー上のデータが重複する</h3>
+<p><span class="label">現象：</span><code>uploadResend()</code> は「キューにない、メモリ上の全イベント」を積み直す（3594–3608）。送信に成功したかどうかを記録していないので、送信済みのイベントも再び送る。</p>
+<p><span class="label">影響：</span>サーバー側の行が重複する。キューの上限は 50,000 件で古いほうから捨てるため、上限に達した状況で再送すると、本来送りたかった古い未送信分が捨てられ、送信済みの新しい分だけが残る。</p>
+<p><span class="label">修正案：</span>成功したイベントに印を付け、再送の対象から外す。</p>
+<pre><code>// flushUpload() の結果処理
+if (r &amp;&amp; r.ok) { batch[i].uploaded = true; ok++; continue; }
+// HTTP 400 で拒否されたもの
+batch[i].rejected = true;
+
+// uploadResend()
+const add = state.events.filter(ev =&gt; !ev.uploaded &amp;&amp; !ev.rejected &amp;&amp; !already.has(ev));</code></pre>
+<p class="why">根拠: 3437, 3443–3449, 3592–3608。</p>
+</div>
+
+<div class="idea">
+<h3><span class="tag tag-hi">高</span><span class="tag tag-eff">工数小</span>R-4. PWM（コンパレータしきい値）を操作する UI がない</h3>
+<p><span class="label">現象：</span>ファームは <code>SET_PWM:&lt;0-255&gt;</code>、<code>GET_PWM</code>、<code>AUTO_PWM[:target]</code> に対応していて、応答は <code>PWM:&lt;duty&gt;</code>（fw:514–533, 1070–1072）。ページにはこれらを送る経路がなく、<code>PWM:</code> 行を処理する部分もないため、応答は 13 列のイベント行チェックで捨てられる（2686）。</p>
+<p><span class="label">影響：</span>Digital/Dual モードのボタンは押せるが、コンパレータのしきい値を校正できない。ファームは Digital に切り替えると「AUTO_PWM を実行して」と促すが（fw:583）、ページからは実行できない。あわせて、Duty の表示は「/ 1023」（1263, 1511）だが、ファームの上限は 255（fw:94）。</p>
+<p><span class="label">修正案：</span>しきい値の設定欄に、Duty の入力、Set/Get、Auto PWM ボタンを追加する。<code>processLine()</code> に <code>PWM:</code> の処理を加え、表示を「/ 255」に直す。接続時の状態取得（2337–2359）にも <code>GET_PWM</code> を加える。idea.html の C-2 と同じ提案。</p>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<section id="r1-mid">
+<h2>3. 課題と修正案（中）</h2>
+
+<div class="idea">
+<h3><span class="tag tag-mid">中</span><span class="tag tag-eff">工数小</span>R-5. BLE の書き込みが衝突する</h3>
+<p><span class="label">現象：</span><code>scopeEnter()</code> は 2 つのコマンドを、前の送信を待たずに続けて送る（4138–4139）。BLE の GATT は同時に 1 件しか書き込めず、Chrome は書き込み中の次の書き込みを「GATT operation already in progress」で拒否する。拒否されてもエラーは console に出るだけ（2330–2332）。</p>
+<p><span class="label">影響：</span><code>SET_SCOPE:ON</code> が失われると、オシロは「トリガ待ち」のまま止まる。設定ボタンを素早く続けて押した場合も同じことが起こる。</p>
+<p><span class="label">修正案：</span>送信を 1 本の待ち行列にまとめ、1 件ずつ送る。非推奨の <code>writeValue()</code> は <code>writeValueWithResponse()</code> に置き換える。</p>
+<pre><code>let cmdChain = Promise.resolve();
+function sendCommand(cmd) {
+  cmdChain = cmdChain.then(() =&gt; sendCommandNow(cmd)).catch(() =&gt; {});
+  return cmdChain;
+}</code></pre>
+<p>こうすれば、接続時の <code>setTimeout</code> を何段も並べた状態取得（2337–2359）も、最初に 1 回待ったあと順に送るだけで済む。</p>
+</div>
+
+<div class="idea">
+<h3><span class="tag tag-mid">中</span><span class="tag tag-eff">工数小</span>R-6. オシロの状態がページとファームでずれる</h3>
+<ul>
+  <li>オシロのタブを開いたまま USB/BLE で接続しても、<code>SET_SCOPE:ON</code> を送らない。デモ接続では送っている（4721–4725）。</li>
+  <li>接続時の状態取得に <code>GET_SCOPE</code> がない（2337–2359）。タブを閉じたときの OFF 送信（4177–4179）は非同期で、届く保証がない。届かないと、次に接続しても計数が止まったままで、そのことに気付けない。</li>
+  <li>オシロのタブを開いたまま放置すると、その間ずっと計数が止まる（夜通しの測定がすべて失われる）。</li>
+</ul>
+<p><span class="label">修正案：</span>USB/BLE の接続処理の最後に <code>if (scope.active) scopeEnter();</code> を加える。状態取得に <code>GET_SCOPE</code> を加え、タブが開いていないのに <code>SCOPE:ON</code> が返ってきたら OFF を送る。オシロ動作中はヘッダに「計数停止中」と目立つ表示を出す。ファーム側にも、一定時間コマンドが来なければ自動で OFF に戻す安全装置があると安心。</p>
+</div>
+
+<div class="idea">
+<h3><span class="tag tag-mid">中</span><span class="tag tag-eff">工数小</span>R-7. BLE 名の長さ制限がファームと合っていない</h3>
+<p><span class="label">現象：</span>ページは 24 文字まで入力を許す（697, 4846）。ファームの BLE 名の上限は 24 文字（fw:175）だが、コマンドの受信バッファは 31 文字まで（fw:268, 343, 744）なので、<code>SET_BLENAME:</code> の 12 文字を引くと、送れる名前は実質 19 文字まで。</p>
+<p><span class="label">影響：</span>20〜24 文字の名前は知らせなしに切り詰められて保存され、基板が再起動する。ページは送信前に 24 文字のまま localStorage に保存する（4851）。再起動前に返る <code>BLENAME:</code> を受け取れなかった場合、BLE 接続時の名前フィルタ（2189–2191、完全一致）で基板が見つからなくなる。</p>
+<p><span class="label">修正案：</span>ページ側の上限を 19 文字にする（<code>maxlength</code> と正規表現の両方）。localStorage への保存は <code>BLENAME:</code> を受け取ってから行う。ファーム側のバッファを 48 バイト程度に広げる方法でもよい。</p>
+</div>
+
+<div class="idea">
+<h3><span class="tag tag-mid">中</span><span class="tag tag-eff">工数小</span>R-8. 接続に失敗しても画面に何も出ない</h3>
+<p><span class="label">現象：</span><code>connectUSB()</code> と <code>connectBLE()</code> は、失敗すると <code>console.error</code> するだけ（2151–2153, 2223–2225）。</p>
+<p><span class="label">影響：</span>よくある原因の「Arduino IDE のシリアルモニタがポートを使っている」で接続できなくても、ボタンを押して何も起きないように見える。</p>
+<p><span class="label">修正案：</span>エラーを画面上部の警告欄に出す。<code>NotFoundError</code>（利用者がキャンセルした）は無視する。<code>NetworkError</code> や <code>InvalidStateError</code> のときは「他のアプリがポートを使っていないか確認してください」と案内する。ポートを開いたあとで失敗した場合は、ポートを閉じてから戻る。</p>
+</div>
+
+<div class="idea">
+<h3><span class="tag tag-mid">中</span><span class="tag tag-eff">工数小〜中</span>R-9. 認証情報の扱い</h3>
+<ul>
+  <li>入力例が <code>http://accel-kitchen.com:3000</code>（610, 1160）で、ログイン時のパスワードを平文の HTTP で送る（3288–3291）。接続できないときの案内文（1193）も、http で開くよう勧めている。</li>
+  <li>「パスワードを記憶」を切っていても、認証トークン（JWT）は常に localStorage に保存される（3089）。トークンが有効な間は、それだけでアップロードできる。</li>
+</ul>
+<p><span class="label">修正案：</span>サーバーを HTTPS にし、入力例と案内文もそれに合わせる。「記憶しない」ときは、トークンを sessionStorage に置くか、保存しない。</p>
+</div>
+
+<div class="idea">
+<h3><span class="tag tag-mid">中</span><span class="tag tag-eff">工数中</span>R-10. BLE の自動再接続がない</h3>
+<p><span class="label">現象：</span>BLE が切れると、<code>onBLEDisconnected()</code> で切断状態に戻るだけ（2240–2251）。</p>
+<p><span class="label">影響：</span>夜通しの BLE 測定で一瞬でも電波が途切れると、そこで記録が止まる。</p>
+<p><span class="label">修正案：</span>利用者が切断したのでなければ、<code>device.gatt.connect()</code> を 1, 2, 4, …, 30 秒の間隔で再試行し、通知の購読もやり直す。自動保存のセッションは引き継ぎ、ヘッダには「再接続中」と出す。</p>
+</div>
+
+<div class="idea">
+<h3><span class="tag tag-mid">中</span><span class="tag tag-eff">工数小</span>R-11. 送信データの時刻がぶれる</h3>
+<p><span class="label">現象：</span>時刻の換算（<code>uploadClockUs()</code>）を、キューに積んだときではなく送信するときに行っている（3168）。この換算は「基板時刻が前回より戻ったら再起動とみなして基準を取り直す」（3126）。</p>
+<p><span class="label">影響：</span>送信に失敗して古いイベントを再送すると、基板時刻が戻ったと判定されて基準が取り直され、その後のイベントの時刻がぶれる。</p>
+<p><span class="label">修正案：</span>到着順に <code>enqueueUpload()</code> の中で一度だけ計算し、<code>ev.wall_us</code> に確定させる。送信時はその値を使う。</p>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<section id="r1-low">
+<h2>4. 課題と修正案（低）</h2>
+<div class="table-scroll">
+<table>
+  <tr><th>#</th><th>現象</th><th>箇所</th><th>修正案</th></tr>
+  <tr><td>R-12</td><td>BME280 がないと、ファームは <code>nan</code> を出力する（fw:199–201）。平均の分母が全イベント数なので「0.00 °C」と表示され、最大・最小は ±Infinity になる</td><td>2842–2845, 2855–2859</td><td>有効な値の件数で割る。有効な値がなければ「--」を出す</td></tr>
+  <tr><td>R-13</td><td>表の PC 時刻を UTC で表示している（日本時間より 9 時間ずれる）</td><td>2792</td><td>ローカル時刻で表示する。保存ファイルには UTC で書いてよいが、末尾に Z を付けるなどして UTC だと明記する</td></tr>
+  <tr><td>R-14</td><td>計数率グラフが、イベントがブラウザに届いた時刻で計算している（USB/BLE はまとめて届くので値が揺れる）。横軸は時刻ではなく等間隔で、手動更新モードだと間隔が不規則になる。時刻の書式が <code>en-US</code> に固定されている</td><td>3756–3777</td><td>基板時刻で区間ごとの計数率を出す。横軸を時刻軸にする。書式は表示言語に合わせる</td></tr>
+  <tr><td>R-15</td><td>保存データに付く情報が経路ごとに違う。CSV にはコメントもデモの注記も入らない。自動保存の .dat にはモードとしきい値が入らない。列の順番は、2 列目に PC 時刻を入れているため、ファームや SD のログより 1 列ずつ後ろにずれる。気圧はファームが小数 1 桁、保存は 2 桁</td><td>2938–2957, 2976–2979, 3833–3844</td><td>ヘッダを作る関数を 1 つにまとめる。CSV には <code>#</code> で始まるコメント行を許すか、メタデータを別ファイルに書く。列の順番は README などに明記する</td></tr>
+  <tr><td>R-16</td><td>オシロの canvas が 1120×440 固定で、高解像度ディスプレイだとぼやける</td><td>1065, 4028–4036</td><td>ヒストグラムと同じく、表示サイズと <code>devicePixelRatio</code> に合わせて描く</td></tr>
+  <tr><td>R-17</td><td>最大 100 万件のイベントをオブジェクトでメモリに保持している（150〜200MB 程度）。上限を超えると、1 件届くたびに配列の先頭を削除する</td><td>1716, 2715–2720</td><td>リングバッファにするか、列ごとの型付き配列に持ち替える。表示と集計に必要な分だけを持ち、全件はファイルに任せる</td></tr>
+  <tr><td>R-18</td><td>「Clear Data」は表示を消すだけでなく、基板に <code>RESET</code> を送り、基板のカウンタも 0 に戻す。ボタン名からはそれが分からない</td><td>4927–4959</td><td>ボタン名か確認ダイアログに「基板のカウンタもリセットします」と書く。R-1 を直したあとは、表示だけを消す操作と分けてもよい</td></tr>
+</table>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<section id="r1-structure">
+<h2>5. 構造・UX・保守性</h2>
+
+<div class="idea">
+<h3><span class="tag tag-mid">中</span><span class="tag tag-eff">工数中</span>S-1. 5,047 行が 1 ファイルに入っている</h3>
+<p>内訳はおおよそ、CSS 約 560 行、HTML 約 570 行、翻訳辞書 約 570 行、ロジック 約 3,300 行（うちデモ約 630 行）。</p>
+<p><span class="label">修正案：</span>機能ごとに別ファイルへ切り出す（例: <code>i18n.js</code>、<code>transport.js</code>、<code>autosave.js</code>、<code>upload.js</code>、<code>scope.js</code>、<code>demo.js</code>）。ES モジュールにすると <code>file://</code> で開いたときに読み込めなくなるので、通常の <code>&lt;script src&gt;</code> で読み込む。1 ファイルで配布したい場合は、配布用に結合するスクリプトを用意する。</p>
+</div>
+
+<div class="idea">
+<h3><span class="tag tag-mid">中</span><span class="tag tag-eff">工数大</span>S-2. v1/index.html とコードが重複している</h3>
+<p>v1 と v2 のページで、同じ名前の関数が 39 個ある。同じバグを 2 か所で直す必要があり、すでに差が出ている。server-plan.html:920 には、v1 の <code>flushAutoSave()</code> に v2 の防御が 2 つともないと書かれている。</p>
+<p><span class="label">修正案：</span>v1 ページがすでに持っている <code>BOARD_PROFILES</code>（v1/index.html:1288）の仕組みを広げ、1 本のページで両方の基板に対応する。または、S-1 で切り出した共通ファイルを両ページから読み込む。</p>
+</div>
+
+<div class="idea">
+<h3><span class="tag tag-mid">中</span><span class="tag tag-eff">工数小</span>S-3. サイドバーの並び</h3>
+<p>サイドバーには 12 のセクションが並び、最初に使う「接続」は上から 5 番目、サーバー送信の下にある。</p>
+<p><span class="label">修正案：</span>接続、しきい値、モードを上に置く。自動保存とファイルをその次に置く。サーバー送信、ブザー、振動、機能の切り替え、グラフ更新間隔は、折りたためる「詳細設定」にまとめる。</p>
+</div>
+
+<div class="idea">
+<h3><span class="tag tag-lo">低</span><span class="tag tag-eff">工数小</span>S-4. テストがない</h3>
+<p><code>processLine()</code>、<code>eventToDatLine()</code>、<code>eventToCsvLine()</code>、R-1 の計数率計算は、入力に対して出力が決まる関数にしやすい。</p>
+<p><span class="label">修正案：</span>実機のログ（<code>sample_thorium_test.dat</code> や <code>.wfm</code>）を入力にして、Node で動く小さなテストを用意する。ファームの出力形式を変えたときに、ページ側の解析が壊れていないかをすぐ確認できる。</p>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<section id="r1-protocol">
+<h2>6. ファーム・ドキュメントとの整合</h2>
+
+<h3>食い違い</h3>
+<div class="table-scroll">
+<table>
+  <tr><th>#</th><th>内容</th><th>箇所</th><th>影響</th></tr>
+  <tr><td>D-1</td><td>description.md が実装とずれている。
+    <ul class="plain">
+      <li>Time と Deadtime を ms と書いているが、実際は µs</li>
+      <li>「SET_THRESH で PWM に反映」とあるが、実装ではしきい値と Duty は切り離されている</li>
+      <li>校正ログの書式が「min/avg/max」とあるが、実際は「min max margin」</li>
+      <li>「モードは保存されて次回起動時も維持」とあるが、実際は常に ANALOG で起動する</li>
+      <li>PWM、AUTO_MARGIN、各機能の切り替え、BEEP、VIB_MS、SCOPE、BLENAME、BTADDR、RESET の各コマンドと <code>WF,</code> 行の書式が載っていない</li>
+    </ul></td>
+    <td>description.md:61, 82, 113, 143, 161<br>fw:494, 944, 963–972, 758</td><td>v2/index.html は「description.md に合わせる」と書いている（1710）ので、仕様書が古いと今後の修正を誤らせる</td></tr>
+  <tr><td>D-2</td><td>v1/index.html は 4 列目を SiPM 電圧、5 列目を ms 単位のデッドタイムとして読む。v2 ファームにつなぐと 1 列ずつずれる</td><td>v1/index.html:1855–1858</td><td>SiPM 欄に累積デッドタイム（数百万）が、デッドタイム欄に温度が入る。v2 基板には必ず v2 ページを使うよう、ページかマニュアルに明記する</td></tr>
+  <tr><td>D-3</td><td>オシロのタブは v2 本番ファーム専用。波形ファームは <code>SET_SCOPE:ON</code> を知らないコマンドとして無視し、停止状態で起動して <code>START</code> を待つ。しきい値の応答は <code>THRESH:s,r</code> 形式で、ページの解析と一致しない。BLE もない</td><td>wf:951, 1027, 1088, 1243<br>2529</td><td>波形ファームには wave_plotter.html を使う、と画面に一言書いておく</td></tr>
+  <tr><td>—</td><td>ファームの起動ヘッダは printf を通らないため、「Hum[%%]」がそのまま出る。オシロの説明文の「生波形」は、実際にはピークホールドの出力</td><td>fw:494<br>1036, 1281, 1529</td><td>表記の問題のみ</td></tr>
+</table>
+</div>
+
+<h3>一致を確認した項目</h3>
+<ul class="plain">
+  <li>BLE の UUID（fw:164–166 / 1734–1736）</li>
+  <li>改行までの受信バッファリングと <code>\r</code> の除去（2161–2171, 2228–2237）。ファームの BLE 出力は ASCII のみなので、通知ごとにデコードしても問題ない</li>
+  <li>ページからの 20 バイト分割書き込みを、ファームが改行まで連結して処理すること（fw:331–347）</li>
+  <li>ボーレートはどちらも 9600（fw:1159 / 691）。USB CDC なので実際には影響しない</li>
+  <li>イベント行の形式: 空白区切り 13 列、12bit ADC、時間は µs（1711–1712, 2685–2696）</li>
+  <li>ページが送るコマンドの書式と範囲: SET_THRESH、AUTO_THRESH:m、SET_BEEP、SET_VIB_MS、SET_SCOPE_RATE（1–20）、SET_MODE、各機能の ON/OFF、RESET</li>
+  <li>応答行の解析: THRESH、MODE、AUTO_MARGIN、BEEP、VIBMS、BLENAME、BTADDR、各 ON/OFF、SCOPE、SCOPE_RATE、起動ヘッダの「Signal threshold」行、「Booting」行</li>
+  <li>本番ファームの <code>WF,</code> 行（fw:1416–1424）と、ページの「7 + 点数」の検証（3976–3981）</li>
+  <li>サーバー送信の互換モードで、deadtime を ms に換算し、time を µs のまま送る点は、server-plan.html のとおりの意図的な仕様</li>
+</ul>
+
+<h3>ファーム側で見つかった問題（参考）</h3>
+<ul class="plain">
+  <li><code>pCharacteristic-&gt;getValue().c_str()</code>（fw:333）: ESP32 Arduino コア 3.x では <code>getValue()</code> が一時的な String を返すため、行が終わった時点で解放された領域を指す。<code>String v = pCharacteristic-&gt;getValue();</code> と変数に受けてから使う。</li>
+  <li>BLE の受信コールバック（別タスク）から <code>executeCommand()</code> を直接呼んでいる（fw:340）。BLE 経由の <code>SET_SCOPE:ON</code> などが、<code>loop()</code> 側の ADC 読み取りと同時に走る恐れがある。コールバックではキューに積むだけにして、実行は <code>loop()</code> で行う。</li>
+</ul>
+</section>
+
+<!-- ============================================================ -->
+<section id="r1-order">
+<h2>7. 推奨する対応順</h2>
+<ol class="order">
+  <li><b>R-1 計数率。</b>画面の中心となる数値で、修正は小さい。直すと R-18 の「Clear しないと値がおかしい」問題もほぼ解消する。</li>
+  <li><b>R-2 自動保存。</b>正本となるデータの整合性に関わる。a・b・c は小さな修正で直せる。</li>
+  <li><b>R-3 再送の重複。</b>サーバー上のデータを汚す。修正は数行。</li>
+  <li><b>R-5、R-6 の BLE とオシロ。</b>待ち行列を入れれば、R-6 の修正も素直に書ける。夜通しの計数停止を防ぐ。</li>
+  <li><b>R-4 PWM の UI。</b>ファームの AUTO_PWM（idea.html の A-1）と組み合わせて、Digital/Dual モードを実際に使える状態にする。</li>
+  <li><b>R-7、R-8、R-11。</b>どれも小さく独立している。</li>
+  <li><b>D-1 description.md の更新。</b>以後の修正の基準になる文書なので、R-1〜R-4 を直したあとに実装に合わせる。</li>
+  <li><b>S-1〜S-3 の構造整理。</b>上の修正が落ち着いてから行う。先にやると差分が大きくなり、修正のレビューが難しくなる。</li>
+</ol>
+</section>
+
+</details>
+</section>
+
+</main>
+
+<footer>Accel Kitchen — Cosmic Ray Detector V2 / review.html（v2/index.html のコードレビュー・第 2 回）</footer>
+
+</body>
+</html>

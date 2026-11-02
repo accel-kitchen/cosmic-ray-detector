@@ -37,6 +37,7 @@
 #include <BLE2902.h>
 #include "esp_adc/adc_continuous.h"  // オシロスコープモードの DMA 連続サンプリング
 #include "esp_err.h"
+#include "esp_timer.h"               // GPS の PPS エッジを割り込み内で 64 ビット µs で刻む
 #include "esp32-hal-periman.h"       // ADC1 の所有権を oneshot から DMA へ渡すため
 
 // オシロスコープモードで esp_adc/adc_continuous.h を使うため 3.x を要求する。
@@ -62,17 +63,36 @@ const int ANA_IN_PINS[3] = { 2, 3, 13 };   // A1, A2, A6
 const int LED_PIN      = 6;   // D3 (検出表示LED)
 // 振動モーター (A7)。D13 は microSD の SCK なので使えない ── モーターを載せると
 // SPI 波形が潰れて SD ログが壊れ、逆に SD アクセスのたびにモーターが唸る。
-// v2 基板で未接続なヘッダピンは A3(GPIO4) と A7(GPIO14) の 2 本だけで、
-// A7 は ADC2 側なのでオシロモードが占有する ADC1 と一切干渉しない。
+// v2 基板で未接続なヘッダピンは A3(GPIO4) と A7(GPIO14) の 2 本だけだった。
+// A3 は GPS の PPS 入力に使う (下の GPS_PPS_PIN)。残る A7 は ADC2 側なので
+// オシロモードが占有する ADC1 と一切干渉しない。
 // 注意: 1027 コイン型の定格電流(~75-90mA)は GPIO の絶対最大定格 40mA を超える。
 // トランジスタ/MOSFET + 還流ダイオードで駆動すること (MANUAL.html 参照)。
 const int VIB_PIN      = 14;  // A7 (振動モーター)
 static constexpr int SD_SPI_CS_PIN = 18;         // D9  / CS  -> microSD (J8, CS2)
-static constexpr int SD_SPI_UNUSED_CS_PIN = 21;  // D10 / CS1 (keep deasserted)
 static constexpr int SD_SPI_MOSI_PIN = 38;       // D11 / COPI
 static constexpr int SD_SPI_MISO_PIN = 47;       // D12 / CIPO
 static constexpr int SD_SPI_SCK_PIN = 48;        // D13 / SCK
 static constexpr uint32_t SD_SPI_FREQ_HZ = 4000000;
+
+// GPS (GT-502MGG-N)。J4-4 (旧 CS1 / D10 / GPIO21) に GPS の TXD、A3 (GPIO4) に PPS を配線する。
+// J4 の SCLK / MOSI / MISO は microSD と共有なので何も繋がない。CS1 は J4 専用で SD は CS2 を使うため、
+// UART 受信に転用しても SD には影響しない。GPS の TXD と衝突するので GPIO21 を OUTPUT にしてはいけない。
+// モジュールの RXD は繋がない (既定の 9600bps / NMEA のまま使う)。
+static constexpr int      GPS_RX_PIN  = 21;      // D10 / J4-4 : GPS TXD -> UART1 RX
+static constexpr int      GPS_PPS_PIN = 4;       // A3        : GPS 1PPS
+static constexpr uint32_t GPS_BAUD    = 9600;
+// PPS の有効エッジ。データシートに極性の記載がないので実機をオシロで見て決める
+// (Low アクティブなら FALLING)。
+static constexpr int      GPS_PPS_EDGE = RISING;
+// NMEA の時刻が PPS エッジの秒そのものなら 0。センテンスが PPS より先に届いて「次の秒」を
+// 指しているモジュールなら -1 (実機で RMC と PPS の前後関係を見て決める)。
+static constexpr int      GPS_RMC_SEC_OFFSET = 0;
+// "### PPS" を出す間隔 [s]。UTC の秒がこの倍数のときだけ出す (1 行 約 35 バイト)。
+static constexpr uint32_t GPS_MARK_INTERVAL_S = 10;
+static constexpr uint32_t GPS_INFO_INTERVAL_S = 60;     // "### GPS" (位置) を出す間隔 [s]
+// PPS から RMC 受信までがこの時間を超えたら対応づけない (次の PPS と取り違えて 1 秒ずれるのを防ぐ)。
+static constexpr uint64_t GPS_ASSOC_MAX_US = 800000;
 
 // OLED設定
 #define SCREEN_WIDTH 128
@@ -282,6 +302,41 @@ volatile uint32_t compEdgeCount = 0;  // コンパレータ端の総数（onTrig
 static bool triggerIsrAttached = false;  // tracks whether the TRIGGER_IN ISR is currently attached
 
 // ==========================================
+//   GPS: UART1 受信 + 1PPS 割り込み
+// ==========================================
+// 役割は「イベント時刻を UTC に結びつける印をログに残す」ことだけ。
+// イベント行 (13 トークン) は変えない。コンソールは 13 トークンちょうどでないと行を捨てるので、
+// GPS の情報は "###" で始まる行にして、既存のコンソールや解析に影響させない。
+//   ### PPS <t_us> <utc_epoch_s>
+//       t_us は Event Time と同じ時計 (start_time_us 起点) で測った PPS エッジ、
+//       utc_epoch_s はそのエッジの UTC (unix 秒)。
+//   ### GPS fix=<q> sats=<n> lat=<deg> lon=<deg> alt=<m>
+// 後処理では、隣り合う 2 つの PPS の間を線形補間してイベントを UTC に直す。
+// 精度はイベント時刻の取り方で決まる。いまは handleTriggerEvent() の最後で取るので、
+// ループの遅れ (OLED / SD / BLE) の分だけ ms 級のずれが残る。
+static portMUX_TYPE ppsMux = portMUX_INITIALIZER_UNLOCKED;
+static volatile uint64_t ppsTimeUs = 0;   // 直近の PPS エッジ (esp_timer の µs)
+static volatile uint32_t ppsCount  = 0;   // PPS エッジの総数
+
+static bool     gpsSeen = false;          // チェックサムの合う NMEA を 1 行でも受けた
+static bool     gpsValid = false;         // 直近の RMC のステータスが A (有効)
+static int      gpsFixQuality = 0;
+static int      gpsSats = 0;
+static double   gpsLat = NAN, gpsLon = NAN;
+static float    gpsAlt = NAN;
+static uint32_t gpsEpoch = 0;             // 直近の有効な RMC の UTC (unix 秒)
+static uint32_t gpsLinesOk = 0, gpsLinesBad = 0;
+static uint32_t gpsSyncCount = 0;         // PPS と RMC を対応づけられた回数
+static uint32_t gpsMarkedPpsCount = 0;    // 対応づけに使った PPS の通し番号
+static uint32_t gpsPrevPpsCount = 0;
+static uint64_t gpsPrevPpsUs = 0;
+static uint32_t gpsPpsPeriodUs = 0;       // 直近の PPS 間隔 (1000000 からのずれ = 水晶の誤差)
+static bool     gpsForceMark = true;      // 起動直後と RESET の直後は間隔を待たずに 1 本出す
+static bool     gpsInfoLogged = false;
+static bool     gpsBacklog = false;       // ループが止まって受信バッファに古いバイトが溜まっている
+static uint64_t gpsLastServiceUs = 0;
+
+// ==========================================
 //   コマンド行の組み立て (Serial / BLE 共通)
 // ==========================================
 // 47 文字 + NUL。以前は 31 文字で、"SET_BLENAME:" (12) を引くと名前は 19 文字までしか
@@ -360,6 +415,10 @@ void updateDisplay();
 void OpeningScreen();
 void initBLE();
 void IRAM_ATTR onTriggerISR();
+void IRAM_ATTR onPpsISR();
+void initGps();
+void gpsService();
+void printGpsStatus();
 void handleTriggerEvent(bool fromDigitalTrigger);
 int scaleAdcValue(int value, int fromBits, int toBits);
 bool scopeSetOn(bool on);
@@ -486,8 +545,6 @@ bool openNextSdLogFile() {
 }
 
 void initSdLogging() {
-  pinMode(SD_SPI_UNUSED_CS_PIN, OUTPUT);
-  digitalWrite(SD_SPI_UNUSED_CS_PIN, HIGH);
   pinMode(SD_SPI_CS_PIN, OUTPUT);
   digitalWrite(SD_SPI_CS_PIN, HIGH);
 
@@ -559,9 +616,12 @@ void printBootHeader() {
   printExtStatus();
   printOledStatus();
   printVibStatus();
+  snprintf(buf, sizeof(buf), "### GPS: UART1 RX=GPIO%d %lubps, PPS=GPIO%d", GPS_RX_PIN, (unsigned long)GPS_BAUD, GPS_PPS_PIN);
+  dualPrintln(buf);
 
   // printf を通らないので % は 1 つで書く（"%%" だとそのまま "%%" と出る）。
   dualPrintln("### Event Time[us] ADC[0-4095] Deadtime[us] Temp[C] Hum[%] Press[hPa] Dig1 Dig2 Dig3 Ana1 Ana2 Ana3");
+  dualPrintln("### PPS <Time[us] of a GPS 1PPS edge, same clock as Event Time> <UTC unix seconds>");
   dualPrintln(hdr1);
 }
 
@@ -642,6 +702,7 @@ void executeCommand(const char* cmd) {
     count = 0;
     start_time_us = micros64();
     total_deadtime_us = 0ULL;
+    gpsForceMark = true;   // 時計の起点が変わるので、新しい起点での PPS を早めに 1 本残す
     // オシロ中の RESET: 閉じたときに計上する滞在時間を RESET 以降の分にする。
     // そのままだと RESET 前の滞在まで足され、デッドタイムが経過時間を超える。
     if (scopeOn) scopeEnterUs = start_time_us;
@@ -803,6 +864,8 @@ void executeCommand(const char* cmd) {
     printScopeTrig();
   } else if (strcmp(cmd, "GET_SCOPE_TRIG") == 0) {
     printScopeTrig();
+  } else if (strcmp(cmd, "GET_GPS") == 0) {
+    printGpsStatus();
   } else if (strcmp(cmd, "GET_BLENAME") == 0) {
     printBleName();
   } else if (strcmp(cmd, "GET_BTADDR") == 0) {
@@ -1264,6 +1327,204 @@ uint64_t micros64() {
 }
 
 // ==========================================
+// GPS (NMEA 受信 + 1PPS)
+// ==========================================
+// micros() は esp_timer_get_time() の下位 32 ビットなので、ISR で取った 64 ビットの
+// esp_timer 時刻から start_time_us を引けば、Event Time と同じ時計になる。
+void IRAM_ATTR onPpsISR() {
+  const uint64_t t = (uint64_t)esp_timer_get_time();
+  portENTER_CRITICAL_ISR(&ppsMux);
+  ppsTimeUs = t;
+  ppsCount = ppsCount + 1;
+  portEXIT_CRITICAL_ISR(&ppsMux);
+}
+
+void initGps() {
+  // 受信バッファは 9600bps で約 1 秒分。AUTO_PWM などでループが止まっても 1 秒までは取りこぼさない。
+  // 溢れた分は壊れた行になるが、チェックサムで捨てて次の '$' から読み直す。
+  Serial1.setRxBufferSize(1024);
+  Serial1.begin(GPS_BAUD, SERIAL_8N1, GPS_RX_PIN, -1);
+  pinMode(GPS_PPS_PIN, INPUT);
+  attachInterrupt(digitalPinToInterrupt(GPS_PPS_PIN), onPpsISR, GPS_PPS_EDGE);
+  gpsLastServiceUs = (uint64_t)esp_timer_get_time();
+}
+
+// SD にも Serial にも書くが BLE には流さない (BLE は 20 バイトごとに 3ms 待つので検出を止める)。
+// 書いた時間は測定を止めた時間なのでデッドタイムに足す。オシロ中は滞在時間全体が
+// 閉じるときに計上されるので、ここで足すと二重になる。
+static void gpsLogLine(const char* str) {
+  const uint64_t t0 = micros64();
+  Serial.println(str);
+  writeSdLine(str);
+  if (!scopeOn) total_deadtime_us += micros64() - t0;
+}
+
+// 年月日時分秒 (UTC) -> unix 秒 (Howard Hinnant の days_from_civil)。
+static uint32_t gpsToEpoch(int y, int mo, int d, int h, int mi, int s) {
+  y -= (mo <= 2);
+  const int era = (y >= 0 ? y : y - 399) / 400;
+  const unsigned yoe = (unsigned)(y - era * 400);
+  const unsigned doy = (unsigned)((153 * (mo + (mo > 2 ? -3 : 9)) + 2) / 5 + d - 1);
+  const unsigned doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
+  const long days = (long)era * 146097L + (long)doe - 719468L;
+  return (uint32_t)(days * 86400L + h * 3600L + mi * 60L + s);
+}
+
+static int gpsTwoDigits(const char* s) {
+  if (s[0] < '0' || s[0] > '9' || s[1] < '0' || s[1] > '9') return -1;
+  return (s[0] - '0') * 10 + (s[1] - '0');
+}
+
+// "ddmm.mmmm" / "dddmm.mmmm" -> 度。空欄なら NAN。
+static double gpsDegrees(const char* v, const char* hemi) {
+  if (!v[0]) return NAN;
+  const double x = atof(v);
+  const double deg = floor(x / 100.0);
+  double r = deg + (x - deg * 100.0) / 60.0;
+  if (hemi[0] == 'S' || hemi[0] == 'W') r = -r;
+  return r;
+}
+
+// RMC の UTC 秒を、直近の PPS エッジに対応づけて印を出す。
+static void gpsSync(uint32_t sentenceEpoch, bool fresh) {
+  const uint64_t nowUs = (uint64_t)esp_timer_get_time();
+  uint64_t pt;
+  uint32_t pc;
+  portENTER_CRITICAL(&ppsMux);
+  pt = ppsTimeUs;
+  pc = ppsCount;
+  portEXIT_CRITICAL(&ppsMux);
+
+  const uint32_t utc = sentenceEpoch + (uint32_t)GPS_RMC_SEC_OFFSET;
+  gpsEpoch = utc;
+  // 古いバイトを読んでいる最中 (fresh=false) や、PPS が無い / 使用済み / 遠すぎるときは
+  // 対応づけない。誤って 1 秒ずらすより、印を 1 本飛ばすほうが安全。
+  if (!fresh || pc == 0 || pc == gpsMarkedPpsCount) return;
+  if (nowUs < pt || nowUs - pt > GPS_ASSOC_MAX_US) return;
+  gpsMarkedPpsCount = pc;
+  gpsSyncCount++;
+
+  char buf[120];
+  if (pt >= start_time_us && (gpsForceMark || (utc % GPS_MARK_INTERVAL_S) == 0)) {
+    snprintf(buf, sizeof(buf), "### PPS %llu %lu",
+             (unsigned long long)(pt - start_time_us), (unsigned long)utc);
+    gpsLogLine(buf);
+    gpsForceMark = false;
+  }
+  if (gpsValid && (!gpsInfoLogged || (utc % GPS_INFO_INTERVAL_S) == 0)) {
+    snprintf(buf, sizeof(buf), "### GPS fix=%d sats=%d lat=%.6f lon=%.6f alt=%.1f",
+             gpsFixQuality, gpsSats, gpsLat, gpsLon, (double)gpsAlt);
+    gpsLogLine(buf);
+    gpsInfoLogged = true;
+  }
+}
+
+// 1 行 ("$....*hh" から改行まで) を検証して RMC / GGA だけ読む。
+// talker (GP / GN / GL / BD ...) は見ず、末尾 3 文字の種別で判定する。
+static void gpsHandleLine(char* line, bool fresh) {
+  char* star = strchr(line, '*');
+  if (line[0] != '$' || !star || strlen(star) < 3) { gpsLinesBad++; return; }
+  uint8_t cs = 0;
+  for (const char* p = line + 1; p < star; p++) cs ^= (uint8_t)*p;
+  const char hex[3] = { star[1], star[2], '\0' };
+  if (cs != (uint8_t)strtoul(hex, nullptr, 16)) { gpsLinesBad++; return; }
+  *star = '\0';
+  gpsLinesOk++;
+  gpsSeen = true;
+
+  char* f[20];
+  int nf = 0;
+  f[nf++] = line + 1;
+  for (char* p = line + 1; *p && nf < 20; p++) {
+    if (*p == ',') { *p = '\0'; f[nf++] = p + 1; }
+  }
+  if (strlen(f[0]) != 5) return;
+  const char* type = f[0] + 2;
+
+  if (strcmp(type, "RMC") == 0 && nf >= 10) {
+    gpsValid = (f[2][0] == 'A');
+    if (!gpsValid) return;
+    gpsLat = gpsDegrees(f[3], f[4]);
+    gpsLon = gpsDegrees(f[5], f[6]);
+    const char* t = f[1];
+    const char* d = f[9];
+    if (strlen(t) < 6 || strlen(d) != 6) return;
+    const int hh = gpsTwoDigits(t), mi = gpsTwoDigits(t + 2), ss = gpsTwoDigits(t + 4);
+    const int dd = gpsTwoDigits(d), mo = gpsTwoDigits(d + 2), yy = gpsTwoDigits(d + 4);
+    if (hh < 0 || mi < 0 || ss < 0 || dd < 1 || mo < 1 || mo > 12 || yy < 0) return;
+    gpsSync(gpsToEpoch(2000 + yy, mo, dd, hh, mi, ss), fresh);
+  } else if (strcmp(type, "GGA") == 0 && nf >= 10) {
+    gpsFixQuality = atoi(f[6]);
+    gpsSats = atoi(f[7]);
+    gpsAlt = f[9][0] ? (float)atof(f[9]) : NAN;
+  }
+}
+
+void gpsService() {
+  // PPS の間隔 (水晶の誤差の目安)。ループが止まって取りこぼしたときは更新しない。
+  const uint32_t pc = ppsCount;
+  if (pc != gpsPrevPpsCount) {
+    uint64_t pt;
+    portENTER_CRITICAL(&ppsMux);
+    pt = ppsTimeUs;
+    portEXIT_CRITICAL(&ppsMux);
+    if (gpsPrevPpsCount != 0 && pc == gpsPrevPpsCount + 1) gpsPpsPeriodUs = (uint32_t)(pt - gpsPrevPpsUs);
+    gpsPrevPpsCount = pc;
+    gpsPrevPpsUs = pt;
+  }
+
+  // 前回から 200ms 以上空いたら、受信バッファの古いバイトを読み切るまでは PPS と対応づけない。
+  const uint64_t nowUs = (uint64_t)esp_timer_get_time();
+  if (nowUs - gpsLastServiceUs > 200000) gpsBacklog = true;
+  gpsLastServiceUs = nowUs;
+
+  // NMEA は 1 行が 82 文字以下。1 回に読む量を絞って、検出ループを遅らせない。
+  static char line[100];
+  static size_t len = 0;
+  static bool overflow = false;
+  for (int n = 0; n < 64 && Serial1.available(); n++) {
+    const char c = (char)Serial1.read();
+    if (c == '$') {
+      len = 0;
+      overflow = false;
+      line[len++] = c;
+    } else if (c == '\n' || c == '\r') {
+      if (len > 0 && !overflow) {
+        line[len] = '\0';
+        gpsHandleLine(line, !gpsBacklog);
+      }
+      len = 0;
+      overflow = false;
+    } else if (len > 0) {
+      if (len < sizeof(line) - 1) line[len++] = c;
+      else overflow = true;
+    }
+  }
+  if (!Serial1.available()) gpsBacklog = false;
+}
+
+void printGpsStatus() {
+  uint64_t pt;
+  uint32_t pc;
+  portENTER_CRITICAL(&ppsMux);
+  pt = ppsTimeUs;
+  pc = ppsCount;
+  portEXIT_CRITICAL(&ppsMux);
+  const long ageMs = pc ? (long)(((uint64_t)esp_timer_get_time() - pt) / 1000ULL) : -1L;
+  char buf[200];
+  snprintf(buf, sizeof(buf),
+           "### GPS status: nmea=%s valid=%d fix=%d sats=%d lat=%.6f lon=%.6f alt=%.1f utc=%lu",
+           gpsSeen ? "ok" : "none", gpsValid ? 1 : 0, gpsFixQuality, gpsSats,
+           gpsLat, gpsLon, (double)gpsAlt, (unsigned long)gpsEpoch);
+  dualPrintln(buf);
+  snprintf(buf, sizeof(buf),
+           "### GPS status: pps_count=%lu pps_age_ms=%ld pps_period_us=%lu sync=%lu lines_ok=%lu lines_bad=%lu",
+           (unsigned long)pc, ageMs, (unsigned long)gpsPpsPeriodUs, (unsigned long)gpsSyncCount,
+           (unsigned long)gpsLinesOk, (unsigned long)gpsLinesBad);
+  dualPrintln(buf);
+}
+
+// ==========================================
 // Setup
 // ==========================================
 void setup() {
@@ -1309,6 +1570,7 @@ void setup() {
 
   initBLE();
   initSdLogging();
+  initGps();
   Wire.begin(11, 12);
 
   if (OLED == 1) {
@@ -1348,6 +1610,7 @@ void loop() {
   // micros() の 32 ビットの桁上がり（約 71.6 分ごと）を取りこぼさないよう、毎周呼ぶ。
   // イベントも OLED 更新も無い状態（オシロ中で OLED OFF など）が続いても時刻が巻き戻らない。
   micros64();
+  gpsService();
 
   if (ledOffMs && now >= ledOffMs) {
     digitalWrite(LED_PIN, LOW);

@@ -1,0 +1,1157 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>宇宙線検出器 V2 — 測定サーバー連携 計画</title>
+<style>
+  :root {
+    --accent: #00BCD4;
+    --accent-dark: #0097A7;
+    --bg: #fafafa;
+    --card: #ffffff;
+    --text: #263238;
+    --muted: #607D8B;
+    --border: #CFD8DC;
+    --hi: #E53935;
+    --mid: #FB8C00;
+    --lo: #43A047;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: "Segoe UI", "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    margin: 0;
+    line-height: 1.7;
+  }
+  header {
+    background: linear-gradient(135deg, #006064, var(--accent-dark));
+    color: #fff;
+    padding: 28px 24px 20px;
+  }
+  header h1 { margin: 0 0 4px; font-size: 1.5rem; }
+  header p  { margin: 0; opacity: 0.85; font-size: 0.9rem; }
+  main { max-width: 980px; margin: 0 auto; padding: 24px 16px 64px; }
+  section {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px 24px;
+    margin-bottom: 24px;
+  }
+  h2 {
+    margin: 0 0 12px;
+    font-size: 1.15rem;
+    color: var(--accent-dark);
+    border-bottom: 2px solid var(--accent);
+    padding-bottom: 6px;
+  }
+  h3 { margin: 20px 0 6px; font-size: 1.0rem; }
+  h4 { margin: 16px 0 4px; font-size: 0.92rem; color: var(--muted); }
+  table { border-collapse: collapse; width: 100%; font-size: 0.88rem; margin: 8px 0; }
+  th, td { border: 1px solid var(--border); padding: 6px 10px; text-align: left; vertical-align: top; }
+  th { background: #ECEFF1; white-space: nowrap; }
+  code {
+    background: #ECEFF1;
+    border-radius: 3px;
+    padding: 1px 5px;
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 0.85em;
+  }
+  pre {
+    background: #263238;
+    color: #ECEFF1;
+    border-radius: 6px;
+    padding: 12px 14px;
+    overflow-x: auto;
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 0.8rem;
+    line-height: 1.55;
+  }
+  pre code { background: none; color: inherit; padding: 0; font-size: 1em; }
+  .pri { font-weight: bold; white-space: nowrap; }
+  .pri-hi  { color: var(--hi); }
+  .pri-mid { color: var(--mid); }
+  .pri-lo  { color: var(--lo); }
+  .tag {
+    display: inline-block;
+    font-size: 0.72rem;
+    border-radius: 10px;
+    padding: 1px 9px;
+    margin-right: 6px;
+    color: #fff;
+    vertical-align: middle;
+  }
+  .tag-hi  { background: var(--hi); }
+  .tag-mid { background: var(--mid); }
+  .tag-lo  { background: var(--lo); }
+  .tag-eff { background: var(--muted); }
+  .note {
+    background: #E0F7FA;
+    border-left: 4px solid var(--accent);
+    padding: 10px 14px;
+    border-radius: 0 6px 6px 0;
+    font-size: 0.88rem;
+    margin: 10px 0;
+  }
+  .blocker {
+    background: #FFEBEE;
+    border-left: 4px solid var(--hi);
+    padding: 10px 14px;
+    border-radius: 0 6px 6px 0;
+    font-size: 0.88rem;
+    margin: 12px 0;
+  }
+  .blocker strong { color: var(--hi); }
+  .lost { color: #90A4AE; text-decoration: line-through; }
+  .idea { margin: 14px 0 18px; padding-left: 4px; }
+  .idea p { margin: 4px 0; font-size: 0.92rem; }
+  .why { color: var(--muted); font-size: 0.86rem; }
+  .ok { color: var(--lo); font-weight: bold; }
+  .ng { color: var(--hi); font-weight: bold; }
+  footer { text-align: center; color: var(--muted); font-size: 0.8rem; padding: 12px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>宇宙線検出器 V2 — 測定サーバー連携 計画</h1>
+  <p>2026-08-16 時点 / v1・v2 コンソール、<code>cosmicwatch-app</code>、<code>cosmicray-server</code> の 3 リポジトリ調査に基づく</p>
+</header>
+
+<main>
+
+<!-- ============================================================ -->
+<section id="intro">
+<h2>この文書について</h2>
+<p>
+v1 / v2 の Web コンソールから、既存の測定サーバー <code>cosmicray-server</code>
+（<code>http://accel-kitchen.com:3000</code>）へ観測データを送信する機能の設計をまとめる。
+参考実装として <code>cosmicwatch-app</code> が同じサーバーへの送信機能を持つが、
+<strong>そのまま移植しても動かない</strong>ことが調査で判明した。
+本書では、コンソール側の実装設計・サーバー側の更新計画・段階的なロードマップ・未決事項を整理する。
+</p>
+<div class="note">
+<strong>方針（確定済み）</strong><br>
+① スキーマは<strong>段階式</strong> — Phase 1 は既存 API 互換で先に動かし、Phase 2 でサーバーを拡張して全フィールド対応。<br>
+② CORS は<strong>サーバー側に追加</strong>し、コンソールは <code>file://</code> のまま使える構成を本命とする。<br>
+③ 検出器の識別に <strong><code>device_id</code> / <code>channel</code> を新設</strong>し、1 アカウントで複数台・同時計数を区別できるようにする。
+</div>
+<p class="why">
+実装は行っていない。本書は着手前の設計・合意形成のための文書である。
+</p>
+</section>
+
+<!-- ============================================================ -->
+<section id="summary">
+<h2>0. サマリ（優先度順）</h2>
+<table>
+  <tr><th>#</th><th>対象</th><th>項目</th><th>優先度</th><th>工数</th></tr>
+
+  <tr><td>S-01</td><td>&#x2705; サーバー</td><td><strong>CORS ミドルウェア追加</strong>（これが無いとブラウザから 1 バイトも送れない）</td><td class="pri pri-hi">高</td><td>小</td></tr>
+  <tr><td>S-03</td><td>&#x2705; サーバー</td><td><strong><code>/auth/refresh</code> の認証バイパス修正</strong>（誰でも admin トークンを発行できる）</td><td class="pri pri-hi">高</td><td>小</td></tr>
+  <tr><td>S-02</td><td>&#x2705; サーバー</td><td>falsy-zero 検証バグ・<code>temp</code> 既定値・TSV インジェクション</td><td class="pri pri-hi">高</td><td>小</td></tr>
+  <tr><td>S-04</td><td>&#x2705; サーバー</td><td>パストラバーサル対策（<code>id</code> / <code>filename</code> のサニタイズ）</td><td class="pri pri-hi">高</td><td>小</td></tr>
+  <tr><td>S-05</td><td>&#x2705; サーバー</td><td><code>JWT_SECRET</code> の fail-fast 化、<code>PORT</code> の実装</td><td class="pri pri-hi">高</td><td>小</td></tr>
+  <tr><td>C-11</td><td>コンソールv1</td><td><strong>既存の自動保存バグ修正</strong>（再入ロック欠如・書き込み失敗時のデータ損失）</td><td class="pri pri-hi">高</td><td>小</td></tr>
+  <tr><td>C-01</td><td>&#x2705; コンソールv2</td><td><code>state.upload</code> の状態定義と定数</td><td class="pri pri-hi">高</td><td>小</td></tr>
+  <tr><td>C-02</td><td>&#x2705; コンソールv2</td><td>サイドバーパネル + EN/JA i18n（約 34 キー）</td><td class="pri pri-hi">高</td><td>中</td></tr>
+  <tr><td>C-03</td><td>&#x2705; コンソールv2</td><td>通信基盤（<code>uploadFetch</code> / ログイン / トークン維持 / 能力判定）</td><td class="pri pri-hi">高</td><td>中</td></tr>
+  <tr><td>C-04</td><td>&#x2705; コンソールv2</td><td>クロックアンカーとタイムスタンプ整形</td><td class="pri pri-hi">高</td><td>中</td></tr>
+  <tr><td>C-05</td><td>&#x2705; コンソールv2</td><td>キュー / バッチ / バックオフ / 毒イベント隔離 / 互換モード送信</td><td class="pri pri-hi">高</td><td>大</td></tr>
+  <tr><td>C-06</td><td>&#x2705; コンソールv2</td><td>既存フックへの配線（enqueue・切断時 flush・初期化・tick）</td><td class="pri pri-hi">高</td><td>小</td></tr>
+  <tr><td>C-07</td><td>&#x2705; コンソールv2</td><td>ステータスチップとカウンタ表示</td><td class="pri pri-hi">高</td><td>小</td></tr>
+  <tr><td>C-08</td><td>&#x2705; コンソールv2</td><td>設定永続化と資格情報ポリシー</td><td class="pri pri-hi">高</td><td>小</td></tr>
+  <tr><td>S-09</td><td>サーバー</td><td>TLS 化（nginx + Let's Encrypt、443 → 127.0.0.1:3000）</td><td class="pri pri-hi">高</td><td>中</td></tr>
+  <tr><td>D-01</td><td>&#x2705; 文書</td><td>コンソール利用手引（配信方式の対応表を含む）</td><td class="pri pri-hi">高</td><td>小</td></tr>
+  <tr><td>S-10</td><td>サーバー</td><td><code>GET /v2/capabilities</code>（クライアントの実行時モード判定）</td><td class="pri pri-hi">高</td><td>小</td></tr>
+  <tr><td>S-11</td><td>サーバー</td><td><code>POST /v2/runs/:id</code> と run メタデータ保存</td><td class="pri pri-hi">高</td><td>中</td></tr>
+  <tr><td>S-12</td><td>サーバー</td><td><code>POST /v2/ingest/:id</code>（バッチ取り込み・部分成功）</td><td class="pri pri-hi">高</td><td>大</td></tr>
+  <tr><td>S-13</td><td>サーバー</td><td><code>.jsonl</code> ライタと <code>format_version</code></td><td class="pri pri-hi">高</td><td>中</td></tr>
+  <tr><td>S-15</td><td>サーバー</td><td>レガシー <code>.dat</code> ミラーと再生成スクリプト</td><td class="pri pri-hi">高</td><td>中</td></tr>
+  <tr><td>C-12</td><td>コンソールv2</td><td>v2 API 採用（バッチ送信・run 登録・自動切替）</td><td class="pri pri-hi">高</td><td>中</td></tr>
+  <tr><td>D-02</td><td>文書</td><td>v2 取り込み API 仕様・フィールド辞書・単位規約</td><td class="pri pri-hi">高</td><td>中</td></tr>
+
+  <tr><td>C-09</td><td>&#x2705; コンソールv2</td><td>間引き・滞留警告・未送信データの再送</td><td class="pri pri-mid">中</td><td>中</td></tr>
+  <tr><td>C-10</td><td>コンソールv1</td><td>アップローダの移植（v1 フィールド対応）</td><td class="pri pri-mid">中</td><td>中</td></tr>
+  <tr><td>C-13</td><td>コンソールv1</td><td>v1 の v2 API 対応</td><td class="pri pri-mid">中</td><td>小</td></tr>
+  <tr><td>S-14</td><td>サーバー</td><td><code>Idempotency-Key</code> と <code>(run_id, seq)</code> による重複排除</td><td class="pri pri-mid">中</td><td>中</td></tr>
+  <tr><td>S-16</td><td>サーバー</td><td><code>device_id</code> 次元と装置一覧 API</td><td class="pri pri-mid">中</td><td>小</td></tr>
+  <tr><td>S-17</td><td>サーバー</td><td>カラムずれの解消（共通パーサ・名前付きキーの追加）</td><td class="pri pri-mid">中</td><td>中</td></tr>
+  <tr><td>S-08</td><td>&#x2705; サーバー</td><td><code>latest-data</code> の日ファイル選択（UTC / ローカルの不一致）</td><td class="pri pri-mid">中</td><td>小</td></tr>
+  <tr><td>S-07</td><td>&#x2705; サーバー</td><td>ログイン・取り込みのレート制限</td><td class="pri pri-mid">中</td><td>小</td></tr>
+  <tr><td>S-06</td><td>&#x2705; サーバー</td><td>誤った <code>package-lock.json</code> の再生成</td><td class="pri pri-mid">中</td><td>小</td></tr>
+  <tr><td>V-01</td><td>ビューア</td><td>ADC の読み出しを正しいキーへ切替、SiPM / 温度 / デッドタイム表示追加</td><td class="pri pri-mid">中</td><td>小</td></tr>
+  <tr><td>V-02</td><td>ビューア</td><td><code>.jsonl</code> 対応・装置セレクタ・環境値系列・run メタ表示</td><td class="pri pri-mid">中</td><td>大</td></tr>
+  <tr><td>D-03</td><td>文書</td><td>データ形式の移行注記（旧 <code>.dat</code> の時刻・単位の曖昧さ）</td><td class="pri pri-mid">中</td><td>小</td></tr>
+
+  <tr><td>C-14</td><td>コンソール</td><td>WebCrypto によるパスワード保護（パスフレーズ）</td><td class="pri pri-lo">低</td><td>中</td></tr>
+  <tr><td>S-18</td><td>サーバー</td><td><code>.jsonl</code> の日次 gzip ローテーションと保持ポリシー</td><td class="pri pri-lo">低</td><td>中</td></tr>
+  <tr><td>S-19</td><td>サーバー</td><td><code>users.json</code> の SQLite 化、装置資格情報の分離</td><td class="pri pri-lo">低</td><td>大</td></tr>
+</table>
+<div class="note">
+<strong>最小 end-to-end スライス：</strong> S-01 + S-02 + S-03 + S-04 と C-01〜C-08。
+これだけで「v2 コンソール → 既存サーバー → 既存ビューア」が既存 API のまま通る。
+</div>
+</section>
+
+<!-- ============================================================ -->
+<section id="current">
+<h2>1. 現状（調査で分かったこと）</h2>
+
+<h3>1-1. 検出器コンソール（v1 / v2）</h3>
+<table>
+  <tr><th>項目</th><th>現状</th><th>含意</th></tr>
+  <tr>
+    <td>構成</td>
+    <td>単一ファイル HTML。インライン <code>&lt;style&gt;</code> 1 つ + インライン <code>&lt;script&gt;</code> 1 つ。<code>.js</code> / <code>.css</code> ファイルも <code>package.json</code> もビルド工程も存在しない</td>
+    <td>追加コードは既存ファイルにインラインで書く。npm パッケージも外部 CDN も使えない</td>
+  </tr>
+  <tr>
+    <td>ネットワーク</td>
+    <td><strong>リポジトリ全体で <code>fetch</code> / <code>XMLHttpRequest</code> / <code>WebSocket</code> が 0 箇所</strong>。ファーム側も <code>WiFi.h</code> を一切 include していない</td>
+    <td>完全な新規機能。既存の通信基盤に乗る形にはできない</td>
+  </tr>
+  <tr>
+    <td>デバイス接続</td>
+    <td>Web Serial（USB CDC）と Web Bluetooth（Nordic UART）。行の集約点は <code>processLine()</code>（<code>v2/index.html:1977</code>）</td>
+    <td>送信キューへの投入点は <code>processLine()</code> 1 箇所で足りる</td>
+  </tr>
+  <tr>
+    <td>既存の出力経路</td>
+    <td><code>state.autoSave.pending[]</code> → <code>setInterval(flushAutoSave, 1000)</code>（<code>v2:3177</code>）→ <code>flushAutoSave()</code>（<code>v2:2395</code>）。再入ロック <code>as.flushing</code>、<code>pending.splice(0)</code> でバッチ化、失敗時は <code>as.pending = batch.concat(as.pending)</code> で先頭へ再投入（<code>v2:2441</code>）</td>
+    <td><strong>この三点セットがそのままアップローダの雛形になる。</strong>キュー / 定期 flush / 再入ロック / 失敗時の再投入という構造は既に検証済み</td>
+  </tr>
+  <tr>
+    <td>設定の永続化</td>
+    <td>localStorage を <code>uiLang</code> / <code>bleName</code> / <code>bleDeviceName</code> / <code>crd_energy_cal_v1</code> の 4 キーで個別に読み書き。すべて <code>try/catch</code> 包み</td>
+    <td>汎用の設定オブジェクトは無い。新しいキーを 1 つ足す形が既存流儀に合う</td>
+  </tr>
+  <tr>
+    <td>多言語</td>
+    <td><code>I18N.en</code> / <code>I18N.ja</code> の辞書 + <code>data-i18n</code> 属性。動的文字列は <code>applyLanguage()</code>（<code>v2:1334</code>）に描画関数を登録する方式</td>
+    <td>新規 UI 文字列は<strong>必ず EN / JA 両方</strong>に追加し、状態表示は描画関数として登録する必要がある</td>
+  </tr>
+</table>
+
+<h4>v2 のイベント形式（13 トークン）</h4>
+<p>
+ファーム <code>COSMICRAY_DETECTOR_ESP32-S3-Nano-v2.ino:1497</code> が出力、ヘッダは同 <code>:471</code>。
+コンソール側は <code>v2/index.html:2126-2152</code> で解析している。
+</p>
+<pre><code>### Event Time[us] ADC[0-4095] Deadtime[us] Temp[C] Hum[%] Press[hPa] Dig1 Dig2 Dig3 Ana1 Ana2 Ana3</code></pre>
+<table>
+  <tr><th>フィールド</th><th>型 / 単位</th><th>備考</th></tr>
+  <tr><td><code>count</code></td><td>整数</td><td>累積イベント番号</td></tr>
+  <tr><td><code>timestamp_us</code></td><td>整数 / <strong>µs</strong></td><td>起動からの経過。間隔は正確だが壁時計ではない</td></tr>
+  <tr><td><code>adc</code></td><td>整数 0–4095</td><td>12 bit ピークホールド</td></tr>
+  <tr><td><code>deadtime_us</code></td><td>整数 / <strong>µs</strong> 累積</td><td>サーバーの CosmicWatch 規約は ms。単位が食い違う</td></tr>
+  <tr><td><code>temp_c</code> / <code>hum_pct</code> / <code>press_hpa</code></td><td>浮動小数</td><td>BME280</td></tr>
+  <tr><td><code>dig[0..2]</code></td><td>0 / 1 × 3</td><td>同時計数フラグ（<code>EXT</code> 有効時のみ）</td></tr>
+  <tr><td><code>ana[0..2]</code></td><td>整数 0–4095 × 3</td><td>外部アナログ入力（同上）</td></tr>
+  <tr><td><code>pc_timestamp</code></td><td>整数 / ms epoch</td><td>コンソールが付与するブラウザ壁時計。USB / BLE のバッファでジッタあり</td></tr>
+</table>
+
+<h4>v1 のイベント形式（別物）</h4>
+<p>
+<code>{count, timestamp_ms, pc_timestamp, adc, sipm_mv, deadtime_ms, temp_c, mode_flag}</code>。
+時間の単位が <strong>ms</strong>、<code>sipm_mv</code> を持つ一方で環境値・Dig / Ana が無い。
+さらに <code>BOARD_PROFILES</code>（<code>v1/index.html:1238</code>）で
+<strong>ADC レンジが NANO なら 0–1023、ESP32-S3 なら 0–4095</strong> と切り替わる。
+</p>
+
+<h3>1-2. 参考実装 <code>cosmicwatch-app</code></h3>
+<div class="blocker">
+<strong>注意：このリポジトリは現在マージ競合中で、そのままではビルドできない。</strong>
+アップロード機能の中核 9 ファイルに <code>&lt;&lt;&lt;&lt;&lt;&lt;&lt;</code> が残存している。
+実行可能な参照として扱わないこと。競合の無い <code>test.html</code> と仕様書 <code>server-README.md</code> のみを参照する。
+</div>
+<p>プロトコルの骨子（これは有効な情報）：</p>
+<pre><code>1. POST /auth/login   {id, password}                    → {success, token, user:{id, role}}
+2. POST /setup-id     {id, comment, gps_latitude, gps_longitude, created_at}   + Bearer
+3. POST /upload-data/{id}  {timestamp, adc, vol, deadtime}  + Bearer     ← 1 イベント 1 POST</code></pre>
+<p class="why">
+再送は 1s / 2s / 4s の指数バックオフで最大 3 回。60 秒ごとに最大 100 件をまとめて（といっても中身は逐次 POST の
+ループ）送る。失敗分を優先的に先頭へ戻す構造。
+</p>
+<h4>踏襲しない既知欠陥</h4>
+<table>
+  <tr><th>欠陥</th><th>内容</th><th>本設計での扱い</th></tr>
+  <tr><td>バッファ切り捨て</td><td>キューが 100 件を超えると先頭 100 件だけ処理して<strong>両方のバッファをクリア</strong>するため、超過分が黙って消える</td><td>切り捨てない。破棄はハード上限到達時のみで、件数を UI に表示する</td></tr>
+  <tr><td>平文パスワード</td><td>localStorage にパスワードをそのまま保存</td><td>既定では保存しない（後述 5-4）</td></tr>
+  <tr><td>無限増殖する重複判定</td><td>送信済みキーの <code>Set</code> がセッション中ずっと増え続ける</td><td>コンソール側は <code>Set</code> を持たない（後述 5-5）</td></tr>
+  <tr><td>捏造マイクロ秒</td><td><code>getMilliseconds() * 1000</code> で下 3 桁を常に <code>000</code> にして「µs 精度」を装う</td><td>デバイスの µs クロックを壁時計にアンカーして実際の精度を出す（後述 5-6）</td></tr>
+</table>
+
+<h3>1-3. サーバー <code>cosmicray-server</code></h3>
+<table>
+  <tr><th>項目</th><th>現状</th></tr>
+  <tr><td>構成</td><td>Node + Express 4。バックエンドは <code>webserver/server.js</code> 単一ファイル 648 行、CommonJS</td></tr>
+  <tr><td>永続化</td><td><strong>DB 無し。</strong>ユーザーは <code>users.json</code>、測定データは <code>cosmicray-data/&lt;id&gt;/&lt;YYYY-MM-DD&gt;.dat</code> のタブ区切りテキスト（ヘッダ行なし、追記のみ）</td></tr>
+  <tr><td>認証</td><td>JWT HS256、24 時間。bcrypt 10 ラウンド。所有権チェックは<strong>アップロードのみ</strong>（<code>server.js:283</code>）、読み出し系は全て無認証</td></tr>
+  <tr><td>識別</td><td><strong>ユーザー ID = 観測局 ID = データディレクトリ名</strong>。装置レジストリも装置鍵も無い</td></tr>
+  <tr><td>取り込み</td><td><code>POST /upload-data/:id</code> が 1 リクエスト 1 イベント。バッチ・配列・NDJSON いずれも非対応。<code>express.json()</code> は既定の 100 kB 上限</td></tr>
+  <tr><td>保存形式</td><td>7 カラム <code>EVENT / DATE / TIME / ADC / SIPM / DEADTIME / TEMP</code>（<code>server.js:317-318</code>）</td></tr>
+  <tr><td>運用</td><td>pm2 で <code>/opt/cosmicray-server</code> に稼働。<strong>ポートは <code>server.js:7</code> にハードコード</strong>（README は <code>PORT</code> 環境変数と書いているが未実装）。Dockerfile / CI / systemd / nginx 設定はリポジトリに無い</td></tr>
+  <tr><td>ビューア</td><td><code>/viewer</code> に静的配信。Bootstrap + Chart.js + Leaflet。同一オリジン前提（<code>cosmicray-viewer/app.js:4</code> が <code>apiBaseUrl = ''</code>）</td></tr>
+</table>
+</section>
+
+<!-- ============================================================ -->
+<section id="blockers">
+<h2>2. ブロッカー（着手前に必ず解消）</h2>
+
+<div class="blocker">
+<strong>B-1. CORS が一切設定されていない</strong><br>
+<code>server.js</code> のミドルウェアは <code>express.json()</code> と静的配信 2 つのみ（<code>:12-14</code>）。
+<code>cors</code> パッケージは <code>package.json</code> に無く、<code>node_modules</code> にも入っていない。
+<code>Access-Control-*</code> ヘッダを返すコードも存在しない。<br>
+<strong>影響：</strong>送信には <code>Authorization</code> ヘッダと <code>Content-Type: application/json</code> が要るため、
+リクエストは必ず preflight される。Express 4 の暗黙 <code>OPTIONS</code> 応答は <code>Allow:</code> しか返さないので
+preflight が失敗し、<strong>本リクエストは 1 度も送信されない</strong>。
+逃げ道も無い（<code>text/plain</code> にすれば preflight は避けられるが <code>express.json()</code> が本文を解析せず 400、
+そもそも JWT をヘッダで送れない）。既存フロントは同一オリジンだから動いているだけ。
+</div>
+
+<div class="blocker">
+<strong>B-2. <code>POST /auth/refresh</code> が無認証（認証バイパス）</strong><br>
+<code>server.js:185</code> — <code>app.post('/auth/refresh', (req, res) =&gt; {...})</code> にミドルウェアが無く、
+本文の <code>user_id</code> だけで 24 時間有効なトークンを発行する。
+さらに <code>GET /list-ids</code> が<strong>無認証で全 ID を公開</strong>しており、
+<code>users.json</code> には <code>role: "admin"</code> の <code>root</code> が存在する。<br>
+<strong>影響：</strong>誰でも管理者トークンを取得できる。新機能でこのエンドポイントを使う前に修正が必須。
+</div>
+
+<div class="blocker">
+<strong>B-3. 0 が有効値として扱われない</strong><br>
+<code>server.js:289</code> —
+<code>if (!event || (!date &amp;&amp; !timestamp) || !adc || vol === undefined || !deadtime)</code>。
+truthiness 判定のため <code>event: 0</code>（最初のイベント）、<code>adc: 0</code>（ペデスタル以下）、
+<code>deadtime: 0</code>（初回）が<strong>すべて 400 で拒否される</strong>。
+加えて <code>:318</code> の <code>temp || '25.0'</code> により、実測 0 °C が黙って 25.0 に化ける。<br>
+<strong>影響：</strong>正当な測定値が失われ、しかも <code>temp</code> は<strong>存在しない測定値を捏造</strong>している。
+</div>
+</section>
+
+<!-- ============================================================ -->
+<section id="server-tier1">
+<h2>3. サーバー側 Tier 1 — 疎通と安全性の確保</h2>
+<p>いずれも <code>webserver/server.js</code> への変更。既存クライアント・既存データに対して非破壊。</p>
+
+<div class="idea">
+<h3><span class="tag tag-hi">高</span><span class="tag tag-eff">工数 小</span>S-01. CORS ミドルウェア</h3>
+<p>
+依存追加なしの手書きミドルウェアを <code>server.js:12</code> に、
+<strong><code>express.json()</code> より前</strong>・静的配信より前に挿入する。
+preflight が本文パーサに届かないようにするため順序が重要。
+</p>
+<pre><code>const ALLOW_HEADERS = 'Content-Type, Authorization, Idempotency-Key';
+app.use((req, res, next) =&gt; {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', ALLOW_HEADERS);
+  res.setHeader('Access-Control-Max-Age', '86400');
+  if (req.method === 'OPTIONS') return res.sendStatus(204);
+  next();
+});</code></pre>
+<p class="why">
+<strong><code>*</code> で良い理由：</strong>認証は Cookie ではなく <code>Authorization</code> ヘッダで、
+クライアントは <code>credentials: 'omit'</code> で送る。したがって credentialed リクエストではなく
+ワイルドカードが有効になる。<code>Access-Control-Allow-Credentials</code> は<strong>設定してはいけない</strong>
+（設定すると <code>*</code> が無効化される）。<code>file://</code> から開いたページは <code>Origin: null</code> を送るが、
+これも <code>*</code> にマッチする。将来 allow-list 方式にする場合は文字列 <code>"null"</code> を明示的に含め
+<code>Vary: Origin</code> を付ける必要があるため、Tier 1 ではワイルドカードを選ぶ。
+<code>Idempotency-Key</code> は Tier 2 で使うので、preflight 定義を二度変えないよう今のうちに許可しておく。
+</p>
+
+<h4>配信方式の対応表（配布方法を規定する）</h4>
+<table>
+  <tr><th>コンソールの origin</th><th>Web Serial / BLE</th><th><code>fetch http://…:3000</code></th></tr>
+  <tr>
+    <td><code>file://</code></td>
+    <td class="ok">可</td>
+    <td>可（<code>Origin: null</code>）— ただし Chrome のバージョン依存。<strong>実機確認が必要</strong></td>
+  </tr>
+  <tr>
+    <td><code>http://localhost:PORT</code></td>
+    <td class="ok">可</td>
+    <td class="ok">可 — <strong>推奨構成</strong></td>
+  </tr>
+  <tr>
+    <td><code>https://…</code>（GitHub Pages 等）</td>
+    <td class="ok">可</td>
+    <td class="ng">不可 — mixed content。<strong>CORS では解決できない</strong></td>
+  </tr>
+</table>
+<p class="why">
+つまり CORS を入れても <code>https://</code> 配信は不可能で、それを可能にする唯一の手段は S-09（TLS 化）である。
+Web サイトからコンソールを配る構想があるなら S-09 は必須。
+</p>
+</div>
+
+<div class="idea">
+<h3><span class="tag tag-hi">高</span><span class="tag tag-eff">工数 小</span>S-02. 0 の扱い・既定値・TSV インジェクション</h3>
+<p><code>:289</code> の truthiness 判定を、存在確認と有限性チェックに置き換える。</p>
+<pre><code>const num = v =&gt; (v === undefined || v === null || v === '' ? null : Number(v));
+const e = num(event), a = num(adc), d = num(deadtime), vv = num(vol);
+if (e === null || !Number.isFinite(e) || (!date &amp;&amp; !timestamp) ||
+    a === null || !Number.isFinite(a) ||
+    vv === null || !Number.isFinite(vv) ||
+    d === null || !Number.isFinite(d)) { return res.status(400).json({ error: '...' }); }</code></pre>
+<p>
+<code>:318</code> の <code>${temp || '25.0'}</code> は <code>temp</code> が未指定のときだけ既定値を使うよう修正する。
+なお <code>'25.0'</code> という既定値そのものが<strong>測定値の捏造</strong>であり、Tier 2 では <code>null</code> を書く。
+Tier 1 で消すとレガシー列の契約が変わるため据え置くが、文書には明記する。
+</p>
+<p>
+同じ行で、すべての補間値をサニタイズする。現状は値に <code>\n</code> や <code>\t</code> が入ると
+<strong>TSV に偽の行 / 列を注入できる</strong>。
+</p>
+<pre><code>const clean = v =&gt; String(v).replace(/[\t\r\n]/g, ' ').slice(0, 64);</code></pre>
+</div>
+
+<div class="idea">
+<h3><span class="tag tag-hi">高</span><span class="tag tag-eff">工数 小</span>S-03. <code>/auth/refresh</code> の認証</h3>
+<p>
+<code>app.post('/auth/refresh', authenticateToken, ...)</code> とし、本文の <code>user_id</code> を<strong>完全に無視して</strong>
+<code>req.user.id</code> から発行する。
+</p>
+<p class="why">
+副作用：厳格な refresh は「有効なトークン」を要求するため、24 時間を超える連続運転で
+一度失効するとパスワード無しでは自力回復できない。
+これがコンソール側でセッション中だけメモリにパスワードを保持する設計（5-4）の根拠になる。
+緩和案（期限切れトークンを猶予期間内で受け付ける）は <strong>Q-2</strong> として未決に回す。
+</p>
+</div>
+
+<div class="idea">
+<h3><span class="tag tag-hi">高</span><span class="tag tag-eff">工数 小</span>S-04. パストラバーサル</h3>
+<p>
+<code>id</code> と <code>filename</code> が未検証のまま <code>path.join</code> に渡っている
+（<code>:227</code> — ここは<strong>ディレクトリを作成する</strong>、<code>:262, :333, :408, :446, :469</code>）。
+<code>/api/data/:id/:filename</code> と <code>/api/download/:id/:filename</code> は<strong>無認証</strong>。
+Express は <code>%2e%2e%2f</code> をデコードするため到達可能。
+</p>
+<pre><code>const ID_RE = /^[A-Za-z0-9_-]{1,64}$/;
+const FILE_RE = /^[A-Za-z0-9_.-]{1,128}$/;
+function safeStationDir(id) {
+  if (!ID_RE.test(id)) return null;
+  const p = path.resolve(dataDir, id);
+  return p.startsWith(path.resolve(dataDir) + path.sep) ? p : null;
+}</code></pre>
+<p>加えて <code>filename</code> は <code>.dat</code> / <code>.jsonl</code> に限定し、解決後のパスが局ディレクトリ内にあることを再確認する。</p>
+</div>
+
+<div class="idea">
+<h3><span class="tag tag-hi">高</span><span class="tag tag-eff">工数 小</span>S-05. <code>JWT_SECRET</code> と <code>PORT</code></h3>
+<p>
+<code>server.js:10</code> にコミット済みのフォールバック秘密鍵がある。
+これが本番で使われていると、誰でもオフラインで管理者トークンを偽造できる。
+</p>
+<pre><code>const JWT_SECRET = process.env.JWT_SECRET || (() =&gt; {
+  if (process.env.NODE_ENV === 'production') { console.error('JWT_SECRET is required'); process.exit(1); }
+  console.warn('JWT_SECRET unset — using a random per-boot secret');
+  return require('crypto').randomBytes(48).toString('hex');
+})();</code></pre>
+<p>
+<code>server.js:7</code> は <code>const port = process.env.PORT || 3000;</code> にする（README に記載がありながら未実装）。
+pm2 には ecosystem ファイルか <code>pm2 set</code> で <code>JWT_SECRET</code> を渡す。
+<strong>鍵を変更すると既存トークンが全て無効になり、全ユーザーが 1 回再ログインする</strong>点を運用側に周知する。
+</p>
+</div>
+
+<div class="idea">
+<h3><span class="tag tag-mid">中</span><span class="tag tag-eff">工数 小</span>S-06 / S-07 / S-08. 付随する整備</h3>
+<p>
+<strong>S-06：</strong><code>webserver/package-lock.json</code> は<strong>別プロジェクトのもの</strong>
+（<code>cosmicwatch-recorder</code> の React / Tauri / Plotly 依存ツリー）。
+<code>npm ci</code> すると全く違う依存が入る。<code>package.json</code> から再生成する。
+CORS を手書きにした（S-01）ので、これは衛生上の問題であってブロッカーではない。
+</p>
+<p>
+<strong>S-07：</strong>依存追加なしの in-memory トークンバケット（約 25 行）を
+<code>/auth/login</code>（総当たり対策）と取り込み系に適用する。
+</p>
+<p>
+<strong>S-08：</strong><code>latest-data</code>（<code>:339</code>）は日ファイルを <strong>UTC</strong> の日付で選ぶのに、
+書き込み側はクライアントの<strong>ローカル</strong>日付でファイル名を決めている。
+JST では毎日 9 時間ずれる。日付を計算せず、ディレクトリ内で最も新しい <code>*.dat</code> を選ぶ方式に変える。
+</p>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<section id="server-tier2">
+<h2>4. サーバー側 Tier 2 — v2 検出器のための拡張スキーマ</h2>
+
+<h3>4-1. 何が入らないのか</h3>
+<p>
+v2 は 13 トークン + ブラウザ時刻を出すが、TSV の行は 7 カラムしかない。
+入る場所が無いのは：湿度、気圧、<code>Dig1-3</code>、<code>Ana1-3</code>、エネルギー（keV）、ADC ビット深度、
+デッドタイムの単位、同時計数の構成、装置 / ファーム識別、run 識別、タイムゾーン、
+そして将来の波形配列（フラット TSV では<strong>構造的に不可能</strong>）。
+</p>
+
+<h3>4-2. 保存形式の 3 案</h3>
+<table>
+  <tr>
+    <th></th>
+    <th>(a) 既存 <code>.dat</code> に列追加</th>
+    <th>(b) NDJSON <code>.jsonl</code> + <code>format_version</code></th>
+    <th>(c) バッチ用エンドポイント新設</th>
+  </tr>
+  <tr><td>変更範囲</td><td>保存 + writer</td><td>保存 + writer + 新 reader</td><td><strong>通信のみ</strong></td></tr>
+  <tr><td>既存 <code>.dat</code></td><td>読めるが 1 ファイル内に幅の違う行が混在</td><td>無影響（別ファイル）</td><td>—</td></tr>
+  <tr><td>既存ビューア / Python</td><td>列順を永久に固定できれば動く</td><td>無影響</td><td>無影響</td></tr>
+  <tr><td>配列（<code>dig</code> / <code>ana</code> / 波形）</td><td class="ng">区切り文字の再発明が必要</td><td class="ok">ネイティブ</td><td>—</td></tr>
+  <tr><td>スキーマ進化</td><td>新フィールドごとに位置の永久コミット</td><td class="ok">加算的・行ごとに自己記述</td><td>—</td></tr>
+  <tr><td>容量</td><td class="ok">最小</td><td>2〜3 倍（短キー・gzip で緩和可）</td><td>—</td></tr>
+  <tr><td>解析ツール</td><td><code>awk</code> が使える（幅が変わるまで）</td><td><code>pandas.read_json(lines=True)</code></td><td>—</td></tr>
+  <tr><td>障害分離</td><td class="ng">壊れた 1 行がファイル全体の位置解析を汚染</td><td class="ok">壊れた 1 行は 1 行だけ</td><td>—</td></tr>
+  <tr><td>工数</td><td>小</td><td>中</td><td>小</td></tr>
+</table>
+<p class="why">
+(c) は (a)(b) の代替ではなく直交する。1 イベント 1 HTTP はスループットの最大の律速なので、
+どの保存形式を選んでも<strong>いずれにせよ採用すべき</strong>。
+</p>
+
+<h3>4-3. 推奨：(b) + (c) + レガシーミラー</h3>
+<div class="note">
+① 新トランスポート <code>POST /v2/ingest/:stationId</code>（バッチ配列）<br>
+② 新ストレージ <code>cosmicray-data/&lt;station&gt;/v2/&lt;YYYY-MM-DD&gt;.jsonl</code>（先頭行に <code>format_version</code> のヘッダレコード）<br>
+③ <strong>レガシーミラー</strong> — 受理した v2 イベントを既存 7 カラム <code>.dat</code> にも追記する。
+局単位のフラグ <code>legacy_mirror</code>（既定 on）で制御。<code>.jsonl</code> を<strong>正</strong>、<code>.dat</code> を<strong>派生</strong>と宣言する
+</div>
+<p class="why">
+<strong>なぜこの組み合わせか：</strong>既存エンドポイント・既存ファイル・Python クライアント・ビューアに
+文字通り一切手を触れずに済む。ビューアは今まで通り <code>&lt;date&gt;.dat</code> を読むだけで、
+ミラー経由で v2 データが<strong>初日から表示される</strong>。結果としてビューア改修は誰もブロックしない独立タスクになる。
+<code>.jsonl</code> 側は <code>dig</code> / <code>ana</code> を今すぐ、波形やスペクトルを将来、
+スキーマ交渉なしに載せられる。ミラーが生む「真実が 2 つある」リスクは、
+<code>.jsonl</code> を正と宣言し <code>.jsonl → .dat</code> の再生成スクリプトを用意することで
+「ミラーのバグ = データ損失」にならないよう封じる。
+</p>
+
+<h4>取り込み契約</h4>
+<pre><code>POST /v2/ingest/:stationId
+Authorization: Bearer &lt;jwt&gt;
+Idempotency-Key: &lt;uuid-v4 / バッチごと&gt;
+Content-Type: application/json
+
+{
+  "format_version": 2,
+  "run_id": "6f1c…",
+  "device_id": "esp32s3-A1B2C3",
+  "events": [ { …イベントレコード… }, … ]
+}</code></pre>
+<p>応答（200）：</p>
+<pre><code>{ "success": true, "accepted": 198, "duplicates": 2,
+  "rejected": [{"index": 57, "reason": "adc not finite"}], "batch_id": "…" }</code></pre>
+<p class="why">
+<strong>index 付きの部分成功</strong>が肝。これがあるとクライアントは毒イベントだけを捨てて残りを流せる。
+413 では <code>{"error":"…","max_events":1000,"max_bytes":2097152}</code> を返し、
+クライアントがバッチサイズを決定論的に縮められるようにする。
+</p>
+<p>
+本文サイズ：<code>express.json()</code> の 100 kB 上限を<strong>グローバルには上げない</strong>。
+v2 ルートにだけ大きいパーサを付ける。
+</p>
+<pre><code>const ingestJson = express.json({ limit: '2mb' });
+app.post('/v2/ingest/:id', ingestJson, authenticateToken, ingestHandler);</code></pre>
+<p>加えて <code>events.length &lt;= 1000</code>、単一レコード 8 kB 超は拒否。</p>
+
+<h4><code>GET /v2/capabilities</code>（無認証）</h4>
+<pre><code>{ "server_version": "2.0.0", "format_version": 2, "max_batch_events": 1000,
+  "max_body_bytes": 2097152, "accepts_zero": true,
+  "endpoints": ["/upload-data/:id", "/v2/ingest/:id"] }</code></pre>
+<p class="why">
+これがコンソールの実行時モード判定を可能にし、<strong>2 つのリポジトリが独立してリリースできる</strong>ようになる。
+コンソールを先に配っても、サーバーが未更新なら自動的に互換モードで動く。
+</p>
+
+<h3>4-4. 重複排除</h3>
+<p>
+<strong>バッチ単位：</strong><code>Idempotency-Key</code> ヘッダ。サーバーはキー → 応答の LRU（上限 2000）を持ち、
+再送されたら <code>X-Idempotent-Replay: true</code> を付けてキャッシュ応答を返し、何も追記しない。
+現実的な重複原因（追記は成功したが応答が失われた）はこれで塞がる。
+</p>
+<p>
+<strong>イベント単位（永続）：</strong>全レコードに <code>run_id</code> + <code>seq</code> を持たせる。
+LRU はプロセス内なのでサーバー再起動をまたぐ重複は残るが、
+この 2 つがあれば解析スクリプト側で常に検出・除去できる。
+</p>
+<p class="why">
+LRU の永続化は意図的に対象外。ストアが必要になり、フラットファイル構成から大きく逸脱する。
+「at-least-once（重複は検出可能）で足りるか」は <strong>Q-3</strong> として未決。
+</p>
+
+<h3>4-5. run メタデータと event メタデータの分離</h3>
+<p>
+イベントごとに変わらないものは <code>POST /v2/runs/:stationId</code> で接続ごとに 1 回だけ送る
+（毎イベント繰り返せば数百バイトの無駄になる）。
+</p>
+<pre><code>{
+  "run_id": "6f1c…", "station_id": "sendai",
+  "device_id": "esp32s3-A1B2C3", "device_label": "det-A",
+  "firmware": {"variant": "v2", "version": "2.1.0", "board": "ESP32S3"},
+  "adc": {"bits": 12, "max": 4095, "ref_mv": 3300},
+  "mode": "DUAL",
+  "threshold": {"signal": 120, "reset": 90},
+  "coincidence": {"role": "master", "partner_device_id": "esp32s3-D4E5F6", "window_ns": 200},
+  "sensors": {"bme280": true},
+  "deadtime_unit": "us",
+  "tz": "Asia/Tokyo", "tz_offset_min": 540,
+  "started_at_utc": "2026-08-16T12:13:20.000Z",
+  "gps": {"lat": 38.2545, "lon": 140.8399, "alt_m": null},
+  "comment": "…"
+}</code></pre>
+<div class="note">
+<strong>取り込みは <code>run_id</code> が未知でもバッチを拒否してはならない。</strong>
+スタブの run ファイルを書いてデータは受理する。メタデータはベストエフォート、測定値はそうではない。
+</div>
+
+<h3>4-6. <code>device_id</code> — 局の中のフィールドとして追加する</h3>
+<p>
+現在はアカウント ID がログイン名・所有権キー（<code>server.js:283</code>）・ディレクトリ名を兼ねている。
+実害は <code>users.json</code> に出ている — <code>sendai</code> のコメントは
+<em>"coincidence measurement with 2 cosmic watches at aobayamac campus"</em>。
+<strong>1 アカウント・1 ディレクトリを 2 台の実機が共有していて、データ上は区別できない。</strong>
+</p>
+<table>
+  <tr><th>選択肢</th><th>判断</th><th>理由</th></tr>
+  <tr>
+    <td>アカウント == 局 を維持し、<code>device_id</code> を<strong>レコードのフィールド</strong>として追加</td>
+    <td class="ok">採用</td>
+    <td>1 局 1 日 1 ファイルが保たれるので、<strong>局内の同時計数解析が単一ファイルの逐次走査で済む</strong>。N 方向マージが要らない</td>
+  </tr>
+  <tr>
+    <td><code>device_id</code> をディレクトリ階層にする</td>
+    <td>不採用</td>
+    <td>同時計数のたびに複数ファイルの時刻マージが必要になる</td>
+  </tr>
+  <tr>
+    <td>検出器ごとにアカウント発行</td>
+    <td class="ng">却下</td>
+    <td>資格情報管理が倍増し、所有権チェックが破綻し、局単位のビューが分断される</td>
+  </tr>
+</table>
+<p>
+<code>device_id</code> はコンソールが生成して <code>crd_upload_v1</code> に保持する
+（将来ファーム側がシリアルを公開するならそれを種にする）。人が読む <code>device_label</code> を併せ持つ。
+装置一覧は run メタデータから導出して <code>GET /v2/stations/:id/devices</code> で返す。
+<strong>同時計数のペアリングは run のプロパティ</strong>（<code>run.coincidence</code>）とする —
+これで <code>sendai</code> の 2 台構成がようやく表現できるようになる。
+</p>
+</section>
+
+<!-- ============================================================ -->
+<section id="console">
+<h2>5. コンソール側の設計</h2>
+
+<div class="note">
+<strong>設計原則：ローカル自動保存が正本。サーバー送信はミラー / テレメトリ。</strong><br>
+この 1 行が、境界付きキュー・間引き・破棄ポリシーすべての根拠になる。
+通信の断絶をデータ損失として扱わないための前提であり、
+ユーザーがサーバーを唯一の保管先と誤解しないよう <strong>UI にも明記する</strong>。
+</div>
+
+<h3>5-1. モジュール構成</h3>
+<p>
+既存の自動保存が持つ三点セットをそのまま写した独立の三点セットを追加する。
+</p>
+<pre><code>state.autoSave { pending[], enabled, flushing, … }   ←  v2/index.html:1430-1437
+flushAutoSave()                                       ←  v2/index.html:2395
+setInterval(flushAutoSave, 1000)                      ←  v2/index.html:3177
+
+        ↓ 同じ構造を独立に
+
+state.upload   { queue[], enabled, flushing, … }
+flushUpload()
+setInterval(flushUpload, UPLOAD_TICK_MS)              ←  自動保存の直後に登録</code></pre>
+<h4>キューを共有しない理由</h4>
+<table>
+  <tr><th>観点</th><th>自動保存</th><th>サーバー送信</th></tr>
+  <tr><td>有効化のライフタイム</td><td>保存だけしたい場合がある</td><td>送信だけしたい場合がある</td></tr>
+  <tr><td>失敗の性質</td><td>ディスク障害は多くが恒久的</td><td>ネットワーク障害は多くが一過性</td></tr>
+  <tr><td>破棄ポリシー</td><td>破棄してはいけない</td><td>上限超過時は破棄してよい（正本が別にある）</td></tr>
+</table>
+<p class="why">
+<code>processLine()</code> は<strong>同一のイベントオブジェクトの参照</strong>を両方のキューに push する（コピーしない）。
+それぞれが独自の <code>flushing</code> ロックを持つので、60 秒のネットワークバックオフがディスク書き込みを
+遅らせることも、ディレクトリハンドルの <code>NotAllowedError</code> が送信を止めることもない。
+<code>flushAutoSave</code> を先に <code>setInterval</code> 登録することで、同一 tick 内ではディスクが先に走る。
+</p>
+<p class="why">
+メモリ上の相互作用：キューに参照が残っているイベントは、<code>state.events</code> が
+<code>MAX_EVENTS</code> を超えて切り詰められても保持される。これは正しい挙動で、
+ハード上限によって有界に保たれる。
+</p>
+
+<h3>5-2. 挿入点</h3>
+<table>
+  <tr><th>内容</th><th>v2/index.html</th><th>v1/index.html</th></tr>
+  <tr><td>キューへの投入（自動保存の push 直後）</td><td><code>:2163-2165</code></td><td><code>:1766-1768</code></td></tr>
+  <tr><td>切断時の最終 flush</td><td><code>:1805</code>（<code>flushAutoSave</code> の後）</td><td><code>:1518</code>（<strong>現状 flush 自体が無い</strong>）</td></tr>
+  <tr><td>接続時の run 開始（<code>run_id</code> 再生成・クロック再アンカー）</td><td><code>:1682</code> / <code>:1743</code></td><td><code>:1416</code> / <code>:1440</code></td></tr>
+  <tr><td>設定の読み込み</td><td><code>:3163</code> 付近</td><td><code>:2513</code> 付近</td></tr>
+  <tr><td>定期 flush の登録</td><td><code>:3177</code> の直後</td><td><code>:2553</code> の直後</td></tr>
+  <tr><td>言語切替時の再描画登録</td><td><code>:1367</code>（<code>updateAutoSaveUI</code> の隣）</td><td><code>:1183</code></td></tr>
+  <tr><td>i18n 辞書</td><td><code>:967</code>（en） / <code>:1136</code>（ja）</td><td><code>:826</code> / <code>:976</code></td></tr>
+  <tr><td>サイドバーパネル</td><td><code>:556</code>（自動保存セクション直後）</td><td><code>:460</code> 付近</td></tr>
+</table>
+
+<h3>5-3. UI パネル</h3>
+<p>
+既存クラス（<code>sidebar-section</code> / <code>input-group</code> / <code>btn btn-primary</code> / <code>autosave-status</code>）だけで構成する。
+追加 CSS は <code>.autosave-status.warn</code> と <code>.upload-counters</code> の 2 ルールのみ。
+</p>
+<p>
+入力項目：サーバー URL、観測局 ID、パスワード、「この PC に保存する」チェック、装置ラベル、緯度 / 経度、送信レート（全件 / 10 件に 1 件 / 100 件に 1 件）。
+ボタン：ログイン、送信開始、送信停止、未送信データを再送。
+</p>
+<h4>ステータスチップの状態</h4>
+<table>
+  <tr><th>クラス</th><th>状態</th><th>条件</th></tr>
+  <tr><td><code>idle</code></td><td>未設定</td><td>URL / ID 未入力、またはログアウト中</td></tr>
+  <tr><td><code>idle</code></td><td>準備完了</td><td>ログイン済み・送信停止中</td></tr>
+  <tr><td><code>active</code></td><td>送信中</td><td>送信済み件数 / 待機件数 / モード（v2 or 互換）を表示</td></tr>
+  <tr><td><code>warn</code></td><td>再試行中</td><td>バックオフ待ち。残り秒数と試行回数</td></tr>
+  <tr><td><code>warn</code></td><td>滞留</td><td>キューがソフト上限超過。送信レートの引き下げを促す</td></tr>
+  <tr><td><code>warn</code></td><td>オフライン</td><td><code>navigator.onLine === false</code></td></tr>
+  <tr><td><code>error</code></td><td>認証エラー</td><td>refresh も再ログインも失敗</td></tr>
+  <tr><td><code>error</code></td><td>拒否</td><td>サーバーに拒否されたイベントあり</td></tr>
+  <tr><td><code>error</code></td><td>破棄</td><td>ハード上限に到達（ローカルには保存済みである旨も表示）</td></tr>
+</table>
+<p class="why">
+互換モード時は「湿度・気圧・デジタル / アナログ各 ch は送信されません」という注記を常時表示する。
+失われるものを画面に出さないと、後から欠測として扱われる。
+</p>
+
+<h3>5-4. 資格情報ポリシー（参考実装から意図的に逸脱する点）</h3>
+<table>
+  <tr><th>規則</th><th>理由</th></tr>
+  <tr>
+    <td><strong>パスワードは既定で localStorage に書かない。</strong>モジュールスコープの変数にタブ生存期間のみ保持する</td>
+    <td>夜間の連続運転中に 401 が起きたとき、無人で再ログインするために必要。しかし永続化する必要はない</td>
+  </tr>
+  <tr>
+    <td>「この PC に保存する」を選んだ場合のみ別キー <code>crd_upload_secret_v1</code> に保存し、警告を常時表示。チェックを外したら即削除</td>
+    <td>共用 PC での事故を防ぐ。明示的な選択にする</td>
+  </tr>
+  <tr>
+    <td><strong>Base64 / XOR による難読化はしない</strong></td>
+    <td>security theatre であり、保護されているという誤解を生むだけ。本当に必要なら WebCrypto AES-GCM + パスフレーズ（C-14）</td>
+  </tr>
+  <tr>
+    <td>JWT は保存するが、それ自体が bearer 資格情報であることを文書に明記。緩和は 24 時間の TTL と「ログアウト」操作</td>
+    <td>毎回ログインさせないための妥協点を、隠さず書く</td>
+  </tr>
+  <tr>
+    <td><code>file://</code> では Chrome が<strong>全ローカルファイルで localStorage を共有する</strong>点を明記</td>
+    <td>あるローカル HTML に保存した資格情報が別のローカル HTML から見える。既定を「保存しない」にするもう一つの理由</td>
+  </tr>
+</table>
+
+<h3>5-5. キュー・再送・バックプレッシャ</h3>
+<table>
+  <tr><th>局面</th><th>挙動</th></tr>
+  <tr><td>ハード上限到達</td><td><strong>最古を破棄</strong>し件数をカウントして UI に出す。ライブ表示は最新が有用であり、正本はローカルにある</td></tr>
+  <tr><td>一過性の失敗（ネットワーク / 5xx / 408 / 429 / タイムアウト）</td><td>バッチをキュー先頭へ戻す（<code>batch.concat(queue)</code> — 既存 <code>v2:2441</code> と同じ書き方。spread の引数上限を避ける）</td></tr>
+  <tr><td>バックオフ</td><td>1 / 2 / 4 … 60 秒上限、<strong>±20% のジッタ</strong>。多数の局が 1 回のサーバー再起動から同時に復帰して同期しないため</td></tr>
+  <tr><td>試行回数</td><td><strong>無制限</strong>（参考実装の 3 回上限とは異なる）。バッチは先頭に残るだけで、チップが再試行中を示す。ハード上限と組み合わせてメモリは有界、しかし黙って失われることはない</td></tr>
+  <tr><td>413</td><td>バッチサイズを半減して<strong>即座に再試行</strong>（バックオフしない）</td></tr>
+  <tr><td>400（毒イベント）</td><td>バッチが 2 件以上なら分割して二分探索、1 件なら拒否リストに記録して先へ進む</td></tr>
+  <tr><td>401 / 403</td><td>キューへ戻し、トークン更新を 1 回試行。失敗したらチップを認証エラーにしてキューは保持</td></tr>
+</table>
+<p class="why">
+<strong>切り捨てる経路が存在しない</strong>のが要点。データが捨てられるのはハード上限超過の一箇所だけで、
+それは必ずカウントされ画面に出る。
+</p>
+<h4>重複判定を持たない理由</h4>
+<p>
+参考実装は 1 イベントずつ撃って何が着弾したか分からないため、送信済みキーの <code>Set</code> を無限に持っていた。
+本設計では、キューが厳密な FIFO で in-flight バッチが常に 1 つなので、
+<strong>1 イベントが 1 試行につき高々 1 回しか送られない</strong>。
+残る重複要因（追記後に応答が失われた）はサーバー側の <code>Idempotency-Key</code> と
+永続的な <code>(run_id, seq)</code> で処理する。<strong>コンソールは <code>Set</code> を一切持たない。</strong>
+</p>
+<h4>高レート時のバックプレッシャ</h4>
+<p>
+互換モードのスループットは概ね「並列数 ÷ RTT」で、RTT 60〜200 ms なら毎秒 20〜60 件が上限。
+v2 のバッチ送信（200 件 / リクエスト）なら毎秒数千件まで上がる。
+ソフト上限を 30 秒以上超え続けたら滞留警告を出し、
+ユーザーが<strong>送信レートを手動で下げる</strong>のを促す（ローカルには全件残る）。
+間引いた件数は破棄件数と<strong>別カウンタ</strong>にする — 間引きをデータ損失と誤認させないため。
+</p>
+<p class="why">
+自動間引き（滞留が続いたら勝手にレートを下げる）は初版では<strong>入れない</strong>。
+暗黙のデータ間引きはユーザーを驚かせる。<strong>Q-5</strong> として未決に回す。
+</p>
+
+<h3>5-6. タイムスタンプ</h3>
+<div class="blocker">
+サーバーのパーサ（<code>server.js:301-310</code>）は文字列を <code>-</code> で分割して<strong>6 要素以上</strong>を要求する。
+<code>YYYY-MM-DD-HH-MM-SS.ffffff</code> のローカル時刻でなければならない。
+<strong>ISO-8601 を送ると 3 要素にしかならず</strong>、else 分岐に落ちてファイル名がサーバーの UTC 日付になり、
+2 列目が <code>2026-08-16-2026-08-16T12:00:00.000Z</code> のような壊れた値になる。
+</div>
+<h4>アンカー方式</h4>
+<p>
+v2 には 2 つの時計がある。<code>pc_timestamp</code> は壁時計だが USB / BLE のバッファでジッタが乗る
+（まとめて届いた行が同じ値になる）。<code>timestamp_us</code> は間隔が正確だが壁時計を持たない。
+どちらか一方では正しくないので、<strong>デバイスの µs 間隔をブラウザの壁時計にアンカーする</strong>。
+</p>
+<pre><code>function uploadClockUs(ev) {
+  const u = state.upload;
+  const devUs = ev.timestamp_us;
+  const reboot = devUs &lt; u.anchorDevUs || ev.count &lt; u.anchorCount;
+  const derived = u.anchorWallUs + (devUs - u.anchorDevUs);
+  const drift = Math.abs(derived - ev.pc_timestamp * 1000);
+  if (!u.anchorWallUs || reboot || drift &gt; 5_000_000) {   // 5 秒
+    u.anchorWallUs = ev.pc_timestamp * 1000;
+    u.anchorDevUs  = devUs;
+    u.anchorCount  = ev.count;
+    return u.anchorWallUs;
+  }
+  return derived;
+}</code></pre>
+<p class="why">
+結果として、イベント間隔はデバイスの水晶発振器由来の µs 分解能を保ちつつ、
+絶対時刻はブラウザの壁時計に固定される。再起動や NTP による時刻跳躍では自動で再アンカーされる。
+参考実装が <code>getMilliseconds() * 1000</code> で下 3 桁を捏造していたのとは異なり、
+<code>.ffffff</code> の桁に物理的な意味がある。
+</p>
+<p>
+v1 は <code>timestamp_ms</code> なので同じ方式を ×1000 で適用する。
+下 3 桁は <code>000</code> になるため、<strong>「ミリ秒の真値をマイクロ秒の書式で書いている」</strong>ことを文書に明記する。
+</p>
+<h4>タイムゾーンの穴</h4>
+<p>
+サーバーは<strong>どこにもタイムゾーンを記録していない</strong>。
+書き込み側はクライアントのローカル日でファイル名を決めるのに、<code>latest-data</code>（<code>:339</code>）は UTC で日を決める。
+JST では毎日 00:00〜09:00 が食い違う。異なるタイムゾーンの局同士は比較できず、
+DST 地域では毎年「曖昧な 1 時間」と「存在しない 1 時間」が生じる。
+</p>
+<p>対策の順序：</p>
+<ol>
+  <li>コンソールは<strong>互換モードでも常に</strong> <code>tz</code>（<code>Intl.DateTimeFormat().resolvedOptions().timeZone</code>）、
+      <code>tz_offset_min</code>、<code>timestamp_utc</code> を送る。現ハンドラは余分なキーを無視するので無害</li>
+  <li>Tier 2 では <code>t_utc_us</code>（整数 epoch µs）を<strong>正</strong>とし、ローカル文字列は派生の便宜フィールドに落とす</li>
+  <li>Tier 1 の即効策として <code>latest-data</code> の日ファイル選択を書き込み側に揃える（S-08）</li>
+  <li>文書に明記：<strong>既存 <code>.dat</code> の時刻はタイムゾーン不明のローカル時刻</strong>。過去ファイルは遡って直せず、局ごとの注記でしか救済できない</li>
+</ol>
+
+<h3>5-7. フィールド対応表</h3>
+<h4>v2 → 互換 API（Phase 1）</h4>
+<table>
+  <tr><th>送信キー</th><th>元</th><th>備考</th></tr>
+  <tr><td><code>event</code></td><td><code>ev.count</code></td><td>S-02 適用まで <code>0</code> は拒否される</td></tr>
+  <tr><td><code>timestamp</code></td><td>アンカー時刻を <code>YYYY-MM-DD-HH-MM-SS.ffffff</code> に整形</td><td>ローカル時刻</td></tr>
+  <tr><td><code>time</code></td><td><code>ev.timestamp_us</code></td><td>TSV 3 列目。現行 reader はこれを <code>vol</code> と誤ラベルする</td></tr>
+  <tr><td><code>adc</code></td><td><code>ev.adc</code></td><td>0–4095。<strong>ビット深度がどこにも記録されない</strong>ため v1 の 10 bit 値と区別不能</td></tr>
+  <tr><td><code>vol</code></td><td><code>ev.adc / 4095 * 3300</code>（mV）</td><td>v2 に <code>sipm_mv</code> は無い。<strong>計算値であり測定値ではない</strong>（Q-6）</td></tr>
+  <tr><td><code>deadtime</code></td><td><code>ev.deadtime_us / 1000</code></td><td>CosmicWatch 規約に合わせ <strong>ms</strong> に変換（Q-4）</td></tr>
+  <tr><td><code>temp</code></td><td><code>ev.temp_c</code></td><td>S-02 適用まで <code>0</code> は <code>25.0</code> に化ける</td></tr>
+  <tr><td><code>tz</code> / <code>tz_offset_min</code> / <code>timestamp_utc</code> / <code>run_id</code> / <code>device_label</code></td><td>コンソール</td><td>現ハンドラは無視。前方互換のため常に送る</td></tr>
+</table>
+<p>
+<strong>互換モードで失われるもの：</strong>
+<span class="lost">Hum</span>
+<span class="lost">Press</span>
+<span class="lost">Dig1-3</span>
+<span class="lost">Ana1-3</span>
+<span class="lost">ADC ビット深度</span>
+<span class="lost">エネルギー(keV)</span>
+<span class="lost">同時計数構成</span>
+<span class="lost">閾値設定</span>
+<span class="lost">ファーム / 装置識別</span>
+<span class="lost">run 識別</span>
+<span class="lost">タイムゾーン</span>
+</p>
+
+<h4>v1 → 互換 API</h4>
+<table>
+  <tr><th>送信キー</th><th>元</th><th>備考</th></tr>
+  <tr><td><code>event</code> / <code>timestamp</code></td><td><code>ev.count</code> / アンカー時刻</td><td>ms 精度</td></tr>
+  <tr><td><code>time</code></td><td><code>ev.timestamp_ms * 1000</code></td><td>列の意味を µs に揃える</td></tr>
+  <tr><td><code>adc</code></td><td><code>ev.adc</code></td><td><strong>NANO は 0–1023、ESP32-S3 は 0–4095。ボードプロファイルが送られないため最悪の曖昧さ</strong></td></tr>
+  <tr><td><code>vol</code></td><td><code>ev.sipm_mv</code></td><td>ネイティブに一致。ただし NANO は較正済み SiPM mV、ESP32-S3 は ADC ピン mV で<strong>同じ列に別の物理量</strong></td></tr>
+  <tr><td><code>deadtime</code> / <code>temp</code></td><td><code>ev.deadtime_ms</code> / <code>ev.temp_c</code></td><td>ネイティブに一致</td></tr>
+</table>
+<p><strong>失われるもの：</strong> <span class="lost">mode_flag（Master/Slave）</span> <span class="lost">ボード種別 / ADC ビット深度</span></p>
+
+<h4>v2 → v2 API（Phase 4）</h4>
+<pre><code>{
+  "seq": 12345,
+  "t_utc_us": 1786000000123456,
+  "t_local": "2026-08-16-21-13-20.123456",
+  "t_dev_us": 987654321,
+  "adc": 2048,
+  "adc_mv": 1650.427,
+  "energy_kev": null,
+  "deadtime_us": 1234567,
+  "temp_c": 23.4,
+  "hum_pct": 51.2,
+  "press_hpa": 1008.35,
+  "dig": [0, 1, 0],
+  "ana": [512, 1024, 2048]
+}</code></pre>
+<p class="why">
+失われるものは無い。<code>energy_kev</code> はコンソールのエネルギー較正
+（<code>plotter.html</code> と共有する <code>crd_energy_cal_v1</code>）が設定されているときだけ入る。
+<code>run_id</code> / <code>device_id</code> / <code>adc_bits</code> / <code>tz</code> はバッチと run のレベルに 1 回だけ載る。
+</p>
+
+<h3>5-8. 押さえるべき境界条件</h3>
+<table>
+  <tr><th>状況</th><th>挙動</th></tr>
+  <tr><td>測定中にデバイスが再起動（<code>count</code> と <code>timestamp_us</code> がリセット）</td><td>クロックを再アンカー。<code>run_id</code> は維持し、再起動後の最初のイベントに <code>flags.reboot</code> を立てて <code>(run_id, seq)</code> の重複排除が破綻しないようにする</td></tr>
+  <tr><td>測定中の日跨ぎ</td><td>v2 API はサーバーが <code>t_utc_us</code> から決める。互換モードはローカル日付文字列が決める。クライアント側の対処は不要</td></tr>
+  <tr><td>オフライン</td><td>POST 自体を行わず、バックオフの試行回数も消費しない。<code>online</code> イベントで再開</td></tr>
+  <tr><td>測定中のトークン失効</td><td>失効 5 分前に更新。失敗しセッションのパスワードがあれば無言で再ログイン。どちらも駄目なら認証エラー表示のままキューを保持</td></tr>
+  <tr><td>同一局を 2 つのタブから送信</td><td>サーバーは許可する。<code>run_id</code> で区別される。文書で注意喚起する</td></tr>
+  <tr><td>NTP による時刻跳躍</td><td>ドリフト検知で再アンカー。イベント間隔はデバイス時計由来なので影響を受けない</td></tr>
+  <tr><td>一時停止中（<code>state.paused</code>）</td><td>イベント自体が生成されないので何も積まれない。自動保存と同じ挙動</td></tr>
+</table>
+
+<h3>5-9. v1 の既存不具合（C-11、同時に直す）</h3>
+<div class="blocker">
+v1 の <code>flushAutoSave()</code>（<code>v1/index.html:1924</code>）には、v2 が持つ 2 つの防御が<strong>両方とも無い</strong>。<br>
+① <strong>再入ロックが無い</strong> — v2 の <code>as.flushing</code>（<code>v2:2401</code>）に相当するものが無く、
+1 秒間隔の呼び出しが前回の書き込み完了前に走ると、同一 <code>FileSystemWritableFileStream</code> に対して
+並行に seek / append してファイルが壊れる。<br>
+② <strong>書き込み失敗時にバッチを戻していない</strong> — <code>:1950</code> で <code>as.pending.splice(0)</code> により
+キューから取り出した後、<code>:1964-1968</code> の <code>catch</code> はエラー表示だけで
+<code>batch</code> を再投入しない。v2 は <code>v2:2441</code> で <code>as.pending = batch.concat(as.pending)</code> と戻している。
+<strong>v1 では一過性の書き込み失敗がそのままイベントの永久喪失になる。</strong><br>
+さらに v1 の <code>disconnect()</code>（<code>:1518</code>）には切断時の最終 flush が無い。
+</div>
+<p class="why">
+これらはサーバー連携とは独立した既存バグだが、v1 にアップローダを載せる際に同じファイルの
+同じ関数を触るため、同時に直すのが自然。優先度は高。
+</p>
+</section>
+
+<!-- ============================================================ -->
+<section id="viewer">
+<h2>6. カラムずれの解消とビューア対応</h2>
+
+<h3>6-1. 現状の実害</h3>
+<p>
+writer は 7 カラムを書く（<code>server.js:317-318</code>）のに、<strong>reader は両方とも 4 カラムで分解している</strong>
+（<code>server.js:350</code> の <code>latest-data</code>、<code>server.js:457</code> の <code>/api/data</code>）。
+</p>
+<pre><code>const [adc, timestamp, vol, deadtime] = line.split('\t');</code></pre>
+<table>
+  <tr><th>API のキー</th><th>実際に入っている値</th></tr>
+  <tr><td><code>adc</code></td><td>1 列目 = <strong>EVENT カウンタ</strong></td></tr>
+  <tr><td><code>timestamp</code></td><td>2 列目 = 日時文字列 <span class="ok">（これだけ正しい）</span></td></tr>
+  <tr><td><code>vol</code></td><td>3 列目 = <strong>TIME（µs）</strong></td></tr>
+  <tr><td><code>deadtime</code></td><td>4 列目 = <strong>本当の ADC 値</strong></td></tr>
+</table>
+<p>
+5〜7 列目（SiPM、本当のデッドタイム、温度）は<strong>JSON API からは到達不能</strong>で、
+生ファイルをダウンロードするしかない。
+ビューアの ADC ヒストグラムは <code>cosmicray-viewer/app.js:401</code> が
+<code>parseInt(point.deadtime)</code> を読んでいるため<strong>偶然正しく動いている</strong>。
+</p>
+<p class="why">
+直近 2 コミットが writer だけを変えて reader を放置したことでこのずれが入った。
+新しいクライアントがフィールド名を信じると必ず踏む罠なので、両側を触るなら最初に直すべき箇所。
+</p>
+
+<h3>6-2. 非破壊の 3 段階移行</h3>
+<ol>
+  <li>
+    <strong>共通パーサ <code>parseLegacyDatLine(line)</code> を導入。</strong>
+    列数で分岐する（4 → 旧形式、7 → 現行）。古いファイルには本当に 4 カラムのものが残っているため、
+    幅の判定は必須。<code>latest-data</code>・<code>/api/data</code>・<code>.jsonl → .dat</code> 再生成の 3 箇所で共用する
+  </li>
+  <li>
+    <strong>レスポンスは加算的に。</strong>既存 4 キーを<strong>現在の（誤った）意味のまま</strong>残し、
+    正しい名前のキーを<strong>追加</strong>する。既存ビューアは無改修で動き続ける
+    <pre><code>{ "timestamp": "…", "adc": "1", "vol": "…", "deadtime": "2048",
+  "event": 1, "datetime": "2026-08-16-21-13-20.123456", "time_us": 987654321,
+  "adc_value": 2048, "sipm_mv": 1650.427, "deadtime_ms": 1234, "temp_c": 23.4 }</code></pre>
+  </li>
+  <li>
+    <strong>ビューアを切り替えてから旧キーを非推奨化。</strong>
+    <code>app.js:401</code> を <code>point.adc_value ?? point.deadtime</code> に変え、
+    SiPM / 温度 / デッドタイムのパネルを初めて追加できるようになる。
+    告知期間（例：2 リリース）の後に旧キーを削除
+  </li>
+</ol>
+
+<h3>6-3. v2 データのビューア対応（V-02）</h3>
+<p>
+レガシーミラー（S-15）があるおかげで、これは<strong>誰もブロックしない独立タスク</strong>になる。
+</p>
+<ul>
+  <li><code>GET /api/files/:id</code> に <code>.jsonl</code> を含める</li>
+  <li><code>GET /api/v2/data/:id/:date</code>（<code>device_id</code> と時間範囲でフィルタ可能）</li>
+  <li>UI：装置セレクタ、湿度 / 気圧 / Dig / Ana の系列、run メタデータのパネル、
+      <code>run.tz</code> に基づく UTC / ローカル切替</li>
+</ul>
+</section>
+
+<!-- ============================================================ -->
+<section id="roadmap">
+<h2>7. ロードマップ</h2>
+<p>
+できるだけ早く end-to-end が通るように段階を切る。
+<strong>Phase 1 完了時点で、既存エンドポイントと Tier 1 修正だけで実際にデータが流れる。</strong>
+</p>
+
+<div class="note"><strong>進捗（2026-08-16）:</strong> &#x2705; = 実装・検証済み。Phase 0 はコード変更分がすべて完了（TLS 化 S-09 のみ Q-1 の判断待ち）。Phase 1 は v2 コンソールの互換モード送信が完了し、実サーバー相手の自動テスト 48 件が通過。</div>
+<h3>Phase 0 — サーバーの疎通と安全性（Tier 1）</h3>
+<table>
+  <tr><th>ID</th><th>内容</th><th>優先</th><th>工数</th><th>依存</th></tr>
+  <tr><td>S-01</td><td>&#x2705; CORS ミドルウェア（<code>server.js:12</code>）</td><td class="pri pri-hi">高</td><td>小</td><td>—</td></tr>
+  <tr><td>S-03</td><td>&#x2705; <code>/auth/refresh</code> に認証追加（<code>:185</code>）</td><td class="pri pri-hi">高</td><td>小</td><td>—</td></tr>
+  <tr><td>S-02</td><td>&#x2705; falsy-zero / <code>temp</code> 既定値 / サニタイズ（<code>:289, :318</code>）</td><td class="pri pri-hi">高</td><td>小</td><td>—</td></tr>
+  <tr><td>S-04</td><td>&#x2705; パストラバーサル対策</td><td class="pri pri-hi">高</td><td>小</td><td>—</td></tr>
+  <tr><td>S-05</td><td>&#x2705; <code>JWT_SECRET</code> / <code>PORT</code></td><td class="pri pri-hi">高</td><td>小</td><td>—</td></tr>
+  <tr><td>S-09</td><td>TLS 化</td><td class="pri pri-hi">高</td><td>中</td><td>Q-1</td></tr>
+  <tr><td>S-08</td><td>&#x2705; <code>latest-data</code> の日ファイル選択</td><td class="pri pri-mid">中</td><td>小</td><td>—</td></tr>
+  <tr><td>S-07</td><td>&#x2705; レート制限</td><td class="pri pri-mid">中</td><td>小</td><td>—</td></tr>
+  <tr><td>S-06</td><td>&#x2705; <code>package-lock.json</code> 再生成</td><td class="pri pri-mid">中</td><td>小</td><td>—</td></tr>
+</table>
+
+<h3>Phase 1 — コンソール v2・互換モード（最初の end-to-end）</h3>
+<table>
+  <tr><th>ID</th><th>内容</th><th>優先</th><th>工数</th><th>依存</th></tr>
+  <tr><td>C-01</td><td>&#x2705; <code>state.upload</code> と定数</td><td class="pri pri-hi">高</td><td>小</td><td>—</td></tr>
+  <tr><td>C-02</td><td>&#x2705; サイドバーパネル・CSS 2 行・EN/JA i18n</td><td class="pri pri-hi">高</td><td>中</td><td>C-01</td></tr>
+  <tr><td>C-03</td><td>&#x2705; 通信基盤・ログイン・トークン維持・能力判定</td><td class="pri pri-hi">高</td><td>中</td><td>C-01, S-01</td></tr>
+  <tr><td>C-04</td><td>&#x2705; クロックアンカーとタイムスタンプ整形</td><td class="pri pri-hi">高</td><td>中</td><td>C-01</td></tr>
+  <tr><td>C-05</td><td>&#x2705; キュー / バッチ / バックオフ / 毒隔離 / 互換送信</td><td class="pri pri-hi">高</td><td>大</td><td>C-03, C-04</td></tr>
+  <tr><td>C-06</td><td>&#x2705; 既存フックへの配線</td><td class="pri pri-hi">高</td><td>小</td><td>C-05</td></tr>
+  <tr><td>C-07</td><td>&#x2705; ステータスチップ / カウンタ（言語切替に追随）</td><td class="pri pri-hi">高</td><td>小</td><td>C-02, C-05</td></tr>
+  <tr><td>C-08</td><td>&#x2705; 設定永続化と資格情報ポリシー</td><td class="pri pri-hi">高</td><td>小</td><td>C-02</td></tr>
+  <tr><td>C-09</td><td>&#x2705; 間引き・滞留警告・未送信データ再送</td><td class="pri pri-mid">中</td><td>中</td><td>C-05</td></tr>
+  <tr><td>D-01</td><td>&#x2705; 利用手引（配信方式の対応表・「正本はローカル」の明示）</td><td class="pri pri-hi">高</td><td>小</td><td>C-07</td></tr>
+</table>
+
+<h3>Phase 2 — コンソール v1</h3>
+<table>
+  <tr><th>ID</th><th>内容</th><th>優先</th><th>工数</th><th>依存</th></tr>
+  <tr><td>C-11</td><td><strong>既存バグ修正</strong>：再入ロック追加、失敗時の再投入、切断時 flush</td><td class="pri pri-hi">高</td><td>小</td><td>—</td></tr>
+  <tr><td>C-10</td><td>アップローダ移植（v1 フィールド対応・ボード種別の注記）</td><td class="pri pri-mid">中</td><td>中</td><td>Phase 1</td></tr>
+</table>
+
+<h3>Phase 3 — サーバー Tier 2</h3>
+<table>
+  <tr><th>ID</th><th>内容</th><th>優先</th><th>工数</th><th>依存</th></tr>
+  <tr><td>S-10</td><td><code>GET /v2/capabilities</code></td><td class="pri pri-hi">高</td><td>小</td><td>Phase 0</td></tr>
+  <tr><td>S-11</td><td><code>POST /v2/runs/:id</code> と run メタデータ</td><td class="pri pri-hi">高</td><td>中</td><td>S-10</td></tr>
+  <tr><td>S-12</td><td><code>POST /v2/ingest/:id</code>（バッチ・2MB パーサ・部分成功）</td><td class="pri pri-hi">高</td><td>大</td><td>S-11</td></tr>
+  <tr><td>S-13</td><td><code>.jsonl</code> ライタと <code>format_version</code></td><td class="pri pri-hi">高</td><td>中</td><td>S-12</td></tr>
+  <tr><td>S-15</td><td>レガシーミラーと再生成スクリプト</td><td class="pri pri-hi">高</td><td>中</td><td>S-13</td></tr>
+  <tr><td>S-14</td><td><code>Idempotency-Key</code> と <code>(run_id, seq)</code></td><td class="pri pri-mid">中</td><td>中</td><td>S-12</td></tr>
+  <tr><td>S-16</td><td><code>device_id</code> 次元と装置一覧 API</td><td class="pri pri-mid">中</td><td>小</td><td>S-11</td></tr>
+  <tr><td>D-02</td><td>v2 API 仕様・フィールド辞書・単位規約</td><td class="pri pri-hi">高</td><td>中</td><td>S-12</td></tr>
+</table>
+
+<h3>Phase 4 — コンソールが v2 API を採用</h3>
+<table>
+  <tr><th>ID</th><th>内容</th><th>優先</th><th>工数</th><th>依存</th></tr>
+  <tr><td>C-12</td><td>v2 バッチ送信・run 登録・能力判定による自動切替（v2）</td><td class="pri pri-hi">高</td><td>中</td><td>S-12, C-05</td></tr>
+  <tr><td>C-13</td><td>同上（v1。<code>board</code> と <code>mode_flag</code> も載せる）</td><td class="pri pri-mid">中</td><td>小</td><td>C-12, C-10</td></tr>
+</table>
+
+<h3>Phase 5 — リーダ・ビューア・文書</h3>
+<table>
+  <tr><th>ID</th><th>内容</th><th>優先</th><th>工数</th><th>依存</th></tr>
+  <tr><td>S-17</td><td>共通パーサと名前付きキーの追加</td><td class="pri pri-mid">中</td><td>中</td><td>Phase 0</td></tr>
+  <tr><td>V-01</td><td>ビューアを正しいキーへ切替、SiPM / 温度 / デッドタイム追加</td><td class="pri pri-mid">中</td><td>小</td><td>S-17</td></tr>
+  <tr><td>V-02</td><td><code>.jsonl</code> 対応・装置セレクタ・環境値系列・UTC/ローカル切替</td><td class="pri pri-mid">中</td><td>大</td><td>S-13, S-16</td></tr>
+  <tr><td>D-03</td><td>データ形式の移行注記</td><td class="pri pri-mid">中</td><td>小</td><td>S-17</td></tr>
+</table>
+
+<h3>将来</h3>
+<table>
+  <tr><th>ID</th><th>内容</th><th>優先</th><th>工数</th></tr>
+  <tr><td>C-14</td><td>WebCrypto AES-GCM によるパスワード保護</td><td class="pri pri-lo">低</td><td>中</td></tr>
+  <tr><td>S-18</td><td><code>.jsonl</code> の日次 gzip ローテーションと保持ポリシー</td><td class="pri pri-lo">低</td><td>中</td></tr>
+  <tr><td>S-19</td><td><code>users.json</code> の SQLite 化、装置資格情報の分離</td><td class="pri pri-lo">低</td><td>大</td></tr>
+</table>
+</section>
+
+<!-- ============================================================ -->
+<section id="open">
+<h2>8. 未決事項（人が判断する必要がある）</h2>
+<table>
+  <tr><th>#</th><th>問い</th><th>なぜ判断が必要か</th></tr>
+  <tr>
+    <td>Q-1</td>
+    <td>サーバーを TLS 化するか（S-09）</td>
+    <td>入れなければコンソールを <code>https://</code> で配信することが<strong>永久に不可能</strong>。
+        <code>file://</code> と <code>http://localhost</code> だけが選択肢になり、GitHub Pages も LAN の HTTPS キオスクも使えない。配布方法全体を規定する</td>
+  </tr>
+  <tr>
+    <td>Q-2</td>
+    <td><code>/auth/refresh</code> は期限切れトークンを猶予期間内で受け付けるか</td>
+    <td>厳格にする（推奨）と、24 時間を超える無人運転はパスワードをメモリかディスクに持つ必要がある。セキュリティと無人運転の trade-off</td>
+  </tr>
+  <tr>
+    <td>Q-3</td>
+    <td>at-least-once（重複は検出可能）で足りるか、exactly-once が要るか</td>
+    <td>後者は冪等性状態の永続化が必要で、現在の「DB 無し・フラットファイル」構成から大きく逸脱する</td>
+  </tr>
+  <tr>
+    <td>Q-4</td>
+    <td>互換モードの <code>deadtime</code> は µs（v2 ネイティブ）か ms（CosmicWatch 規約）か</td>
+    <td>本設計は <strong>ms 変換</strong>。既存の解析が µs 前提なら過去データとの比較が壊れる。<strong>物理側の確認が必要</strong></td>
+  </tr>
+  <tr>
+    <td>Q-5</td>
+    <td>滞留が続いたときの自動間引きを許すか</td>
+    <td>現状は手動のみ。暗黙にデータを間引くと、サーバーを完全な記録と考えている人を誤らせる</td>
+  </tr>
+  <tr>
+    <td>Q-6</td>
+    <td>v2 の <code>vol</code> 列に <code>adc/4095*3300</code> mV の計算値を入れてよいか</td>
+    <td>測定値ではない。空にする方が誠実だが、既存ビューアの期待を壊す</td>
+  </tr>
+  <tr>
+    <td>Q-7</td>
+    <td>本番 pm2 の再起動権限は誰が持つか</td>
+    <td>Phase 0 は全項目が本番再起動を伴う。特に S-05 の鍵更新で<strong>全ユーザーが 1 回再ログイン</strong>になる</td>
+  </tr>
+  <tr>
+    <td>Q-8</td>
+    <td><code>.jsonl</code> の保持期間とディスク予算</td>
+    <td>TSV の 2〜3 倍 + レガシーミラー。ローテーションが無い単一 VM のフラットファイル構成では高レート時に急速に増える</td>
+  </tr>
+  <tr>
+    <td>Q-9</td>
+    <td>既存 <code>.dat</code> の ADC ビット深度をどう扱うか</td>
+    <td>v1 NANO 0–1023 / v1 ESP32-S3 0–4095 / v2 0–4095 が事後に判別できない。局ごとの <code>config.json</code> への注記が唯一の救済</td>
+  </tr>
+  <tr>
+    <td>R-1</td>
+    <td><code>cosmicwatch-app</code> はマージ競合中でビルドできない</td>
+    <td>実行可能な参照として扱わないこと。<code>test.html</code> と <code>server-README.md</code> のみを見て、既知欠陥は意図的に踏襲しない</td>
+  </tr>
+  <tr>
+    <td>R-2</td>
+    <td><code>file://</code> + <code>Origin: null</code> + <code>http://</code> fetch は Chrome バージョン依存</td>
+    <td>現場の Chrome で実機確認してから <code>file://</code> 対応を約束すること。代替は <code>http://localhost</code> + 小さな静的サーバーだが、非技術者向けの手順書が別途必要になる</td>
+  </tr>
+  <tr>
+    <td>R-3</td>
+    <td>レガシーミラーは同じ測定の 2 コピーを作る</td>
+    <td><code>.jsonl</code> が正・<code>.dat</code> が派生であることの明文化と再生成スクリプトが無いと、両者が静かに乖離する</td>
+  </tr>
+</table>
+</section>
+
+</main>
+
+<footer>
+  Accel Kitchen — Cosmic Ray Detector V2
+</footer>
+
+</body>
+</html>

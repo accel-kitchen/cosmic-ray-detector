@@ -1,0 +1,200 @@
+{
+  "printed_parts": {
+    "base": {
+      "watertight": true,
+      "single_connected_solid": true,
+      "triangles": 3612,
+      "volume_mm3": 61665.65,
+      "bounds_design_mm": [
+        [
+          33.0,
+          -105.0,
+          -20.4
+        ],
+        [
+          119.0,
+          -30.0,
+          38.6
+        ]
+      ],
+      "print_extents_mm": [
+        86.0,
+        75.0,
+        59.0
+      ]
+    },
+    "lid": {
+      "watertight": true,
+      "single_connected_solid": true,
+      "triangles": 2528,
+      "volume_mm3": 16174.02,
+      "bounds_design_mm": [
+        [
+          33.0,
+          -105.0,
+          35.6
+        ],
+        [
+          119.0,
+          -30.0,
+          41.0
+        ]
+      ],
+      "print_extents_mm": [
+        86.0,
+        75.0,
+        5.4
+      ]
+    },
+    "lightpipe": {
+      "watertight": true,
+      "single_connected_solid": true,
+      "triangles": 2408,
+      "volume_mm3": 487.45,
+      "bounds_design_mm": [
+        [
+          100.25,
+          -55.05,
+          -1.455
+        ],
+        [
+          119.8,
+          -46.95,
+          13.4
+        ]
+      ],
+      "print_extents_mm": [
+        9.355,
+        8.1,
+        19.55
+      ]
+    }
+  },
+  "intersections": [],
+  "source_checks": {
+    "lid_and_base_overlap_mm3": -0.0,
+    "checked_closed_components": 354,
+    "total_components": 1666
+  },
+  "unchecked_open_components": [
+    "BZ1",
+    "D1",
+    "D2",
+    "GND1",
+    "J3",
+    "J5",
+    "J6",
+    "J7",
+    "J8",
+    "OLED1",
+    "PCB_MAIN",
+    "PCB_SIPM",
+    "R10",
+    "RESET1",
+    "SiPM1",
+    "TP1",
+    "TP2",
+    "TP3",
+    "TP4",
+    "TP5",
+    "U3_SOCK",
+    "U4"
+  ],
+  "convex_envelope_checks": [
+    "C1",
+    "C10",
+    "C11",
+    "C12",
+    "C15",
+    "C18",
+    "C2",
+    "C3",
+    "C4",
+    "C5",
+    "C6",
+    "C7",
+    "C8",
+    "C9",
+    "GND1",
+    "J3",
+    "J5",
+    "J6",
+    "J7",
+    "L1",
+    "L2",
+    "OLED1",
+    "PCB_SIPM",
+    "R10",
+    "R17",
+    "R24",
+    "R26",
+    "R27",
+    "R4",
+    "R6",
+    "R7",
+    "RESET1",
+    "TP1",
+    "TP2",
+    "TP3",
+    "TP4",
+    "TP5",
+    "U1",
+    "U3_SOCK",
+    "U4"
+  ],
+  "front_openings_mm": {
+    "reset": {
+      "centre_design_yz_mm": [
+        42.0,
+        8.595
+      ],
+      "diameter_mm": 7.5,
+      "independent_through_hole": true
+    },
+    "led": {
+      "centre_design_yz_mm": [
+        51.25,
+        8.595
+      ],
+      "diameter_mm": 7.5,
+      "independent_through_hole": true
+    },
+    "minimum_web_mm": 1.75,
+    "reset_stem_axis_design_yz_mm": [
+      42.0,
+      5.595
+    ],
+    "lightpipe_inlet_design_xy_mm": [
+      101.0,
+      -50.43
+    ],
+    "lightpipe_inlet_diameter_mm": 1.5,
+    "lightpipe_to_led_gap_mm": 0.5
+  },
+  "detector_pack_sha256": "4c1da21747eeed532131a1dc3a66604384dba2160849f8d4611d2ba57e194261",
+  "overall_mm": [
+    86.0,
+    75.0,
+    61.4
+  ],
+  "board_mount": {
+    "spacer_length_mm": 17.0,
+    "spacer_count": 3,
+    "floor_hole_diameter_mm": 3.0,
+    "floor_thickness_mm": 3.4
+  },
+  "audio_opening_mm": {
+    "shape": "rectangle",
+    "width": 50.0,
+    "height": 20.0,
+    "horizontal_margin_from_outer_jack_centres": 8.5,
+    "vertical_margin_from_jack_axes": 10.0,
+    "includes_microsd_access": true,
+    "note": "opening moved up 6 mm; interference re-check against the detector pack not run"
+  },
+  "notes": [
+    "Nano ESP32 geometry in the source pack is a simplified model.",
+    "The scintillator model excludes wrapping; 14.845 mm clearance to lid underside.",
+    "Physical prototype fit and optical lightpipe transmission remain untested."
+  ]
+}

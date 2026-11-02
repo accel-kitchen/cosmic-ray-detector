@@ -262,6 +262,13 @@ a.shot-frame { cursor: zoom-in; }
 
 .grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
 .grid-2 .plot { height: 360px; }
+/* Comparison tab: up to six slots, two per row */
+.cmp-grid .panel { margin-bottom: 0; }
+.cmp-grid .plot { height: 300px; }
+.cmp-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.cmp-head .panel-title { flex: none; min-width: 5.5em; }
+.cmp-head .file-name { flex: 1; min-width: 0; max-width: none; }
+.cmp-stats { min-height: 1.5em; margin-bottom: 8px; font-family: var(--f-num); font-size: 12px; color: var(--ink-3); }
 .grid-side { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 18px; align-items: start; }
 .grid-side .plot { height: 360px; }
 

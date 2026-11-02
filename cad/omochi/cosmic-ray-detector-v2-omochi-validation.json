@@ -1,0 +1,101 @@
+{
+  "note": "Prototype geometry. No physical print or fit test yet.",
+  "parts": {
+    "cover": {
+      "watertight": true,
+      "winding_consistent": true,
+      "single_connected_solid": true,
+      "volume_mm3": 28468.6,
+      "triangles": 9286,
+      "print_extents_mm": [
+        91.0,
+        80.0,
+        22.92
+      ],
+      "approx_mass_g_pla": 35.3,
+      "engraved_pit_floors_mm2": 433.9,
+      "overhang_steeper_than_45deg_mm2": {
+        "z_below_1mm": 152.8,
+        "z_above_1mm": 330.0
+      }
+    },
+    "cover-plain": {
+      "watertight": true,
+      "winding_consistent": true,
+      "single_connected_solid": true,
+      "volume_mm3": 28447.7,
+      "triangles": 9726,
+      "print_extents_mm": [
+        91.0,
+        80.0,
+        22.92
+      ],
+      "approx_mass_g_pla": 35.3,
+      "engraved_pit_floors_mm2": 468.6,
+      "overhang_steeper_than_45deg_mm2": {
+        "z_below_1mm": 152.8,
+        "z_above_1mm": 330.0
+      }
+    },
+    "cover-csi": {
+      "watertight": true,
+      "winding_consistent": true,
+      "single_connected_solid": true,
+      "volume_mm3": 28409.1,
+      "triangles": 10058,
+      "print_extents_mm": [
+        91.0,
+        80.0,
+        22.92
+      ],
+      "approx_mass_g_pla": 35.2,
+      "engraved_pit_floors_mm2": 533.1,
+      "overhang_steeper_than_45deg_mm2": {
+        "z_below_1mm": 152.8,
+        "z_above_1mm": 330.0
+      }
+    },
+    "face-base": {
+      "watertight": true,
+      "winding_consistent": true,
+      "single_connected_solid": true,
+      "volume_mm3": 61638.0,
+      "triangles": 4356,
+      "print_extents_mm": [
+        86.0,
+        75.0,
+        59.0
+      ],
+      "approx_mass_g_pla": 76.4,
+      "engraved_pit_floors_mm2": 0.0,
+      "overhang_steeper_than_45deg_mm2": {
+        "z_below_1mm": 0.0,
+        "z_above_1mm": 297.4
+      }
+    }
+  },
+  "checks": {
+    "cover_min_wall_mm": 1.58,
+    "cover_overlap_base_mm3": 0.0,
+    "cover_overlap_lid_mm3": 0.0,
+    "cover_overlap_lightpipe_mm3": 0.0,
+    "cover-plain_overlap_base_mm3": 0.0,
+    "cover-plain_overlap_lid_mm3": 0.0,
+    "cover-plain_overlap_lightpipe_mm3": 0.0,
+    "cover-csi_overlap_base_mm3": 0.0,
+    "cover-csi_overlap_lid_mm3": 0.0,
+    "cover-csi_overlap_lightpipe_mm3": 0.0,
+    "face_min_gap_to_eye_holes_mm": 2.56,
+    "face_groove_depth_mm": 0.8,
+    "face_remaining_wall_mm": 1.6,
+    "stock_base_overhang_steeper_than_45deg_mm2": {
+      "z_below_1mm": 0.0,
+      "z_above_1mm": 286.1
+    }
+  },
+  "stock_parts_unchanged": [
+    "cosmic-ray-detector-v2-compact-lid.stl",
+    "cosmic-ray-detector-v2-compact-lightpipe.stl"
+  ],
+  "stock_verify": "run with --verify (needs the KiCad PCB and detector pack)"
+}

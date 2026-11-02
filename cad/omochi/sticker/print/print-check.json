@@ -1,0 +1,103 @@
+{
+  "trim_mm": [
+    52.03,
+    68.03
+  ],
+  "bleed_mm": 3.0,
+  "page_mm": [
+    58.0,
+    74.0
+  ],
+  "dpi": 600,
+  "page_px": [
+    1370,
+    1748
+  ],
+  "cut_inset_from_drawing_edge_mm": 0.4,
+  "outer_frame_mm": [
+    52.8,
+    68.8
+  ],
+  "stickers": {
+    "OMOCHI": {
+      "drawing_edge_to_cut_min_mm": 0.36,
+      "nearest_artwork_to_cut_min_mm": 0.81,
+      "nearest_by_colour_mm": {
+        "pink": 1.48,
+        "navy": 0.83,
+        "gold": 2.62
+      },
+      "source_px": [
+        1600,
+        2000
+      ],
+      "cream_rgb": [
+        253,
+        248,
+        242
+      ],
+      "source_dpi_at_print_size": 699,
+      "stretch_x_over_y": 1.0157
+    },
+    "OSARA": {
+      "drawing_edge_to_cut_min_mm": 0.36,
+      "nearest_artwork_to_cut_min_mm": 0.95,
+      "nearest_by_colour_mm": {
+        "pink": 2.12,
+        "navy": 0.98,
+        "gold": 1.91
+      },
+      "source_px": [
+        1088,
+        1344
+      ],
+      "cream_rgb": [
+        253,
+        248,
+        240
+      ],
+      "source_dpi_at_print_size": 474,
+      "stretch_x_over_y": 1.0025
+    },
+    "OHASHI": {
+      "drawing_edge_to_cut_min_mm": 0.36,
+      "nearest_artwork_to_cut_min_mm": 0.9,
+      "nearest_by_colour_mm": {
+        "pink": 1.91,
+        "navy": 0.93,
+        "gold": 1.01
+      },
+      "source_px": [
+        1088,
+        1344
+      ],
+      "cream_rgb": [
+        253,
+        249,
+        242
+      ],
+      "source_dpi_at_print_size": 476,
+      "stretch_x_over_y": 1.007
+    },
+    "OWAN": {
+      "drawing_edge_to_cut_min_mm": 0.36,
+      "nearest_artwork_to_cut_min_mm": 1.23,
+      "nearest_by_colour_mm": {
+        "pink": 1.69,
+        "navy": 1.26,
+        "gold": 2.03
+      },
+      "source_px": [
+        1600,
+        2000
+      ],
+      "cream_rgb": [
+        253,
+        248,
+        243
+      ],
+      "source_dpi_at_print_size": 701,
+      "stretch_x_over_y": 1.0143
+    }
+  }
+}

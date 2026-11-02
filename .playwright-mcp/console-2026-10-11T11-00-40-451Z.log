@@ -1,0 +1,12 @@
+[    6399ms] TypeError: Cannot read properties of null (reading 'addEventListener')
+    at http://localhost:8791/lp/assets/js/sims.js:521:51
+    at Array.forEach (<anonymous>)
+    at Object.signal (http://localhost:8791/lp/assets/js/sims.js:521:34)
+    at http://localhost:8791/lp/assets/js/main.js:322:7
+    at http://localhost:8791/lp/assets/js/main.js:355:3
+[   36653ms] TypeError: Cannot read properties of null (reading 'addEventListener')
+    at http://localhost:8791/lp/assets/js/sims.js:521:51
+    at Array.forEach (<anonymous>)
+    at Object.signal (http://localhost:8791/lp/assets/js/sims.js:521:34)
+    at http://localhost:8791/lp/assets/js/main.js:322:7
+    at http://localhost:8791/lp/assets/js/main.js:355:3

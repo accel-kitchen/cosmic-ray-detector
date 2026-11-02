@@ -243,10 +243,13 @@ SiPM で受けたパルスをアンプ・ピークホールド回路で増幅し
     <tr><td>9</td><td>D6</td><td>DIG_IN1</td><td class="pin-dir-in">IN</td><td>外部検出器 1 (デジタル)</td></tr>
     <tr><td>10</td><td>D7</td><td>COIN_OUT</td><td class="pin-dir-out">OUT</td><td>音声ジャック デジタル出力</td></tr>
     <tr><td>11</td><td>D8</td><td>TriggerReset</td><td class="pin-dir-out">OUT</td><td>ピークホールドリセットパルス</td></tr>
-    <tr><td>12-16</td><td>D9-D13</td><td>SPI 系</td><td>—</td><td>CS1/CS2/MOSI/MISO/SCLK (未使用)</td></tr>
+    <tr><td>12</td><td>D9</td><td>CS2</td><td class="pin-dir-out">OUT</td><td>microSD (J8) の CS</td></tr>
+    <tr><td>13</td><td>D10</td><td>CS1</td><td class="pin-dir-in">IN (UART1 RX)</td><td>GPS の TXD (J4-4 / GPIO21)。NMEA 9600bps</td></tr>
+    <tr><td>14-16</td><td>D11-D13</td><td>MOSI/MISO/SCLK</td><td>—</td><td>microSD (J8) と J4-3/5/6 で共有。J4 には何も繋がない</td></tr>
     <tr><td>19</td><td>A0</td><td>ANA_OUT</td><td class="pin-dir-in">IN (ADC)</td><td>自検出器 SiPM ピークホールド値</td></tr>
     <tr><td>20</td><td>A1</td><td>ANA_IN1</td><td class="pin-dir-in">IN (ADC)</td><td>外部検出器 1 (アナログ)</td></tr>
     <tr><td>21</td><td>A2</td><td>ANA_IN2</td><td class="pin-dir-in">IN (ADC)</td><td>外部検出器 2 (アナログ)</td></tr>
+    <tr><td>22</td><td>A3</td><td>GPS_PPS</td><td class="pin-dir-in">IN (割込)</td><td>GPS の 1PPS (GPIO4)。基板に端子が無いので U3 の 22 番パッドへ直接配線</td></tr>
     <tr><td>23</td><td>A4</td><td>SDA</td><td class="pin-dir-bi">I²C</td><td>OLED + BME280</td></tr>
     <tr><td>24</td><td>A5</td><td>SCL</td><td class="pin-dir-bi">I²C</td><td>OLED + BME280</td></tr>
     <tr><td>25</td><td>A6</td><td>ANA_IN3</td><td class="pin-dir-in">IN (ADC)</td><td>外部検出器 3 (アナログ)</td></tr>

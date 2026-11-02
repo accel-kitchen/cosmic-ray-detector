@@ -26,6 +26,24 @@ const I18N = {
     'tab.hist': 'ADC ヒストグラム',
     'tab.zenith': '天頂角分布',
     'tab.cal': 'エネルギー校正',
+    'tab.compare': '比較',
+    'cmp.title': 'スペクトルを並べて比べる（最大 6 つ）',
+    'cmp.sub': '下の枠にそれぞれファイルを選びます（使わない枠は空のままで構いません）。ビン幅・範囲・縦軸は全部の枠で共通です。',
+    'cmp.norm': '縦軸',
+    'cmp.normCounts': 'イベント数',
+    'cmp.normRate': 'レート（回/秒）',
+    'cmp.normFrac': '割合（合計 = 1）',
+    'cmp.yRate': 'レート [回/秒]',
+    'cmp.yRateLog': 'レート [回/秒]（対数）',
+    'cmp.yFrac': '割合',
+    'cmp.yFracLog': '割合（対数）',
+    'cmp.sync': 'ズームを全部の枠で連動',
+    'cmp.slot': 'スペクトル {k}',
+    'cmp.clear': '外す',
+    'cmp.empty': 'ファイルを選ぶと、ここにヒストグラムが出ます',
+    'cmp.noRate': '測定時間を読み取れないため、レートにできません',
+    'cmp.noRows': 'このファイルからイベントを読み取れませんでした。記録のページで保存した .dat / .csv（ヒストグラムの .hist.csv ではなく）を選んでください',
+    'cmp.stats': 'イベント {n} · 平均 {mean} · 測定時間 {live} s · {rate} 回/秒',
     'common.choose': 'ファイルを選ぶ',
     'common.noFile': '未選択',
     'common.optional': '任意',
@@ -54,6 +72,8 @@ const I18N = {
     'hist.noBg': 'なし',
     'hist.bgScale': 'BG の倍率',
     'hist.subtract': 'バックグラウンドを引く',
+    'hist.showSig': '引く前の線（測定）を表示',
+    'hist.showBg': 'バックグラウンドの線を表示',
     'hist.useKeV': '横軸を keV に（校正を使う）',
     'hist.count': 'イベント数',
     'hist.mean': '平均 ADC',
@@ -144,6 +164,24 @@ const I18N = {
     'tab.hist': 'ADC histogram',
     'tab.zenith': 'Zenith angle',
     'tab.cal': 'Energy calibration',
+    'tab.compare': 'Comparison',
+    'cmp.title': 'Compare spectra side by side (up to 6)',
+    'cmp.sub': 'Choose a file in each frame below (leave unused frames empty). Bin width, range and the vertical axis are shared by all frames.',
+    'cmp.norm': 'Y axis',
+    'cmp.normCounts': 'Counts',
+    'cmp.normRate': 'Rate (counts/s)',
+    'cmp.normFrac': 'Fraction (total = 1)',
+    'cmp.yRate': 'Rate [counts/s]',
+    'cmp.yRateLog': 'Rate [counts/s] (log)',
+    'cmp.yFrac': 'Fraction of events',
+    'cmp.yFracLog': 'Fraction of events (log)',
+    'cmp.sync': 'Link zoom across all frames',
+    'cmp.slot': 'Spectrum {k}',
+    'cmp.clear': 'Remove',
+    'cmp.empty': 'Choose a file and its histogram appears here',
+    'cmp.noRate': 'The measuring time could not be read, so a rate cannot be shown',
+    'cmp.noRows': 'No events could be read from this file. Choose a .dat / .csv saved on the Record page (not a .hist.csv histogram)',
+    'cmp.stats': 'Events {n} · mean {mean} · live {live} s · {rate} /s',
     'common.choose': 'Choose file',
     'common.noFile': 'No file',
     'common.optional': 'optional',
@@ -172,6 +210,8 @@ const I18N = {
     'hist.noBg': 'None',
     'hist.bgScale': 'BG scale',
     'hist.subtract': 'Subtract background',
+    'hist.showSig': 'Show the line before subtraction (signal)',
+    'hist.showBg': 'Show the background line',
     'hist.useKeV': 'Energy axis [keV] (uses calibration)',
     'hist.count': 'Events',
     'hist.mean': 'Mean ADC',
@@ -289,6 +329,8 @@ function applyLanguage() {
   if (lastFit) doFit();
   renderCalHistogram();
   recomputeFit();
+  renderCompareText();
+  renderCompare();
 }
 
 const $ = id => document.getElementById(id);
@@ -342,6 +384,7 @@ function switchTab(id) {
     if (id === 'tab1') resizePlot('histDiv');
     else if (id === 'tab2') { resizePlot('linearDiv'); resizePlot('logDiv'); }
     else if (id === 'tab3') { resizePlot('calHistDiv'); resizePlot('calFitDiv'); }
+    else if (id === 'tab4') CMP_KEYS.forEach(k => resizePlot('cmpHist' + k));
   }, 0);
 }
 
@@ -466,7 +509,7 @@ function readFile(input, onText) {
 }
 
 // File names shown under the pickers (kept as state so a language switch can redraw them).
-const fileLabels = { fileName: null, bgFileName: null, calFileName: null };
+const fileLabels = { fileName: null, bgFileName: null, calFileName: null, cmpName0: null, cmpName1: null, cmpName2: null, cmpName3: null, cmpName4: null, cmpName5: null };
 function setFileLabel(id, name, data) {
   fileLabels[id] = { name, n: data.adc.length, v1: data.v1, sessions: data.sessions, skipped: data.skipped };
   renderFileNames();
@@ -481,8 +524,9 @@ function renderFileNames() {
     if (f.n && f.v1) s += ' · ' + t('file.v1');
     if (f.n && f.sessions > 1) s += ' · ' + t('file.sessions', { n: f.sessions });
     if (f.skipped) s += ' · ' + t('file.skipped', { n: f.skipped.toLocaleString(), max: ADC_LIMIT });
-    el.textContent = s;
     el.title = s;
+    // The Comparison frames are narrow and show the event count in their own stats line: name only.
+    el.textContent = (id.startsWith('cmpName') && f.n) ? f.name : s;
   }
 }
 
@@ -594,6 +638,7 @@ function renderAll() {
   $('statStdLabel').textContent = t(kev ? 'hist.stdKeV' : 'hist.std');
 
   const subtract = !!(background && $('subtractBg').checked);
+  $('showSigLine').disabled = $('showBgLine').disabled = !subtract;   // the two lines only exist while subtracting
   const logY = $('logY').checked;
   const binWidthWanted = Math.max(1, parseInt($('binWidth').value, 10) || 10);
   const forceMin = $('adcMin').value !== '' ? parseFloat($('adcMin').value) : null;
@@ -630,11 +675,11 @@ function renderAll() {
       marker: { color: C.bar, line: { color: C.barLine, width: 0.5 } },
       text: binText, textposition: 'none', hovertemplate: `%{text}<br>${t('hist.hover')}: %{y:.1f}<extra></extra>`,
     });
-    traces.push({
+    if ($('showSigLine').checked) traces.push({
       type: 'scatter', mode: 'lines', name: t('hist.trSignal'), x: xDisp, y: forLog(signalCounts),
       line: { color: C.signal2, width: 1.5, shape: 'hvh' },
     });
-    traces.push({
+    if ($('showBgLine').checked) traces.push({
       type: 'scatter', mode: 'lines', name: t('hist.trBg', { s: scale.toFixed(3) }), x: xDisp, y: forLog(bgScaled),
       line: { color: C.coral, width: 1.5, dash: 'dash', shape: 'hvh' },
     });
@@ -656,6 +701,194 @@ function renderAll() {
     xaxis: { title: { text: kev ? t('common.energy') : t('common.adc') } },
     yaxis: { title: { text: logY ? t('common.countsLog') : t('common.counts') }, type: logY ? 'log' : 'linear', rangemode: logY ? 'normal' : 'tozero' },
   }), PLOT_CONFIG);
+}
+
+// ========== Comparison (up to six spectra, two per row) ==========
+// Each frame holds one file. Bin edges, ADC range, vertical scaling and the keV axis are shared, so the
+// histograms line up bar for bar and can be read against each other.
+const CMP_KEYS = ['0', '1', '2', '3', '4', '5'];
+const CMP_LABELS = ['A', 'B', 'C', 'D', 'E', 'F'];
+const cmpSlots = CMP_KEYS.map(() => null);   // per frame: parsed file ({ adc, liveTime, ... }) or null
+let cmpRev = 0;          // bumped when a file changes, so a stale zoom does not hide a new spectrum
+let cmpSyncing = false;
+
+function cmpKeVActive() {
+  const c = $('cmpUseKeV');
+  return !!(c && c.checked && !c.disabled && calibration && calibration.valid);
+}
+
+function buildCompareGrid() {
+  $('cmpGrid').innerHTML = CMP_KEYS.map(k => `
+    <div class="panel">
+      <div class="cmp-head">
+        <h2 class="panel-title" id="cmpTitle${k}"></h2>
+        <label class="filepick">
+          <input type="file" id="cmpFile${k}" accept=".dat,.csv,.txt">
+          <span class="btn btn-primary btn-sm"><svg class="i"><use href="#i-file"/></svg><span data-i18n="common.choose">ファイルを選ぶ</span></span>
+        </label>
+        <span class="file-name" id="cmpName${k}" data-i18n="common.noFile">未選択</span>
+        <button type="button" class="btn btn-quiet btn-sm" id="cmpClear${k}" hidden><svg class="i"><use href="#i-close"/></svg><span data-i18n="cmp.clear">外す</span></button>
+      </div>
+      <p class="cmp-stats" id="cmpStats${k}"></p>
+      <div class="plot">
+        <div id="cmpHist${k}"></div>
+        <p class="plot-empty" id="cmpEmpty${k}" data-i18n="cmp.empty">ファイルを選ぶと、ここにヒストグラムが出ます</p>
+      </div>
+    </div>`).join('');
+}
+
+// Texts that carry a parameter cannot use data-i18n; set them here (called again on a language switch).
+function renderCompareText() {
+  CMP_KEYS.forEach((k, i) => {
+    const el = $('cmpTitle' + k);
+    if (el) el.textContent = t('cmp.slot', { k: CMP_LABELS[i] });
+  });
+}
+
+function cmpPurge(k) {
+  const div = $('cmpHist' + k);
+  Plotly.purge(div);
+  delete div.dataset.sync;   // purge drops the plotly event handlers
+}
+
+function cmpShowEmpty(k, key) {
+  const el = $('cmpEmpty' + k);
+  el.dataset.i18n = key;
+  el.textContent = t(key);
+  plotEmpty('cmpEmpty' + k, true);
+}
+
+// Zoom / pan / reset in one frame is copied to the other three.
+function syncCompareZoom(from, ev) {
+  if (cmpSyncing || !$('cmpSync').checked || !ev) return;
+  const upd = {};
+  for (const ax of ['xaxis', 'yaxis']) {
+    if (ev[ax + '.autorange']) upd[ax + '.autorange'] = true;
+    else if (ev[ax + '.range[0]'] !== undefined && ev[ax + '.range[1]'] !== undefined) upd[ax + '.range'] = [ev[ax + '.range[0]'], ev[ax + '.range[1]']];
+    else if (ev[ax + '.range']) upd[ax + '.range'] = ev[ax + '.range'];
+  }
+  if (!Object.keys(upd).length) return;
+  cmpSyncing = true;
+  const jobs = CMP_KEYS.filter(k => k !== from).map(k => $('cmpHist' + k)).filter(d => d.data).map(d => Plotly.relayout(d, upd));
+  Promise.all(jobs).then(() => { cmpSyncing = false; }, () => { cmpSyncing = false; });
+}
+
+function renderCompare() {
+  if (!$('cmpGrid')) return;
+  const loaded = cmpSlots.filter(s => s && s.adc.length);
+  const kev = cmpKeVActive();
+  const toE = kev ? (x => calEnergy(x)) : (x => x);
+  const norm = $('cmpNorm').value;
+  const logY = $('cmpLogY').checked;
+  const binWanted = Math.max(1, parseInt($('cmpBinWidth').value, 10) || 10);
+  const forceMin = $('cmpAdcMin').value !== '' ? parseFloat($('cmpAdcMin').value) : null;
+  const forceMax = $('cmpAdcMax').value !== '' ? parseFloat($('cmpAdcMax').value) : null;
+
+  // One set of bin edges for all frames, taken from the whole set of loaded files.
+  let minV = 0, maxV = 0;
+  if (loaded.length) {
+    const { mn, mx } = rangeOf(...loaded.map(s => s.adc));
+    minV = forceMin !== null ? forceMin : Math.floor(mn / binWanted) * binWanted;
+    maxV = forceMax !== null ? forceMax : Math.ceil((mx + 1) / binWanted) * binWanted;
+  }
+
+  const yTitle = { counts: ['common.counts', 'common.countsLog'], rate: ['cmp.yRate', 'cmp.yRateLog'], frac: ['cmp.yFrac', 'cmp.yFracLog'] }[norm];
+  const uirevision = [norm, logY, kev, cmpRev].join('|');
+
+  CMP_KEYS.forEach((k, i) => {
+    const s = cmpSlots[i];
+    $('cmpClear' + k).hidden = !s;
+    if (!s || !s.adc.length) {
+      cmpPurge(k);
+      $('cmpStats' + k).textContent = '';
+      cmpShowEmpty(k, s ? 'cmp.noRows' : 'cmp.empty');   // a file that gave no events is not "no file chosen"
+      return;
+    }
+    const stats = computeStats(s.adc);
+    const liveSec = s.liveTime / 1e6;
+    const hist = computeHistogram(s.adc, binWanted, minV, maxV);
+    const { labels, counts } = hist;
+    const bw = hist.binWidth;
+
+    $('cmpStats' + k).textContent = t('cmp.stats', {
+      n: stats.count.toLocaleString(),
+      mean: toE(stats.mean).toFixed(1) + (kev ? ' keV' : ''),
+      live: liveSec > 0 ? liveSec.toFixed(1) : '—',
+      rate: liveSec > 0 ? (stats.count / liveSec).toFixed(3) : '—',
+    });
+
+    if (norm === 'rate' && !(liveSec > 0)) {   // nothing to divide by
+      cmpPurge(k);
+      cmpShowEmpty(k, 'cmp.noRate');
+      return;
+    }
+    const div = norm === 'rate' ? liveSec : norm === 'frac' ? stats.count : 1;
+    const y = counts.map(c => { const v = c / div; return (logY && !(v > 0)) ? null : v; });
+    const xDisp = labels.map(toE);
+    const barW = kev ? labels.map(c => Math.abs(toE(c + bw / 2) - toE(c - bw / 2))) : bw;
+    const binText = labels.map(c => {
+      if (!kev) return `ADC ${c - bw / 2} – ${c + bw / 2}`;
+      const e1 = toE(c - bw / 2), e2 = toE(c + bw / 2);
+      return `${Math.min(e1, e2).toFixed(1)} – ${Math.max(e1, e2).toFixed(1)} keV`;
+    });
+
+    plotEmpty('cmpEmpty' + k, false);
+    Plotly.react('cmpHist' + k, [{
+      type: 'bar', name: s.name, x: xDisp, y, width: barW,
+      marker: { color: C.bar, line: { color: C.barLine, width: 0.5 } },
+      text: binText, textposition: 'none',
+      hovertemplate: `%{text}<br>${t(yTitle[0])}: %{y${norm === 'counts' ? '' : ':.4g'}}<extra></extra>`,
+    }], themed({
+      margin: { l: 64, r: 12, t: 8, b: 46 },
+      bargap: 0,
+      showlegend: false,
+      hovermode: 'closest',
+      dragmode: 'zoom',
+      uirevision,
+      xaxis: { title: { text: kev ? t('common.energy') : t('common.adc') } },
+      yaxis: { title: { text: t(yTitle[logY ? 1 : 0]) }, type: logY ? 'log' : 'linear', rangemode: logY ? 'normal' : 'tozero' },
+    }), PLOT_CONFIG);
+
+    const d = $('cmpHist' + k);
+    if (d.on && !d.dataset.sync) { d.dataset.sync = '1'; d.on('plotly_relayout', ev => syncCompareZoom(k, ev)); }
+  });
+}
+
+function initCompareTab() {
+  buildCompareGrid();
+  CMP_KEYS.forEach((k, i) => {
+    $('cmpFile' + k).addEventListener('change', e => {
+      readFile(e.target, (name, text) => {
+        try {
+          const data = parseDataFile(text);
+          cmpSlots[i] = data;
+          data.name = name;
+          setFileLabel('cmpName' + k, name, data);
+          cmpRev++;
+          renderCompare();
+        } catch (err) {   // show the reason in the frame instead of failing silently
+          cmpSlots[i] = null;
+          const el = $('cmpEmpty' + k);
+          el.removeAttribute('data-i18n');
+          el.textContent = name + ': ' + err.message;
+          plotEmpty('cmpEmpty' + k, true);
+        }
+      });
+      e.target.value = '';   // allow choosing the same file again after removing it
+    });
+    $('cmpClear' + k).addEventListener('click', () => {
+      cmpSlots[i] = null;
+      fileLabels['cmpName' + k] = null;
+      const nm = $('cmpName' + k);
+      nm.classList.remove('has'); nm.title = '';
+      nm.dataset.i18n = 'common.noFile'; nm.textContent = t('common.noFile');
+      cmpRev++;
+      renderCompare();
+    });
+  });
+  ['cmpBinWidth', 'cmpAdcMin', 'cmpAdcMax'].forEach(id => $(id).addEventListener('input', renderCompare));
+  ['cmpNorm', 'cmpLogY', 'cmpUseKeV'].forEach(id => $(id).addEventListener('change', renderCompare));
+  renderCompareText();
 }
 
 // ========== Zenith angle ==========
@@ -1324,6 +1557,7 @@ function recomputeFit() {
   setUseKeVEnabled(!!(fit && fit.valid));
   renderCalFit();
   if (signal.adc.length) renderAll();   // keep the histogram tab in sync with the new calibration
+  renderCompare();
 }
 
 function renderCalFit() {
@@ -1376,6 +1610,8 @@ function setUseKeVEnabled(enabled) {
   if (!c) return;
   c.disabled = !enabled;
   if (!enabled) c.checked = false;   // never display a stale/invalid calibration
+  const cc = $('cmpUseKeV');         // the Comparison tab has its own switch with the same rule
+  if (cc) { cc.disabled = !enabled; if (!enabled) cc.checked = false; }
 }
 
 // --- Persistence (localStorage auto + explicit save/load + JSON export/import) ---
@@ -1507,7 +1743,7 @@ function initHistTab() {
     renderAll();
   }));
   ['binWidth', 'adcMin', 'adcMax', 'timeFrom', 'timeTo', 'bgScale'].forEach(id => $(id).addEventListener('input', renderAll));
-  ['subtractBg', 'logY'].forEach(id => $(id).addEventListener('change', renderAll));
+  ['subtractBg', 'logY', 'showSigLine', 'showBgLine'].forEach(id => $(id).addEventListener('change', renderAll));
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -1520,6 +1756,8 @@ document.addEventListener('DOMContentLoaded', () => {
   syncHead();
   window.addEventListener('resize', syncHead);
 
+  initCompareTab();   // builds the comparison frames, so it comes before anything that looks for their plots
+
   if (typeof Plotly === 'undefined') {
     // The CDN did not load (offline). The page still shows; the plots say why.
     window.Plotly = { react() {}, purge() {}, Plots: { resize() {} } };
@@ -1529,7 +1767,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Plotly's own "responsive" only follows the window; panels also change width with the layout.
   if (typeof ResizeObserver !== 'undefined') {
     const ro = new ResizeObserver(entries => { for (const en of entries) resizePlot(en.target.id); });
-    ['histDiv', 'linearDiv', 'logDiv', 'calHistDiv', 'calFitDiv'].forEach(id => ro.observe($(id)));
+    ['histDiv', 'linearDiv', 'logDiv', 'calHistDiv', 'calFitDiv', ...CMP_KEYS.map(k => 'cmpHist' + k)].forEach(id => ro.observe($(id)));
   }
 
   initHistTab();
@@ -1539,5 +1777,5 @@ document.addEventListener('DOMContentLoaded', () => {
 
   let tab = 'tab1';
   try { tab = localStorage.getItem('plotterTab') || 'tab1'; } catch (_) {}
-  switchTab(['tab1', 'tab2', 'tab3'].includes(tab) ? tab : 'tab1');
+  switchTab(['tab1', 'tab2', 'tab3', 'tab4'].includes(tab) ? tab : 'tab1');
 });

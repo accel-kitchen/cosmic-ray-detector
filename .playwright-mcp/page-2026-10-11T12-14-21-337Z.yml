@@ -1,0 +1,727 @@
+- generic [active] [ref=f12e1]:
+  - generic "宇宙線検出器 v2 の 3D モデル"
+  - banner [ref=f12e2]:
+    - link "ページの先頭へ" [ref=f12e3] [cursor=pointer]:
+      - /url: "#hero"
+      - generic [ref=f12e6]:
+        - generic [ref=f12e7]: COSMIC RAY
+        - generic [ref=f12e8]: DETECTOR v2
+    - navigation "ページ内" [ref=f12e9]:
+      - link "機能" [ref=f12e10] [cursor=pointer]:
+        - /url: "#tour"
+      - link "種類" [ref=f12e11] [cursor=pointer]:
+        - /url: "#versions"
+      - link "しくみ" [ref=f12e12] [cursor=pointer]:
+        - /url: "#how"
+      - link "同時計測" [ref=f12e13] [cursor=pointer]:
+        - /url: "#coin"
+      - link "活用" [ref=f12e14] [cursor=pointer]:
+        - /url: "#uses"
+      - link "アプリ" [ref=f12e15] [cursor=pointer]:
+        - /url: "#apps"
+      - link "実物" [ref=f12e16] [cursor=pointer]:
+        - /url: "#real"
+      - link "仕様" [ref=f12e17] [cursor=pointer]:
+        - /url: "#specs"
+    - link "コンソール" [ref=f12e18] [cursor=pointer]:
+      - /url: ../arduino/v2/console/index.html
+  - main:
+    - generic:
+      - generic [ref=f12e21]:
+        - generic [ref=f12e22]:
+          - paragraph [ref=f12e23]: v2 基板 ・ Arduino Nano ESP32
+          - paragraph [ref=f12e25]: ACCEL KITCHEN — COSMIC RAY DETECTOR v2
+          - heading "宇宙から降る粒子を、1 個ずつ数える。" [level=1] [ref=f12e26]:
+            - generic [aria-hidden] [ref=f12e27]:
+              - generic [aria-hidden] [ref=f12e28]: 宇
+              - generic [aria-hidden] [ref=f12e29]: 宙
+              - generic [aria-hidden] [ref=f12e30]: か
+              - generic [aria-hidden] [ref=f12e31]: ら
+              - generic [aria-hidden] [ref=f12e32]: 降
+              - generic [aria-hidden] [ref=f12e33]: る
+              - generic [aria-hidden] [ref=f12e34]: 粒
+              - generic [aria-hidden] [ref=f12e35]: 子
+              - generic [aria-hidden] [ref=f12e36]: を、
+            - generic [aria-hidden] [ref=f12e37]:
+              - generic [aria-hidden] [ref=f12e38]: "1"
+              - generic [aria-hidden] [ref=f12e40]: 個
+              - generic [aria-hidden] [ref=f12e41]: ず
+              - generic [aria-hidden] [ref=f12e42]: つ
+              - generic [aria-hidden] [ref=f12e43]: 数
+              - generic [aria-hidden] [ref=f12e44]: え
+              - generic [aria-hidden] [ref=f12e45]: る。
+          - paragraph [ref=f12e46]:
+            - text: シンチレータの光を SiPM で受け、ピークホールドで波の高さをつかみます。Arduino Nano ESP32 が
+            - strong [ref=f12e47]: 波高・時刻・温度・湿度・気圧
+            - text: を 1 イベント 1 行で記録し、USB・Bluetooth・microSD に同時に出力。外部の検出器を 3 台までつないで、同時計測もできます。
+          - generic [ref=f12e48]:
+            - link "3D で中を見る" [ref=f12e49] [cursor=pointer]:
+              - /url: "#tour"
+            - link "Web アプリを見る" [ref=f12e52] [cursor=pointer]:
+              - /url: "#apps"
+        - complementary "ミューオンのシミュレーション表示" [ref=f12e53]:
+          - generic [ref=f12e54]:
+            - generic [ref=f12e55]:
+              - generic [ref=f12e56]: Accel Kitchen v2
+              - generic [ref=f12e57]: ●
+            - generic [ref=f12e58]:
+              - generic [ref=f12e59]: Cnt:0
+              - generic [ref=f12e60]: T:00:00:00
+            - generic [ref=f12e62]:
+              - text: "Rate: 0.00"
+              - generic [ref=f12e63]: +/-0.00
+            - generic [ref=f12e64]: Thr:120
+            - generic [ref=f12e66]:
+              - generic [ref=f12e67]: T:24.3C
+              - generic [ref=f12e68]: 47%
+            - generic [ref=f12e69]: 1013.2hPa
+          - generic [ref=f12e71]:
+            - generic [ref=f12e72]:
+              - generic [ref=f12e73]: 降ってきたミューオン
+              - text: "0"
+            - generic [ref=f12e74]:
+              - generic [ref=f12e75]: シンチレータを通過
+              - text: "0"
+          - paragraph [ref=f12e76]: 画面上のミューオンはシミュレーションです（角度分布 cos²θ）。
+        - generic [ref=f12e77]: 3D データを読み込んでいます
+        - link "下へスクロール" [ref=f12e81] [cursor=pointer]:
+          - /url: "#tour"
+          - generic [ref=f12e82]: SCROLL
+      - generic [aria-hidden] [ref=f12e84]:
+        - generic [ref=f12e85]:
+          - generic [ref=f12e86]: SiPM MICROFC-60035
+          - generic [ref=f12e87]: 6 × 6 mm · 35 µm セル
+          - generic [ref=f12e88]: HV 29.0 V（LT3461）
+          - generic [ref=f12e89]: LT1807 ×5〜×45
+          - generic [ref=f12e90]: ピークホールド ×2
+          - generic [ref=f12e91]: A0 しきい値（自動調整）
+          - generic [ref=f12e92]: 12 bit ADC
+          - generic [ref=f12e93]: BME280
+          - generic [ref=f12e94]: USB · BLE · microSD
+          - generic [ref=f12e95]: 最大 4 台で同時計測
+          - generic [ref=f12e96]: 温度・湿度・気圧も記録
+          - generic [ref=f12e97]: OLED · ブザー · 振動
+        - generic [ref=f12e98]:
+          - generic [ref=f12e99]: MUON
+          - generic [ref=f12e100]: PLASTIC
+          - generic [ref=f12e101]: CsI
+          - generic [ref=f12e102]: SILICON PHOTOMULTIPLIER
+          - generic [ref=f12e103]: PEAK HOLD
+          - generic [ref=f12e104]: COINCIDENCE
+          - generic [ref=f12e105]: WEB SERIAL
+          - generic [ref=f12e106]: WEB BLUETOOTH
+          - generic [ref=f12e107]: LANDAU
+          - generic [ref=f12e108]: DEAD TIME
+          - generic [ref=f12e109]: BAROMETRIC EFFECT
+          - generic [ref=f12e110]: ESP32-S3
+          - generic [ref=f12e111]: OPEN HARDWARE NOTES
+      - generic [ref=f12e112]:
+        - generic [ref=f12e113]:
+          - paragraph [ref=f12e114]: 01 — INSIDE
+          - heading "部品ごとに、 役割があります。" [level=2] [ref=f12e115]: 部品ごとに、役割があります。
+          - paragraph [ref=f12e116]: 光を受けてから記録するまで。カメラが該当する部品へ移動します。
+        - article [ref=f12e117]:
+          - text: 01 / 10
+          - heading "光を受ける シンチレータ × SiPM" [level=3] [ref=f12e118]:
+            - text: 光を受ける
+            - generic [ref=f12e119]: シンチレータ × SiPM
+          - paragraph [ref=f12e120]: ミューオンがシンチレータを通ると、落としたエネルギーの一部が光になります。その光を 6 mm 角の SiPM（onsemi MICROFC-60035）が電気のパルスに変えます。SiPM は 40 mm 角の子基板にのっていて、子基板ごと品種を差し替えられます。
+          - list [ref=f12e121]:
+            - listitem [ref=f12e122]: マイクロセル 35 µm × 18,980
+            - listitem [ref=f12e123]:
+              - text: V
+              - subscript [ref=f12e124]: br
+              - text: 24.2〜24.7 V
+            - listitem [ref=f12e125]: J1 / J2：HV・GND・信号 ×2
+        - article [ref=f12e126]:
+          - text: 02 / 10
+          - heading "バイアスをつくる HV 29.0 V" [level=3] [ref=f12e127]:
+            - text: バイアスをつくる
+            - generic [ref=f12e128]: HV 29.0 V
+          - paragraph [ref=f12e129]: 裏面の LT3461 が USB の 5 V から 29.0 V を昇圧してつくり、降伏電圧より 4.3〜4.8 V 高くかけます。値は抵抗の分圧で固定。子基板の 49.9 Ω と 10 µF でノイズを落としてから SiPM に届けます。
+          - list [ref=f12e130]:
+            - listitem [ref=f12e131]: HV = 1.255 × (1 + 221k / 10k)
+            - listitem [ref=f12e132]: L1 47 µH
+        - article [ref=f12e133]:
+          - text: 03 / 10
+          - heading "増幅する LT1807（U2A）" [level=3] [ref=f12e134]:
+            - text: 増幅する
+            - generic [ref=f12e135]: LT1807（U2A）
+          - paragraph [ref=f12e136]: SiPM の電流は子基板の R12（49.9 Ω）で電圧になり、U2A の非反転アンプで増幅されます。ゲインは裏面のトリマ R10 で ×5.0〜×45。入力は 1 kΩ と BAT54S で守られています。アンプの出力は TP2 で測れます。
+          - list [ref=f12e137]:
+            - listitem [ref=f12e138]: G = 1 + (R5 + R10) / R3
+            - listitem [ref=f12e139]: R3 249 Ω・R5 1 kΩ
+            - listitem [ref=f12e140]: DC 結合
+        - article [ref=f12e141]:
+          - text: 04 / 10
+          - heading "山の高さをつかむ ピークホールドとしきい値" [level=3] [ref=f12e142]:
+            - text: 山の高さをつかむ
+            - generic [ref=f12e143]: ピークホールドとしきい値
+          - paragraph [ref=f12e144]: U2B のピークホールドが、数百 ns のパルスの山を 2 倍にしてコンデンサ C6 にためます。ためた電圧は A0 に出てきます。マイコンが読み終わると、D8 から 20 µs のパルスを出して Q1 で放電し、次のパルスに備えます。
+          - list [ref=f12e145]:
+            - listitem [ref=f12e146]: ホールド ×2
+            - listitem [ref=f12e147]: A0 に出力
+            - listitem [ref=f12e148]: D8 → Q1 で放電
+        - article [ref=f12e149]:
+          - text: 05 / 10
+          - heading "読み取る Arduino Nano ESP32" [level=3] [ref=f12e150]:
+            - text: 読み取る
+            - generic [ref=f12e151]: Arduino Nano ESP32
+          - paragraph [ref=f12e152]: A0（ホールドの出力）を読み続け、しきい値を超えたらイベントとして扱います。外部検出器の同時判定を待ってから A0 を 12 bit で読み、その値が波高になります。しきい値は起動のたびに、A0 を 1 秒見てノイズの最大値 + 50 に自動で合わせます。
+          - list [ref=f12e153]:
+            - listitem [ref=f12e154]: ESP32-S3・BLE
+            - listitem [ref=f12e155]: A0 をソフトで比較
+            - listitem [ref=f12e156]: トリガーの約 60 µs 後に読む
+        - article [ref=f12e157]:
+          - text: 06 / 10
+          - heading "残す microSD" [level=3] [ref=f12e158]:
+            - text: 残す
+            - generic [ref=f12e159]: microSD
+          - paragraph [ref=f12e160]:
+            - text: FAT32 のカードに
+            - code [ref=f12e161]: /LOG0001.TXT
+            - text: から順にログを書きます。1 行ごとに書き込みを確定するので、USB を抜いても失うのはせいぜい最後の 1 行。USB と Bluetooth に出すのと同じ行がそのまま残ります。
+          - list [ref=f12e162]:
+            - listitem [ref=f12e163]: Hirose DM3AT
+            - listitem [ref=f12e164]: SPI 4 MHz
+            - listitem [ref=f12e165]: 側面から差す
+        - article [ref=f12e166]:
+          - text: 07 / 10
+          - heading "環境を測る BME280" [level=3] [ref=f12e167]:
+            - text: 環境を測る
+            - generic [ref=f12e168]: BME280
+          - paragraph [ref=f12e169]: 温度・湿度・気圧を 2 秒ごとに読み、各イベントの行に書きます。気圧が上がると計数率が下がる「気圧効果」を調べられます。SiPM の降伏電圧は 1 °C あたり約 21.5 mV 変わるので、温度はあとで波高を見直すときにも使います。
+          - list [ref=f12e170]:
+            - listitem [ref=f12e171]: I²C
+            - listitem [ref=f12e172]: 温度・湿度・気圧
+        - article [ref=f12e173]:
+          - text: 08 / 10
+          - heading "知らせる OLED・LED・ブザー" [level=3] [ref=f12e174]:
+            - text: 知らせる
+            - generic [ref=f12e175]: OLED・LED・ブザー
+          - paragraph [ref=f12e176]: 基板の端に立てた 0.96 インチ OLED に、計数・計数率・しきい値・環境値を 2 秒ごとに表示。イベントごとに LED が光り、ブザーが波高に応じた高さで「ピッ」と鳴ります（対数で 500〜4000 Hz）。A7 に振動モーターを後付けすると、大きなパルスほど長く震えます。
+          - list [ref=f12e177]:
+            - listitem [ref=f12e178]: SSD1306 128 × 64
+            - listitem [ref=f12e179]: 25 ms のビープ
+            - listitem [ref=f12e180]: 振動 20〜120 ms
+        - article [ref=f12e181]:
+          - text: 09 / 10
+          - heading "つなぐ 3.5 mm ジャック × 4" [level=3] [ref=f12e182]:
+            - text: つなぐ
+            - generic [ref=f12e183]: 3.5 mm ジャック × 4
+          - paragraph [ref=f12e184]: OUT が 1 つ、IN が 3 つ。自分がトリガーすると COIN_OUT（3.3 V・100 µs）を出し、50 µs 待ってから相手の COIN_OUT を読みます。相手もほぼ同時に反応していれば、そのジャックの列が 1 になります。アナログの波高も読めます。
+          - list [ref=f12e185]:
+            - listitem [ref=f12e186]: TRRS ケーブル
+            - listitem [ref=f12e187]: 最大 4 台
+            - listitem [ref=f12e188]: 同時の窓 約 ±50 µs
+        - article [ref=f12e189]:
+          - text: 10 / 10
+          - heading "包む 3D プリントのケース" [level=3] [ref=f12e190]:
+            - text: 包む
+            - generic [ref=f12e191]: 3D プリントのケース
+          - paragraph [ref=f12e192]:
+            - text: 底のついた箱に基板を上から入れ、上蓋を M2 ねじ 4 本で留める 2 ピース構成です。前面に OLED の窓と RESET・LED の穴、側面に USB と、ジャック 4 つ・microSD をまとめた四角い開口があります。LED の光は、透明な導光パイプで前面の穴まで導きます。STL は
+            - code [ref=f12e193]: cad/
+            - text: にあります。
+          - list [ref=f12e194]:
+            - listitem [ref=f12e195]: FDM 印刷
+            - listitem [ref=f12e196]: 86 × 75 × 61.4 mm
+            - listitem [ref=f12e197]: 上蓋 ねじ 4 本
+      - generic:
+        - generic:
+          - paragraph: 02 — EXPLORE
+          - heading "自由に回して、部品をクリック。" [level=2]
+          - paragraph: ドラッグで回転、右ドラッグで移動。部品をクリックすると説明が出ます。
+        - toolbar "3D の表示" [ref=f12e198]:
+          - generic [ref=f12e199]:
+            - button "組立" [ref=f12e200] [cursor=pointer]
+            - button "分解" [ref=f12e201] [cursor=pointer]
+          - generic [ref=f12e202]:
+            - generic [ref=f12e203]: ケース
+            - button "半透明" [ref=f12e204] [cursor=pointer]
+            - button "表示" [ref=f12e205] [cursor=pointer]
+            - button "なし" [ref=f12e206] [cursor=pointer]
+          - generic [ref=f12e207]:
+            - generic [ref=f12e208]: 視点
+            - button "斜め" [ref=f12e209] [cursor=pointer]
+            - button "上" [ref=f12e210] [cursor=pointer]
+            - button "前" [ref=f12e211] [cursor=pointer]
+            - button "横" [ref=f12e212] [cursor=pointer]
+            - button "下" [ref=f12e213] [cursor=pointer]
+          - generic [ref=f12e214]:
+            - button "拡大" [ref=f12e215] [cursor=pointer]
+            - button "縮小" [ref=f12e218] [cursor=pointer]
+            - button "自動回転" [ref=f12e220] [cursor=pointer]
+            - button "ミューオンを降らせる" [ref=f12e223] [cursor=pointer]
+        - generic [ref=f12e226]:
+          - paragraph [ref=f12e227]: PART
+          - heading "部品をクリック" [level=3] [ref=f12e228]
+          - paragraph [ref=f12e229]: 基板・ケース・ねじまで、80 個あまりの部品に説明が付いています。
+        - paragraph
+    - generic [ref=f12e231]:
+      - generic [ref=f12e232]:
+        - paragraph [ref=f12e233]: SCINTILLATOR
+        - heading "シンチレータは、 2 種類から選べます。" [level=2] [ref=f12e234]: シンチレータは、2 種類から選べます。
+        - paragraph [ref=f12e235]: 基板もケースも同じで、光を出す部分だけが違います。広く集めたいか、小さく持ち運びたいかで選べます。
+      - list [ref=f12e236]:
+        - listitem [ref=f12e237]:
+          - text: プラスチックシンチレータ版
+          - generic [ref=f12e240]: 5 cm × 5 cm × 1 cm
+          - paragraph [ref=f12e241]: 板のように広い形です。受ける面積が 25 cm² あるので、宇宙線にたくさん当たります。短い時間でも数が集まり、計数率の変化を追いたいときや、2 台を重ねたコインシデンスに向きます。
+          - figure "取れるスペクトル 光の弱い側にガンマ線（身のまわりの放射線）、強い側に宇宙線（宇宙から降ってくる放射線）の山。宇宙線だけを選んで数えられます。" [ref=f12e242]:
+            - img "プラスチックシンチレータで取ったスペクトル。光の弱い側にガンマ線、強い側に宇宙線の山が分かれて見える" [ref=f12e243]
+            - generic [ref=f12e244]:
+              - generic [ref=f12e245]: 取れるスペクトル
+              - text: 光の弱い側にガンマ線（身のまわりの放射線）、強い側に宇宙線（宇宙から降ってくる放射線）の山。宇宙線だけを選んで数えられます。
+        - listitem [ref=f12e246]:
+          - text: CsI シンチレータ版
+          - generic [ref=f12e249]: 1 cm 立方
+          - paragraph [ref=f12e250]: サイコロのように小さな形です。コンパクトで、持ち運びや狭い場所への設置に向きます。受ける面積が小さいぶん、数えられる宇宙線の数は少なめです。
+          - figure "取れるスペクトル（花崗岩を測定） ガンマ線のエネルギーごとに山が立ちます。花崗岩にふくまれるウランやトリウムが崩れていく途中でできる Pb-214、Tl-208、Ac-228 が出したガンマ線が、山の位置から読み取れます。" [ref=f12e251]:
+            - img "CsI 検出器で花崗岩を測ったガンマ線のスペクトル。いくつかの山があり、その位置から Pb-214、Tl-208、Ac-228 が出したガンマ線だと分かる" [ref=f12e252]
+            - generic [ref=f12e253]:
+              - generic [ref=f12e254]: 取れるスペクトル（花崗岩を測定）
+              - text: ガンマ線のエネルギーごとに山が立ちます。花崗岩にふくまれるウランやトリウムが崩れていく途中でできる Pb-214、Tl-208、Ac-228 が出したガンマ線が、山の位置から読み取れます。
+      - paragraph [ref=f12e255]: どちらも、宇宙線が通ると光り、その光を SiPM が電気のパルスに変えるしくみは同じです。横軸は光の強さ（＝落としたエネルギー）、縦軸は数えた回数です。計数率はシンチレータの面積にほぼ比例します（海抜 0 m で 1 cm² あたり毎分およそ 1 個が目安）。
+    - generic [ref=f12e257]:
+      - generic [ref=f12e258]:
+        - paragraph [ref=f12e259]: ACTUAL UNIT
+        - heading "実物は、こんな姿です。" [level=2] [ref=f12e260]
+        - paragraph [ref=f12e261]: 試作機の写真です。黒いテープで包んだ四角いかたまりがシンチレータと SiPM。手前の青い OLED に計数が出て、基板の端で緑の LED が光ります。
+      - generic [ref=f12e262]:
+        - figure "前から左の 4 つがジャック、右端がボタンと LED。" [ref=f12e263]:
+          - img "黒いテープで包んだシンチレータが基板にのり、手前に OLED が立っている検出器を斜め前から見た写真" [ref=f12e265]
+        - figure "横から支柱で基板を持ち上げ、下に Nano を差します。" [ref=f12e267]:
+          - img "検出器を横から見た写真。基板の下にスペーサの支柱と Nano のソケットが見える" [ref=f12e269]
+        - figure "基板の上Nano ESP32、microSD、ゲイン用の青いトリマ。" [ref=f12e271]:
+          - img "シンチレータを外した読み出し基板。Arduino Nano ESP32、microSD スロット、ゲイン調整のトリマが見える" [ref=f12e273]
+        - figure "動いているところOLED に Cnt と Rate が出ています。" [ref=f12e275]:
+          - generic "動作中の検出器。OLED の計数が増えていく" [ref=f12e277]
+    - generic [ref=f12e280]:
+      - generic [ref=f12e281]:
+        - paragraph [ref=f12e282]: 03 — PHYSICS
+        - heading "宇宙線を数えるしくみ" [level=2] [ref=f12e283]
+        - list [ref=f12e284]:
+          - listitem [ref=f12e285]:
+            - generic [ref=f12e286]: ①
+            - generic [ref=f12e287]:
+              - text: 通過
+              - paragraph [ref=f12e288]: 一次宇宙線（主に陽子）が大気の上のほうで原子核とぶつかり、粒子のシャワーをつくります。地上に届くのはほとんどがミューオン。海抜 0 m で 1 cm² あたり毎分およそ 1 個です。
+          - listitem [ref=f12e289]:
+            - generic [ref=f12e290]: ②
+            - generic [ref=f12e291]:
+              - text: 発光
+              - paragraph: ミューオンはシンチレータを通るあいだにエネルギーを落とし、その一部が光になります。プラスチックなら 1 cm で約 2 MeV（青い光）、CsI なら 1 cm で約 5〜6 MeV。
+          - listitem [ref=f12e292]:
+            - generic [ref=f12e293]: ③
+            - generic [ref=f12e294]:
+              - text: SiPM
+              - paragraph: 35 µm のマイクロセルが 18,980 個並んだ SiPM。光子が当たったセルで、なだれ増倍が起きます。
+          - listitem [ref=f12e295]:
+            - generic [ref=f12e296]: ④
+            - generic [ref=f12e297]:
+              - text: パルス
+              - paragraph: 子基板の R12（49.9 Ω）で電圧になります。数百 ns の速いパルスです。
+          - listitem [ref=f12e298]:
+            - generic [ref=f12e299]: ⑤
+            - generic [ref=f12e300]:
+              - text: 増幅・ホールド
+              - paragraph: ×5〜×45 に増幅し、ピークホールドが山の高さを 2 倍にしてためます。A0 の電圧がしきい値を超えたら、イベントとして読み取ります。
+          - listitem [ref=f12e301]:
+            - generic [ref=f12e302]: ⑥
+            - generic [ref=f12e303]:
+              - text: 記録
+              - paragraph: トリガーの約 60 µs 後に A0 を 12 bit で読み、時刻・環境値と一緒に 1 行で出します。読み終えたら D8 でホールドを空にします。
+      - generic "宇宙線が記録されるまでのアニメーション" [ref=f12e305]
+    - generic [ref=f12e307]:
+      - generic [ref=f12e308]:
+        - paragraph [ref=f12e309]: 04 — SIGNAL
+        - heading "1 イベントの信号を、動かしてみる。" [level=2] [ref=f12e310]
+        - paragraph [ref=f12e311]: パルスの大きさ、アンプのゲイン、しきい値を変えると、アンプの出力・ピークホールド・記録される波高（ログの ADC 列）が変わります。ホールドのコンデンサは 1 µs に 1.36 V までしか充電できないので、速いパルスほど山を取りこぼします。
+      - generic [ref=f12e312]:
+        - generic [ref=f12e313]:
+          - generic [ref=f12e314]:
+            - generic [ref=f12e315]:
+              - text: パルスの大きさ
+              - status "パルスの大きさ 0" [ref=f12e316]: ×1.0（ミューオン）
+            - slider [ref=f12e317]: "0"
+          - generic [ref=f12e318]:
+            - button "ミューオン" [ref=f12e319] [cursor=pointer]
+            - button "ガンマ線程度" [ref=f12e320] [cursor=pointer]
+            - button "ノイズ程度" [ref=f12e321] [cursor=pointer]
+          - generic [ref=f12e322]:
+            - generic [ref=f12e323]:
+              - text: ゲイン（R10）
+              - status "ゲイン（R10） 5" [ref=f12e324]: ×5.0（R10 0 Ω）
+            - slider [ref=f12e325]: "5"
+          - generic [ref=f12e326]:
+            - generic [ref=f12e327]:
+              - text: 信号しきい値（A0）
+              - status "信号しきい値（A0） 120" [ref=f12e328]: 120 ADC
+            - slider [ref=f12e329]: "120"
+          - button "パルスを流す" [ref=f12e330] [cursor=pointer]
+          - generic [ref=f12e333]:
+            - generic [ref=f12e334]:
+              - term [ref=f12e335]: TP2 のピーク
+              - definition [ref=f12e336]: 4.90 V（頭打ち）
+            - generic [ref=f12e337]:
+              - term [ref=f12e338]: ホールド（C6）
+              - definition [ref=f12e339]: 1.26 V（理想の 28 %）
+            - generic [ref=f12e340]:
+              - term [ref=f12e341]: トリガー
+              - definition [ref=f12e342]: あり（A0 ≥ しきい値）
+            - generic [ref=f12e343]:
+              - term [ref=f12e344]: 読み取り時の A0
+              - definition [ref=f12e345]: 1.03 V → 1360
+            - generic [ref=f12e346]:
+              - term [ref=f12e347]: ログの ADC 列
+              - definition [ref=f12e348]: "1360"
+        - generic "アンプ出力・ピークホールド・A0 の波形" [ref=f12e350]
+      - paragraph [ref=f12e351]: arduino/shaping.html と同じ 1 次遅れのモデル（SiPM 60035 ＋ GAGG:Ce、R12 = 49.9 Ω、TP2 の半値幅 432 ns）に、電荷で頭打ちになるピークホールド（U2B の出力電流 30 mA ÷ C6 22 nF）を足した目安です。「ミューオン」はアンプにレールがなければ TP2 で 7.9 V になる大きさで、実際は 4.9 V で頭打ちになります。ホールドの放電は時定数 300 µs、ADC は約 3.1 V をフルスケールとして近似しています。
+    - generic [ref=f12e353]:
+      - generic [ref=f12e354]:
+        - paragraph [ref=f12e355]: 05 — COINCIDENCE
+        - heading "重ねると、望遠鏡になる。" [level=2] [ref=f12e356]
+        - paragraph [ref=f12e357]: ミューオンは光速近くで飛ぶので、上下に重ねた 2 台をほぼ同時に通ります。SiPM のノイズや環境放射線は 1 台だけで起きることがほとんど。「両方がほぼ同時に反応した」イベントだけを選べば、ミューオンをより確実に選べます。間隔を広げるほど、真上から来たものだけが残ります。
+      - generic [ref=f12e358]:
+        - generic "2 台の検出器を通るミューオンのシミュレーション" [ref=f12e360]
+        - generic [ref=f12e361]:
+          - generic [ref=f12e362]:
+            - generic [ref=f12e363]:
+              - generic [ref=f12e364]:
+                - text: 上下の間隔
+                - status "上下の間隔 100" [ref=f12e365]: 100 mm
+              - slider [ref=f12e366]: "100"
+            - generic [ref=f12e367]:
+              - generic [ref=f12e368]:
+                - text: 検出器の幅
+                - status "検出器の幅 50" [ref=f12e369]: 50 mm
+              - slider [ref=f12e370]: "50"
+            - generic [ref=f12e371]:
+              - generic [ref=f12e372]:
+                - generic [ref=f12e373]: 上（A）
+                - text: "0"
+              - generic [ref=f12e374]:
+                - generic [ref=f12e375]: 下（B）
+                - text: "0"
+              - generic [ref=f12e376]:
+                - generic [ref=f12e377]: 同時（A∧B）
+                - text: "0"
+            - generic [ref=f12e378]:
+              - generic [ref=f12e379]: A のうち B も通った割合
+              - generic [ref=f12e380]: —
+              - generic [ref=f12e381]: 期待値 33 %
+            - button "集計をリセット" [ref=f12e382] [cursor=pointer]
+          - generic [ref=f12e383]:
+            - heading "偶然の同時（バックグラウンド）" [level=4] [ref=f12e384]
+            - paragraph [ref=f12e385]:
+              - text: 関係のない 2 つのイベントがたまたま窓（±W）に入る頻度は 2 × W × R
+              - subscript [ref=f12e386]: "1"
+              - text: × R
+              - subscript [ref=f12e387]: "2"
+              - text: 。v2 の窓はおよそ ±50 µs です。
+            - generic [ref=f12e388]:
+              - generic [ref=f12e389]:
+                - text: R
+                - subscript [ref=f12e390]: "1"
+                - spinbutton "R 1 回/秒" [ref=f12e391]: "1"
+                - generic [ref=f12e392]: 回/秒
+              - generic [ref=f12e393]:
+                - text: R
+                - subscript [ref=f12e394]: "2"
+                - spinbutton "R 2 回/秒" [ref=f12e395]: "1"
+                - generic [ref=f12e396]: 回/秒
+              - generic [ref=f12e397]:
+                - text: W
+                - spinbutton "W µs" [ref=f12e398]: "50"
+                - generic [ref=f12e399]: µs
+            - paragraph [ref=f12e400]: 1 時間に約 0.36 回
+      - generic [ref=f12e401]:
+        - generic [ref=f12e402]:
+          - text: OUT
+          - generic [ref=f12e403]: J3
+          - paragraph [ref=f12e404]: COIN_OUT（D7、3.3 V・100 µs）と、自分のピークホールド出力 ANA_OUT
+        - generic [ref=f12e405]:
+          - text: IN 1
+          - generic [ref=f12e406]: J5
+          - paragraph [ref=f12e407]: 相手の COIN_OUT を D6、アナログを A1 で読む
+        - generic [ref=f12e408]:
+          - text: IN 2
+          - generic [ref=f12e409]: J6
+          - paragraph [ref=f12e410]: 同じく D5 ／ A2
+        - generic [ref=f12e411]:
+          - text: IN 3
+          - generic [ref=f12e412]: J7
+          - paragraph [ref=f12e413]: 同じく D4 ／ A6
+    - generic [ref=f12e415]:
+      - generic [ref=f12e416]:
+        - paragraph [ref=f12e417]: 06 — USE CASES
+        - heading "持ち出すと、 いろいろな宇宙線が見えてきます。" [level=2] [ref=f12e418]: 持ち出すと、いろいろな宇宙線が見えてきます。
+        - paragraph [ref=f12e419]: 宇宙線の数は、場所や高さ、そして太陽の活動で変わります。実際に測ったデータの例です。
+      - tablist "活用例" [ref=f12e420]:
+        - tab "富士山で測る" [selected] [ref=f12e421] [cursor=pointer]
+        - tab "飛行機で測る" [ref=f12e422] [cursor=pointer]
+        - tab "フォーブッシュ効果を見る" [ref=f12e423] [cursor=pointer]
+        - tab "天井の厚みを測る" [ref=f12e424] [cursor=pointer]
+      - generic [ref=f12e425]:
+        - generic "宇宙線が降ってくるようすのアニメーション" [ref=f12e427]
+        - generic [ref=f12e429]:
+          - heading "富士山で測る" [level=3] [ref=f12e430]
+          - paragraph [ref=f12e431]: 登りながら 1 分ごとの計数を記録。高いところほど大気が薄く、宇宙線が多く届きます。ふもとで毎分 5〜6 回だったのが、山頂近くでは 20 回あまりに増えました。
+          - img "富士山に登りながら測った宇宙線の数と標高の推移。標高が上がるにつれて、毎分 5〜6 回から 20 回あまりに増える" [ref=f12e432]
+          - paragraph [ref=f12e433]: 青い点が宇宙線の数、赤い線が標高。1 泊 2 日の登山で測定。
+      - paragraph [ref=f12e434]: グラフは実際の測定例で、軸の表記は英語です（cpm は 1 分あたりの回数、cps は 1 秒あたりの回数）。検出器の種類や大きさによって、数えられる数は変わります。動く絵は測定の傾向をもとにしたイメージです（フォーブッシュ効果の減り方は見やすいよう強調しています）。
+    - generic [ref=f12e436]:
+      - generic [ref=f12e437]:
+        - paragraph [ref=f12e438]: 07 — WEB APPS
+        - heading "ブラウザだけで、 計測から解析まで。" [level=2] [ref=f12e439]: ブラウザだけで、計測から解析まで。
+        - paragraph [ref=f12e440]: インストールは要りません。Chrome か Edge でコンソールを開き、USB（Web Serial）か Bluetooth（Web Bluetooth）でつなぐだけです。下はその画面のデモで、ボタンを押すと動きます。
+      - generic [ref=f12e441]:
+        - generic [ref=f12e442]:
+          - generic [ref=f12e447]: arduino/v2/console/index.html
+          - generic [ref=f12e448]: DEMO · 時間 ×10
+        - generic [ref=f12e449]:
+          - generic [ref=f12e450]:
+            - generic [ref=f12e451]: CosmicRay Recorderv2
+            - generic [ref=f12e452]:
+              - generic [ref=f12e454]: 未接続
+              - code
+          - region "接続" [ref=f12e455]:
+            - paragraph [ref=f12e456]: 宇宙線検出器 v2 のデータ記録アプリ
+            - paragraph [ref=f12e457]: 宇宙線を数えよう
+            - paragraph [ref=f12e458]: 検出器をパソコンにつなぐと、届いた宇宙線がその場でグラフになります。
+            - generic [ref=f12e459]:
+              - button "USBでつなぐ ケーブル 1 本でつなぎます。いちばん確実です。" [ref=f12e460] [cursor=pointer]:
+                - generic [ref=f12e463]: USBでつなぐ
+                - generic [ref=f12e464]: ケーブル 1 本でつなぎます。いちばん確実です。
+              - button "Bluetoothでつなぐ 無線でつなぎます。電池で動かすときに。" [ref=f12e465] [cursor=pointer]:
+                - generic [ref=f12e468]: Bluetoothでつなぐ
+                - generic [ref=f12e469]: 無線でつなぎます。電池で動かすときに。
+              - button "デモで試す 検出器がなくても大丈夫。合成データで全部の機能を試せます。" [ref=f12e470] [cursor=pointer]:
+                - generic [ref=f12e473]: デモで試す
+                - generic [ref=f12e474]: 検出器がなくても大丈夫。合成データで全部の機能を試せます。
+            - list [ref=f12e475]:
+              - listitem [ref=f12e476]: 1 つなぐUSB か Bluetooth で
+              - listitem [ref=f12e477]: 2 測る届くたびにグラフが育つ
+              - listitem [ref=f12e478]: 3 保存するフォルダを選ぶと自動で記録
+      - list [ref=f12e479]:
+        - listitem [ref=f12e480]:
+          - text: USB と Bluetooth
+          - paragraph [ref=f12e483]: Web Serial と Web Bluetooth（Nordic UART）。同じコマンドと応答で動き、切れても Bluetooth は自動でつなぎ直します。
+        - listitem [ref=f12e484]:
+          - text: 自動保存
+          - paragraph [ref=f12e487]: フォルダを選ぶと、届いたデータを .dat・.csv で書き続けます。日付が変わるとファイルも分かれます。
+        - listitem [ref=f12e488]:
+          - text: ヒストグラムと計数率
+          - paragraph [ref=f12e491]: 波高の分布、計数率の推移、温度・湿度・気圧の統計。計数率はデッドタイムを引いて計算します。
+        - listitem [ref=f12e492]:
+          - text: オシロスコープ
+          - paragraph [ref=f12e495]: A0 を DMA で 83.3 kHz（12 µs ごと）に読み、イベントごとの波形を 161 点で表示。開いているあいだは計数が止まります。
+        - listitem [ref=f12e496]:
+          - text: しきい値と機能
+          - paragraph [ref=f12e499]: 信号しきい値（起動時の自動調整つき）、microSD・外部検出器・OLED・ブザー・振動の入り切りをボタンで。
+        - listitem [ref=f12e500]:
+          - text: サーバーへ送信
+          - paragraph [ref=f12e503]: 測定サーバーへリアルタイムにアップロード。複数地点の比較に。日本語と英語の表示を切り替えられます。
+      - heading "ほかのツール" [level=3] [ref=f12e504]
+      - generic [ref=f12e505]:
+        - link "解析 保存した .dat・.csv・microSD のログを読み込んで、ADC ヒストグラム・天頂角分布・エネルギー校正。 console/plotter.html" [ref=f12e506] [cursor=pointer]:
+          - /url: ../arduino/v2/console/plotter.html
+          - generic [ref=f12e508]: 解析
+          - paragraph [ref=f12e509]: 保存した .dat・.csv・microSD のログを読み込んで、ADC ヒストグラム・天頂角分布・エネルギー校正。
+          - generic [ref=f12e510]: console/plotter.html
+        - link "マニュアル コンソールの画面の流れに沿った説明。画面写真と図つきで、技術資料は付録にまとめてあります。 console/manual.html" [ref=f12e513] [cursor=pointer]:
+          - /url: ../arduino/v2/console/manual.html
+          - generic [ref=f12e515]: マニュアル
+          - paragraph [ref=f12e516]: コンソールの画面の流れに沿った説明。画面写真と図つきで、技術資料は付録にまとめてあります。
+          - generic [ref=f12e517]: console/manual.html
+        - link "Waveform Probe 波形ファームと組み合わせて、ピークホールドの波形とベースラインのノイズを見る波形ビューア。 wave_plotter.html" [ref=f12e520] [cursor=pointer]:
+          - /url: ../arduino/wave_plotter.html
+          - generic [ref=f12e522]: Waveform Probe
+          - paragraph [ref=f12e523]: 波形ファームと組み合わせて、ピークホールドの波形とベースラインのノイズを見る波形ビューア。
+          - generic [ref=f12e524]: wave_plotter.html
+        - link "旧ダッシュボード コンソールの前のダッシュボード。機能は同じで、1 枚の画面にすべてが並びます。 v2/index.html" [ref=f12e527] [cursor=pointer]:
+          - /url: ../arduino/v2/index.html
+          - generic [ref=f12e529]: 旧ダッシュボード
+          - paragraph [ref=f12e530]: コンソールの前のダッシュボード。機能は同じで、1 枚の画面にすべてが並びます。
+          - generic [ref=f12e531]: v2/index.html
+        - link "パルスの解析 アナログ前段の時定数・飽和・ピークホールドの取りこぼしを、計算と実測で調べた報告。 shaping.html" [ref=f12e534] [cursor=pointer]:
+          - /url: ../arduino/shaping.html
+          - generic [ref=f12e536]: パルスの解析
+          - paragraph [ref=f12e537]: アナログ前段の時定数・飽和・ピークホールドの取りこぼしを、計算と実測で調べた報告。
+          - generic [ref=f12e538]: shaping.html
+    - generic [ref=f12e542]:
+      - generic [ref=f12e543]:
+        - paragraph [ref=f12e544]: 08 — DATA
+        - heading "宇宙線が来るたびに、 まわりの様子も一緒に残す。" [level=2] [ref=f12e545]: 宇宙線が来るたびに、まわりの様子も一緒に残す。
+        - paragraph [ref=f12e546]: 1 個検出するごとに 1 行の記録ができます。半角スペース区切りの文字なので、表計算ソフトでも Python でもそのまま開けます。
+      - list [ref=f12e547]:
+        - listitem [ref=f12e548]:
+          - text: 粒子の大きさ
+          - paragraph [ref=f12e551]: 通った粒子がどれだけエネルギーを落としたか。ヒストグラムにすると、宇宙線ごとの山が見えます。
+        - listitem [ref=f12e552]:
+          - text: いつ来たか
+          - paragraph [ref=f12e555]: 起動からの時刻をマイクロ秒単位で。計数率の変化も、1 個ごとの間隔も追えます。
+        - listitem [ref=f12e556]:
+          - text: 温度・湿度・気圧
+          - paragraph [ref=f12e559]: 1 イベントごとにその場の環境を記録。気圧が上がると計数率が下がる「気圧効果」を、自分のデータで確かめられます。
+        - listitem [ref=f12e560]:
+          - text: ほかの検出器も反応したか
+          - paragraph [ref=f12e563]: つないだ検出器（最大 3 台）が同時に反応したかどうかが、イベントごとに残ります。重ねて置けば、真上から来た宇宙線だけを選べます。
+        - listitem [ref=f12e564]:
+          - text: ほかの検出器の波高
+          - paragraph [ref=f12e567]: 同時に反応した相手の粒子の大きさも一緒に。2 台で同じ粒子を測ったときの比較に使えます。
+        - listitem [ref=f12e568]:
+          - text: 測っていない時間
+          - paragraph [ref=f12e571]: データを書き込んでいて数えられなかった時間も記録するので、正しい計数率を計算できます。
+    - generic [ref=f12e573]:
+      - generic [ref=f12e574]:
+        - text: 0台
+        - paragraph [ref=f12e575]: まで同時に計測できる
+      - generic [ref=f12e576]:
+        - text: 0つ
+        - paragraph [ref=f12e577]: の記録先（USB・Bluetooth・microSD）
+      - generic [ref=f12e578]:
+        - text: 0種類
+        - paragraph [ref=f12e579]: の環境値（温度・湿度・気圧）
+      - generic [ref=f12e580]:
+        - text: 0個ずつ
+        - paragraph [ref=f12e581]: 宇宙線を数えて記録する
+    - generic [ref=f12e583]:
+      - generic [ref=f12e584]:
+        - paragraph [ref=f12e585]: 09 — START
+        - heading "はじめての測定" [level=2] [ref=f12e586]
+        - paragraph [ref=f12e587]: ファームウェアが書き込まれていれば、USB-C をつなぐだけで測り始めます。
+      - list [ref=f12e588]:
+        - listitem [ref=f12e589]:
+          - generic [ref=f12e590]: "1"
+          - generic [ref=f12e591]:
+            - generic [ref=f12e592]: センサ子基板を付ける
+            - paragraph [ref=f12e593]: USB を抜いた状態で、子基板の J1 を読み出し基板の J2 に差し、M2 のスペーサとねじで固定します。
+        - listitem [ref=f12e594]:
+          - generic [ref=f12e595]: "2"
+          - generic [ref=f12e596]:
+            - generic [ref=f12e597]: シンチレータを密着させ、遮光する
+            - paragraph [ref=f12e598]: 反射材で包み、黒いテープで光をふさいで SiPM にのせます。すき間があると蛍光灯の光でカウントが跳ね上がります。
+        - listitem [ref=f12e599]:
+          - generic [ref=f12e600]: "3"
+          - generic [ref=f12e601]:
+            - generic [ref=f12e602]: microSD を入れる（任意）
+            - paragraph [ref=f12e603]: FAT32 のカードを側面の開口から J8 に。入れなくても USB と Bluetooth には出ます。
+        - listitem [ref=f12e604]:
+          - generic [ref=f12e605]: "4"
+          - generic [ref=f12e606]:
+            - generic [ref=f12e607]: USB-C でつなぐ
+            - paragraph [ref=f12e608]: PC かモバイルバッテリーへ。起動のたびに A0 を 1 秒見てしきい値を決めるので、その間は動かさずに待ちます。
+        - listitem [ref=f12e609]:
+          - generic [ref=f12e610]: "5"
+          - generic [ref=f12e611]:
+            - generic [ref=f12e612]: OLED と LED を見る
+            - paragraph [ref=f12e613]: "Cnt が増え、LED が光ってブザーが鳴れば動いています。Thr: がしきい値です。"
+        - listitem [ref=f12e614]:
+          - generic [ref=f12e615]: "6"
+          - generic [ref=f12e616]:
+            - generic [ref=f12e617]: コンソールで見る
+            - paragraph [ref=f12e618]: Chrome / Edge で arduino/v2/console/index.html を開いて「USBでつなぐ」。時間とともにヒストグラムが育ち、計数率の誤差が小さくなります。
+    - generic [ref=f12e620]:
+      - generic [ref=f12e621]:
+        - paragraph [ref=f12e622]: 10 — SPEC
+        - heading "仕様" [level=2] [ref=f12e623]
+      - generic [ref=f12e624]:
+        - generic [ref=f12e625]:
+          - term [ref=f12e626]: 検出のしかた
+          - definition [ref=f12e627]: シンチレータ ＋ SiPM（onsemi MICROFC-60035-SMT：受光 6 × 6 mm、マイクロセル 35 µm）。SiPM は 40 × 40 mm の子基板に載せ、2×3 ピンで接続
+        - generic [ref=f12e628]:
+          - term [ref=f12e629]: SiPM バイアス
+          - definition [ref=f12e630]: LT3461 昇圧、29.0 V 固定（USB の 5 V から）。子基板で RC フィルタ
+        - generic [ref=f12e631]:
+          - term [ref=f12e632]: アンプ
+          - definition [ref=f12e633]: LT1807（U2A）非反転、×5.0〜×45（R10 で調整）。入力保護 1 kΩ ＋ BAT54S
+        - generic [ref=f12e634]:
+          - term [ref=f12e635]: ピークホールド
+          - definition [ref=f12e636]: LT1807（U2B）＋ ダイオード ＋ C6、アンプ出力の ×2 を保持。放電の時定数は数百 µs（計算 487 µs）。D8 → Q1 で 20 µs 放電
+        - generic [ref=f12e637]:
+          - term [ref=f12e638]: マイコン
+          - definition [ref=f12e639]: Arduino Nano ESP32（ESP32-S3、BLE）。裏面のソケットに差す
+        - generic [ref=f12e640]:
+          - term [ref=f12e641]: トリガー
+          - definition [ref=f12e642]: アナログ。A0（ピークホールドの出力）をソフトでしきい値と比べ、超えたらイベントとして記録。しきい値は起動時に自動で決まり、あとから変えられます
+        - generic [ref=f12e643]:
+          - term [ref=f12e644]: 波高
+          - definition [ref=f12e645]: 12 bit（0〜4095）。トリガーの約 60 µs 後に A0 を 1 回読む
+        - generic [ref=f12e646]:
+          - term [ref=f12e647]: デッドタイム
+          - definition [ref=f12e648]: イベントの処理（約 0.1 ms）、2 秒ごとの OLED 書き換え、オシロ表示中、コマンド実行中。ログに累積値を出力
+        - generic [ref=f12e649]:
+          - term [ref=f12e650]: 環境センサ
+          - definition [ref=f12e651]: BME280（温度・湿度・気圧）、2 秒ごとに更新
+        - generic [ref=f12e652]:
+          - term [ref=f12e653]: 表示・通知
+          - definition [ref=f12e654]: OLED SSD1306 128 × 64、LED、圧電ブザー（500〜4000 Hz）、振動モーター（A7 に後付け、ドライバが必要）
+        - generic [ref=f12e655]:
+          - term [ref=f12e656]: 記録・通信
+          - definition [ref=f12e657]: USB シリアル（9600 bps）、Bluetooth LE（Nordic UART、名前 CosmicRay）、microSD（FAT32、1 行ごとに確定）
+        - generic [ref=f12e658]:
+          - term [ref=f12e659]: 外部入出力
+          - definition [ref=f12e660]: OUT × 1、IN × 3（3.5 mm 4 極）。デジタルの同時判定とアナログの波高
+        - generic [ref=f12e661]:
+          - term [ref=f12e662]: オシロスコープ
+          - definition [ref=f12e663]: A0 を DMA で 83.3 kHz、1 イベント 161 点。毎秒 1〜20 波形
+        - generic [ref=f12e664]:
+          - term [ref=f12e665]: 電源
+          - definition [ref=f12e666]: USB-C 5 V
+        - generic [ref=f12e667]:
+          - term [ref=f12e668]: 大きさ
+          - definition [ref=f12e669]: 読み出し基板 63 × 63 mm、センサ子基板 40 × 40 mm、ケース 86 × 75 × 61.4 mm
+      - paragraph [ref=f12e670]: 数値は回路図（KiCad 9）・ファームウェア（COSMICRAY_DETECTOR_ESP32-S3-Nano-v2）・arduino/description.md・shaping.html による値です。回路の見直しを反映した後継機 v2.1 では、整形段と DAC によるしきい値に置き換えています。この装置は自然の宇宙線を数えるためのもので、線量計としての校正はしていません。
+    - generic [ref=f12e673]:
+      - paragraph [ref=f12e674]: 11 — NEXT
+      - heading "机の上に、宇宙線の観測所を。" [level=2] [ref=f12e675]:
+        - generic [aria-hidden] [ref=f12e676]:
+          - generic [aria-hidden] [ref=f12e677]: 机
+          - generic [aria-hidden] [ref=f12e678]: の
+          - generic [aria-hidden] [ref=f12e679]: 上
+          - generic [aria-hidden] [ref=f12e680]: に、
+        - generic [aria-hidden] [ref=f12e681]:
+          - generic [aria-hidden] [ref=f12e682]: 宇
+          - generic [aria-hidden] [ref=f12e683]: 宙
+          - generic [aria-hidden] [ref=f12e684]: 線
+          - generic [aria-hidden] [ref=f12e685]: の
+          - generic [aria-hidden] [ref=f12e686]: 観
+          - generic [aria-hidden] [ref=f12e687]: 測
+          - generic [aria-hidden] [ref=f12e688]: 所
+          - generic [aria-hidden] [ref=f12e689]: を。
+      - generic [ref=f12e690]:
+        - link "コンソールを開く" [ref=f12e691] [cursor=pointer]:
+          - /url: ../arduino/v2/console/index.html
+        - link "マニュアルを読む" [ref=f12e694] [cursor=pointer]:
+          - /url: ../arduino/v2/console/manual.html
+        - link "データを解析する" [ref=f12e695] [cursor=pointer]:
+          - /url: ../arduino/v2/console/plotter.html
+      - list [ref=f12e696]:
+        - listitem [ref=f12e697]:
+          - link "ファームウェアのマニュアル" [ref=f12e698] [cursor=pointer]:
+            - /url: ../arduino/MANUAL.html
+        - listitem [ref=f12e699]:
+          - link "パルスとピークホールドの解析" [ref=f12e700] [cursor=pointer]:
+            - /url: ../arduino/shaping.html
+        - listitem [ref=f12e701]:
+          - link "改善アイデア集" [ref=f12e702] [cursor=pointer]:
+            - /url: ../arduino/idea.html
+        - listitem [ref=f12e703]:
+          - link "測定サーバー連携" [ref=f12e704] [cursor=pointer]:
+            - /url: ../arduino/server-plan.html
+  - contentinfo [ref=f12e705]:
+    - generic [ref=f12e706]:
+      - link "ACCEL KITCHEN COSMIC RAY DETECTOR v2" [ref=f12e707] [cursor=pointer]:
+        - /url: "#hero"
+        - generic [ref=f12e710]:
+          - generic [ref=f12e711]: ACCEL KITCHEN
+          - generic [ref=f12e712]: COSMIC RAY DETECTOR v2
+      - paragraph [ref=f12e713]:
+        - text: © 2020–2026 Accel Kitchen LLC ・
+        - link "accel-kitchen.com" [ref=f12e714] [cursor=pointer]:
+          - /url: https://accel-kitchen.com/
+        - text: ・
+        - link "info@accel-kitchen.com" [ref=f12e715] [cursor=pointer]:
+          - /url: mailto:info@accel-kitchen.com

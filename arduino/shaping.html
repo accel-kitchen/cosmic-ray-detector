@@ -1,0 +1,1244 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>宇宙線検出器 — パルスビーム対応：SiPM 60035 → 30020</title>
+<style>
+  :root {
+    color-scheme: light;
+    --accent: #00BCD4;
+    --accent-dark: #0097A7;
+    --bg: #fafafa;
+    --card: #ffffff;
+    --text: #263238;
+    --muted: #607D8B;
+    --border: #CFD8DC;
+    --hi: #E53935;
+    --mid: #FB8C00;
+    --lo: #43A047;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: "Segoe UI", "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    margin: 0;
+    line-height: 1.7;
+  }
+  header {
+    background: linear-gradient(135deg, #006064, var(--accent-dark));
+    color: #fff;
+    padding: 28px 24px 20px;
+  }
+  header h1 { margin: 0 0 4px; font-size: 1.5rem; }
+  header p  { margin: 0; opacity: 0.85; font-size: 0.9rem; }
+  main { max-width: 980px; margin: 0 auto; padding: 24px 16px 64px; }
+  section {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px 24px;
+    margin-bottom: 24px;
+  }
+  h2 {
+    margin: 0 0 12px;
+    font-size: 1.15rem;
+    color: var(--accent-dark);
+    border-bottom: 2px solid var(--accent);
+    padding-bottom: 6px;
+  }
+  h3 { margin: 22px 0 6px; font-size: 1.0rem; }
+  h4 { margin: 16px 0 4px; font-size: 0.92rem; color: var(--muted); }
+  p  { margin: 8px 0; }
+  ul, ol { margin: 8px 0; padding-left: 1.4em; }
+  li { margin: 3px 0; }
+  .scroll { overflow-x: auto; margin: 10px 0; }
+  table { border-collapse: collapse; width: 100%; font-size: 0.88rem; min-width: 460px; }
+  th, td { border: 1px solid var(--border); padding: 6px 10px; text-align: left; vertical-align: top; }
+  th { background: #ECEFF1; white-space: nowrap; }
+  td.num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  code {
+    background: #ECEFF1;
+    border-radius: 3px;
+    padding: 1px 5px;
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 0.85em;
+  }
+  pre.ascii {
+    background: #263238;
+    color: #ECEFF1;
+    border-radius: 6px;
+    padding: 14px 16px;
+    overflow-x: auto;
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 0.8rem;
+    line-height: 1.45;
+    margin: 12px 0;
+  }
+  pre.ascii b { color: #4DD0E1; font-weight: bold; }
+  pre.ascii i { color: #FFB74D; font-style: normal; }
+  .note {
+    background: #E0F7FA;
+    border-left: 4px solid var(--accent);
+    padding: 10px 14px;
+    border-radius: 0 6px 6px 0;
+    font-size: 0.9rem;
+    margin: 12px 0;
+  }
+  .warn {
+    background: #FFF3E0;
+    border-left: 4px solid var(--mid);
+    padding: 10px 14px;
+    border-radius: 0 6px 6px 0;
+    font-size: 0.9rem;
+    margin: 12px 0;
+  }
+  .bad {
+    background: #FFEBEE;
+    border-left: 4px solid var(--hi);
+    padding: 10px 14px;
+    border-radius: 0 6px 6px 0;
+    font-size: 0.9rem;
+    margin: 12px 0;
+  }
+  .good {
+    background: #E8F5E9;
+    border-left: 4px solid var(--lo);
+    padding: 10px 14px;
+    border-radius: 0 6px 6px 0;
+    font-size: 0.9rem;
+    margin: 12px 0;
+  }
+  figure { margin: 16px 0; }
+  figure svg { width: 100%; height: auto; display: block; border: 1px solid var(--border); border-radius: 6px; background: #fff; }
+  figcaption { font-size: 0.82rem; color: var(--muted); margin-top: 6px; }
+  .tag {
+    display: inline-block;
+    font-size: 0.72rem;
+    border-radius: 10px;
+    padding: 1px 9px;
+    margin-right: 6px;
+    color: #fff;
+    vertical-align: middle;
+  }
+  .tag-hi  { background: var(--hi); }
+  .tag-mid { background: var(--mid); }
+  .tag-lo  { background: var(--lo); }
+  .tag-eff { background: var(--muted); }
+  .formula {
+    background: #F5F7F8;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 0.86rem;
+    white-space: pre;
+    overflow-x: auto;
+    margin: 10px 0;
+  }
+  nav.toc { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 14px 22px; margin-bottom: 24px; }
+  nav.toc h2 { border: none; margin: 0 0 6px; font-size: 1.0rem; }
+  nav.toc ol { columns: 2; column-gap: 28px; font-size: 0.88rem; margin: 0; }
+  nav.toc a { color: var(--accent-dark); text-decoration: none; }
+  nav.toc a:hover { text-decoration: underline; }
+  footer { text-align: center; color: var(--muted); font-size: 0.8rem; padding: 12px; }
+  .est { color: var(--mid); font-weight: bold; }
+  .meas { color: var(--lo); font-weight: bold; }
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>パルスビーム計測への対応 — SiPM を 60035 → 30020 へ</h1>
+  <p>2026-09-04 / 交換するのは 40×40 mm のセンサ子基板 1 枚だけ。読み出し基板・ファーム・Red Pitaya はすべて現行のまま</p>
+</header>
+
+<main>
+
+<nav class="toc">
+<h2>目次</h2>
+<ol>
+  <li><a href="#summary">サマリ</a></li>
+  <li><a href="#problem">パルスビームで何が壊れるのか</a></li>
+  <li><a href="#proposal">提案：センサ子基板だけを差し替える</a></li>
+  <li><a href="#unchanged">読み出し基板が現行のままでよい理由</a></li>
+  <li><a href="#rp">Red Pitaya の接続と設定</a></li>
+  <li><a href="#work">実際に作り直すもの</a></li>
+  <li><a href="#risk">残る制約とリスク</a></li>
+  <li><a href="#verify">検証手順</a></li>
+  <li><a href="#appendix-a">付録A：宇宙線用の 60035 基板は残す</a></li>
+  <li><a href="#appendix-b">付録B：Peak Hold 前の波形調査（前回の結論）</a></li>
+</ol>
+</nav>
+
+<!-- ============================================================ -->
+<section id="summary">
+<h2>1. サマリ</h2>
+
+<p>パルスビーム計測でこの検出器が使えない原因は、<b>SiPM の飽和</b>と<b>時定数の長さ</b>の 2 つに絞られる。どちらも <code>SiPM1</code> と、それに貼り付くシンチレータの選択だけで決まっており、読み出し基板の回路定数はほとんど関与していない。</p>
+
+<div class="good">
+<b>結論。</b>センサ子基板（<code>cosmic-ray-detector_splited2.kicad_pcb</code>、40×40 mm）の <code>SiPM1</code> を
+<b>MICROFC-60035 → MICROFC-30020</b> に、シンチレータを <b>GAGG:Ce → プラスチック</b>に替える。
+これだけで<b>時間分解能が 5.5 倍、マクロパルス中の飽和耐性が受光面積あたり 11 倍</b>になる。
+メイン基板・ファームウェア・Red Pitaya・バイアス電源はいずれも無改造でよい。
+</div>
+
+<h3>数字でみた効果</h3>
+<div class="scroll">
+<table>
+<thead><tr><th>項目</th><th>現行<br>60035 + GAGG</th><th>提案<br>30020 + プラスチック</th><th>比</th></tr></thead>
+<tbody>
+<tr><td>チェーン全体のパルス FWHM</td><td class="num">432 ns</td><td class="num">79 ns</td><td class="num">1 / 5.5</td></tr>
+<tr><td>立ち上がり（10–90%）</td><td class="num">145 ns</td><td class="num">24 ns</td><td class="num">1 / 6.0</td></tr>
+<tr><td>分解できる時間構造</td><td class="num">～1.2 MHz</td><td class="num">～6.3 MHz</td><td class="num">5.5×</td></tr>
+<tr><td>静的飽和（10% 非直線点、入射光子密度）</td><td class="num">332 /mm²</td><td class="num">891 /mm²</td><td class="num">2.7×</td></tr>
+<tr><td>動的飽和（同、定常光子束密度）</td><td class="num">1.8×10⁹ /s/mm²</td><td class="num">2.0×10¹⁰ /s/mm²</td><td class="num">11×</td></tr>
+<tr><td>1 µs マクロパルスで受けられる MIP 数<span class="tag tag-eff" style="margin-left:6px">η=0.5</span></td><td class="num">0.4</td><td class="num">59</td><td class="num">135×</td></tr>
+<tr><td>Red Pitaya 8 ns サンプリングで半値幅に乗る点数</td><td class="num">54</td><td class="num">9.9</td><td class="num">—</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>この提案で押さえておくべき 3 点</h3>
+
+<ol>
+<li><b>飽和「だけ」なら、この交換は割に合わない。</b>静的飽和のデバイス性能指数は <b>3.05 倍</b>にしかならない。同じ 3 倍は SiPM の手前に減光フィルタを入れても得られるし、そちらは基板を作り直さなくてよい。<b>飽和を単独の理由にすると提案は通らない。</b></li>
+<li><b>決め手は時定数である。</b>現行チェーンの 432 ns のうち <b>170 ns は 60035 の端子容量 3400 pF と負荷抵抗 49.9 Ω の積</b>で、これはデバイスの物理量なので光学的手段でも回路定数でも消せない。30020 では 770 pF なので 38 ns になる。<b>時定数だけは、素子を替える以外に手がない。</b></li>
+<li><b>マクロパルスでは飽和の式が変わる。</b>マクロパルス長がセル回復時間（60035 で 95 ns）より長いと、支配するのは静的飽和ではなく<b>動的飽和</b>で、こちらの改善は受光面積あたり <b>12.6 倍</b>（デバイス単体）。さらに同じ飽和余裕を得るのに必要な光子の犠牲は、減光の 1/2.3 で済む。</li>
+</ol>
+
+<div class="note">
+本書は 2026-09-03 の調査「Peak Hold 前の波形は何か」を<b>ビーム用途向けに書き直したもの</b>である。
+前回の結論（整形回路が存在しない／Peak Hold が電荷律速で取りこぼす）と、そこから出た v3 アナログ基板案は<b>付録B</b>に移した。
+ビーム用途と宇宙線スペクトル用途は要求が正反対（ビームは<b>速くしたい</b>、スペクトルは<b>遅く整形したい</b>）なので、
+1 枚の基板で両立させようとせず、<b>センサ子基板を 2 種類作って差し替える</b>ことを推奨する（付録A）。
+</div>
+
+</section>
+
+<!-- ============================================================ -->
+<section id="problem">
+<h2>2. パルスビームで何が壊れるのか</h2>
+
+<h3>2.1 「飽和」には性質の違う 2 種類がある</h3>
+
+<p>SiPM はマイクロセルの集合体で、1 個のセルは 1 回光ると回復時間 τ<sub>rec</sub> のあいだ死ぬ。したがって飽和の式は、光が入る時間の長さで切り替わる。</p>
+
+<div class="formula">バースト長 ≪ τ_rec（＝静的飽和）
+    N_fired = N_cells · ( 1 − exp( −N_det / N_cells ) )
+    直線性 90% の限界:  N_det = 0.214 · N_cells
+
+マクロパルス長 ≫ τ_rec（＝動的飽和）
+    R_obs = R_det / ( 1 + R_det · τ_rec / N_cells )
+    直線性 90% の限界:  R_det = 0.111 · N_cells / τ_rec</div>
+
+<p>宇宙線・γ 線は 1 個の粒子が数百 ns で光り終わるので<b>静的飽和</b>だけを考えればよい。
+これに対して加速器のマクロパルスは µs〜ms のオーダーで、60035 のセル回復時間 95 ns よりずっと長い。
+<b>つまりビーム計測では動的飽和が支配する。</b>この 2 つは似ているようで、上の式のとおり分母の形からして違う。</p>
+
+<figure>
+<svg viewBox="0 0 600 348" role="img" aria-label="静的飽和と動的飽和の比較">
+<rect x="0.0" y="0.0" width="600.0" height="348.0" fill="#ffffff" stroke="none" stroke-width="1" rx="0"/>
+<text x="169.0" y="30.0" font-size="11" fill="#263238" text-anchor="middle" font-weight="bold" font-family="Segoe UI,Meiryo,sans-serif">① 静的飽和（バースト ≪ セル回復時間）</text>
+<line x1="58.0" y1="244.0" x2="280.0" y2="244.0" stroke="#607D8B" stroke-width="1"/>
+<text x="51.0" y="248.0" font-size="10" fill="#607D8B" text-anchor="end" font-weight="normal" font-family="Segoe UI,Meiryo,sans-serif">0%</text>
+<line x1="58.0" y1="196.5" x2="280.0" y2="196.5" stroke="#ECEFF1" stroke-width="1"/>
+<text x="51.0" y="200.5" font-size="10" fill="#607D8B" text-anchor="end" font-weight="normal" font-family="Segoe UI,Meiryo,sans-serif">25%</text>
+<line x1="58.0" y1="149.0" x2="280.0" y2="149.0" stroke="#ECEFF1" stroke-width="1"/>
+<text x="51.0" y="153.0" font-size="10" fill="#607D8B" text-anchor="end" font-weight="normal" font-family="Segoe UI,Meiryo,sans-serif">50%</text>
+<line x1="58.0" y1="101.5" x2="280.0" y2="101.5" stroke="#ECEFF1" stroke-width="1"/>
+<text x="51.0" y="105.5" font-size="10" fill="#607D8B" text-anchor="end" font-weight="normal" font-family="Segoe UI,Meiryo,sans-serif">75%</text>
+<line x1="58.0" y1="54.0" x2="280.0" y2="54.0" stroke="#ECEFF1" stroke-width="1"/>
+<text x="51.0" y="58.0" font-size="10" fill="#607D8B" text-anchor="end" font-weight="normal" font-family="Segoe UI,Meiryo,sans-serif">100%</text>
+<line x1="58.0" y1="54.0" x2="58.0" y2="244.0" stroke="#ECEFF1" stroke-width="1"/>
+<text x="58.0" y="259.0" font-size="10" fill="#607D8B" text-anchor="middle" font-weight="normal" font-family="Segoe UI,Meiryo,sans-serif">10<tspan dy="-4" font-size="8">2</tspan></text>
+<line x1="113.5" y1="54.0" x2="113.5" y2="244.0" stroke="#ECEFF1" stroke-width="1"/>
+<text x="113.5" y="259.0" font-size="10" fill="#607D8B" text-anchor="middle" font-weight="normal" font-family="Segoe UI,Meiryo,sans-serif">10<tspan dy="-4" font-size="8">3</tspan></text>
+<line x1="169.0" y1="54.0" x2="169.0" y2="244.0" stroke="#ECEFF1" stroke-width="1"/>
+<text x="169.0" y="259.0" font-size="10" fill="#607D8B" text-anchor="middle" font-weight="normal" font-family="Segoe UI,Meiryo,sans-serif">10<tspan dy="-4" font-size="8">4</tspan></text>
+<line x1="224.5" y1="54.0" x2="224.5" y2="244.0" stroke="#ECEFF1" stroke-width="1"/>
+<text x="224.5" y="259.0" font-size="10" fill="#607D8B" text-anchor="middle" font-weight="normal" font-family="Segoe UI,Meiryo,sans-serif">10<tspan dy="-4" font-size="8">5</tspan></text>
+<line x1="280.0" y1="54.0" x2="280.0" y2="244.0" stroke="#ECEFF1" stroke-width="1"/>
+<text x="280.0" y="259.0" font-size="10" fill="#607D8B" text-anchor="middle" font-weight="normal" font-family="Segoe UI,Meiryo,sans-serif">10<tspan dy="-4" font-size="8">6</tspan></text>
+<line x1="58.0" y1="244.0" x2="280.0" y2="244.0" stroke="#607D8B" stroke-width="1.2"/>
+<line x1="58.0" y1="54.0" x2="58.0" y2="244.0" stroke="#607D8B" stroke-width="1.2"/>
+<text x="169.0" y="278.0" font-size="10" fill="#607D8B" text-anchor="middle" font-weight="normal" font-family="Segoe UI,Meiryo,sans-serif">1 パルスの入射光子密度 [photons / mm²]</text>
+<line x1="58.0" y1="73.0" x2="280.0" y2="73.0" stroke="#E53935" stroke-width="1" stroke-dasharray="4 3"/>
+<text x="277.0" y="68.0" font-size="9" fill="#E53935" text-anchor="end" font-weight="normal" font-family="Segoe UI,Meiryo,sans-serif" stroke="#ffffff" stroke-width="3.2" paint-order="stroke">直線性 90%</text>
+<path d="M58.00 59.99 L59.01 60.24 L60.02 60.50 L61.03 60.77 L62.04 61.06 L63.05 61.35 L64.05 61.66 L65.06 61.97 L66.07 62.30 L67.08 62.65 L68.09 63.01 L69.10 63.38 L70.11 63.77 L71.12 64.17 L72.13 64.59 L73.14 65.02 L74.15 65.47 L75.15 65.94 L76.16 66.43 L77.17 66.94 L78.18 67.46 L79.19 68.01 L80.20 68.58 L81.21 69.17 L82.22 69.78 L83.23 70.41 L84.24 71.07 L85.25 71.75 L86.25 72.46 L87.26 73.20 L88.27 73.96 L89.28 74.75 L90.29 75.56 L91.30 76.41 L92.31 77.29 L93.32 78.19 L94.33 79.13 L95.34 80.10 L96.35 81.11 L97.35 82.15 L98.36 83.22 L99.37 84.33 L100.38 85.48 L101.39 86.66 L102.40 87.88 L103.41 89.14 L104.42 90.43 L105.43 91.77 L106.44 93.14 L107.45 94.56 L108.45 96.02 L109.46 97.52 L110.47 99.06 L111.48 100.64 L112.49 102.27 L113.50 103.93 L114.51 105.64 L115.52 107.39 L116.53 109.18 L117.54 111.02 L118.55 112.89 L119.55 114.81 L120.56 116.76 L121.57 118.75 L122.58 120.78 L123.59 122.85 L124.60 124.95 L125.61 127.09 L126.62 129.25 L127.63 131.45 L128.64 133.68 L129.65 135.93 L130.65 138.21 L131.66 140.51 L132.67 142.83 L133.68 145.16 L134.69 147.51 L135.70 149.87 L136.71 152.24 L137.72 154.61 L138.73 156.98 L139.74 159.35 L140.75 161.72 L141.75 164.08 L142.76 166.43 L143.77 168.76 L144.78 171.07 L145.79 173.36 L146.80 175.62 L147.81 177.86 L148.82 180.06 L149.83 182.23 L150.84 184.37 L151.85 186.46 L152.85 188.51 L153.86 190.52 L154.87 192.48 L155.88 194.39 L156.89 196.25 L157.90 198.06 L158.91 199.82 L159.92 201.53 L160.93 203.19 L161.94 204.79 L162.95 206.34 L163.95 207.84 L164.96 209.28 L165.97 210.68 L166.98 212.02 L167.99 213.31 L169.00 214.56 L170.01 215.75 L171.02 216.90 L172.03 218.01 L173.04 219.07 L174.05 220.09 L175.05 221.07 L176.06 222.00 L177.07 222.91 L178.08 223.77 L179.09 224.60 L180.10 225.39 L181.11 226.16 L182.12 226.89 L183.13 227.59 L184.14 228.26 L185.15 228.91 L186.15 229.53 L187.16 230.12 L188.17 230.69 L189.18 231.23 L190.19 231.76 L191.20 232.26 L192.21 232.74 L193.22 233.20 L194.23 233.65 L195.24 234.07 L196.25 234.48 L197.25 234.87 L198.26 235.24 L199.27 235.60 L200.28 235.95 L201.29 236.28 L202.30 236.59 L203.31 236.90 L204.32 237.19 L205.33 237.47 L206.34 237.73 L207.35 237.99 L208.35 238.24 L209.36 238.47 L210.37 238.70 L211.38 238.92 L212.39 239.13 L213.40 239.33 L214.41 239.52 L215.42 239.70 L216.43 239.88 L217.44 240.05 L218.45 240.21 L219.45 240.36 L220.46 240.51 L221.47 240.66 L222.48 240.79 L223.49 240.92 L224.50 241.05 L225.51 241.17 L226.52 241.29 L227.53 241.40 L228.54 241.51 L229.55 241.61 L230.55 241.71 L231.56 241.80 L232.57 241.89 L233.58 241.98 L234.59 242.06 L235.60 242.14 L236.61 242.22 L237.62 242.29 L238.63 242.36 L239.64 242.43 L240.65 242.49 L241.65 242.55 L242.66 242.61 L243.67 242.67 L244.68 242.72 L245.69 242.78 L246.70 242.83 L247.71 242.87 L248.72 242.92 L249.73 242.96 L250.74 243.01 L251.75 243.05 L252.75 243.09 L253.76 243.12 L254.77 243.16 L255.78 243.19 L256.79 243.23 L257.80 243.26 L258.81 243.29 L259.82 243.32 L260.83 243.35 L261.84 243.37 L262.85 243.40 L263.85 243.42 L264.86 243.45 L265.87 243.47 L266.88 243.49 L267.89 243.51 L268.90 243.53 L269.91 243.55 L270.92 243.57 L271.93 243.59 L272.94 243.60 L273.95 243.62 L274.95 243.64 L275.96 243.65 L276.97 243.67 L277.98 243.68 L278.99 243.69 L280.00 243.71" fill="none" stroke="#E53935" stroke-width="2.2" stroke-linejoin="round"/>
+<circle cx="86.9" cy="73.0" r="3.6" fill="#E53935"/>
+<line x1="86.9" y1="73.0" x2="86.9" y2="244.0" stroke="#E53935" stroke-width="1" stroke-dasharray="2 3"/>
+<path d="M58.00 56.26 L59.01 56.36 L60.02 56.46 L61.03 56.56 L62.04 56.67 L63.05 56.78 L64.05 56.90 L65.06 57.02 L66.07 57.15 L67.08 57.28 L68.09 57.42 L69.10 57.57 L70.11 57.72 L71.12 57.87 L72.13 58.04 L73.14 58.21 L74.15 58.38 L75.15 58.57 L76.16 58.76 L77.17 58.96 L78.18 59.17 L79.19 59.39 L80.20 59.61 L81.21 59.85 L82.22 60.09 L83.23 60.35 L84.24 60.61 L85.25 60.89 L86.25 61.17 L87.26 61.47 L88.27 61.78 L89.28 62.11 L90.29 62.44 L91.30 62.79 L92.31 63.16 L93.32 63.53 L94.33 63.93 L95.34 64.34 L96.35 64.76 L97.35 65.20 L98.36 65.66 L99.37 66.14 L100.38 66.63 L101.39 67.15 L102.40 67.68 L103.41 68.24 L104.42 68.81 L105.43 69.41 L106.44 70.03 L107.45 70.68 L108.45 71.35 L109.46 72.04 L110.47 72.76 L111.48 73.50 L112.49 74.27 L113.50 75.08 L114.51 75.90 L115.52 76.76 L116.53 77.65 L117.54 78.57 L118.55 79.52 L119.55 80.51 L120.56 81.53 L121.57 82.58 L122.58 83.67 L123.59 84.79 L124.60 85.95 L125.61 87.15 L126.62 88.38 L127.63 89.66 L128.64 90.97 L129.65 92.32 L130.65 93.72 L131.66 95.15 L132.67 96.62 L133.68 98.14 L134.69 99.70 L135.70 101.30 L136.71 102.94 L137.72 104.62 L138.73 106.35 L139.74 108.11 L140.75 109.92 L141.75 111.77 L142.76 113.66 L143.77 115.59 L144.78 117.56 L145.79 119.57 L146.80 121.62 L147.81 123.70 L148.82 125.81 L149.83 127.96 L150.84 130.14 L151.85 132.35 L152.85 134.59 L153.86 136.85 L154.87 139.14 L155.88 141.45 L156.89 143.77 L157.90 146.11 L158.91 148.47 L159.92 150.83 L160.93 153.20 L161.94 155.57 L162.95 157.95 L163.95 160.32 L164.96 162.68 L165.97 165.03 L166.98 167.37 L167.99 169.70 L169.00 172.00 L170.01 174.28 L171.02 176.53 L172.03 178.76 L173.04 180.95 L174.05 183.10 L175.05 185.22 L176.06 187.30 L177.07 189.33 L178.08 191.32 L179.09 193.26 L180.10 195.15 L181.11 196.99 L182.12 198.78 L183.13 200.52 L184.14 202.21 L185.15 203.85 L186.15 205.43 L187.16 206.96 L188.17 208.43 L189.18 209.86 L190.19 211.23 L191.20 212.55 L192.21 213.82 L193.22 215.05 L194.23 216.23 L195.24 217.36 L196.25 218.44 L197.25 219.49 L198.26 220.49 L199.27 221.45 L200.28 222.37 L201.29 223.26 L202.30 224.11 L203.31 224.93 L204.32 225.71 L205.33 226.46 L206.34 227.18 L207.35 227.87 L208.35 228.53 L209.36 229.16 L210.37 229.77 L211.38 230.35 L212.39 230.91 L213.40 231.45 L214.41 231.96 L215.42 232.46 L216.43 232.93 L217.44 233.38 L218.45 233.82 L219.45 234.24 L220.46 234.64 L221.47 235.02 L222.48 235.39 L223.49 235.74 L224.50 236.08 L225.51 236.41 L226.52 236.72 L227.53 237.02 L228.54 237.30 L229.55 237.58 L230.55 237.84 L231.56 238.09 L232.57 238.33 L233.58 238.57 L234.59 238.79 L235.60 239.00 L236.61 239.21 L237.62 239.40 L238.63 239.59 L239.64 239.77 L240.65 239.95 L241.65 240.11 L242.66 240.27 L243.67 240.43 L244.68 240.57 L245.69 240.71 L246.70 240.85 L247.71 240.98 L248.72 241.10 L249.73 241.22 L250.74 241.33 L251.75 241.44 L252.75 241.55 L253.76 241.65 L254.77 241.74 L255.78 241.84 L256.79 241.93 L257.80 242.01 L258.81 242.09 L259.82 242.17 L260.83 242.25 L261.84 242.32 L262.85 242.39 L263.85 242.45 L264.86 242.52 L265.87 242.58 L266.88 242.64 L267.89 242.69 L268.90 242.74 L269.91 242.80 L270.92 242.85 L271.93 242.89 L272.94 242.94 L273.95 242.98 L274.95 243.02 L275.96 243.06 L276.97 243.10 L277.98 243.14 L278.99 243.17 L280.00 243.21" fill="none" stroke="#2E7D32" stroke-width="2.2" stroke-linejoin="round"/>
+<circle cx="110.7" cy="73.0" r="3.6" fill="#2E7D32"/>
+<line x1="110.7" y1="73.0" x2="110.7" y2="244.0" stroke="#2E7D32" stroke-width="1" stroke-dasharray="2 3"/>
+<text x="463.0" y="30.0" font-size="11" fill="#263238" text-anchor="middle" font-weight="bold" font-family="Segoe UI,Meiryo,sans-serif">② 動的飽和（マクロパルス ≫ セル回復時間）</text>
+<line x1="352.0" y1="244.0" x2="574.0" y2="244.0" stroke="#607D8B" stroke-width="1"/>
+<text x="345.0" y="248.0" font-size="10" fill="#607D8B" text-anchor="end" font-weight="normal" font-family="Segoe UI,Meiryo,sans-serif">0%</text>
+<line x1="352.0" y1="196.5" x2="574.0" y2="196.5" stroke="#ECEFF1" stroke-width="1"/>
+<text x="345.0" y="200.5" font-size="10" fill="#607D8B" text-anchor="end" font-weight="normal" font-family="Segoe UI,Meiryo,sans-serif">25%</text>
+<line x1="352.0" y1="149.0" x2="574.0" y2="149.0" stroke="#ECEFF1" stroke-width="1"/>
+<text x="345.0" y="153.0" font-size="10" fill="#607D8B" text-anchor="end" font-weight="normal" font-family="Segoe UI,Meiryo,sans-serif">50%</text>
+<line x1="352.0" y1="101.5" x2="574.0" y2="101.5" stroke="#ECEFF1" stroke-width="1"/>
+<text x="345.0" y="105.5" font-size="10" fill="#607D8B" text-anchor="end" font-weight="normal" font-family="Segoe UI,Meiryo,sans-serif">75%</text>
+<line x1="352.0" y1="54.0" x2="574.0" y2="54.0" stroke="#ECEFF1" stroke-width="1"/>
+<text x="345.0" y="58.0" font-size="10" fill="#607D8B" text-anchor="end" font-weight="normal" font-family="Segoe UI,Meiryo,sans-serif">100%</text>
+<line x1="352.0" y1="54.0" x2="352.0" y2="244.0" stroke="#ECEFF1" stroke-width="1"/>
+<text x="352.0" y="259.0" font-size="10" fill="#607D8B" text-anchor="middle" font-weight="normal" font-family="Segoe UI,Meiryo,sans-serif">10<tspan dy="-4" font-size="8">8</tspan></text>
+<line x1="407.5" y1="54.0" x2="407.5" y2="244.0" stroke="#ECEFF1" stroke-width="1"/>
+<text x="407.5" y="259.0" font-size="10" fill="#607D8B" text-anchor="middle" font-weight="normal" font-family="Segoe UI,Meiryo,sans-serif">10<tspan dy="-4" font-size="8">9</tspan></text>
+<line x1="463.0" y1="54.0" x2="463.0" y2="244.0" stroke="#ECEFF1" stroke-width="1"/>
+<text x="463.0" y="259.0" font-size="10" fill="#607D8B" text-anchor="middle" font-weight="normal" font-family="Segoe UI,Meiryo,sans-serif">10<tspan dy="-4" font-size="8">10</tspan></text>
+<line x1="518.5" y1="54.0" x2="518.5" y2="244.0" stroke="#ECEFF1" stroke-width="1"/>
+<text x="518.5" y="259.0" font-size="10" fill="#607D8B" text-anchor="middle" font-weight="normal" font-family="Segoe UI,Meiryo,sans-serif">10<tspan dy="-4" font-size="8">11</tspan></text>
+<line x1="574.0" y1="54.0" x2="574.0" y2="244.0" stroke="#ECEFF1" stroke-width="1"/>
+<text x="574.0" y="259.0" font-size="10" fill="#607D8B" text-anchor="middle" font-weight="normal" font-family="Segoe UI,Meiryo,sans-serif">10<tspan dy="-4" font-size="8">12</tspan></text>
+<line x1="352.0" y1="244.0" x2="574.0" y2="244.0" stroke="#607D8B" stroke-width="1.2"/>
+<line x1="352.0" y1="54.0" x2="352.0" y2="244.0" stroke="#607D8B" stroke-width="1.2"/>
+<text x="463.0" y="278.0" font-size="10" fill="#607D8B" text-anchor="middle" font-weight="normal" font-family="Segoe UI,Meiryo,sans-serif">定常入射光子束密度 [photons / s / mm²]</text>
+<line x1="352.0" y1="73.0" x2="574.0" y2="73.0" stroke="#E53935" stroke-width="1" stroke-dasharray="4 3"/>
+<text x="571.0" y="68.0" font-size="9" fill="#E53935" text-anchor="end" font-weight="normal" font-family="Segoe UI,Meiryo,sans-serif" stroke="#ffffff" stroke-width="3.2" paint-order="stroke">直線性 90%</text>
+<path d="M352.00 55.16 L353.01 55.20 L354.02 55.26 L355.03 55.31 L356.04 55.37 L357.05 55.42 L358.05 55.48 L359.06 55.55 L360.07 55.61 L361.08 55.68 L362.09 55.75 L363.10 55.83 L364.11 55.90 L365.12 55.98 L366.13 56.07 L367.14 56.15 L368.15 56.25 L369.15 56.34 L370.16 56.44 L371.17 56.54 L372.18 56.65 L373.19 56.76 L374.20 56.88 L375.21 57.00 L376.22 57.12 L377.23 57.26 L378.24 57.39 L379.25 57.53 L380.25 57.68 L381.26 57.84 L382.27 58.00 L383.28 58.16 L384.29 58.34 L385.30 58.52 L386.31 58.71 L387.32 58.90 L388.33 59.11 L389.34 59.32 L390.35 59.54 L391.35 59.77 L392.36 60.01 L393.37 60.26 L394.38 60.52 L395.39 60.79 L396.40 61.06 L397.41 61.36 L398.42 61.66 L399.43 61.97 L400.44 62.30 L401.45 62.64 L402.45 62.99 L403.46 63.35 L404.47 63.73 L405.48 64.13 L406.49 64.53 L407.50 64.96 L408.51 65.40 L409.52 65.86 L410.53 66.33 L411.54 66.82 L412.55 67.33 L413.55 67.86 L414.56 68.41 L415.57 68.97 L416.58 69.56 L417.59 70.17 L418.60 70.80 L419.61 71.45 L420.62 72.13 L421.63 72.83 L422.64 73.55 L423.65 74.30 L424.65 75.07 L425.66 75.86 L426.67 76.69 L427.68 77.54 L428.69 78.41 L429.70 79.32 L430.71 80.25 L431.72 81.21 L432.73 82.20 L433.74 83.22 L434.75 84.27 L435.75 85.36 L436.76 86.47 L437.77 87.61 L438.78 88.78 L439.79 89.99 L440.80 91.23 L441.81 92.50 L442.82 93.80 L443.83 95.13 L444.84 96.49 L445.85 97.89 L446.85 99.32 L447.86 100.78 L448.87 102.27 L449.88 103.80 L450.89 105.35 L451.90 106.93 L452.91 108.55 L453.92 110.19 L454.93 111.86 L455.94 113.56 L456.95 115.28 L457.95 117.03 L458.96 118.81 L459.97 120.61 L460.98 122.43 L461.99 124.28 L463.00 126.14 L464.01 128.02 L465.02 129.92 L466.03 131.84 L467.04 133.77 L468.05 135.71 L469.05 137.67 L470.06 139.63 L471.07 141.61 L472.08 143.58 L473.09 145.57 L474.10 147.56 L475.11 149.54 L476.12 151.53 L477.13 153.52 L478.14 155.50 L479.15 157.48 L480.15 159.45 L481.16 161.41 L482.17 163.35 L483.18 165.29 L484.19 167.21 L485.20 169.12 L486.21 171.01 L487.22 172.88 L488.23 174.74 L489.24 176.57 L490.25 178.38 L491.25 180.17 L492.26 181.93 L493.27 183.67 L494.28 185.38 L495.29 187.06 L496.30 188.71 L497.31 190.34 L498.32 191.94 L499.33 193.51 L500.34 195.04 L501.35 196.55 L502.35 198.02 L503.36 199.47 L504.37 200.88 L505.38 202.26 L506.39 203.60 L507.40 204.92 L508.41 206.20 L509.42 207.46 L510.43 208.68 L511.44 209.86 L512.45 211.02 L513.45 212.15 L514.46 213.24 L515.47 214.30 L516.48 215.34 L517.49 216.34 L518.50 217.32 L519.51 218.26 L520.52 219.18 L521.53 220.07 L522.54 220.93 L523.55 221.77 L524.55 222.58 L525.56 223.36 L526.57 224.12 L527.58 224.85 L528.59 225.56 L529.60 226.24 L530.61 226.91 L531.62 227.55 L532.63 228.17 L533.64 228.76 L534.65 229.34 L535.65 229.90 L536.66 230.43 L537.67 230.95 L538.68 231.45 L539.69 231.93 L540.70 232.40 L541.71 232.84 L542.72 233.28 L543.73 233.69 L544.74 234.09 L545.75 234.48 L546.75 234.85 L547.76 235.21 L548.77 235.55 L549.78 235.88 L550.79 236.20 L551.80 236.51 L552.81 236.81 L553.82 237.09 L554.83 237.36 L555.84 237.63 L556.85 237.88 L557.85 238.12 L558.86 238.36 L559.87 238.58 L560.88 238.80 L561.89 239.00 L562.90 239.20 L563.91 239.40 L564.92 239.58 L565.93 239.76 L566.94 239.93 L567.95 240.09 L568.95 240.25 L569.96 240.40 L570.97 240.54 L571.98 240.68 L572.99 240.82 L574.00 240.95" fill="none" stroke="#E53935" stroke-width="2.2" stroke-linejoin="round"/>
+<circle cx="421.9" cy="73.0" r="3.6" fill="#E53935"/>
+<line x1="421.9" y1="73.0" x2="421.9" y2="244.0" stroke="#E53935" stroke-width="1" stroke-dasharray="2 3"/>
+<path d="M352.00 54.10 L353.01 54.11 L354.02 54.11 L355.03 54.12 L356.04 54.12 L357.05 54.13 L358.05 54.13 L359.06 54.14 L360.07 54.15 L361.08 54.15 L362.09 54.16 L363.10 54.17 L364.11 54.17 L365.12 54.18 L366.13 54.19 L367.14 54.20 L368.15 54.20 L369.15 54.21 L370.16 54.22 L371.17 54.23 L372.18 54.24 L373.19 54.25 L374.20 54.26 L375.21 54.27 L376.22 54.29 L377.23 54.30 L378.24 54.31 L379.25 54.32 L380.25 54.34 L381.26 54.35 L382.27 54.37 L383.28 54.38 L384.29 54.40 L385.30 54.42 L386.31 54.43 L387.32 54.45 L388.33 54.47 L389.34 54.49 L390.35 54.51 L391.35 54.54 L392.36 54.56 L393.37 54.58 L394.38 54.61 L395.39 54.63 L396.40 54.66 L397.41 54.69 L398.42 54.72 L399.43 54.75 L400.44 54.78 L401.45 54.81 L402.45 54.85 L403.46 54.88 L404.47 54.92 L405.48 54.96 L406.49 55.00 L407.50 55.04 L408.51 55.09 L409.52 55.13 L410.53 55.18 L411.54 55.23 L412.55 55.28 L413.55 55.34 L414.56 55.40 L415.57 55.45 L416.58 55.52 L417.59 55.58 L418.60 55.65 L419.61 55.72 L420.62 55.79 L421.63 55.87 L422.64 55.94 L423.65 56.03 L424.65 56.11 L425.66 56.20 L426.67 56.29 L427.68 56.39 L428.69 56.49 L429.70 56.60 L430.71 56.71 L431.72 56.82 L432.73 56.94 L433.74 57.06 L434.75 57.19 L435.75 57.33 L436.76 57.47 L437.77 57.61 L438.78 57.76 L439.79 57.92 L440.80 58.08 L441.81 58.26 L442.82 58.43 L443.83 58.62 L444.84 58.81 L445.85 59.01 L446.85 59.22 L447.86 59.44 L448.87 59.66 L449.88 59.90 L450.89 60.14 L451.90 60.39 L452.91 60.66 L453.92 60.93 L454.93 61.22 L455.94 61.51 L456.95 61.82 L457.95 62.14 L458.96 62.47 L459.97 62.82 L460.98 63.18 L461.99 63.55 L463.00 63.94 L464.01 64.34 L465.02 64.76 L466.03 65.19 L467.04 65.64 L468.05 66.10 L469.05 66.59 L470.06 67.09 L471.07 67.61 L472.08 68.15 L473.09 68.70 L474.10 69.28 L475.11 69.88 L476.12 70.50 L477.13 71.14 L478.14 71.81 L479.15 72.49 L480.15 73.20 L481.16 73.94 L482.17 74.70 L483.18 75.48 L484.19 76.29 L485.20 77.13 L486.21 78.00 L487.22 78.89 L488.23 79.81 L489.24 80.75 L490.25 81.73 L491.25 82.74 L492.26 83.77 L493.27 84.84 L494.28 85.94 L495.29 87.06 L496.30 88.22 L497.31 89.41 L498.32 90.64 L499.33 91.89 L500.34 93.18 L501.35 94.49 L502.35 95.84 L503.36 97.23 L504.37 98.64 L505.38 100.09 L506.39 101.56 L507.40 103.07 L508.41 104.61 L509.42 106.18 L510.43 107.78 L511.44 109.41 L512.45 111.06 L513.45 112.75 L514.46 114.46 L515.47 116.20 L516.48 117.97 L517.49 119.75 L518.50 121.57 L519.51 123.40 L520.52 125.25 L521.53 127.13 L522.54 129.02 L523.55 130.93 L524.55 132.85 L525.56 134.79 L526.57 136.74 L527.58 138.70 L528.59 140.67 L529.60 142.65 L530.61 144.63 L531.62 146.61 L532.63 148.60 L533.64 150.59 L534.65 152.58 L535.65 154.56 L536.66 156.54 L537.67 158.51 L538.68 160.48 L539.69 162.43 L540.70 164.37 L541.71 166.30 L542.72 168.22 L543.73 170.12 L544.74 172.00 L545.75 173.86 L546.75 175.70 L547.76 177.52 L548.77 179.32 L549.78 181.10 L550.79 182.85 L551.80 184.57 L552.81 186.26 L553.82 187.93 L554.83 189.57 L555.84 191.18 L556.85 192.77 L557.85 194.32 L558.86 195.84 L559.87 197.33 L560.88 198.79 L561.89 200.21 L562.90 201.61 L563.91 202.97 L564.92 204.30 L565.93 205.60 L566.94 206.87 L567.95 208.10 L568.95 209.30 L569.96 210.48 L570.97 211.62 L571.98 212.73 L572.99 213.80 L574.00 214.85" fill="none" stroke="#2E7D32" stroke-width="2.2" stroke-linejoin="round"/>
+<circle cx="479.9" cy="73.0" r="3.6" fill="#2E7D32"/>
+<line x1="479.9" y1="73.0" x2="479.9" y2="244.0" stroke="#2E7D32" stroke-width="1" stroke-dasharray="2 3"/>
+<rect x="54.0" y="318.0" width="520.0" height="24.0" fill="#ffffff" stroke="#CFD8DC" stroke-width="1" rx="5"/>
+<line x1="64.0" y1="330.0" x2="86.0" y2="330.0" stroke="#E53935" stroke-width="2.4"/>
+<text x="92.0" y="334.0" font-size="10" fill="#263238" text-anchor="start" font-weight="normal" font-family="Segoe UI,Meiryo,sans-serif">60035 + GAGG（現行）</text>
+<line x1="314.0" y1="330.0" x2="336.0" y2="330.0" stroke="#2E7D32" stroke-width="2.4"/>
+<text x="342.0" y="334.0" font-size="10" fill="#263238" text-anchor="start" font-weight="normal" font-family="Segoe UI,Meiryo,sans-serif">30020 + プラスチック（提案）</text>
+<text x="169.0" y="300.0" font-size="11" fill="#2E7D32" text-anchor="middle" font-weight="bold" font-family="Segoe UI,Meiryo,sans-serif">10% 非直線点が 2.7 倍高い</text>
+<text x="463.0" y="300.0" font-size="11" fill="#2E7D32" text-anchor="middle" font-weight="bold" font-family="Segoe UI,Meiryo,sans-serif">10% 非直線点が 11.1 倍高い</text></svg>
+<figcaption>直線性（＝出力／理想直線出力）の低下。①は 1 パルスに入った光子密度、②は定常的な光子束密度に対する応答。
+横軸はセンサ受光面 1 mm² あたりなので、受光面積の大小には依存しない。丸印が直線性 90% の点。
+GAGG（520 nm）とプラスチック（425 nm）で PDE のスペクトル一致が違うぶんも含めてある。</figcaption>
+</figure>
+
+<div class="note">
+<b>面積は効かない、セルピッチだけが効く。</b>静的飽和の限界を受光面積で割ると
+<code>0.214 × (セル密度) / PDE</code> になり、<b>受光面積が約分されて消える</b>。
+つまり「大きい SiPM に替える」「小さい SiPM に替える」は飽和耐性を変えない。変えるのは<b>セルピッチ</b>だけである。
+35 µm → 20 µm でセル密度が 527 → 1222 /mm²、PDE が 0.386 → 0.293 になり、差し引き <b>3.05 倍</b>。
+</div>
+
+<h3>2.2 時定数は 4 段が直列に重なっている</h3>
+
+<div class="scroll">
+<table>
+<thead><tr><th>段</th><th>実体</th><th>現行 60035 + GAGG</th><th>提案 30020 + プラスチック</th></tr></thead>
+<tbody>
+<tr><td>① シンチレータ減衰</td><td>発光の指数減衰</td><td class="num">120 ns</td><td class="num">2.1 ns</td></tr>
+<tr><td>② マイクロセル回復</td><td>R<sub>q</sub> · C<sub>d</sub></td><td class="num">95 ns</td><td class="num">23 ns</td></tr>
+<tr><td>③ <b>端子容量 × 負荷</b></td><td>C<sub>t</sub> × R12(49.9 Ω)</td><td class="num"><b>170 ns</b><br>(3400 pF)</td><td class="num"><b>38 ns</b><br>(770 pF)</td></tr>
+<tr><td>④ アンプ帰還極</td><td>R<sub>f</sub> × C7(10 pF)</td><td class="num">10 ns</td><td class="num">10 ns</td></tr>
+<tr><td colspan="2">単純和</td><td class="num">395 ns</td><td class="num">74 ns</td></tr>
+<tr><td colspan="2"><b>畳み込み後の FWHM</b></td><td class="num"><b>432 ns</b></td><td class="num"><b>79 ns</b></td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="bad">
+<b>いちばん効いているのはシンチレータではなく ③ である。</b>
+「GAGG が遅いから」と思われがちだが、現行チェーンの最大寄与は 60035 の端子容量 3400 pF が 49.9 Ω を駆動する 170 ns。
+シンチレータをプラスチックに替えても、60035 のままでは 432 → 315 ns にしかならない（下図のオレンジ）。
+逆に GAGG のままで 30020 にすると 192 ns まで縮む（紫）。<b>両方替えて初めて 79 ns になる。</b>
+</div>
+
+<figure>
+<svg viewBox="0 0 600 300" role="img" aria-label="4つの組み合わせのパルス形状比較">
+<rect x="0.0" y="0.0" width="600.0" height="300.0" fill="#ffffff" stroke="none" stroke-width="1" rx="0"/>
+<line x1="62.0" y1="214.0" x2="520.0" y2="214.0" stroke="#607D8B" stroke-width="1"/>
+<text x="55.0" y="218.0" font-size="10" fill="#607D8B" text-anchor="end" font-weight="normal" font-family="Segoe UI,Meiryo,sans-serif">0.00</text>
+<line x1="62.0" y1="167.0" x2="520.0" y2="167.0" stroke="#ECEFF1" stroke-width="1"/>
+<text x="55.0" y="171.0" font-size="10" fill="#607D8B" text-anchor="end" font-weight="normal" font-family="Segoe UI,Meiryo,sans-serif">0.25</text>
+<line x1="62.0" y1="120.0" x2="520.0" y2="120.0" stroke="#ECEFF1" stroke-width="1"/>
+<text x="55.0" y="124.0" font-size="10" fill="#607D8B" text-anchor="end" font-weight="normal" font-family="Segoe UI,Meiryo,sans-serif">0.50</text>
+<line x1="62.0" y1="73.0" x2="520.0" y2="73.0" stroke="#ECEFF1" stroke-width="1"/>
+<text x="55.0" y="77.0" font-size="10" fill="#607D8B" text-anchor="end" font-weight="normal" font-family="Segoe UI,Meiryo,sans-serif">0.75</text>
+<line x1="62.0" y1="26.0" x2="520.0" y2="26.0" stroke="#ECEFF1" stroke-width="1"/>
+<text x="55.0" y="30.0" font-size="10" fill="#607D8B" text-anchor="end" font-weight="normal" font-family="Segoe UI,Meiryo,sans-serif">1.00</text>
+<line x1="62.0" y1="26.0" x2="62.0" y2="214.0" stroke="#ECEFF1" stroke-width="1"/>
+<text x="62.0" y="229.0" font-size="10" fill="#607D8B" text-anchor="middle" font-weight="normal" font-family="Segoe UI,Meiryo,sans-serif">0</text>
+<line x1="112.9" y1="26.0" x2="112.9" y2="214.0" stroke="#ECEFF1" stroke-width="1"/>
+<text x="112.9" y="229.0" font-size="10" fill="#607D8B" text-anchor="middle" font-weight="normal" font-family="Segoe UI,Meiryo,sans-serif">100</text>
+<line x1="163.8" y1="26.0" x2="163.8" y2="214.0" stroke="#ECEFF1" stroke-width="1"/>
+<text x="163.8" y="229.0" font-size="10" fill="#607D8B" text-anchor="middle" font-weight="normal" font-family="Segoe UI,Meiryo,sans-serif">200</text>
+<line x1="214.7" y1="26.0" x2="214.7" y2="214.0" stroke="#ECEFF1" stroke-width="1"/>
+<text x="214.7" y="229.0" font-size="10" fill="#607D8B" text-anchor="middle" font-weight="normal" font-family="Segoe UI,Meiryo,sans-serif">300</text>
+<line x1="265.6" y1="26.0" x2="265.6" y2="214.0" stroke="#ECEFF1" stroke-width="1"/>
+<text x="265.6" y="229.0" font-size="10" fill="#607D8B" text-anchor="middle" font-weight="normal" font-family="Segoe UI,Meiryo,sans-serif">400</text>
+<line x1="316.4" y1="26.0" x2="316.4" y2="214.0" stroke="#ECEFF1" stroke-width="1"/>
+<text x="316.4" y="229.0" font-size="10" fill="#607D8B" text-anchor="middle" font-weight="normal" font-family="Segoe UI,Meiryo,sans-serif">500</text>
+<line x1="367.3" y1="26.0" x2="367.3" y2="214.0" stroke="#ECEFF1" stroke-width="1"/>
+<text x="367.3" y="229.0" font-size="10" fill="#607D8B" text-anchor="middle" font-weight="normal" font-family="Segoe UI,Meiryo,sans-serif">600</text>
+<line x1="418.2" y1="26.0" x2="418.2" y2="214.0" stroke="#ECEFF1" stroke-width="1"/>
+<text x="418.2" y="229.0" font-size="10" fill="#607D8B" text-anchor="middle" font-weight="normal" font-family="Segoe UI,Meiryo,sans-serif">700</text>
+<line x1="469.1" y1="26.0" x2="469.1" y2="214.0" stroke="#ECEFF1" stroke-width="1"/>
+<text x="469.1" y="229.0" font-size="10" fill="#607D8B" text-anchor="middle" font-weight="normal" font-family="Segoe UI,Meiryo,sans-serif">800</text>
+<line x1="520.0" y1="26.0" x2="520.0" y2="214.0" stroke="#ECEFF1" stroke-width="1"/>
+<text x="520.0" y="229.0" font-size="10" fill="#607D8B" text-anchor="middle" font-weight="normal" font-family="Segoe UI,Meiryo,sans-serif">900</text>
+<line x1="62.0" y1="214.0" x2="520.0" y2="214.0" stroke="#607D8B" stroke-width="1.2"/>
+<line x1="62.0" y1="26.0" x2="62.0" y2="214.0" stroke="#607D8B" stroke-width="1.2"/>
+<text x="291.0" y="246.0" font-size="11" fill="#607D8B" text-anchor="middle" font-weight="normal" font-family="Segoe UI,Meiryo,sans-serif">時間 [ns]</text>
+<text x="14.0" y="120.0" font-size="11" fill="#607D8B" text-anchor="middle" font-weight="normal" font-family="Segoe UI,Meiryo,sans-serif" transform="rotate(-90 14 120.0)">規格化振幅</text>
+<line x1="62.0" y1="214.0" x2="62.0" y2="218.0" stroke="#B0BEC5" stroke-width="0.8"/>
+<line x1="78.3" y1="214.0" x2="78.3" y2="218.0" stroke="#B0BEC5" stroke-width="0.8"/>
+<line x1="94.6" y1="214.0" x2="94.6" y2="218.0" stroke="#B0BEC5" stroke-width="0.8"/>
+<line x1="110.9" y1="214.0" x2="110.9" y2="218.0" stroke="#B0BEC5" stroke-width="0.8"/>
+<line x1="127.1" y1="214.0" x2="127.1" y2="218.0" stroke="#B0BEC5" stroke-width="0.8"/>
+<line x1="143.4" y1="214.0" x2="143.4" y2="218.0" stroke="#B0BEC5" stroke-width="0.8"/>
+<line x1="159.7" y1="214.0" x2="159.7" y2="218.0" stroke="#B0BEC5" stroke-width="0.8"/>
+<line x1="176.0" y1="214.0" x2="176.0" y2="218.0" stroke="#B0BEC5" stroke-width="0.8"/>
+<line x1="192.3" y1="214.0" x2="192.3" y2="218.0" stroke="#B0BEC5" stroke-width="0.8"/>
+<line x1="208.6" y1="214.0" x2="208.6" y2="218.0" stroke="#B0BEC5" stroke-width="0.8"/>
+<line x1="224.8" y1="214.0" x2="224.8" y2="218.0" stroke="#B0BEC5" stroke-width="0.8"/>
+<line x1="241.1" y1="214.0" x2="241.1" y2="218.0" stroke="#B0BEC5" stroke-width="0.8"/>
+<line x1="257.4" y1="214.0" x2="257.4" y2="218.0" stroke="#B0BEC5" stroke-width="0.8"/>
+<line x1="273.7" y1="214.0" x2="273.7" y2="218.0" stroke="#B0BEC5" stroke-width="0.8"/>
+<line x1="290.0" y1="214.0" x2="290.0" y2="218.0" stroke="#B0BEC5" stroke-width="0.8"/>
+<line x1="306.3" y1="214.0" x2="306.3" y2="218.0" stroke="#B0BEC5" stroke-width="0.8"/>
+<line x1="322.6" y1="214.0" x2="322.6" y2="218.0" stroke="#B0BEC5" stroke-width="0.8"/>
+<line x1="338.8" y1="214.0" x2="338.8" y2="218.0" stroke="#B0BEC5" stroke-width="0.8"/>
+<line x1="355.1" y1="214.0" x2="355.1" y2="218.0" stroke="#B0BEC5" stroke-width="0.8"/>
+<line x1="371.4" y1="214.0" x2="371.4" y2="218.0" stroke="#B0BEC5" stroke-width="0.8"/>
+<line x1="387.7" y1="214.0" x2="387.7" y2="218.0" stroke="#B0BEC5" stroke-width="0.8"/>
+<line x1="404.0" y1="214.0" x2="404.0" y2="218.0" stroke="#B0BEC5" stroke-width="0.8"/>
+<line x1="420.3" y1="214.0" x2="420.3" y2="218.0" stroke="#B0BEC5" stroke-width="0.8"/>
+<line x1="436.5" y1="214.0" x2="436.5" y2="218.0" stroke="#B0BEC5" stroke-width="0.8"/>
+<line x1="452.8" y1="214.0" x2="452.8" y2="218.0" stroke="#B0BEC5" stroke-width="0.8"/>
+<line x1="469.1" y1="214.0" x2="469.1" y2="218.0" stroke="#B0BEC5" stroke-width="0.8"/>
+<line x1="485.4" y1="214.0" x2="485.4" y2="218.0" stroke="#B0BEC5" stroke-width="0.8"/>
+<line x1="501.7" y1="214.0" x2="501.7" y2="218.0" stroke="#B0BEC5" stroke-width="0.8"/>
+<line x1="518.0" y1="214.0" x2="518.0" y2="218.0" stroke="#B0BEC5" stroke-width="0.8"/>
+<text x="62.0" y="262.0" font-size="9" fill="#90A4AE" text-anchor="start" font-weight="normal" font-family="Segoe UI,Meiryo,sans-serif">ベースラインの細かい目盛 = Red Pitaya の 32 サンプルごと（8 ns/sample）</text>
+<path d="M62.00 214.00 L65.18 213.83 L68.36 212.90 L71.54 210.93 L74.72 207.85 L77.90 203.73 L81.08 198.68 L84.26 192.84 L87.44 186.34 L90.62 179.33 L93.81 171.93 L96.99 164.24 L100.17 156.36 L103.35 148.39 L106.53 140.41 L109.71 132.47 L112.89 124.65 L116.07 116.98 L119.25 109.52 L122.43 102.29 L125.61 95.34 L128.79 88.68 L131.97 82.33 L135.15 76.31 L138.33 70.64 L141.51 65.32 L144.69 60.35 L147.88 55.73 L151.06 51.48 L154.24 47.58 L157.42 44.04 L160.60 40.84 L163.78 37.98 L166.96 35.45 L170.14 33.25 L173.32 31.36 L176.50 29.78 L179.68 28.49 L182.86 27.48 L186.04 26.74 L189.22 26.26 L192.40 26.03 L195.58 26.03 L198.76 26.26 L201.94 26.70 L205.12 27.33 L208.31 28.16 L211.49 29.17 L214.67 30.34 L217.85 31.67 L221.03 33.14 L224.21 34.75 L227.39 36.48 L230.57 38.33 L233.75 40.28 L236.93 42.34 L240.11 44.48 L243.29 46.70 L246.47 49.00 L249.65 51.36 L252.83 53.77 L256.01 56.24 L259.19 58.76 L262.38 61.31 L265.56 63.90 L268.74 66.51 L271.92 69.14 L275.10 71.80 L278.28 74.46 L281.46 77.13 L284.64 79.80 L287.82 82.48 L291.00 85.15 L294.18 87.81 L297.36 90.46 L300.54 93.10 L303.72 95.72 L306.90 98.32 L310.08 100.91 L313.26 103.46 L316.44 106.00 L319.62 108.50 L322.81 110.98 L325.99 113.43 L329.17 115.84 L332.35 118.22 L335.53 120.57 L338.71 122.88 L341.89 125.16 L345.07 127.40 L348.25 129.60 L351.43 131.77 L354.61 133.90 L357.79 135.99 L360.97 138.04 L364.15 140.05 L367.33 142.02 L370.51 143.95 L373.69 145.85 L376.88 147.70 L380.06 149.52 L383.24 151.29 L386.42 153.03 L389.60 154.73 L392.78 156.39 L395.96 158.02 L399.14 159.61 L402.32 161.16 L405.50 162.67 L408.68 164.15 L411.86 165.59 L415.04 166.99 L418.22 168.37 L421.40 169.70 L424.58 171.01 L427.76 172.28 L430.94 173.52 L434.13 174.72 L437.31 175.90 L440.49 177.04 L443.67 178.16 L446.85 179.24 L450.03 180.30 L453.21 181.32 L456.39 182.32 L459.57 183.29 L462.75 184.24 L465.93 185.15 L469.11 186.05 L472.29 186.91 L475.47 187.76 L478.65 188.58 L481.83 189.37 L485.01 190.15 L488.19 190.90 L491.38 191.62 L494.56 192.33 L497.74 193.02 L500.92 193.69 L504.10 194.33 L507.28 194.96 L510.46 195.57 L513.64 196.16 L516.82 196.74" fill="none" stroke="#E53935" stroke-width="2.4" stroke-linejoin="round"/>
+<line x1="112.9" y1="120.0" x2="335.5" y2="120.0" stroke="#E53935" stroke-width="1.2" stroke-dasharray="3 2"/>
+<path d="M62.00 214.00 L65.18 210.04 L68.36 197.73 L71.54 181.15 L74.72 163.26 L77.90 145.62 L81.08 129.01 L84.26 113.75 L87.44 99.97 L90.62 87.66 L93.81 76.77 L96.99 67.22 L100.17 58.92 L103.35 51.77 L106.53 45.70 L109.71 40.59 L112.89 36.39 L116.07 33.00 L119.25 30.36 L122.43 28.40 L125.61 27.05 L128.79 26.27 L131.97 26.00 L135.15 26.19 L138.33 26.79 L141.51 27.76 L144.69 29.07 L147.88 30.68 L151.06 32.55 L154.24 34.66 L157.42 36.97 L160.60 39.47 L163.78 42.12 L166.96 44.91 L170.14 47.82 L173.32 50.83 L176.50 53.92 L179.68 57.08 L182.86 60.29 L186.04 63.54 L189.22 66.82 L192.40 70.12 L195.58 73.43 L198.76 76.74 L201.94 80.04 L205.12 83.33 L208.31 86.60 L211.49 89.85 L214.67 93.06 L217.85 96.24 L221.03 99.38 L224.21 102.48 L227.39 105.53 L230.57 108.53 L233.75 111.49 L236.93 114.39 L240.11 117.24 L243.29 120.03 L246.47 122.77 L249.65 125.45 L252.83 128.07 L256.01 130.64 L259.19 133.14 L262.38 135.59 L265.56 137.98 L268.74 140.32 L271.92 142.59 L275.10 144.81 L278.28 146.97 L281.46 149.07 L284.64 151.12 L287.82 153.11 L291.00 155.05 L294.18 156.94 L297.36 158.77 L300.54 160.55 L303.72 162.28 L306.90 163.96 L310.08 165.60 L313.26 167.18 L316.44 168.72 L319.62 170.21 L322.81 171.66 L325.99 173.06 L329.17 174.42 L332.35 175.74 L335.53 177.02 L338.71 178.26 L341.89 179.46 L345.07 180.62 L348.25 181.75 L351.43 182.84 L354.61 183.90 L357.79 184.92 L360.97 185.91 L364.15 186.87 L367.33 187.80 L370.51 188.69 L373.69 189.56 L376.88 190.40 L380.06 191.21 L383.24 192.00 L386.42 192.76 L389.60 193.49 L392.78 194.20 L395.96 194.89 L399.14 195.55 L402.32 196.19 L405.50 196.81 L408.68 197.41 L411.86 197.99 L415.04 198.55 L418.22 199.09 L421.40 199.61 L424.58 200.11 L427.76 200.60 L430.94 201.07 L434.13 201.52 L437.31 201.96 L440.49 202.38 L443.67 202.79 L446.85 203.19 L450.03 203.57 L453.21 203.94 L456.39 204.29 L459.57 204.64 L462.75 204.97 L465.93 205.29 L469.11 205.60 L472.29 205.89 L475.47 206.18 L478.65 206.46 L481.83 206.73 L485.01 206.98 L488.19 207.23 L491.38 207.47 L494.56 207.71 L497.74 207.93 L500.92 208.15 L504.10 208.35 L507.28 208.56 L510.46 208.75 L513.64 208.94 L516.82 209.12" fill="none" stroke="#FB8C00" stroke-width="1.5" stroke-linejoin="round" stroke-dasharray="5 3"/>
+<path d="M62.00 214.00 L63.02 213.95 L64.04 213.63 L65.05 212.87 L66.07 211.56 L67.09 209.65 L68.11 207.11 L69.12 203.96 L70.14 200.23 L71.16 195.96 L72.18 191.20 L73.20 186.01 L74.21 180.45 L75.23 174.59 L76.25 168.48 L77.27 162.18 L78.28 155.75 L79.30 149.23 L80.32 142.68 L81.34 136.14 L82.36 129.63 L83.37 123.21 L84.39 116.90 L85.41 110.72 L86.43 104.71 L87.44 98.87 L88.46 93.23 L89.48 87.80 L90.50 82.59 L91.52 77.62 L92.53 72.88 L93.55 68.38 L94.57 64.12 L95.59 60.12 L96.60 56.35 L97.62 52.84 L98.64 49.56 L99.66 46.53 L100.68 43.73 L101.69 41.17 L102.71 38.83 L103.73 36.71 L104.75 34.80 L105.76 33.10 L106.78 31.60 L107.80 30.30 L108.82 29.18 L109.84 28.25 L110.85 27.48 L111.87 26.89 L112.89 26.45 L113.91 26.16 L114.92 26.02 L115.94 26.01 L116.96 26.14 L117.98 26.39 L119.00 26.76 L120.01 27.24 L121.03 27.83 L122.05 28.52 L123.07 29.30 L124.08 30.17 L125.10 31.12 L126.12 32.15 L127.14 33.25 L128.16 34.42 L129.17 35.66 L130.19 36.95 L131.21 38.30 L132.23 39.70 L133.24 41.14 L134.26 42.63 L135.28 44.16 L136.30 45.72 L137.32 47.32 L138.33 48.94 L139.35 50.59 L140.37 52.27 L141.39 53.96 L142.40 55.68 L143.42 57.41 L144.44 59.15 L145.46 60.91 L146.48 62.68 L147.49 64.45 L148.51 66.23 L149.53 68.01 L150.55 69.80 L151.56 71.58 L152.58 73.37 L153.60 75.15 L154.62 76.93 L155.64 78.71 L156.65 80.48 L157.67 82.25 L158.69 84.00 L159.71 85.75 L160.72 87.49 L161.74 89.22 L162.76 90.94 L163.78 92.65 L164.80 94.34 L165.81 96.02 L166.83 97.69 L167.85 99.35 L168.87 100.99 L169.88 102.62 L170.90 104.23 L171.92 105.83 L172.94 107.41 L173.96 108.97 L174.97 110.52 L175.99 112.05 L177.01 113.57 L178.03 115.07 L179.04 116.55 L180.06 118.02 L181.08 119.47 L182.10 120.90 L183.12 122.31 L184.13 123.71 L185.15 125.09 L186.17 126.46 L187.19 127.80 L188.20 129.13 L189.22 130.44 L190.24 131.74 L191.26 133.01 L192.28 134.27 L193.29 135.52 L194.31 136.75 L195.33 137.96 L196.35 139.15 L197.36 140.33 L198.38 141.49 L199.40 142.63 L200.42 143.76 L201.44 144.87 L202.45 145.97 L203.47 147.05 L204.49 148.11 L205.51 149.16 L206.52 150.19 L207.54 151.21 L208.56 152.22 L209.58 153.20 L210.60 154.18 L211.61 155.14 L212.63 156.08 L213.65 157.01 L214.67 157.93 L215.68 158.83 L216.70 159.72 L217.72 160.60 L218.74 161.46 L219.76 162.31 L220.77 163.15 L221.79 163.97 L222.81 164.78 L223.83 165.58 L224.84 166.36 L225.86 167.14 L226.88 167.90 L227.90 168.65 L228.92 169.38 L229.93 170.11 L230.95 170.82 L231.97 171.53 L232.99 172.22 L234.00 172.90 L235.02 173.57 L236.04 174.23 L237.06 174.88 L238.08 175.52 L239.09 176.15 L240.11 176.77 L241.13 177.38 L242.15 177.98 L243.16 178.56 L244.18 179.14 L245.20 179.72 L246.22 180.28 L247.24 180.83 L248.25 181.37 L249.27 181.91 L250.29 182.44 L251.31 182.95 L252.32 183.46 L253.34 183.96 L254.36 184.46 L255.38 184.94 L256.40 185.42 L257.41 185.89 L258.43 186.35 L259.45 186.81 L260.47 187.25 L261.48 187.69 L262.50 188.12 L263.52 188.55 L264.54 188.97 L265.56 189.38 L266.57 189.79 L267.59 190.18 L268.61 190.58 L269.63 190.96 L270.64 191.34 L271.66 191.71 L272.68 192.08 L273.70 192.44 L274.72 192.80 L275.73 193.15 L276.75 193.49 L277.77 193.83 L278.79 194.16 L279.80 194.49 L280.82 194.81 L281.84 195.13 L282.86 195.44 L283.88 195.74 L284.89 196.04 L285.91 196.34 L286.93 196.63 L287.95 196.92 L288.96 197.20 L289.98 197.48 L291.00 197.75 L292.02 198.02 L293.04 198.28 L294.05 198.54 L295.07 198.80 L296.09 199.05 L297.11 199.29 L298.12 199.54 L299.14 199.78 L300.16 200.01 L301.18 200.24 L302.20 200.47 L303.21 200.69 L304.23 200.91 L305.25 201.13 L306.27 201.34 L307.28 201.55 L308.30 201.75 L309.32 201.96 L310.34 202.16 L311.36 202.35 L312.37 202.54 L313.39 202.73 L314.41 202.92 L315.43 203.10 L316.44 203.28 L317.46 203.46 L318.48 203.63 L319.50 203.80 L320.52 203.97 L321.53 204.14 L322.55 204.30 L323.57 204.46 L324.59 204.62 L325.60 204.77 L326.62 204.93 L327.64 205.08 L328.66 205.22 L329.68 205.37 L330.69 205.51 L331.71 205.65 L332.73 205.79 L333.75 205.93 L334.76 206.06 L335.78 206.19 L336.80 206.32 L337.82 206.45 L338.84 206.57 L339.85 206.69 L340.87 206.81 L341.89 206.93 L342.91 207.05 L343.92 207.16 L344.94 207.28 L345.96 207.39 L346.98 207.50 L348.00 207.61 L349.01 207.71 L350.03 207.81 L351.05 207.92 L352.07 208.02 L353.08 208.12 L354.10 208.21 L355.12 208.31 L356.14 208.40 L357.16 208.50 L358.17 208.59 L359.19 208.68 L360.21 208.76 L361.23 208.85 L362.24 208.94 L363.26 209.02 L364.28 209.10 L365.30 209.18 L366.32 209.26 L367.33 209.34 L368.35 209.42 L369.37 209.49 L370.39 209.57 L371.40 209.64 L372.42 209.71 L373.44 209.78 L374.46 209.85 L375.48 209.92 L376.49 209.99 L377.51 210.06 L378.53 210.12 L379.55 210.19 L380.56 210.25 L381.58 210.31 L382.60 210.37 L383.62 210.43 L384.64 210.49 L385.65 210.55 L386.67 210.61 L387.69 210.66 L388.71 210.72 L389.72 210.77 L390.74 210.82 L391.76 210.88 L392.78 210.93 L393.80 210.98 L394.81 211.03 L395.83 211.08 L396.85 211.13 L397.87 211.17 L398.88 211.22 L399.90 211.27 L400.92 211.31 L401.94 211.36 L402.96 211.40 L403.97 211.44 L404.99 211.48 L406.01 211.53 L407.03 211.57 L408.04 211.61 L409.06 211.65 L410.08 211.69 L411.10 211.72 L412.12 211.76 L413.13 211.80 L414.15 211.84 L415.17 211.87 L416.19 211.91 L417.20 211.94 L418.22 211.97 L419.24 212.01 L420.26 212.04 L421.28 212.07 L422.29 212.11 L423.31 212.14 L424.33 212.17 L425.35 212.20 L426.36 212.23 L427.38 212.26 L428.40 212.29 L429.42 212.31 L430.44 212.34 L431.45 212.37 L432.47 212.40 L433.49 212.42 L434.51 212.45 L435.52 212.47 L436.54 212.50 L437.56 212.52 L438.58 212.55 L439.60 212.57 L440.61 212.60 L441.63 212.62 L442.65 212.64 L443.67 212.66 L444.68 212.69 L445.70 212.71 L446.72 212.73 L447.74 212.75 L448.76 212.77 L449.77 212.79 L450.79 212.81 L451.81 212.83 L452.83 212.85 L453.84 212.87 L454.86 212.89 L455.88 212.91 L456.90 212.93 L457.92 212.94 L458.93 212.96 L459.95 212.98 L460.97 212.99 L461.99 213.01 L463.00 213.03 L464.02 213.04 L465.04 213.06 L466.06 213.07 L467.08 213.09 L468.09 213.11" fill="none" stroke="#7B1FA2" stroke-width="1.5" stroke-linejoin="round" stroke-dasharray="5 3"/>
+<path d="M62.00 214.00 L63.02 213.02 L64.04 208.46 L65.05 199.95 L66.07 188.27 L67.09 174.44 L68.11 159.40 L69.12 143.91 L70.14 128.55 L71.16 113.77 L72.18 99.87 L73.20 87.05 L74.21 75.46 L75.23 65.15 L76.25 56.16 L77.27 48.46 L78.28 42.01 L79.30 36.77 L80.32 32.67 L81.34 29.62 L82.36 27.54 L83.37 26.37 L84.39 26.00 L85.41 26.37 L86.43 27.39 L87.44 29.00 L88.46 31.12 L89.48 33.69 L90.50 36.64 L91.52 39.93 L92.53 43.50 L93.55 47.31 L94.57 51.31 L95.59 55.46 L96.60 59.73 L97.62 64.09 L98.64 68.50 L99.66 72.96 L100.68 77.42 L101.69 81.88 L102.71 86.31 L103.73 90.71 L104.75 95.05 L105.76 99.33 L106.78 103.54 L107.80 107.67 L108.82 111.70 L109.84 115.65 L110.85 119.50 L111.87 123.25 L112.89 126.89 L113.91 130.43 L114.92 133.86 L115.94 137.19 L116.96 140.40 L117.98 143.52 L119.00 146.52 L120.01 149.42 L121.03 152.22 L122.05 154.91 L123.07 157.50 L124.08 160.00 L125.10 162.40 L126.12 164.71 L127.14 166.92 L128.16 169.05 L129.17 171.09 L130.19 173.05 L131.21 174.92 L132.23 176.72 L133.24 178.44 L134.26 180.09 L135.28 181.67 L136.30 183.18 L137.32 184.62 L138.33 186.00 L139.35 187.32 L140.37 188.58 L141.39 189.79 L142.40 190.94 L143.42 192.04 L144.44 193.09 L145.46 194.09 L146.48 195.04 L147.49 195.95 L148.51 196.82 L149.53 197.65 L150.55 198.44 L151.56 199.20 L152.58 199.92 L153.60 200.60 L154.62 201.25 L155.64 201.87 L156.65 202.47 L157.67 203.03 L158.69 203.57 L159.71 204.08 L160.72 204.57 L161.74 205.03 L162.76 205.47 L163.78 205.89 L164.80 206.29 L165.81 206.67 L166.83 207.03 L167.85 207.38 L168.87 207.71 L169.88 208.02 L170.90 208.31 L171.92 208.60 L172.94 208.87 L173.96 209.12 L174.97 209.36 L175.99 209.59 L177.01 209.81 L178.03 210.02 L179.04 210.22 L180.06 210.41 L181.08 210.59 L182.10 210.76 L183.12 210.92 L184.13 211.07 L185.15 211.22 L186.17 211.36 L187.19 211.49 L188.20 211.62 L189.22 211.74 L190.24 211.85 L191.26 211.96 L192.28 212.06 L193.29 212.16 L194.31 212.25 L195.33 212.34 L196.35 212.42 L197.36 212.50 L198.38 212.58 L199.40 212.65 L200.42 212.72 L201.44 212.78 L202.45 212.84 L203.47 212.90 L204.49 212.96 L205.51 213.01 L206.52 213.06 L207.54 213.11 L208.56 213.15 L209.58 213.19 L210.60 213.23 L211.61 213.27 L212.63 213.31 L213.65 213.34 L214.67 213.38 L215.68 213.41 L216.70 213.44 L217.72 213.47 L218.74 213.49 L219.76 213.52 L220.77 213.54 L221.79 213.57 L222.81 213.59 L223.83 213.61 L224.84 213.63 L225.86 213.65 L226.88 213.67 L227.90 213.68 L228.92 213.70 L229.93 213.71 L230.95 213.73 L231.97 213.74 L232.99 213.76 L234.00 213.77 L235.02 213.78 L236.04 213.79 L237.06 213.80 L238.08 213.81 L239.09 213.82 L240.11 213.83 L241.13 213.84 L242.15 213.85 L243.16 213.85 L244.18 213.86 L245.20 213.87 L246.22 213.88 L247.24 213.88 L248.25 213.89 L249.27 213.89 L250.29 213.90 L251.31 213.90 L252.32 213.91 L253.34 213.91 L254.36 213.92 L255.38 213.92 L256.40 213.93 L257.41 213.93 L258.43 213.93 L259.45 213.94 L260.47 213.94 L261.48 213.94 L262.50 213.95 L263.52 213.95 L264.54 213.95 L265.56 213.95 L266.57 213.96 L267.59 213.96 L268.61 213.96 L269.63 213.96 L270.64 213.96 L271.66 213.97 L272.68 213.97 L273.70 213.97 L274.72 213.97 L275.73 213.97 L276.75 213.97 L277.77 213.98 L278.79 213.98 L279.80 213.98 L280.82 213.98 L281.84 213.98 L282.86 213.98 L283.88 213.98 L284.89 213.98 L285.91 213.98 L286.93 213.98 L287.95 213.99 L288.96 213.99 L289.98 213.99 L291.00 213.99 L292.02 213.99 L293.04 213.99 L294.05 213.99 L295.07 213.99 L296.09 213.99 L297.11 213.99 L298.12 213.99 L299.14 213.99 L300.16 213.99 L301.18 213.99 L302.20 213.99 L303.21 213.99 L304.23 213.99 L305.25 213.99 L306.27 213.99 L307.28 213.99 L308.30 213.99 L309.32 214.00 L310.34 214.00 L311.36 214.00 L312.37 214.00 L313.39 214.00 L314.41 214.00 L315.43 214.00 L316.44 214.00 L317.46 214.00 L318.48 214.00 L319.50 214.00 L320.52 214.00 L321.53 214.00 L322.55 214.00 L323.57 214.00 L324.59 214.00 L325.60 214.00 L326.62 214.00 L327.64 214.00 L328.66 214.00 L329.68 214.00 L330.69 214.00 L331.71 214.00 L332.73 214.00 L333.75 214.00 L334.76 214.00 L335.78 214.00 L336.80 214.00 L337.82 214.00 L338.84 214.00 L339.85 214.00 L340.87 214.00 L341.89 214.00 L342.91 214.00 L343.92 214.00 L344.94 214.00 L345.96 214.00 L346.98 214.00 L348.00 214.00 L349.01 214.00 L350.03 214.00 L351.05 214.00 L352.07 214.00 L353.08 214.00 L354.10 214.00 L355.12 214.00 L356.14 214.00 L357.16 214.00 L358.17 214.00 L359.19 214.00 L360.21 214.00 L361.23 214.00 L362.24 214.00 L363.26 214.00 L364.28 214.00 L365.30 214.00 L366.32 214.00 L367.33 214.00 L368.35 214.00 L369.37 214.00 L370.39 214.00 L371.40 214.00 L372.42 214.00 L373.44 214.00 L374.46 214.00 L375.48 214.00 L376.49 214.00 L377.51 214.00 L378.53 214.00 L379.55 214.00 L380.56 214.00 L381.58 214.00 L382.60 214.00 L383.62 214.00 L384.64 214.00 L385.65 214.00 L386.67 214.00 L387.69 214.00 L388.71 214.00 L389.72 214.00 L390.74 214.00 L391.76 214.00 L392.78 214.00 L393.80 214.00 L394.81 214.00 L395.83 214.00 L396.85 214.00 L397.87 214.00 L398.88 214.00 L399.90 214.00 L400.92 214.00 L401.94 214.00 L402.96 214.00 L403.97 214.00 L404.99 214.00 L406.01 214.00 L407.03 214.00 L408.04 214.00 L409.06 214.00 L410.08 214.00 L411.10 214.00 L412.12 214.00 L413.13 214.00 L414.15 214.00 L415.17 214.00 L416.19 214.00 L417.20 214.00 L418.22 214.00 L419.24 214.00 L420.26 214.00 L421.28 214.00 L422.29 214.00 L423.31 214.00 L424.33 214.00 L425.35 214.00 L426.36 214.00 L427.38 214.00 L428.40 214.00 L429.42 214.00 L430.44 214.00 L431.45 214.00 L432.47 214.00 L433.49 214.00 L434.51 214.00 L435.52 214.00 L436.54 214.00 L437.56 214.00 L438.58 214.00 L439.60 214.00 L440.61 214.00 L441.63 214.00 L442.65 214.00 L443.67 214.00 L444.68 214.00 L445.70 214.00 L446.72 214.00 L447.74 214.00 L448.76 214.00 L449.77 214.00 L450.79 214.00 L451.81 214.00 L452.83 214.00 L453.84 214.00 L454.86 214.00 L455.88 214.00 L456.90 214.00 L457.92 214.00 L458.93 214.00 L459.95 214.00 L460.97 214.00 L461.99 214.00 L463.00 214.00 L464.02 214.00 L465.04 214.00 L466.06 214.00 L467.08 214.00 L468.09 214.00" fill="none" stroke="#2E7D32" stroke-width="2.4" stroke-linejoin="round"/>
+<line x1="70.1" y1="120.0" x2="111.9" y2="120.0" stroke="#2E7D32" stroke-width="1.2" stroke-dasharray="3 2"/>
+<rect x="288.0" y="22.0" width="226.0" height="90.0" fill="#ffffff" stroke="#CFD8DC" stroke-width="1" rx="5" opacity="0.95"/>
+<text x="296.0" y="36.0" font-size="10" fill="#607D8B" text-anchor="start" font-weight="bold" font-family="Segoe UI,Meiryo,sans-serif">FWHM（半値幅）</text>
+<line x1="296.0" y1="48.0" x2="316.0" y2="48.0" stroke="#E53935" stroke-width="2.4"/>
+<text x="322.0" y="52.0" font-size="10" fill="#263238" text-anchor="start" font-weight="normal" font-family="Segoe UI,Meiryo,sans-serif">60035 + GAGG（現行）</text>
+<text x="510.0" y="52.0" font-size="10" fill="#E53935" text-anchor="end" font-weight="bold" font-family="Segoe UI,Meiryo,sans-serif">432 ns</text>
+<line x1="296.0" y1="63.0" x2="316.0" y2="63.0" stroke="#FB8C00" stroke-width="2.4" stroke-dasharray="5 3"/>
+<text x="322.0" y="67.0" font-size="10" fill="#263238" text-anchor="start" font-weight="normal" font-family="Segoe UI,Meiryo,sans-serif">60035 + プラスチック</text>
+<text x="510.0" y="67.0" font-size="10" fill="#FB8C00" text-anchor="end" font-weight="bold" font-family="Segoe UI,Meiryo,sans-serif">315 ns</text>
+<line x1="296.0" y1="78.0" x2="316.0" y2="78.0" stroke="#7B1FA2" stroke-width="2.4" stroke-dasharray="5 3"/>
+<text x="322.0" y="82.0" font-size="10" fill="#263238" text-anchor="start" font-weight="normal" font-family="Segoe UI,Meiryo,sans-serif">30020 + GAGG</text>
+<text x="510.0" y="82.0" font-size="10" fill="#7B1FA2" text-anchor="end" font-weight="bold" font-family="Segoe UI,Meiryo,sans-serif">192 ns</text>
+<line x1="296.0" y1="93.0" x2="316.0" y2="93.0" stroke="#2E7D32" stroke-width="2.4"/>
+<text x="322.0" y="97.0" font-size="10" fill="#263238" text-anchor="start" font-weight="normal" font-family="Segoe UI,Meiryo,sans-serif">30020 + プラスチック（提案）</text>
+<text x="510.0" y="97.0" font-size="10" fill="#2E7D32" text-anchor="end" font-weight="bold" font-family="Segoe UI,Meiryo,sans-serif">79 ns</text></svg>
+<figcaption>4 通りの組み合わせについて、TP2（アンプ出力）に現れるパルス形状。
+各段を 1 次遅れとみなして畳み込み、ピークで規格化した。破線は中間案。
+現行（赤）と提案（緑）には半値幅を示す水平線を引いてある。</figcaption>
+</figure>
+
+<h3>2.3 現行チェーンの限界を具体的な数字にする</h3>
+
+<p>プラスチック 3 mm と GAGG 6 mm で、MIP（最小電離粒子）1 個が落とすエネルギーはそれぞれ 0.61 MeV と 5.97 MeV。
+光取り出し効率を両方 η = 0.5 と仮定すると、動的飽和の限界は次のようになる。</p>
+
+<div class="scroll">
+<table>
+<thead><tr><th>マクロパルス長</th><th>現行で受けられる MIP 数</th><th>提案で受けられる MIP 数</th></tr></thead>
+<tbody>
+<tr><td>1 µs</td><td class="num">0.4</td><td class="num">59</td></tr>
+<tr><td>5 µs</td><td class="num">2.2</td><td class="num">295</td></tr>
+<tr><td>100 µs</td><td class="num">44</td><td class="num">5,900</td></tr>
+<tr><td>バースト（≪ 100 ns、静的飽和）</td><td class="num">0.1</td><td class="num">2.6</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="bad">
+<b>現行構成は、1 µs のマクロパルスに MIP が 1 個入っただけで直線性 90% を割る。</b>
+実質「ビーム 1 発ごとに必ず飽和している」状態で、積分電荷はビーム強度に比例しない。
+時間構造のほうも、チェーン応答が 432 ns あるので約 1.2 MHz より速い変調は見えない。
+</div>
+
+<p>この見積もりは η = 0.5 に依存する。η が小さければ限界はその分だけ 1/η 倍に上がるが、
+<b>両者の比（135 倍）は η に依存しない</b>ので、提案の効果そのものは η の不確かさの影響を受けない。</p>
+
+</section>
+<!-- ============================================================ -->
+<section id="proposal">
+<h2>3. 提案：センサ子基板だけを差し替える</h2>
+
+<p>この基板はすでに<b>センサ子基板が独立している</b>。<code>cosmic-ray-detector_splited2.kicad_pcb</code> は 40×40 mm の
+Edge.Cuts に <code>SiPM1</code> / <code>R11 R12 R13</code>（49.9 Ω）/ <code>C8 C9 C10</code>（10 µF）/ <code>C11</code>（10 pF）/
+<code>J1</code>（Molex 15-91-0060）/ M2 穴 6 個、の 9 種類しか載っていない。
+しかも <b><code>SiPM1</code> だけが表面（F.Cu）で、他はすべて裏面（B.Cu）</b>にある。
+つまり「読み出し基板は現行通り」という条件は、無理なく成立する。</p>
+
+<figure>
+<svg viewBox="0 0 600 330" role="img" aria-label="センサ子基板の変更点">
+<rect x="0.0" y="0.0" width="600.0" height="330.0" fill="#ffffff" stroke="none" stroke-width="1" rx="0"/>
+<text x="164.0" y="48.0" font-size="11" fill="#E53935" text-anchor="middle" font-weight="bold" font-family="Segoe UI,Meiryo,sans-serif">現行 SiPM1 = MICROFC-60035</text>
+<rect x="60.0" y="60.0" width="208.0" height="208.0" fill="#F5F7F8" stroke="#607D8B" stroke-width="1.4" rx="4"/>
+<circle cx="86.0" cy="86.0" r="5.7" fill="#ffffff" stroke="#607D8B" stroke-width="1"/>
+<circle cx="86.0" cy="242.0" r="5.7" fill="#ffffff" stroke="#607D8B" stroke-width="1"/>
+<circle cx="216.0" cy="86.0" r="5.7" fill="#ffffff" stroke="#607D8B" stroke-width="1"/>
+<circle cx="216.0" cy="242.0" r="5.7" fill="#ffffff" stroke="#607D8B" stroke-width="1"/>
+<circle cx="242.0" cy="86.0" r="5.7" fill="#ffffff" stroke="#607D8B" stroke-width="1"/>
+<circle cx="242.0" cy="242.0" r="5.7" fill="#ffffff" stroke="#607D8B" stroke-width="1"/>
+<rect x="99.2" y="143.1" width="21.8" height="46.8" fill="#CFD8DC55" stroke="#607D8B" stroke-width="1" rx="2" stroke-dasharray="3 2"/>
+<text x="110.1" y="170.5" font-size="9" fill="#607D8B" text-anchor="middle" font-weight="normal" font-family="Segoe UI,Meiryo,sans-serif">J1</text>
+<rect x="145.8" y="145.8" width="36.4" height="36.4" fill="#E5393522" stroke="#E53935" stroke-width="1.8" rx="2"/>
+<rect x="148.4" y="148.4" width="31.2" height="31.2" fill="#E5393566" stroke="#E53935" stroke-width="1.2" rx="1"/>
+<text x="164.0" y="168.0" font-size="10" fill="#ffffff" text-anchor="middle" font-weight="bold" font-family="Segoe UI,Meiryo,sans-serif">6×6</text>
+<text x="164.0" y="278.0" font-size="9" fill="#607D8B" text-anchor="middle" font-weight="normal" font-family="Segoe UI,Meiryo,sans-serif">パッケージ 7.0×7.0 mm / 受光 36 mm²</text>
+<text x="164.0" y="298.0" font-size="9" fill="#607D8B" text-anchor="middle" font-weight="normal" font-family="Segoe UI,Meiryo,sans-serif">セル 18,980 個 / 35 µm ピッチ</text>
+<text x="436.0" y="48.0" font-size="11" fill="#2E7D32" text-anchor="middle" font-weight="bold" font-family="Segoe UI,Meiryo,sans-serif">提案 SiPM1 = MICROFC-30020</text>
+<rect x="332.0" y="60.0" width="208.0" height="208.0" fill="#F5F7F8" stroke="#607D8B" stroke-width="1.4" rx="4"/>
+<circle cx="358.0" cy="86.0" r="5.7" fill="#ffffff" stroke="#607D8B" stroke-width="1"/>
+<circle cx="358.0" cy="242.0" r="5.7" fill="#ffffff" stroke="#607D8B" stroke-width="1"/>
+<circle cx="488.0" cy="86.0" r="5.7" fill="#ffffff" stroke="#607D8B" stroke-width="1"/>
+<circle cx="488.0" cy="242.0" r="5.7" fill="#ffffff" stroke="#607D8B" stroke-width="1"/>
+<circle cx="514.0" cy="86.0" r="5.7" fill="#ffffff" stroke="#607D8B" stroke-width="1"/>
+<circle cx="514.0" cy="242.0" r="5.7" fill="#ffffff" stroke="#607D8B" stroke-width="1"/>
+<rect x="371.2" y="143.1" width="21.8" height="46.8" fill="#CFD8DC55" stroke="#607D8B" stroke-width="1" rx="2" stroke-dasharray="3 2"/>
+<text x="382.1" y="170.5" font-size="9" fill="#607D8B" text-anchor="middle" font-weight="normal" font-family="Segoe UI,Meiryo,sans-serif">J1</text>
+<rect x="425.6" y="153.6" width="20.8" height="20.8" fill="#2E7D3222" stroke="#2E7D32" stroke-width="1.8" rx="2"/>
+<rect x="428.2" y="156.2" width="15.6" height="15.6" fill="#2E7D3266" stroke="#2E7D32" stroke-width="1.2" rx="1"/>
+<text x="436.0" y="168.0" font-size="8" fill="#ffffff" text-anchor="middle" font-weight="bold" font-family="Segoe UI,Meiryo,sans-serif">3×3</text>
+<text x="436.0" y="278.0" font-size="9" fill="#607D8B" text-anchor="middle" font-weight="normal" font-family="Segoe UI,Meiryo,sans-serif">パッケージ 4.0×4.0 mm / 受光 9 mm²</text>
+<text x="436.0" y="298.0" font-size="9" fill="#607D8B" text-anchor="middle" font-weight="normal" font-family="Segoe UI,Meiryo,sans-serif">セル 10,998 個 / 20 µm ピッチ</text>
+<path d="M296 160 L326 160" stroke="#607D8B" stroke-width="2.5" marker-end="url(#ar)"/>
+<defs><marker id="ar" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0 0 L7 3.5 L0 7 z" fill="#607D8B"/></marker></defs>
+<text x="300.0" y="24.0" font-size="10.5" fill="#263238" text-anchor="middle" font-weight="bold" font-family="Segoe UI,Meiryo,sans-serif">40 × 40 mm・M2 穴 6 個・J1（Molex 15-91-0060）位置はすべて据え置き</text>
+<text x="300.0" y="320.0" font-size="10" fill="#607D8B" text-anchor="middle" font-weight="normal" font-family="Segoe UI,Meiryo,sans-serif">変わるのは表面の SiPM フットプリントだけ。R11/R12/R13・C8–C11・J1 は裏面のまま流用できる</text></svg>
+<figcaption>センサ子基板の変更点。<code>SiPM1</code> は基板中心 (126, 56) にあり、40×40 mm 外形・M2 穴 6 個・J1 の位置はすべて据え置きなので、
+2 枚の子基板は工具なしで差し替えられる。</figcaption>
+</figure>
+
+<h3>3.1 デバイス比較</h3>
+
+<div class="scroll">
+<table>
+<thead><tr><th>項目</th><th>MICROFC-60035<br>（現行）</th><th>MICROFC-30020<br>（提案）</th><th>比</th></tr></thead>
+<tbody>
+<tr><td>受光面 / パッケージ</td><td class="num">6×6 mm / 7.0×7.0</td><td class="num">3×3 mm / 4.0×4.0</td><td class="num">0.25</td></tr>
+<tr><td>マイクロセル数</td><td class="num">18,980</td><td class="num">10,998</td><td class="num">0.58</td></tr>
+<tr><td>セルピッチ</td><td class="num">35 µm</td><td class="num">20 µm</td><td class="num">—</td></tr>
+<tr><td><b>セル密度</b></td><td class="num">527 /mm²</td><td class="num">1,222 /mm²</td><td class="num"><b>2.32×</b></td></tr>
+<tr><td>開口率</td><td class="num">64%</td><td class="num">48%</td><td class="num">0.75</td></tr>
+<tr><td>PDE @420 nm（ΔV = 2.5 / 5.0 V）</td><td class="num">31% / 41%</td><td class="num">24% / 31%</td><td class="num">0.76</td></tr>
+<tr><td>ゲイン（ΔV = 2.5 V）</td><td class="num">3.0×10⁶</td><td class="num">1.0×10⁶</td><td class="num">0.33</td></tr>
+<tr><td><b>端子容量 C<sub>t</sub></b></td><td class="num">3,400 pF</td><td class="num">770 pF</td><td class="num"><b>0.23</b></td></tr>
+<tr><td>C<sub>t</sub> × R12 (49.9 Ω)</td><td class="num">170 ns</td><td class="num">38 ns</td><td class="num">0.23</td></tr>
+<tr><td>マイクロセル回復時定数</td><td class="num">95 ns</td><td class="num">23 ns</td><td class="num">0.24</td></tr>
+<tr><td>ダークカウント（typ）</td><td class="num">1,200 kHz</td><td class="num">300 kHz</td><td class="num">0.25</td></tr>
+<tr><td>暗電流（typ）</td><td class="num">618 nA</td><td class="num">50 nA</td><td class="num">0.08</td></tr>
+<tr><td>クロストーク</td><td class="num">7%</td><td class="num">3%</td><td class="num">0.43</td></tr>
+<tr><td>絶対最大電流 I<sub>max</sub></td><td class="num">20 mA</td><td class="num">15 mA</td><td class="num">0.75</td></tr>
+<tr><td><b>降伏電圧 V<sub>br</sub> / 推奨過電圧</b></td><td class="num">24.2–24.7 V<br>1.0–5.0 V</td><td class="num" style="background:#E8F5E9"><b>まったく同一</b></td><td class="num">1.00</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="good">
+<b>V<sub>br</sub> と推奨過電圧が同一である</b>ことが、この提案の成立条件そのものである。
+現行のバイアス 28.9 V（LT3461 + R1/R2 で固定）をそのまま与えれば、どちらのデバイスも過電圧 ΔV = 4.4 V で動く。
+バイアス回路には一切触らなくてよい。
+</div>
+
+<h3>3.2 効果① — 飽和耐性</h3>
+
+<div class="scroll">
+<table>
+<thead><tr><th>指標</th><th>現行</th><th>提案</th><th>比</th></tr></thead>
+<tbody>
+<tr><td>デバイス単体・静的（0.214·セル密度/PDE）</td><td class="num">292</td><td class="num">891</td><td class="num">3.05×</td></tr>
+<tr><td>　同上（ΔV = 2.5 V / 5.0 V で計算）</td><td colspan="2" class="num">2.99× / 3.07×</td><td class="num">ほぼ不変</td></tr>
+<tr><td>デバイス単体・動的（0.111·セル密度/(PDE·τ<sub>rec</sub>)）</td><td class="num">1.60×10⁹</td><td class="num">2.01×10¹⁰</td><td class="num"><b>12.6×</b></td></tr>
+<tr><td>シンチレータ込み・静的（受光面積あたり MeV）</td><td class="num">6.6×10⁻³</td><td class="num">8.9×10⁻²</td><td class="num">13.4×</td></tr>
+<tr><td>シンチレータ込み・動的（受光面積あたり MeV/s）</td><td class="num">3.6×10⁴</td><td class="num">2.0×10⁶</td><td class="num"><b>55×</b></td></tr>
+</tbody>
+</table>
+</div>
+
+<p>過電圧を 2.5 V にしても 5.0 V にしても静的の比が 3.0 倍前後で動かないことに注意。
+セル密度と PDE が同じ向きに動くので<b>過電圧では飽和耐性をほとんど調整できない</b>。だからバイアスを可変にしても、この問題は解けない。</p>
+
+<h3>3.3 効果② — 時定数（こちらが本命）</h3>
+
+<div class="scroll">
+<table>
+<thead><tr><th></th><th>60035 + GAGG<br>（現行）</th><th>60035 +<br>プラスチック</th><th>30020 +<br>GAGG</th><th>30020 + プラスチック<br>（提案）</th></tr></thead>
+<tbody>
+<tr><td>FWHM</td><td class="num">432 ns</td><td class="num">315 ns</td><td class="num">192 ns</td><td class="num"><b>79 ns</b></td></tr>
+<tr><td>立ち上がり 10–90%</td><td class="num">145 ns</td><td class="num">75 ns</td><td class="num">57 ns</td><td class="num"><b>24 ns</b></td></tr>
+<tr><td>ピーク時刻</td><td class="num">259 ns</td><td class="num">138 ns</td><td class="num">105 ns</td><td class="num">44 ns</td></tr>
+<tr><td>分解できる変調周波数</td><td class="num">1.2 MHz</td><td class="num">1.6 MHz</td><td class="num">2.6 MHz</td><td class="num"><b>6.3 MHz</b></td></tr>
+</tbody>
+</table>
+</div>
+
+<p>シンチレータだけ替えても 315 ns、SiPM だけ替えても 192 ns。<b>片方だけでは中途半端で、両方替えて 79 ns になる。</b>
+なお中間案の「60035 + プラスチック」は<b>基板を作らずに今日試せる</b>ので、モデルの検証にはうってつけである（8 章）。</p>
+
+<h3>3.4 なぜ「光を減らす」だけでは代替できないのか</h3>
+
+<p>飽和対策なら、SiPM の前に ND フィルタや拡散板を入れて光量を 1/3 にすれば、静的飽和のマージンは 3 倍になる。基板は作り直さなくてよい。
+それでもデバイス交換を推す理由は 2 つある。</p>
+
+<div class="scroll">
+<table>
+<thead><tr><th></th><th>減光フィルタ</th><th>30020 へ交換</th></tr></thead>
+<tbody>
+<tr><td>得られる静的飽和マージン</td><td class="num">3.05×</td><td class="num">3.05×</td></tr>
+<tr><td>そのために失う検出光子数</td><td class="num">3.05×</td><td class="num"><b>1.32×</b></td></tr>
+<tr><td>統計揺らぎ σ の悪化</td><td class="num">1.75×</td><td class="num"><b>1.15×</b></td></tr>
+<tr><td>時定数への効果</td><td class="bad" style="margin:0;padding:4px 8px"><b>ゼロ</b></td><td class="good" style="margin:0;padding:4px 8px"><b>1/5.5</b></td></tr>
+<tr><td>動的飽和への効果</td><td class="num">3.05×</td><td class="num"><b>12.6×</b></td></tr>
+</tbody>
+</table>
+</div>
+
+<ol>
+<li><b>光子の使い方が 2.3 倍効率的。</b>同じ飽和マージンを得るのに、減光は光子を 3.05 分の 1 にするが、交換は PDE の差の 1.32 分の 1 で済む。</li>
+<li><b>時定数には何の効果もない。</b>減光しても 432 ns は 432 ns のままである。<b>ここが決定的。</b></li>
+</ol>
+
+<div class="note">
+逆に言えば、<b>飽和だけを直したいなら減光で十分</b>で、そのときは基板を作る必要はない。
+30020 に替える判断は「時間構造を見たい」「マクロパルス長がセル回復時間より長い」のどちらか（またはその両方）が成り立つときに限られる。
+今回の用途はどちらも成り立っている。
+</div>
+
+<h3>3.5 シンチレータ：GAGG:Ce → プラスチック</h3>
+
+<div class="scroll">
+<table>
+<thead><tr><th></th><th>GAGG:Ce（現行）</th><th>プラスチック EJ-200 相当（提案）</th></tr></thead>
+<tbody>
+<tr><td>発光量</td><td class="num">50,000 ph/MeV</td><td class="num">10,000 ph/MeV</td></tr>
+<tr><td>減衰時定数</td><td class="num">90–150 ns</td><td class="num">2.1 ns</td></tr>
+<tr><td>発光波長</td><td class="num">520 nm</td><td class="num">425 nm</td></tr>
+<tr><td>SiPM の PDE ピーク（420 nm）との一致</td><td class="num">0.88</td><td class="num">1.00</td></tr>
+<tr><td>密度</td><td class="num">6.63 g/cm³</td><td class="num">1.02 g/cm³</td></tr>
+<tr><td>光電吸収ピーク（γ 線分光）</td><td class="good" style="margin:0;padding:4px 8px">出る</td><td class="bad" style="margin:0;padding:4px 8px">出ない（低 Z）</td></tr>
+</tbody>
+</table>
+</div>
+
+<ul>
+<li>発光量が 1/5 になるので、それだけで飽和マージンが 5 倍増える。<b>ビーム強度モニタでは光は少ないほうが都合がよい。</b></li>
+<li>減衰時定数 120 ns → 2.1 ns で、時定数の ① 段が実質的に消える。</li>
+<li>発光波長が SiPM の PDE ピークに合うので、光子数 1/5 のうち約 12% は PDE 側で取り戻せる。</li>
+<li><b>低 Z なので光電ピークが出ない。</b>γ 線のエネルギースペクトルを測る用途には使えない — 付録A で 60035 + GAGG 基板を残す理由がこれである。</li>
+</ul>
+
+<h4>厚さが「ゲインつまみ」になる</h4>
+
+<p>読み出し基板を触らないと決めた以上、電気的なゲイン調整の余地はない。代わりに<b>シンチレータの厚さが感度の調整つまみになる</b>。
+3×3 mm 角のまま厚さだけ変えれば、下表のとおり 1 桁の範囲で連続的に振れる。しかも作り直すのはプラスチック片 1 個だけで、加工も容易である。</p>
+
+<div class="scroll">
+<table>
+<thead><tr><th>厚さ</th><th>MIP 1 個の落とすエネルギー</th><th>検出光子数<br>（η = 0.5）</th><th>電荷</th><th>TP2 のピーク電圧</th></tr></thead>
+<tbody>
+<tr><td>1 mm</td><td class="num">0.20 MeV</td><td class="num">300</td><td class="num">85 pC</td><td class="num">239 mV</td></tr>
+<tr><td>2 mm</td><td class="num">0.41 MeV</td><td class="num">600</td><td class="num">169 pC</td><td class="num">478 mV</td></tr>
+<tr><td>3 mm</td><td class="num">0.61 MeV</td><td class="num">900</td><td class="num">254 pC</td><td class="num">717 mV</td></tr>
+<tr><td>5 mm</td><td class="num">1.02 MeV</td><td class="num">1,500</td><td class="num">423 pC</td><td class="num">1.20 V</td></tr>
+<tr><td>10 mm</td><td class="num">2.05 MeV</td><td class="num">3,000</td><td class="num">846 pC</td><td class="num">2.39 V</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="good">
+<b>当初の「ゲインを可変にしたい」という要求は、基板を改造せずにここで満たされる。</b>
+粗調＝シンチレータの厚さ（1〜10 mm で約 10 倍）、微調＝減光フィルタ／エアギャップ／拡散板（連続可変）。
+どちらも工具だけで変えられ、電気的な校正をやり直す必要もない。
+</div>
+
+</section>
+
+<!-- ============================================================ -->
+<section id="unchanged">
+<h2>4. 読み出し基板が現行のままでよい理由</h2>
+
+<h3>4.1 バイアス — V<sub>br</sub> が同一だから触らなくてよい</h3>
+
+<p>60035 と 30020 は同じ C-Series で、V<sub>br</sub> = 24.2〜24.7 V、推奨過電圧 1.0〜5.0 V がまったく同じ。
+現行の 28.9 V をそのまま与えれば ΔV = 4.4 V。<code>LT3461</code>・<code>R1</code>(10k)・<code>R2</code>(221k) はすべて無変更。
+むしろ 30020 のほうがダークカウント 1/4、暗電流 1/12 なので、同じ過電圧でノイズは下がる。</p>
+
+<h3>4.2 電流上限とアンプのフルスケールが、たまたまではなく合っている</h3>
+
+<figure>
+<svg viewBox="0 0 600 306" role="img" aria-label="信号レベルとRedPitayaの入力レンジ">
+<rect x="0.0" y="0.0" width="600.0" height="306.0" fill="#ffffff" stroke="none" stroke-width="1" rx="0"/>
+<line x1="152.0" y1="212.0" x2="462.0" y2="212.0" stroke="#607D8B" stroke-width="1"/>
+<text x="144.0" y="216.0" font-size="10" fill="#607D8B" text-anchor="end" font-weight="normal" font-family="Segoe UI,Meiryo,sans-serif">0 V</text>
+<line x1="152.0" y1="180.7" x2="462.0" y2="180.7" stroke="#ECEFF1" stroke-width="1"/>
+<text x="144.0" y="184.7" font-size="10" fill="#607D8B" text-anchor="end" font-weight="normal" font-family="Segoe UI,Meiryo,sans-serif">1 V</text>
+<line x1="152.0" y1="149.5" x2="462.0" y2="149.5" stroke="#ECEFF1" stroke-width="1"/>
+<text x="144.0" y="153.5" font-size="10" fill="#607D8B" text-anchor="end" font-weight="normal" font-family="Segoe UI,Meiryo,sans-serif">2 V</text>
+<line x1="152.0" y1="118.2" x2="462.0" y2="118.2" stroke="#ECEFF1" stroke-width="1"/>
+<text x="144.0" y="122.2" font-size="10" fill="#607D8B" text-anchor="end" font-weight="normal" font-family="Segoe UI,Meiryo,sans-serif">3 V</text>
+<line x1="152.0" y1="86.9" x2="462.0" y2="86.9" stroke="#ECEFF1" stroke-width="1"/>
+<text x="144.0" y="90.9" font-size="10" fill="#607D8B" text-anchor="end" font-weight="normal" font-family="Segoe UI,Meiryo,sans-serif">4 V</text>
+<line x1="152.0" y1="55.6" x2="462.0" y2="55.6" stroke="#ECEFF1" stroke-width="1"/>
+<text x="144.0" y="59.6" font-size="10" fill="#607D8B" text-anchor="end" font-weight="normal" font-family="Segoe UI,Meiryo,sans-serif">5 V</text>
+<line x1="152.0" y1="40.0" x2="152.0" y2="212.0" stroke="#607D8B" stroke-width="1.2"/>
+<text x="110.0" y="24.0" font-size="11" fill="#263238" text-anchor="start" font-weight="bold" font-family="Segoe UI,Meiryo,sans-serif">TP2（アンプ出力）のフルスケール</text>
+<rect x="196.0" y="55.3" width="72.0" height="156.7" fill="#E539351e" stroke="#E53935" stroke-width="1.1" rx="3"/>
+<rect x="196.0" y="79.6" width="72.0" height="132.4" fill="#E5393555" stroke="#E53935" stroke-width="1.8" rx="3"/>
+<text x="232.0" y="95.6" font-size="11" fill="#ffffff" text-anchor="middle" font-weight="bold" font-family="Segoe UI,Meiryo,sans-serif">4.23 V</text>
+<text x="232.0" y="71.5" font-size="9" fill="#E53935" text-anchor="middle" font-weight="normal" font-family="Segoe UI,Meiryo,sans-serif">I<tspan dy="2" font-size="7">max</tspan> 5.01 V</text>
+<text x="232.0" y="229.0" font-size="11" fill="#263238" text-anchor="middle" font-weight="bold" font-family="Segoe UI,Meiryo,sans-serif">現行</text>
+<text x="232.0" y="243.0" font-size="9" fill="#607D8B" text-anchor="middle" font-weight="normal" font-family="Segoe UI,Meiryo,sans-serif">60035 + GAGG</text>
+<rect x="330.0" y="94.5" width="72.0" height="117.5" fill="#2E7D321e" stroke="#2E7D32" stroke-width="1.1" rx="3"/>
+<rect x="330.0" y="106.4" width="72.0" height="105.6" fill="#2E7D3255" stroke="#2E7D32" stroke-width="1.8" rx="3"/>
+<text x="366.0" y="122.4" font-size="11" fill="#ffffff" text-anchor="middle" font-weight="bold" font-family="Segoe UI,Meiryo,sans-serif">3.38 V</text>
+<text x="408.0" y="97.5" font-size="9" fill="#2E7D32" text-anchor="start" font-weight="normal" font-family="Segoe UI,Meiryo,sans-serif">I<tspan dy="2" font-size="7">max</tspan> 3.76 V</text>
+<text x="366.0" y="229.0" font-size="11" fill="#263238" text-anchor="middle" font-weight="bold" font-family="Segoe UI,Meiryo,sans-serif">提案</text>
+<text x="366.0" y="243.0" font-size="9" fill="#607D8B" text-anchor="middle" font-weight="normal" font-family="Segoe UI,Meiryo,sans-serif">30020 + プラスチック</text>
+<line x1="152.0" y1="55.6" x2="462.0" y2="55.6" stroke="#E53935" stroke-width="1.6" stroke-dasharray="5 3"/>
+<text x="460.0" y="49.6" font-size="9" fill="#E53935" text-anchor="end" font-weight="normal" font-family="Segoe UI,Meiryo,sans-serif">LT1807 の 5 V レール</text>
+<line x1="318.0" y1="79.5" x2="462.0" y2="79.5" stroke="#EF6C00" stroke-width="1.4" stroke-dasharray="3 3"/>
+<text x="460.0" y="74.5" font-size="9" fill="#EF6C00" text-anchor="end" font-weight="normal" font-family="Segoe UI,Meiryo,sans-serif">スルーレート限界 4.2 V</text>
+<text x="492.0" y="24.0" font-size="11" fill="#263238" text-anchor="start" font-weight="bold" font-family="Segoe UI,Meiryo,sans-serif">Red Pitaya 入力</text>
+<rect x="496.0" y="180.7" width="28.0" height="31.3" fill="#00BCD422" stroke="#0097A7" stroke-width="1.4" rx="3"/>
+<text x="510.0" y="162.7" font-size="10" fill="#0097A7" text-anchor="middle" font-weight="bold" font-family="Segoe UI,Meiryo,sans-serif">LV</text>
+<text x="510.0" y="174.7" font-size="9" fill="#607D8B" text-anchor="middle" font-weight="normal" font-family="Segoe UI,Meiryo,sans-serif">±1 V</text>
+<rect x="534.0" y="40.0" width="28.0" height="172.0" fill="#43A04722" stroke="#2E7D32" stroke-width="1.4" rx="3"/>
+<text x="548.0" y="58.0" font-size="10" fill="#2E7D32" text-anchor="middle" font-weight="bold" font-family="Segoe UI,Meiryo,sans-serif">HV</text>
+<text x="548.0" y="71.0" font-size="9" fill="#2E7D32" text-anchor="middle" font-weight="normal" font-family="Segoe UI,Meiryo,sans-serif">±20</text>
+<text x="548.0" y="83.0" font-size="9" fill="#2E7D32" text-anchor="middle" font-weight="normal" font-family="Segoe UI,Meiryo,sans-serif">V</text>
+<text x="492.0" y="229.0" font-size="9" fill="#607D8B" text-anchor="start" font-weight="normal" font-family="Segoe UI,Meiryo,sans-serif">14 bit LSB</text>
+<text x="492.0" y="241.0" font-size="9" fill="#0097A7" text-anchor="start" font-weight="normal" font-family="Segoe UI,Meiryo,sans-serif">LV 0.122 mV</text>
+<text x="492.0" y="253.0" font-size="9" fill="#2E7D32" text-anchor="start" font-weight="normal" font-family="Segoe UI,Meiryo,sans-serif">HV 2.44 mV</text>
+<text x="20.0" y="274.0" font-size="10" fill="#607D8B" text-anchor="start" font-weight="normal" font-family="Segoe UI,Meiryo,sans-serif">濃い枠 = 直線性 90% を保てる上限、薄い枠 = データシートの絶対最大電流 I<tspan dy="2" font-size="8">max</tspan>。</text>
+<text x="20.0" y="290.0" font-size="10" fill="#607D8B" text-anchor="start" font-weight="normal" font-family="Segoe UI,Meiryo,sans-serif">どちらのセンサも「物理的な電流上限 ≒ アンプのフルスケール」に収まる。だから読み出し基板は現行のままでよい。</text></svg>
+<figcaption>TP2（<code>Amplifier</code> ネット、U2A 出力、ゲイン ×5.02）に現れる電圧のフルスケールと、Red Pitaya の入力レンジ。</figcaption>
+</figure>
+
+<div class="scroll">
+<table>
+<thead><tr><th></th><th>直線性 90% 時の<br>アノード電流</th><th>データシート<br>I<sub>max</sub></th><th>R12 (49.9 Ω)<br>での電圧</th><th>ゲイン ×5.02 後<br>（TP2）</th></tr></thead>
+<tbody>
+<tr><td>60035（現行）</td><td class="num">16.9 mA</td><td class="num">20 mA</td><td class="num">0.84 V</td><td class="num">4.23 V（I<sub>max</sub> で 5.01 V）</td></tr>
+<tr><td>30020（提案）</td><td class="num">13.5 mA</td><td class="num">15 mA</td><td class="num">0.67 V</td><td class="num">3.38 V（I<sub>max</sub> で 3.76 V）</td></tr>
+</tbody>
+</table>
+</div>
+
+<p>直線性 90% を与える電流 <code>0.111·N_cells·M·e/τ_rec</code> と、データシートの I<sub>max</sub> が両デバイスとも 1 割程度しか違わない。
+これは偶然ではなく、I<sub>max</sub> の定格自体がセル数・ゲイン・回復時間から決まっているためである。結果として、</p>
+
+<div class="good">
+<b>どちらのセンサでも「物理的に意味のある電流の上限」が、既存アンプのフルスケール（5 V 単電源・ゲイン ×5.02）にちょうど収まる。</b>
+だからゲイン可変回路も、レンジ切替も、分圧も要らない。<b>読み出し基板は本当に現行のままでよい。</b>
+</div>
+
+<h3>4.3 R10 ゲイントリマは最小に固定すること</h3>
+
+<p>ただし 1 つだけ守るべき条件がある。<code>C7 = 10 pF</code> は帰還抵抗 R<sub>f</sub> = <code>R5</code>(1k) + <code>R10</code>(トリマ) と組んで極を作るので、
+<b>R10 を回すとゲインだけでなく帯域も一緒に動く。</b></p>
+
+<div class="scroll">
+<table>
+<thead><tr><th>R10</th><th>R<sub>f</sub></th><th>ゲイン</th><th>帰還極 R<sub>f</sub>·C7</th><th>提案チェーンの FWHM</th><th>立ち上がり</th></tr></thead>
+<tbody>
+<tr><td>0 Ω（最小）</td><td class="num">1 kΩ</td><td class="num">×5.0</td><td class="num">10 ns</td><td class="num"><b>79 ns</b></td><td class="num">24 ns</td></tr>
+<tr><td>2 kΩ</td><td class="num">3 kΩ</td><td class="num">×13.0</td><td class="num">30 ns</td><td class="num">103 ns</td><td class="num">35 ns</td></tr>
+<tr><td>10 kΩ（最大）</td><td class="num">11 kΩ</td><td class="num">×45.2</td><td class="num">110 ns</td><td class="num">181 ns</td><td class="num">52 ns</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="warn">
+<b>R10 は 0 Ω に回し切って固定する。</b>4.2 節のとおりゲイン ×5 でフルスケールがちょうど合うので、上げる理由がそもそもない。
+上げると帯域だけが犠牲になり、79 ns まで縮めた意味が消える（×45 では 181 ns まで戻ってしまう）。
+シルクにマークするか、調整後にネジロックで固定しておくこと。
+</div>
+
+<h3>4.4 スルーレート — これは提案で新しく効いてくる制約</h3>
+
+<div class="formula">LT1807 のスルーレート  SR = 140 V/us (typ)
+必要スルーレート       = 振幅 × 0.8 / 立ち上がり時間
+
+    現行  4.23 V / 145 ns  ->   23 V/us   ( 余裕 6.0 倍 )
+    提案  3.38 V /  24 ns  ->  112 V/us   ( 余裕 <b>1.25 倍</b> )</div>
+
+<p>パルスが 6 倍速くなるので、現行では問題にならなかったスルーレートが提案ではぎりぎりになる。
+フルスケール付近では立ち上がりがわずかにスルー制限を受ける。</p>
+
+<ul>
+<li><b>積分電荷への影響は小さい。</b>出力が最終的に入力に追いつく限り、面積（＝電荷）はほぼ保存される。</li>
+<li><b>時間構造を正確に見たいときは、フルスケールの 2/3（約 2.2 V）以下で使う。</b>調整はシンチレータの厚さか減光で行う（3.5 節）。</li>
+</ul>
+
+<h3>4.5 バイアス電源のドループ</h3>
+
+<p>センサ子基板上のバイアス直列抵抗は <code>R11 + R13</code> = 99.8 Ω、バルク容量は <code>C8 + C9 + C10</code> = 30 µF。
+マクロパルス中は電荷がバルク容量から供給されるので、その分だけ過電圧が下がりゲインが下がる。</p>
+
+<div class="scroll">
+<table>
+<thead><tr><th>マクロパルス長</th><th>バイアス降下<br>（13.5 mA 一定として）</th><th>ΔV = 4.4 V に対する割合</th><th>判定</th></tr></thead>
+<tbody>
+<tr><td>1 µs</td><td class="num">0.45 mV</td><td class="num">0.01%</td><td>問題なし</td></tr>
+<tr><td>5 µs</td><td class="num">2.25 mV</td><td class="num">0.05%</td><td>問題なし</td></tr>
+<tr><td>20 µs</td><td class="num">8.99 mV</td><td class="num">0.20%</td><td>問題なし</td></tr>
+<tr><td>100 µs</td><td class="num">44.9 mV</td><td class="num">1.02%</td><td>ここが実用上の境目</td></tr>
+<tr><td>1 ms</td><td class="num">449 mV</td><td class="num">10.2%</td><td>要対策</td></tr>
+</tbody>
+</table>
+</div>
+
+<p>マクロパルス間の平均電流による DC 降下は、デューティ 10⁻³ で 1.3 mV、10⁻² で 13 mV。こちらは実用上ほぼ無視できる。</p>
+
+<div class="note">
+<b>マクロパルス長が 100 µs 以下なら、バイアス周りも現行のままでよい。</b>
+それより長い場合は、どうせ子基板を作り直すのだから <code>C8–C10</code> をまとめて 100 µF 級（1 ms で 1% なら 306 µF）に増やしておけばよい。
+これはセンサ子基板の中の話なので、「読み出し基板は現行通り」の条件を壊さない。
+</div>
+
+</section>
+<!-- ============================================================ -->
+<section id="rp">
+<h2>5. Red Pitaya の接続と設定</h2>
+
+<h3>5.1 なぜ TP2 なのか — Peak Hold を通してはいけない</h3>
+
+<pre class="ascii"><i>■ センサ子基板 40×40 mm  ← 交換するのはここだけ</i>
+
+    プラスチック 3×3×t mm
+        │
+    SiPM1 <b>MICROFC-30020</b>
+        ├─ アノード ── R12 49.9Ω ── GND
+        └─ バイアス ── R11, R13 ── C8, C9, C10
+        │
+        └─ J1 ═══ ケーブル（短く） ═══ J2
+
+<i>■ メイン基板  ← 無改造</i>
+
+    R4 1k ── D3 BAT54S クランプ
+        │
+    U2A LT1807 非反転 <b>×5.02</b>
+        （R3 249Ω / R5 1k + R10 トリマ / C7 10pF）
+        │
+    ネット "Amplifier" ＝ <b>TP2</b>  ★
+        │
+        ├─→ U5 コンパレータ ─→ D0 割込
+        │      <i>… ビームの有無・幅・レートを ESP32 が監視（目的③）</i>
+        │
+        ├─→ U2B Peak Hold ─→ A0
+        │      <i>… 宇宙線用。ビームでは使わない（B.2 節）</i>
+        │
+        └─→ ★ <b>50Ω 直列 ── 同軸 30cm 以下 ── Red Pitaya CH1</b>
+               <i>… 1 MΩ 入力 / HV レンジ ±20 V / 125 MS/s</i></pre>
+
+<p>TP2 は <code>Amplifier</code> ネットそのもの（実接続は <code>TP2.1, U5.3, C7.2, U2.1, U2.5, R20.1, R5.1</code>）で、<b>Peak Hold の手前</b>にある。ここから取る理由は 3 つ。</p>
+
+<ol>
+<li><b>Peak Hold は 79 ns のパルスを絶対に捕まえられない。</b>保持容量 <code>C6 = 22 nF</code> を LT1807 の ±30 mA で充電するので
+<code>dV/dt ≤ 30 mA / 22 nF = 1.36 V/µs</code>。ピーク到達まで 44 ns しかないパルスでは、捕捉率は数 % のオーダーになる（付録B）。
+しかも捕捉率が振幅に依存するので、<b>ビーム強度に対して非線形になる</b>。ビーム計測で Peak Hold を経由する選択肢はない。</li>
+<li><b>TP2 に何をぶら下げても既存動作を邪魔しない。</b>このノードの負荷は U5 と U2B の入力容量（数 pF）と <code>R20</code> 10 kΩ だけ。
+低インピーダンスのオペアンプ出力なので、同軸を 1 本足しても宇宙線側の動作は変わらない。</li>
+<li><b>ESP32 側を生かしたまま並行運用できる。</b>コンパレータ U5 も TP2 から直接分岐しているので、
+<code>SET_PWM:&lt;duty&gt;</code> でしきい値を設定すればマクロパルスの<b>有無・幅・レート</b>を ESP32 が独立に監視できる。
+これは測定目的③（ビームの有無・安定度の監視）にそのまま使える。</li>
+</ol>
+
+<h3>5.2 配線と終端</h3>
+
+<div class="scroll">
+<table>
+<thead><tr><th>項目</th><th>指定</th><th>理由</th></tr></thead>
+<tbody>
+<tr><td>ケーブル</td><td>50 Ω 同軸、<b>30 cm 以下</b></td><td>往復遅延 3 ns。立ち上がり 24 ns に対して十分に短い</td></tr>
+<tr><td>終端</td><td><b>ソース側に 50 Ω 直列抵抗</b>（ピグテールの根元）。Red Pitaya 側は 1 MΩ のまま</td><td>受端 50 Ω 終端にすると 3.4 V / 50 Ω = 68 mA となり LT1807 の ±30 mA を超える。ソース終端なら往復後に全振幅が届き、反射も吸収される</td></tr>
+<tr><td>GND</td><td>TP2 のすぐ近傍の GND から取る</td><td>ループ面積を作らない</td></tr>
+<tr><td>Red Pitaya レンジ</td><td><b>HV（±20 V）ジャンパ</b></td><td>LV（±1 V）では 3.4 V で飽和し、入力保護の面でも危険</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="warn">
+<b>子基板とメイン基板をつなぐ既存ケーブルの容量にも注意。</b>アノードのノード容量は R12 と並列に効く。
+60035 の 3400 pF に対して同軸 30 cm の 30 pF は 1% 未満だったが、30020 の 770 pF に対しては 4% になり、
+時定数 ③ が 38.4 → 39.9 ns に伸びる。実害はないが、<b>このケーブルも短いほどよい</b>。
+</div>
+
+<h3>5.3 レンジ・分解能・帯域</h3>
+
+<div class="scroll">
+<table>
+<thead><tr><th>項目</th><th>値</th><th>提案チェーンに対する評価</th></tr></thead>
+<tbody>
+<tr><td>サンプリング</td><td>125 MS/s（8 ns）</td><td>FWHM 79 ns に<b>約 10 点</b>乗る</td></tr>
+<tr><td>帯域</td><td>DC–60 MHz</td><td>立ち上がり 24 ns ≒ 15 MHz 相当。余裕あり</td></tr>
+<tr><td>分解能</td><td>14 bit</td><td>HV レンジで 2.44 mV/LSB</td></tr>
+<tr><td>フルスケール利用率</td><td>3.38 V / ±20 V</td><td>1,385 LSB ≒ <b>10.4 bit 相当</b></td></tr>
+<tr><td>積分後の実効分解能</td><td>1 µs = 125 点の平均</td><td>√125 = 11 倍改善 → <b>13.9 bit 相当</b></td></tr>
+<tr><td>結合</td><td>DC 結合</td><td>マクロパルス間のベースラインがそのまま基準になる</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="good">
+<b>DC 結合であることは、この用途では長所である。</b>AC 結合の読み出しだとデューティが変わるたびにベースラインが動き、
+マクロパルスごとの積分電荷が繰り返し周波数に依存してしまう。現行チェーンは SiPM から Red Pitaya まで一貫して DC 結合なので、その問題が起きない。
+</div>
+
+<div class="warn">
+ただし<b>ベースラインは 0 V に貼り付いている</b>（単電源・オフセットなし）。LT1807 の出力は GND から数十 mV まで振れるが、
+その最下端はわずかに非線形になる。ビーム信号は大振幅なので実害は小さいが、
+<b>ベースラインはマクロパルス直前の数百点の平均で毎回推定し直す</b>こと（固定値を仮定しない）。
+</div>
+
+<h3>5.4 電圧から電荷・エネルギーへの換算</h3>
+
+<div class="formula">■ アノード電荷
+    Q [nC] = 3.99 × ∫ V_TP2 dt [V·µs]
+    ( = ∫V dt / (G · R12),  G = 5.02,  R12 = 49.9 Ω )
+
+■ 検出光子数
+    N_det = 3.55e3 × Q [nC]
+    ( M = 1.76e6 @ dV = 4.4 V )
+
+■ 落ちたエネルギー
+    E [MeV] = 2.0 × Q [nC]
+    ( plastic 10,000 ph/MeV,  eta = 0.5,  PDE = 0.293 )
+
+■ 電流換算
+    1 uA のアノード電流 = TP2 で 0.25 mV</div>
+
+<div class="warn">
+G は <code>1 + (R5 + R10)/R3</code> なので <b>R10 の実測値が要る</b>。4.3 節のとおり R10 は 0 Ω に固定するのが前提だが、
+組み立て後に <b>TP2 と U2A の入力の間で実際のゲインを 1 回測っておく</b>こと。η = 0.5 も仮定値なので、
+絶対エネルギーが必要なら既知線源かビーム強度で 1 点校正する。<b>相対値（強度の変動・時間構造）にはこの校正は不要。</b>
+</div>
+
+<h3>5.5 3 つの測定目的への割り当て</h3>
+
+<div class="scroll">
+<table>
+<thead><tr><th>目的</th><th>取り方</th><th>効く仕様</th><th>注意点</th></tr></thead>
+<tbody>
+<tr><td><b>① 1 パルスの積分電荷</b></td><td>Red Pitaya でマクロパルス全体を取り込み、ベースラインを引いて台形積分</td><td>DC 結合／14 bit ／飽和しないこと</td><td>整形回路がないので<b>面積 = 電荷</b>がそのまま成り立つ（線形フィルタは面積を保存する）。<b>飽和とクリップだけが電荷を失わせる</b></td></tr>
+<tr><td><b>② パルス内の時間構造</b></td><td>同じ波形を 8 ns 刻みで見る</td><td>チェーン応答 79 ns</td><td>周期 160 ns（<b>6.3 MHz</b>）までの変調が見える。それより速い構造は鈍る。逆畳み込みすればもう少し伸ばせる</td></tr>
+<tr><td><b>③ ビームの有無・安定度</b></td><td>ESP32 のコンパレータ割込でマクロパルスを計数（<code>SET_PWM</code> でしきい値可変）＋ Red Pitaya 側で 1 発ごとの積分値をトレンド表示</td><td>既存ファームのまま</td><td>ファーム変更なしで即使える。長期の安定度監視は ESP32 側だけで完結する</td></tr>
+</tbody>
+</table>
+</div>
+
+</section>
+
+<!-- ============================================================ -->
+<section id="work">
+<h2>6. 実際に作り直すもの</h2>
+
+<div class="scroll">
+<table>
+<thead><tr><th>対象</th><th>作業</th><th>規模</th></tr></thead>
+<tbody>
+<tr><td><code>lib/cosmic-ray-detector.pretty</code></td><td><b>新規フットプリント</b> <code>XDCR_MICROFC-30020-SMT-TR1</code>。現行の 60035 用は 4 隅パッド 1.1×0.6 mm（±2.85 / ±3.0 mm）＋ 中央 2.9×2.9 mm カスタムパッドの 7×7 パッケージ用で、<b>4×4 パッケージには流用できない</b>。データシートの推奨ランドパターンから起こす</td><td><span class="tag tag-hi">主作業</span></td></tr>
+<tr><td><code>cosmic-ray-detector.kicad_sym</code></td><td>ピン構成（アノード／カソード／ファスト出力）は同じなのでシンボルは流用可。Value と MPN を差し替えた派生シンボルを 1 個作る</td><td><span class="tag tag-lo">小</span></td></tr>
+<tr><td><code>cosmic-ray-detector.kicad_sch</code></td><td><code>SiPM1</code> の Value / Footprint / MPN 差し替え</td><td><span class="tag tag-lo">小</span></td></tr>
+<tr><td><code>cosmic-ray-detector_splited2.kicad_pcb</code></td><td><code>SiPM1</code> を置換。位置 (126, 56) は基板中心なので据え置き。<b>表面は SiPM だけ</b>で R11/R12/R13・C8–C11・J1 は裏面なので、配線の引き直しは SiPM 直近のみ</td><td><span class="tag tag-mid">中</span></td></tr>
+<tr><td><code>cosmic-ray-detector.kicad_pcb</code>（分割前パネル）</td><td>同じ変更を反映して整合をとる</td><td><span class="tag tag-lo">小</span></td></tr>
+<tr><td><code>cad/cosmic-ray-detector_splited2.step</code></td><td>KiCad から再エクスポート</td><td><span class="tag tag-lo">小</span></td></tr>
+<tr><td><code>cad/scintillator.ipt</code><br><code>cad/GAGG_Side_Frame 4 v5.dwg</code></td><td>光学窓 6×6 → 3×3 mm。シンチレータをプラスチック 3×3×t mm に。厚さを変えられるよう、押さえ側にスペーサを入れる設計にしておくと 3.5 節の「ゲインつまみ」が使える</td><td><span class="tag tag-mid">中</span></td></tr>
+<tr><td><code>cad/cosmic-ray-detector-v2-enclosure-*</code></td><td>窓寸法の変更が筐体まで波及しないか確認</td><td><span class="tag tag-lo">確認のみ</span></td></tr>
+<tr><td><code>gbr/</code></td><td><b><code>_splited2</code> のガーバは未生成。</b>子基板単独のガーバ／ドリル／POS 一式を新規に出す</td><td><span class="tag tag-mid">中</span></td></tr>
+<tr><td>BOM</td><td><code>MICROFC-30020-SMT-TR</code> 1 点の差し替えのみ。受動部品はすべて流用</td><td><span class="tag tag-lo">小</span></td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="good">
+<b>据え置き（一切触らない）:</b> 40×40 mm 外形／M2 穴 6 個（x = 111, 136, 141 × y = 41, 71）／J1 Molex 15-91-0060 の位置／
+メイン基板 <code>cosmic-ray-detector_splited.kicad_pcb</code>／ファームウェア／Red Pitaya／バイアス電源 LT3461・R1・R2。
+</div>
+
+</section>
+
+<!-- ============================================================ -->
+<section id="risk">
+<h2>7. 残る制約とリスク</h2>
+
+<div class="scroll">
+<table>
+<thead><tr><th>項目</th><th>内容</th><th>対策</th></tr></thead>
+<tbody>
+<tr><td><b>ファスト出力が使えない</b></td><td>30020 も 60035 も 3 端子目にファスト出力を持つが、<code>J1</code>/<code>J2</code> は HV / GND / ANODE の 3 ネットを 2 パッドずつ使い切っている。ファスト出力をメイン基板へ通すには J1 の割り当て変更＝<b>メイン基板の改造</b>が必要で、前提条件を壊す。（現行でも <code>SiPM1</code> のファスト出力パッドは未接続）</td><td>必要になったら子基板から別途 SMA / 同軸ピグテールで直接引き出す。今回の 3 つの測定目的にはファスト出力は不要</td></tr>
+<tr><td>100 µs を超えるマクロパルス</td><td>C8–C10 = 30 µF ではバイアスが 1% 以上落ちる（4.5 節）</td><td>子基板を作り直すついでにバルクを 100 µF 級へ。1 ms で 1% なら 306 µF</td></tr>
+<tr><td>スルーレート余裕 1.25 倍</td><td>フルスケール付近で立ち上がりがスルー制限を受ける（4.4 節）</td><td>使用点をフルスケールの 2/3 以下に。シンチレータ厚か減光で調整</td></tr>
+<tr><td>ベースラインの 0 V 貼り付き</td><td>単電源・オフセットなしのため下端が非線形</td><td>マクロパルス直前の平均でベースラインを毎回推定。厳密にやるならメイン基板側にオフセットが要る（付録B の v3 案）</td></tr>
+<tr><td>受光面積が 1/4 になる</td><td>ビームの空間的な広がりを見たい場合、アクセプタンスが 1/4 になる</td><td>ビーム強度モニタとしてはむしろ好都合（飽和しにくくなる）。位置分解が要るなら別途多チャンネル化の設計が必要</td></tr>
+<tr><td>γ 線スペクトルが測れなくなる</td><td>プラスチックは低 Z で光電ピークが出ない</td><td>付録A：60035 + GAGG 基板を残して差し替え運用する</td></tr>
+<tr><td>データシート値への依存</td><td>PDE・ゲイン・C<sub>t</sub>・τ<sub>rec</sub> は onsemi C-Series データシートの typ 値、η = 0.5 は仮定</td><td>8 章の「基板を作る前にできること」で実測に置き換える</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>検討して採用しなかった案</h3>
+
+<div class="scroll">
+<table>
+<thead><tr><th>案</th><th>却下理由</th></tr></thead>
+<tbody>
+<tr><td><b>R12 を 49.9 Ω → 10 Ω に下げて速くする</b></td><td>時定数 ③ は 170 → 34 ns になるが、信号も 1/5 になるのでゲインを ×25 にする必要がある。すると R<sub>f</sub> ≒ 6 kΩ となり <code>C7 = 10 pF</code> の極が 60 ns になって、結局それ以上速くならない（4.3 節の表と同じ理屈）。しかも R12 はセンサ子基板上なので、どのみち基板は作り直しになる</td></tr>
+<tr><td><b>減光フィルタだけで対処</b></td><td>飽和には効くが時定数にはまったく効かない（3.4 節）。ただし<b>飽和だけが問題なら、これが正解</b></td></tr>
+<tr><td><b>バイアスを可変にして飽和を調整</b></td><td>過電圧を 2.5 V にしても 5.0 V にしても、セル密度と PDE が同じ向きに動くので飽和耐性の比は 3.0 倍前後で動かない（3.2 節）。バイアス可変では解けない問題である</td></tr>
+<tr><td><b>MICROFC-30035（3 mm / 35 µm）にする</b></td><td>セル密度が 530 /mm² で 60035 とほぼ同じなので、<b>静的飽和は 1.01 倍＝改善しない</b>。ただし C<sub>t</sub> = 850 pF で時定数 ③ が 42 ns になるため、<b>「時定数だけ直したい・光量は落としたくない」ならこれもあり得る</b></td></tr>
+<tr><td><b>MICROFC-10010（1 mm / 10 µm）にする</b></td><td>静的飽和は 60035 比 13.8 倍でさらに良く、時定数も最速。しかし <b>10 µm ピッチは 1 mm 品にしか存在しない</b>ので受光面積が 1/36 になる。C-Series の 3 mm 品は 20 µm と 35 µm の 2 種類だけで、<b>30020 が 3 mm で選べる最も細かいセルピッチ</b>である</td></tr>
+<tr><td><b>Peak Hold 経由で読む</b></td><td>79 ns のパルスに対して捕捉率が数 % かつ振幅依存。ビーム強度に対して非線形になる（5.1 節・付録B）</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="scroll">
+<table>
+<thead><tr><th>C-Series 候補</th><th>受光面</th><th>ピッチ</th><th>セル数</th><th>セル密度</th><th>静的飽和 FOM<br>（60035 比）</th><th>C<sub>t</sub>×R12</th><th>セル回復</th></tr></thead>
+<tbody>
+<tr><td>MICROFC-60035（現行）</td><td class="num">6×6</td><td class="num">35 µm</td><td class="num">18,980</td><td class="num">527</td><td class="num">1.00×</td><td class="num">170 ns</td><td class="num">95 ns</td></tr>
+<tr><td>MICROFC-30035</td><td class="num">3×3</td><td class="num">35 µm</td><td class="num">4,774</td><td class="num">530</td><td class="num">1.01×</td><td class="num">42 ns</td><td class="num">95 ns</td></tr>
+<tr style="background:#E8F5E9"><td><b>MICROFC-30020（提案）</b></td><td class="num">3×3</td><td class="num">20 µm</td><td class="num">10,998</td><td class="num">1,222</td><td class="num"><b>3.05×</b></td><td class="num"><b>38 ns</b></td><td class="num"><b>23 ns</b></td></tr>
+<tr><td>MICROFC-10010</td><td class="num">1×1</td><td class="num">10 µm</td><td class="num">4,400</td><td class="num">4,400</td><td class="num">13.8×</td><td class="num">2 ns</td><td class="num">8 ns</td></tr>
+</tbody>
+</table>
+</div>
+
+</section>
+<!-- ============================================================ -->
+<section id="verify">
+<h2>8. 検証手順</h2>
+
+<h3>8.1 <span class="tag tag-hi">最優先</span>基板を作る前に、今の機材でできること</h3>
+
+<p>ここに挙げた 4 つは<b>すべて現行ハードのまま実施でき</b>、本書のモデルの前提（時定数・η・飽和曲線）を実測に置き換えられる。
+基板を発注する前にこれを済ませておくこと。</p>
+
+<ol>
+<li><b>TP2 にオシロを当ててパルス幅を測る。</b>予測は FWHM 432 ns・立ち上がり 145 ns。
+実測がこの前後に入れば、本書の時定数モデル（4 段の畳み込み）はそのまま信用してよい。
+大きく外れた場合は、まず <code>R10</code> の実値と <code>C7</code> の実装を疑う。<b>これが本書で唯一まだ実測されていない量である。</b></li>
+
+<li><b>いまの検出器のまま Red Pitaya を TP2 に直結して、宇宙線パルスを 125 MS/s で記録する。</b>
+終端・レンジ・トリガ設定・積分アルゴリズムを<b>基板を作る前に全部確定できる</b>。
+新しい子基板が届いた時点で測定系がすでに動いている状態にしておく。</li>
+
+<li><b>60035 のまま、GAGG をプラスチックに替えて測る（中間案）。</b>
+予測は FWHM 315 ns、光子数 1/5。<b>基板を一切作らずに今日できる</b>実験で、
+「シンチレータ交換だけでどこまで行けるか」と「時定数の残り 170 ns が本当に C<sub>t</sub>×R12 なのか」を同時に確かめられる。
+ここで 315 ns 前後が出れば、30020 に替えれば 79 ns になるという予測の信頼度が大きく上がる。</li>
+
+<li><b>減光フィルタで光量を振って飽和曲線を実測する。</b>
+入射光子数に対する出力の直線性を測り、<code>N_fired = N_cells(1 − exp(−N_det/N_cells))</code> をフィットすれば、
+仮定値だった <b>η と実効 N<sub>cells</sub> が実測で決まる</b>。3 章の倍率はすべてこの 2 つに依存しているので、
+ここが押さえられれば提案の定量的な根拠が完成する。</li>
+</ol>
+
+<h3>8.2 新しい子基板が届いたら</h3>
+
+<ol>
+<li><b>バイアスの確認。</b>暗電流の I–V カーブから V<sub>br</sub> を求め、28.9 V で ΔV = 4.4 V になっていることを確認する。
+30020 は暗電流が 50 nA typ と小さいので、60035 のときより測りやすい。</li>
+<li><b>パルス幅の確認。</b>TP2 で FWHM 79 ns・立ち上がり 24 ns 前後になること。
+ここで <b><code>R10</code> が 0 Ω に固定されていること</b>を必ず先に確認する（4.3 節。回っていると 181 ns まで戻る）。</li>
+<li><b>スルーレートの確認。</b>振幅を変えながら立ち上がり時間を測り、フルスケール付近で鈍らないこと。
+鈍るなら 2/3 スケール以下で使う（4.4 節）。</li>
+<li><b>直線性の確認。</b>既知の強度でビームを当て、積分電荷が強度に比例すること。
+10% 外れる点を測り、動的飽和の予測値（受光面積あたり 2.0×10¹⁰ photons/s/mm²）と突き合わせる。</li>
+<li><b>バイアスドループの確認。</b>マクロパルス長を変え、バイアス降下が計算どおり <b>0.45 mV/µs（13.5 mA 時）</b>であることを確認する。
+100 µs で 45 mV を超えるようなら <code>C8–C10</code> の増量を検討（4.5 節）。</li>
+<li><b>時間構造の確認。</b>既知の変調（チョッパ等）をかけて、6.3 MHz 付近まで振幅が保たれること。</li>
+</ol>
+
+</section>
+
+<!-- ============================================================ -->
+<section id="appendix-a">
+<h2>付録A：宇宙線用の 60035 基板は残す — 子基板 2 枚運用</h2>
+
+<p>30020 + プラスチックの構成で宇宙線・γ 線を測ろうとすると次のようになる（MIP、η = 0.5）。</p>
+
+<div class="scroll">
+<table>
+<thead><tr><th></th><th>60035 + GAGG 6 mm</th><th>30020 + プラスチック 3 mm</th><th>比</th></tr></thead>
+<tbody>
+<tr><td>MIP 1 個の落とすエネルギー</td><td class="num">5.97 MeV</td><td class="num">0.61 MeV</td><td class="num">1/9.7</td></tr>
+<tr><td>検出光子数</td><td class="num">50,700</td><td class="num">900</td><td class="num">1/56</td></tr>
+<tr><td>セル占有率 N<sub>det</sub>/N<sub>cells</sub></td><td class="num">2.67</td><td class="num">0.08</td><td class="num">—</td></tr>
+<tr><td>セル飽和による圧縮</td><td class="bad" style="margin:0;padding:4px 8px">35% に圧縮</td><td class="good" style="margin:0;padding:4px 8px">96%（ほぼ線形）</td><td class="num">—</td></tr>
+<tr><td>アノード電荷</td><td class="num">14.9 nC</td><td class="num">0.24 nC</td><td class="num">1/61</td></tr>
+<tr><td>TP2 のピーク電圧</td><td class="num">7.9 V<span class="tag tag-hi" style="margin-left:6px">クリップ</span></td><td class="num">0.69 V</td><td class="num">1/11</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="bad">
+<b>ついでに見つかった問題：現行構成は宇宙線 MIP に対してすでに二重に壊れている。</b>
+セル占有率が 2.67 なので静的飽和で 35% まで圧縮され、それでもなお TP2 換算で 7.9 V となり
+<b>5 V レールでクリップしている</b>。同じ計算で Cs-137 の 662 keV でも直線性は 87%（13% の非直線）になる。
+これは前回の調査で見つかった Peak Hold の取りこぼしとは<b>独立の、別のメカニズム</b>である。
+<span class="est">η = 0.5 という仮定に依存する</span>ので、8.1 節④の飽和曲線実測で確かめる価値が高い。
+</div>
+
+<h3>それでも 60035 基板を残す理由</h3>
+
+<ul>
+<li><b>プラスチックには光電ピークが出ない。</b>低 Z なので γ 線のエネルギースペクトルは原理的に測れない。
+これは SiPM を何に替えても解決しない、シンチレータ材質の問題である。</li>
+<li>検出光子数が 1/56 になるので、エネルギー分解能の統計限界が √56 = 7.5 倍悪化する。</li>
+<li>パルスが 5.5 倍短くなるので、Peak Hold の取りこぼし（付録B）はさらに悪化する。</li>
+</ul>
+
+<div class="good">
+<b>したがって 1 枚で両立させようとしない。</b>子基板は 40×40 mm 外形・M2 穴 6 個・J1 位置がすべて共通なので、
+<b>60035 + GAGG 板（宇宙線・γ 線スペクトル用）と 30020 + プラスチック板（ビーム用）を作って差し替える</b>のが正解である。
+メイン基板・ファーム・筐体は共通で、交換は M2 ネジ 6 本とコネクタ 1 個だけ。
+</div>
+
+<div class="note">
+なお付録B の v3 アナログ基板案（CSA + CR-RC 整形）は<b>宇宙線・γ 線スペクトル側の道</b>である。
+ビーム用途とは要求が正反対（ビームは速くしたい、スペクトルは遅く整形して分解能を上げたい）なので、
+両者を 1 枚の基板で満たそうとすると設計が破綻する。子基板 2 枚運用にしておけば、v3 は宇宙線側の課題として独立に進められる。
+</div>
+
+</section>
+
+<!-- ============================================================ -->
+<section id="appendix-b">
+<h2>付録B：Peak Hold 前の波形調査（前回の結論・要約）</h2>
+
+<p>2026-09-03 の調査で確定した内容を要約する。ビーム用途では Peak Hold を使わない（5.1 節）ので直接は効かないが、
+<b>「なぜ TP2 から直接取らなければならないのか」の根拠</b>であり、宇宙線側の課題としては今も有効である。</p>
+
+<h3>B.1 v2 のアナログ前段には整形回路が存在しない</h3>
+
+<p>SiPM アノードの 49.9 Ω 負荷（<code>R12</code>）と <code>C7 = 10 pF</code> の帰還極だけで、CR 微分も RC 積分も AC 結合もない。
+SiPM の生パルスをそのまま増幅して Peak Hold に入れている。ベースラインは 0 V に貼り付き（v1 実測で ADC = 5、ノイズの 18.7% が 0 でクリップ）。</p>
+
+<h3>B.2 Peak Hold は電荷律速で追従できていない</h3>
+
+<div class="formula">dV/dt |max = I_out(max) / C6 = 30 mA / 22 nF = <b>1.36 V/µs</b></div>
+
+<figure>
+<svg viewBox="0 0 600 268" role="img" aria-label="ピークホールドの電荷律速シミュレーション">
+<rect x="0" y="0" width="600" height="268" fill="#ffffff"/>
+<line x1="66" y1="206.0" x2="518" y2="206.0" stroke="#ECEFF1" stroke-width="1"/>
+<text x="60" y="209.0" font-size="10" fill="#607D8B" text-anchor="end">0.0</text>
+<line x1="66" y1="165.6" x2="518" y2="165.6" stroke="#ECEFF1" stroke-width="1"/>
+<text x="60" y="168.6" font-size="10" fill="#607D8B" text-anchor="end">0.5</text>
+<line x1="66" y1="125.1" x2="518" y2="125.1" stroke="#ECEFF1" stroke-width="1"/>
+<text x="60" y="128.1" font-size="10" fill="#607D8B" text-anchor="end">1.0</text>
+<line x1="66" y1="84.7" x2="518" y2="84.7" stroke="#ECEFF1" stroke-width="1"/>
+<text x="60" y="87.7" font-size="10" fill="#607D8B" text-anchor="end">1.5</text>
+<line x1="66" y1="44.3" x2="518" y2="44.3" stroke="#ECEFF1" stroke-width="1"/>
+<text x="60" y="47.3" font-size="10" fill="#607D8B" text-anchor="end">2.0</text>
+<line x1="66.0" y1="20" x2="66.0" y2="206" stroke="#ECEFF1" stroke-width="1"/>
+<text x="66.0" y="220" font-size="10" fill="#607D8B" text-anchor="middle">0</text>
+<line x1="179.0" y1="20" x2="179.0" y2="206" stroke="#ECEFF1" stroke-width="1"/>
+<text x="179.0" y="220" font-size="10" fill="#607D8B" text-anchor="middle">500</text>
+<line x1="292.0" y1="20" x2="292.0" y2="206" stroke="#ECEFF1" stroke-width="1"/>
+<text x="292.0" y="220" font-size="10" fill="#607D8B" text-anchor="middle">1000</text>
+<line x1="405.0" y1="20" x2="405.0" y2="206" stroke="#ECEFF1" stroke-width="1"/>
+<text x="405.0" y="220" font-size="10" fill="#607D8B" text-anchor="middle">1500</text>
+<line x1="518.0" y1="20" x2="518.0" y2="206" stroke="#ECEFF1" stroke-width="1"/>
+<text x="518.0" y="220" font-size="10" fill="#607D8B" text-anchor="middle">2000</text>
+<line x1="66" y1="20" x2="66" y2="206" stroke="#90A4AE" stroke-width="1.2"/>
+<line x1="66" y1="206" x2="518" y2="206" stroke="#90A4AE" stroke-width="1.2"/>
+<text x="292" y="236" font-size="10" fill="#607D8B" text-anchor="middle">時間 [ns]</text>
+<text x="14" y="113" font-size="10" fill="#607D8B" transform="rotate(-90 14 113)" text-anchor="middle">電圧 [V]</text>
+<polyline points="66.0,206.0 66.9,201.7 67.8,197.7 68.7,194.1 69.6,190.8 70.5,187.8 71.4,185.0 72.3,182.6 73.2,180.3 74.1,178.3 75.0,176.5 75.9,174.8 76.8,173.4 77.8,172.1 78.7,170.9 79.6,169.9 80.5,169.0 81.4,168.3 82.3,167.6 83.2,167.1 84.1,166.6 85.0,166.3 85.9,166.0 86.8,165.8 87.7,165.7 88.6,165.6 89.5,165.6 90.4,165.6 91.3,165.7 92.2,165.8 93.1,166.0 94.0,166.2 94.9,166.4 95.8,166.7 96.7,167.0 97.6,167.3 98.5,167.7 99.4,168.0 100.4,168.4 101.3,168.8 102.2,169.2 103.1,169.7 104.0,170.1 104.9,170.6 105.8,171.0 106.7,171.5 107.6,171.9 108.5,172.4 109.4,172.9 110.3,173.4 111.2,173.9 112.1,174.3 113.0,174.8 113.9,175.3 114.8,175.8 115.7,176.3 116.6,176.7 117.5,177.2 118.4,177.7 119.3,178.2 120.2,178.6 121.1,179.1 122.0,179.5 123.0,180.0 123.9,180.5 124.8,180.9 125.7,181.3 126.6,181.8 127.5,182.2 128.4,182.6 129.3,183.0 130.2,183.5 131.1,183.9 132.0,184.3 132.9,184.7 133.8,185.1 134.7,185.4 135.6,185.8 136.5,186.2 137.4,186.6 138.3,186.9 139.2,187.3 140.1,187.6 141.0,188.0 141.9,188.3 142.8,188.7 143.7,189.0 144.6,189.3 145.6,189.6 146.5,189.9 147.4,190.2 148.3,190.5 149.2,190.8 150.1,191.1 151.0,191.4 151.9,191.7 152.8,192.0 153.7,192.2 154.6,192.5 155.5,192.8 156.4,193.0 157.3,193.3 158.2,193.5 159.1,193.8 160.0,194.0 160.9,194.2 161.8,194.5 162.7,194.7 163.6,194.9 164.5,195.1 165.4,195.3 166.3,195.5 167.2,195.8 168.2,196.0 169.1,196.2 170.0,196.3 170.9,196.5 171.8,196.7 172.7,196.9 173.6,197.1 174.5,197.3 175.4,197.4 176.3,197.6 177.2,197.8 178.1,197.9 179.0,198.1 179.9,198.2 180.8,198.4 181.7,198.5 182.6,198.7 183.5,198.8 184.4,199.0 185.3,199.1 186.2,199.2 187.1,199.4 188.0,199.5 188.9,199.6 189.8,199.8 190.8,199.9 191.7,200.0 192.6,200.1 193.5,200.2 194.4,200.4 195.3,200.5 196.2,200.6 197.1,200.7 198.0,200.8 198.9,200.9 199.8,201.0 200.7,201.1 201.6,201.2 202.5,201.3 203.4,201.4 204.3,201.5 205.2,201.6 206.1,201.6 207.0,201.7 207.9,201.8 208.8,201.9 209.7,202.0 210.6,202.1 211.5,202.1 212.4,202.2 213.4,202.3 214.3,202.4 215.2,202.4 216.1,202.5 217.0,202.6 217.9,202.6 218.8,202.7 219.7,202.8 220.6,202.8 221.5,202.9 222.4,203.0 223.3,203.0 224.2,203.1 225.1,203.1 226.0,203.2 226.9,203.2 227.8,203.3 228.7,203.4 229.6,203.4 230.5,203.5 231.4,203.5 232.3,203.6 233.2,203.6 234.1,203.7 235.0,203.7 236.0,203.7 236.9,203.8 237.8,203.8 238.7,203.9 239.6,203.9 240.5,204.0 241.4,204.0 242.3,204.0 243.2,204.1 244.1,204.1 245.0,204.2 245.9,204.2 246.8,204.2 247.7,204.3 248.6,204.3 249.5,204.3 250.4,204.4 251.3,204.4 252.2,204.4 253.1,204.5 254.0,204.5 254.9,204.5 255.8,204.5 256.7,204.6 257.6,204.6 258.6,204.6 259.5,204.7 260.4,204.7 261.3,204.7 262.2,204.7 263.1,204.8 264.0,204.8 264.9,204.8 265.8,204.8 266.7,204.9 267.6,204.9 268.5,204.9 269.4,204.9 270.3,204.9 271.2,205.0 272.1,205.0 273.0,205.0 273.9,205.0 274.8,205.0 275.7,205.1 276.6,205.1 277.5,205.1 278.4,205.1 279.3,205.1 280.2,205.2 281.2,205.2 282.1,205.2 283.0,205.2 283.9,205.2 284.8,205.2 285.7,205.2 286.6,205.3 287.5,205.3 288.4,205.3 289.3,205.3 290.2,205.3 291.1,205.3 292.0,205.3 292.9,205.4 293.8,205.4 294.7,205.4 295.6,205.4 296.5,205.4 297.4,205.4 298.3,205.4 299.2,205.4 300.1,205.5 301.0,205.5 301.9,205.5 302.8,205.5 303.8,205.5 304.7,205.5 305.6,205.5 306.5,205.5 307.4,205.5 308.3,205.5 309.2,205.6 310.1,205.6 311.0,205.6 311.9,205.6 312.8,205.6 313.7,205.6 314.6,205.6 315.5,205.6 316.4,205.6 317.3,205.6 318.2,205.6 319.1,205.6 320.0,205.6 320.9,205.7 321.8,205.7 322.7,205.7 323.6,205.7 324.5,205.7 325.4,205.7 326.4,205.7 327.3,205.7 328.2,205.7 329.1,205.7 330.0,205.7 330.9,205.7 331.8,205.7 332.7,205.7 333.6,205.7 334.5,205.7 335.4,205.8 336.3,205.8 337.2,205.8 338.1,205.8 339.0,205.8 339.9,205.8 340.8,205.8 341.7,205.8 342.6,205.8 343.5,205.8 344.4,205.8 345.3,205.8 346.2,205.8 347.1,205.8 348.0,205.8 349.0,205.8 349.9,205.8 350.8,205.8 351.7,205.8 352.6,205.8 353.5,205.8 354.4,205.8 355.3,205.8 356.2,205.8 357.1,205.8 358.0,205.8 358.9,205.9 359.8,205.9 360.7,205.9 361.6,205.9 362.5,205.9 363.4,205.9 364.3,205.9 365.2,205.9 366.1,205.9 367.0,205.9 367.9,205.9 368.8,205.9 369.7,205.9 370.6,205.9 371.6,205.9 372.5,205.9 373.4,205.9 374.3,205.9 375.2,205.9 376.1,205.9 377.0,205.9 377.9,205.9 378.8,205.9 379.7,205.9 380.6,205.9 381.5,205.9 382.4,205.9 383.3,205.9 384.2,205.9 385.1,205.9 386.0,205.9 386.9,205.9 387.8,205.9 388.7,205.9 389.6,205.9 390.5,205.9 391.4,205.9 392.3,205.9 393.2,205.9 394.2,205.9 395.1,205.9 396.0,205.9 396.9,205.9 397.8,205.9 398.7,205.9 399.6,205.9 400.5,205.9 401.4,205.9 402.3,205.9 403.2,205.9 404.1,205.9 405.0,205.9 405.9,205.9 406.8,205.9 407.7,205.9 408.6,206.0 409.5,206.0 410.4,206.0 411.3,206.0 412.2,206.0 413.1,206.0 414.0,206.0 414.9,206.0 415.8,206.0 416.8,206.0 417.7,206.0 418.6,206.0 419.5,206.0 420.4,206.0 421.3,206.0 422.2,206.0 423.1,206.0 424.0,206.0 424.9,206.0 425.8,206.0 426.7,206.0 427.6,206.0 428.5,206.0 429.4,206.0 430.3,206.0 431.2,206.0 432.1,206.0 433.0,206.0 433.9,206.0 434.8,206.0 435.7,206.0 436.6,206.0 437.5,206.0 438.4,206.0 439.4,206.0 440.3,206.0 441.2,206.0 442.1,206.0 443.0,206.0 443.9,206.0 444.8,206.0 445.7,206.0 446.6,206.0 447.5,206.0 448.4,206.0 449.3,206.0 450.2,206.0 451.1,206.0 452.0,206.0 452.9,206.0 453.8,206.0 454.7,206.0 455.6,206.0 456.5,206.0 457.4,206.0 458.3,206.0 459.2,206.0 460.1,206.0 461.0,206.0 462.0,206.0 462.9,206.0 463.8,206.0 464.7,206.0 465.6,206.0 466.5,206.0 467.4,206.0 468.3,206.0 469.2,206.0 470.1,206.0 471.0,206.0 471.9,206.0 472.8,206.0 473.7,206.0 474.6,206.0 475.5,206.0 476.4,206.0 477.3,206.0 478.2,206.0 479.1,206.0 480.0,206.0 480.9,206.0 481.8,206.0 482.7,206.0 483.6,206.0 484.6,206.0 485.5,206.0 486.4,206.0 487.3,206.0 488.2,206.0 489.1,206.0 490.0,206.0 490.9,206.0 491.8,206.0 492.7,206.0 493.6,206.0 494.5,206.0 495.4,206.0 496.3,206.0 497.2,206.0 498.1,206.0 499.0,206.0 499.9,206.0 500.8,206.0 501.7,206.0 502.6,206.0 503.5,206.0 504.4,206.0 505.3,206.0 506.2,206.0 507.2,206.0 508.1,206.0 509.0,206.0 509.9,206.0 510.8,206.0 511.7,206.0 512.6,206.0 513.5,206.0 514.4,206.0 515.3,206.0 516.2,206.0 517.1,206.0 518.0,206.0" fill="none" stroke="#B0BEC5" stroke-width="1.3" stroke-dasharray="4 3"/>
+<polyline points="66.0,206.0 66.7,205.7 67.4,205.3 68.0,205.0 68.7,204.7 69.4,204.3 70.1,204.0 70.7,203.7 71.4,203.4 72.1,203.0 72.8,202.7 73.5,202.4 74.1,202.0 74.8,201.7 75.5,201.4 76.2,201.0 76.8,200.7 77.5,200.4 78.2,200.0 78.9,199.7 79.6,199.4 80.2,199.1 80.9,198.7 81.6,198.4 82.3,198.1 83.0,197.7 83.6,197.4 84.3,197.1 85.0,196.7 85.7,196.4 86.3,196.1 87.0,195.7 87.7,195.4 88.4,195.1 89.1,194.8 89.7,194.4 90.4,194.1 91.1,193.8 91.8,193.4 92.4,193.1 93.1,192.8 93.8,192.4 94.5,192.1 95.2,191.8 95.8,191.4 96.5,191.1 97.2,190.8 97.9,190.5 98.5,190.1 99.2,189.8 99.9,189.5 100.6,189.1 101.3,188.8 101.9,188.5 102.6,188.1 103.3,187.8 104.0,187.5 104.6,187.1 105.3,186.8 106.0,186.5 106.7,186.2 107.4,185.8 108.0,185.5 108.7,185.2 109.4,184.8 110.1,184.5 110.7,184.2 111.4,183.8 112.1,183.5 112.8,183.2 113.5,182.8 114.1,182.5 114.8,182.2 115.5,181.8 116.2,181.5 116.8,181.2 117.5,180.9 118.2,180.5 118.9,180.2 119.6,179.9 120.2,179.5 120.9,179.2 121.6,179.1 122.3,179.1 123.0,179.1 123.6,179.1 124.3,179.1 125.0,179.1 125.7,179.1 126.3,179.1 127.0,179.1 127.7,179.1 128.4,179.1 129.1,179.1 129.7,179.1 130.4,179.1 131.1,179.1 131.8,179.1 132.4,179.1 133.1,179.1 133.8,179.1 134.5,179.1 135.2,179.1 135.8,179.1 136.5,179.1 137.2,179.1 137.9,179.1 138.5,179.1 139.2,179.1 139.9,179.1 140.6,179.1 141.3,179.1 141.9,179.1 142.6,179.1 143.3,179.1 144.0,179.1 144.6,179.1 145.3,179.1 146.0,179.1 146.7,179.1 147.4,179.1 148.0,179.1 148.7,179.1 149.4,179.1 150.1,179.1 150.8,179.1 151.4,179.1 152.1,179.1 152.8,179.1 153.5,179.1 154.1,179.1 154.8,179.1 155.5,179.1 156.2,179.1 156.9,179.1 157.5,179.1 158.2,179.1 158.9,179.1 159.6,179.1 160.2,179.1 160.9,179.1 161.6,179.1 162.3,179.1 163.0,179.1 163.6,179.1 164.3,179.1 165.0,179.1 165.7,179.1 166.3,179.1 167.0,179.1 167.7,179.1 168.4,179.1 169.1,179.1 169.7,179.1 170.4,179.1 171.1,179.1 171.8,179.1 172.4,179.1 173.1,179.1 173.8,179.1 174.5,179.1 175.2,179.1 175.8,179.1 176.5,179.1 177.2,179.1 177.9,179.1 178.5,179.1 179.2,179.1 179.9,179.1 180.6,179.1 181.3,179.1 181.9,179.1 182.6,179.1 183.3,179.1 184.0,179.1 184.7,179.1 185.3,179.1 186.0,179.1 186.7,179.1 187.4,179.1 188.0,179.1 188.7,179.1 189.4,179.1 190.1,179.1 190.8,179.1 191.4,179.1 192.1,179.1 192.8,179.1 193.5,179.1 194.1,179.1 194.8,179.1 195.5,179.1 196.2,179.1 196.9,179.1 197.5,179.1 198.2,179.1 198.9,179.1 199.6,179.1 200.2,179.1 200.9,179.1 201.6,179.1 202.3,179.1 203.0,179.1 203.6,179.1 204.3,179.1 205.0,179.1 205.7,179.1 206.3,179.1 207.0,179.1 207.7,179.1 208.4,179.1 209.1,179.1 209.7,179.1 210.4,179.1 211.1,179.1 211.8,179.1 212.4,179.1 213.1,179.1 213.8,179.1 214.5,179.1 215.2,179.1 215.8,179.1 216.5,179.1 217.2,179.1 217.9,179.1 218.6,179.1 219.2,179.1 219.9,179.1 220.6,179.1 221.3,179.1 221.9,179.1 222.6,179.1 223.3,179.1 224.0,179.1 224.7,179.1 225.3,179.1 226.0,179.1 226.7,179.1 227.4,179.1 228.0,179.1 228.7,179.1 229.4,179.1 230.1,179.1 230.8,179.1 231.4,179.1 232.1,179.1 232.8,179.1 233.5,179.1 234.1,179.1 234.8,179.1 235.5,179.1 236.2,179.1 236.9,179.1 237.5,179.1 238.2,179.1 238.9,179.1 239.6,179.1 240.2,179.1 240.9,179.1 241.6,179.1 242.3,179.1 243.0,179.1 243.6,179.1 244.3,179.1 245.0,179.1 245.7,179.1 246.3,179.1 247.0,179.1 247.7,179.1 248.4,179.1 249.1,179.1 249.7,179.1 250.4,179.1 251.1,179.1 251.8,179.1 252.4,179.1 253.1,179.1 253.8,179.1 254.5,179.1 255.2,179.1 255.8,179.1 256.5,179.1 257.2,179.1 257.9,179.1 258.6,179.1 259.2,179.1 259.9,179.1 260.6,179.1 261.3,179.1 261.9,179.1 262.6,179.1 263.3,179.1 264.0,179.1 264.7,179.1 265.3,179.1 266.0,179.1 266.7,179.1 267.4,179.1 268.0,179.1 268.7,179.1 269.4,179.1 270.1,179.1 270.8,179.1 271.4,179.1 272.1,179.1 272.8,179.1 273.5,179.1 274.1,179.1 274.8,179.1 275.5,179.1 276.2,179.1 276.9,179.1 277.5,179.1 278.2,179.1 278.9,179.1 279.6,179.1 280.2,179.1 280.9,179.1 281.6,179.1 282.3,179.1 283.0,179.1 283.6,179.1 284.3,179.1 285.0,179.1 285.7,179.1 286.4,179.1 287.0,179.1 287.7,179.1 288.4,179.1 289.1,179.1 289.7,179.1 290.4,179.1 291.1,179.1 291.8,179.1 292.5,179.1 293.1,179.1 293.8,179.1 294.5,179.1 295.2,179.1 295.8,179.1 296.5,179.1 297.2,179.1 297.9,179.1 298.6,179.1 299.2,179.1 299.9,179.1 300.6,179.1 301.3,179.1 301.9,179.1 302.6,179.1 303.3,179.1 304.0,179.1 304.7,179.1 305.3,179.1 306.0,179.1 306.7,179.1 307.4,179.1 308.0,179.1 308.7,179.1 309.4,179.1 310.1,179.1 310.8,179.1 311.4,179.1 312.1,179.1 312.8,179.1 313.5,179.1 314.1,179.1 314.8,179.1 315.5,179.1 316.2,179.1 316.9,179.1 317.5,179.1 318.2,179.1 318.9,179.1 319.6,179.1 320.2,179.1 320.9,179.1 321.6,179.1 322.3,179.1 323.0,179.1 323.6,179.1 324.3,179.1 325.0,179.1 325.7,179.1 326.4,179.1 327.0,179.1 327.7,179.1 328.4,179.1 329.1,179.1 329.7,179.1 330.4,179.1 331.1,179.1 331.8,179.1 332.5,179.1 333.1,179.1 333.8,179.1 334.5,179.1 335.2,179.1 335.8,179.1 336.5,179.1 337.2,179.1 337.9,179.1 338.6,179.1 339.2,179.1 339.9,179.1 340.6,179.1 341.3,179.1 341.9,179.1 342.6,179.1 343.3,179.1 344.0,179.1 344.7,179.1 345.3,179.1 346.0,179.1 346.7,179.1 347.4,179.1 348.0,179.1 348.7,179.1 349.4,179.1 350.1,179.1 350.8,179.1 351.4,179.1 352.1,179.1 352.8,179.1 353.5,179.1 354.1,179.1 354.8,179.1 355.5,179.1 356.2,179.1 356.9,179.2 357.5,179.2 358.2,179.2 358.9,179.2 359.6,179.2 360.3,179.2 360.9,179.2 361.6,179.2 362.3,179.2 363.0,179.2 363.6,179.2 364.3,179.2 365.0,179.2 365.7,179.2 366.4,179.2 367.0,179.2 367.7,179.2 368.4,179.2 369.1,179.2 369.7,179.2 370.4,179.2 371.1,179.2 371.8,179.2 372.5,179.2 373.1,179.2 373.8,179.2 374.5,179.2 375.2,179.2 375.8,179.2 376.5,179.2 377.2,179.2 377.9,179.2 378.6,179.2 379.2,179.2 379.9,179.2 380.6,179.2 381.3,179.2 381.9,179.2 382.6,179.2 383.3,179.2 384.0,179.2 384.7,179.2 385.3,179.2 386.0,179.2 386.7,179.2 387.4,179.2 388.1,179.2 388.7,179.2 389.4,179.2 390.1,179.2 390.8,179.2 391.4,179.2 392.1,179.2 392.8,179.2 393.5,179.2 394.2,179.2 394.8,179.2 395.5,179.2 396.2,179.2 396.9,179.2 397.5,179.2 398.2,179.2 398.9,179.2 399.6,179.2 400.3,179.2 400.9,179.2 401.6,179.2 402.3,179.2 403.0,179.2 403.6,179.2 404.3,179.2 405.0,179.2 405.7,179.2 406.4,179.2 407.0,179.2 407.7,179.2 408.4,179.2 409.1,179.2 409.7,179.2 410.4,179.2 411.1,179.2 411.8,179.2 412.5,179.2 413.1,179.2 413.8,179.2 414.5,179.2 415.2,179.2 415.8,179.2 416.5,179.2 417.2,179.2 417.9,179.2 418.6,179.2 419.2,179.2 419.9,179.2 420.6,179.2 421.3,179.2 421.9,179.2 422.6,179.2 423.3,179.2 424.0,179.2 424.7,179.2 425.3,179.2 426.0,179.2 426.7,179.2 427.4,179.2 428.1,179.2 428.7,179.2 429.4,179.2 430.1,179.2 430.8,179.2 431.4,179.2 432.1,179.2 432.8,179.2 433.5,179.2 434.2,179.2 434.8,179.2 435.5,179.2 436.2,179.2 436.9,179.2 437.5,179.2 438.2,179.2 438.9,179.2 439.6,179.2 440.3,179.2 440.9,179.2 441.6,179.2 442.3,179.2 443.0,179.2 443.6,179.2 444.3,179.2 445.0,179.2 445.7,179.2 446.4,179.2 447.0,179.2 447.7,179.2 448.4,179.2 449.1,179.2 449.7,179.2 450.4,179.2 451.1,179.2 451.8,179.2 452.5,179.2 453.1,179.2 453.8,179.2 454.5,179.2 455.2,179.2 455.9,179.2 456.5,179.2 457.2,179.2 457.9,179.2 458.6,179.2 459.2,179.2 459.9,179.2 460.6,179.2 461.3,179.2 462.0,179.2 462.6,179.2 463.3,179.2 464.0,179.2 464.7,179.2 465.3,179.2 466.0,179.2 466.7,179.2 467.4,179.2 468.1,179.2 468.7,179.2 469.4,179.2 470.1,179.2 470.8,179.2 471.4,179.2 472.1,179.2 472.8,179.2 473.5,179.2 474.2,179.2 474.8,179.2 475.5,179.2 476.2,179.2 476.9,179.2 477.5,179.2 478.2,179.2 478.9,179.2 479.6,179.2 480.3,179.2 480.9,179.2 481.6,179.2 482.3,179.2 483.0,179.2 483.6,179.2 484.3,179.2 485.0,179.2 485.7,179.2 486.4,179.2 487.0,179.2 487.7,179.2 488.4,179.2 489.1,179.2 489.8,179.2 490.4,179.2 491.1,179.2 491.8,179.2 492.5,179.2 493.1,179.2 493.8,179.2 494.5,179.2 495.2,179.2 495.9,179.2 496.5,179.2 497.2,179.2 497.9,179.2 498.6,179.2 499.2,179.2 499.9,179.2 500.6,179.2 501.3,179.2 502.0,179.2 502.6,179.2 503.3,179.2 504.0,179.2 504.7,179.2 505.3,179.2 506.0,179.2 506.7,179.2 507.4,179.2 508.1,179.2 508.7,179.2 509.4,179.2 510.1,179.2 510.8,179.2 511.4,179.2 512.1,179.2 512.8,179.2 513.5,179.2 514.2,179.2 514.8,179.2 515.5,179.2 516.2,179.2 516.9,179.2 517.5,179.2" fill="none" stroke="#C62828" stroke-width="2.1"/>
+<line x1="314.0" y1="102" x2="314.0" y2="176.1" stroke="#C62828" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="314.0" y="96" font-size="10.5" fill="#C62828" font-weight="bold" text-anchor="middle" stroke="#ffffff" stroke-width="3.5" paint-order="stroke">捕捉 67%</text>
+<text x="108.9" y="157.6" font-size="10" fill="#78909C" stroke="#ffffff" stroke-width="3" paint-order="stroke">0.50 V</text>
+<polyline points="66.0,206.0 66.9,195.6 67.8,186.1 68.7,177.4 69.6,169.5 70.5,162.3 71.4,155.7 72.3,149.7 73.2,144.3 74.1,139.5 75.0,135.1 75.9,131.2 76.8,127.7 77.8,124.5 78.7,121.8 79.6,119.4 80.5,117.3 81.4,115.5 82.3,113.9 83.2,112.6 84.1,111.5 85.0,110.7 85.9,110.0 86.8,109.5 87.7,109.2 88.6,109.0 89.5,109.0 90.4,109.0 91.3,109.3 92.2,109.6 93.1,110.0 94.0,110.5 94.9,111.0 95.8,111.7 96.7,112.4 97.6,113.2 98.5,114.0 99.4,114.9 100.4,115.8 101.3,116.8 102.2,117.8 103.1,118.8 104.0,119.9 104.9,120.9 105.8,122.0 106.7,123.1 107.6,124.3 108.5,125.4 109.4,126.5 110.3,127.7 111.2,128.8 112.1,130.0 113.0,131.2 113.9,132.3 114.8,133.5 115.7,134.6 116.6,135.8 117.5,136.9 118.4,138.1 119.3,139.2 120.2,140.3 121.1,141.4 122.0,142.5 123.0,143.6 123.9,144.7 124.8,145.8 125.7,146.8 126.6,147.9 127.5,148.9 128.4,149.9 129.3,150.9 130.2,151.9 131.1,152.9 132.0,153.9 132.9,154.8 133.8,155.7 134.7,156.7 135.6,157.6 136.5,158.5 137.4,159.4 138.3,160.2 139.2,161.1 140.1,161.9 141.0,162.8 141.9,163.6 142.8,164.4 143.7,165.2 144.6,165.9 145.6,166.7 146.5,167.4 147.4,168.2 148.3,168.9 149.2,169.6 150.1,170.3 151.0,171.0 151.9,171.7 152.8,172.3 153.7,173.0 154.6,173.6 155.5,174.2 156.4,174.9 157.3,175.5 158.2,176.1 159.1,176.6 160.0,177.2 160.9,177.8 161.8,178.3 162.7,178.9 163.6,179.4 164.5,179.9 165.4,180.4 166.3,180.9 167.2,181.4 168.2,181.9 169.1,182.4 170.0,182.8 170.9,183.3 171.8,183.7 172.7,184.2 173.6,184.6 174.5,185.0 175.4,185.4 176.3,185.8 177.2,186.2 178.1,186.6 179.0,187.0 179.9,187.4 180.8,187.7 181.7,188.1 182.6,188.4 183.5,188.8 184.4,189.1 185.3,189.5 186.2,189.8 187.1,190.1 188.0,190.4 188.9,190.7 189.8,191.0 190.8,191.3 191.7,191.6 192.6,191.9 193.5,192.2 194.4,192.4 195.3,192.7 196.2,193.0 197.1,193.2 198.0,193.5 198.9,193.7 199.8,194.0 200.7,194.2 201.6,194.4 202.5,194.7 203.4,194.9 204.3,195.1 205.2,195.3 206.1,195.5 207.0,195.8 207.9,196.0 208.8,196.2 209.7,196.3 210.6,196.5 211.5,196.7 212.4,196.9 213.4,197.1 214.3,197.3 215.2,197.4 216.1,197.6 217.0,197.8 217.9,197.9 218.8,198.1 219.7,198.3 220.6,198.4 221.5,198.6 222.4,198.7 223.3,198.8 224.2,199.0 225.1,199.1 226.0,199.3 226.9,199.4 227.8,199.5 228.7,199.7 229.6,199.8 230.5,199.9 231.4,200.0 232.3,200.1 233.2,200.3 234.1,200.4 235.0,200.5 236.0,200.6 236.9,200.7 237.8,200.8 238.7,200.9 239.6,201.0 240.5,201.1 241.4,201.2 242.3,201.3 243.2,201.4 244.1,201.5 245.0,201.6 245.9,201.7 246.8,201.7 247.7,201.8 248.6,201.9 249.5,202.0 250.4,202.1 251.3,202.2 252.2,202.2 253.1,202.3 254.0,202.4 254.9,202.4 255.8,202.5 256.7,202.6 257.6,202.7 258.6,202.7 259.5,202.8 260.4,202.8 261.3,202.9 262.2,203.0 263.1,203.0 264.0,203.1 264.9,203.1 265.8,203.2 266.7,203.3 267.6,203.3 268.5,203.4 269.4,203.4 270.3,203.5 271.2,203.5 272.1,203.6 273.0,203.6 273.9,203.7 274.8,203.7 275.7,203.8 276.6,203.8 277.5,203.8 278.4,203.9 279.3,203.9 280.2,204.0 281.2,204.0 282.1,204.1 283.0,204.1 283.9,204.1 284.8,204.2 285.7,204.2 286.6,204.2 287.5,204.3 288.4,204.3 289.3,204.3 290.2,204.4 291.1,204.4 292.0,204.4 292.9,204.5 293.8,204.5 294.7,204.5 295.6,204.6 296.5,204.6 297.4,204.6 298.3,204.6 299.2,204.7 300.1,204.7 301.0,204.7 301.9,204.7 302.8,204.8 303.8,204.8 304.7,204.8 305.6,204.8 306.5,204.9 307.4,204.9 308.3,204.9 309.2,204.9 310.1,205.0 311.0,205.0 311.9,205.0 312.8,205.0 313.7,205.0 314.6,205.1 315.5,205.1 316.4,205.1 317.3,205.1 318.2,205.1 319.1,205.1 320.0,205.2 320.9,205.2 321.8,205.2 322.7,205.2 323.6,205.2 324.5,205.2 325.4,205.3 326.4,205.3 327.3,205.3 328.2,205.3 329.1,205.3 330.0,205.3 330.9,205.3 331.8,205.4 332.7,205.4 333.6,205.4 334.5,205.4 335.4,205.4 336.3,205.4 337.2,205.4 338.1,205.4 339.0,205.4 339.9,205.5 340.8,205.5 341.7,205.5 342.6,205.5 343.5,205.5 344.4,205.5 345.3,205.5 346.2,205.5 347.1,205.5 348.0,205.5 349.0,205.6 349.9,205.6 350.8,205.6 351.7,205.6 352.6,205.6 353.5,205.6 354.4,205.6 355.3,205.6 356.2,205.6 357.1,205.6 358.0,205.6 358.9,205.6 359.8,205.7 360.7,205.7 361.6,205.7 362.5,205.7 363.4,205.7 364.3,205.7 365.2,205.7 366.1,205.7 367.0,205.7 367.9,205.7 368.8,205.7 369.7,205.7 370.6,205.7 371.6,205.7 372.5,205.7 373.4,205.7 374.3,205.7 375.2,205.8 376.1,205.8 377.0,205.8 377.9,205.8 378.8,205.8 379.7,205.8 380.6,205.8 381.5,205.8 382.4,205.8 383.3,205.8 384.2,205.8 385.1,205.8 386.0,205.8 386.9,205.8 387.8,205.8 388.7,205.8 389.6,205.8 390.5,205.8 391.4,205.8 392.3,205.8 393.2,205.8 394.2,205.8 395.1,205.8 396.0,205.8 396.9,205.8 397.8,205.8 398.7,205.9 399.6,205.9 400.5,205.9 401.4,205.9 402.3,205.9 403.2,205.9 404.1,205.9 405.0,205.9 405.9,205.9 406.8,205.9 407.7,205.9 408.6,205.9 409.5,205.9 410.4,205.9 411.3,205.9 412.2,205.9 413.1,205.9 414.0,205.9 414.9,205.9 415.8,205.9 416.8,205.9 417.7,205.9 418.6,205.9 419.5,205.9 420.4,205.9 421.3,205.9 422.2,205.9 423.1,205.9 424.0,205.9 424.9,205.9 425.8,205.9 426.7,205.9 427.6,205.9 428.5,205.9 429.4,205.9 430.3,205.9 431.2,205.9 432.1,205.9 433.0,205.9 433.9,205.9 434.8,205.9 435.7,205.9 436.6,205.9 437.5,205.9 438.4,205.9 439.4,205.9 440.3,205.9 441.2,205.9 442.1,205.9 443.0,205.9 443.9,205.9 444.8,205.9 445.7,205.9 446.6,205.9 447.5,205.9 448.4,206.0 449.3,206.0 450.2,206.0 451.1,206.0 452.0,206.0 452.9,206.0 453.8,206.0 454.7,206.0 455.6,206.0 456.5,206.0 457.4,206.0 458.3,206.0 459.2,206.0 460.1,206.0 461.0,206.0 462.0,206.0 462.9,206.0 463.8,206.0 464.7,206.0 465.6,206.0 466.5,206.0 467.4,206.0 468.3,206.0 469.2,206.0 470.1,206.0 471.0,206.0 471.9,206.0 472.8,206.0 473.7,206.0 474.6,206.0 475.5,206.0 476.4,206.0 477.3,206.0 478.2,206.0 479.1,206.0 480.0,206.0 480.9,206.0 481.8,206.0 482.7,206.0 483.6,206.0 484.6,206.0 485.5,206.0 486.4,206.0 487.3,206.0 488.2,206.0 489.1,206.0 490.0,206.0 490.9,206.0 491.8,206.0 492.7,206.0 493.6,206.0 494.5,206.0 495.4,206.0 496.3,206.0 497.2,206.0 498.1,206.0 499.0,206.0 499.9,206.0 500.8,206.0 501.7,206.0 502.6,206.0 503.5,206.0 504.4,206.0 505.3,206.0 506.2,206.0 507.2,206.0 508.1,206.0 509.0,206.0 509.9,206.0 510.8,206.0 511.7,206.0 512.6,206.0 513.5,206.0 514.4,206.0 515.3,206.0 516.2,206.0 517.1,206.0 518.0,206.0" fill="none" stroke="#B0BEC5" stroke-width="1.3" stroke-dasharray="4 3"/>
+<polyline points="66.0,206.0 66.7,205.7 67.4,205.3 68.0,205.0 68.7,204.7 69.4,204.3 70.1,204.0 70.7,203.7 71.4,203.4 72.1,203.0 72.8,202.7 73.5,202.4 74.1,202.0 74.8,201.7 75.5,201.4 76.2,201.0 76.8,200.7 77.5,200.4 78.2,200.0 78.9,199.7 79.6,199.4 80.2,199.1 80.9,198.7 81.6,198.4 82.3,198.1 83.0,197.7 83.6,197.4 84.3,197.1 85.0,196.7 85.7,196.4 86.3,196.1 87.0,195.7 87.7,195.4 88.4,195.1 89.1,194.8 89.7,194.4 90.4,194.1 91.1,193.8 91.8,193.4 92.4,193.1 93.1,192.8 93.8,192.4 94.5,192.1 95.2,191.8 95.8,191.4 96.5,191.1 97.2,190.8 97.9,190.5 98.5,190.1 99.2,189.8 99.9,189.5 100.6,189.1 101.3,188.8 101.9,188.5 102.6,188.1 103.3,187.8 104.0,187.5 104.6,187.1 105.3,186.8 106.0,186.5 106.7,186.2 107.4,185.8 108.0,185.5 108.7,185.2 109.4,184.8 110.1,184.5 110.7,184.2 111.4,183.8 112.1,183.5 112.8,183.2 113.5,182.8 114.1,182.5 114.8,182.2 115.5,181.8 116.2,181.5 116.8,181.2 117.5,180.9 118.2,180.5 118.9,180.2 119.6,179.9 120.2,179.5 120.9,179.2 121.6,178.9 122.3,178.5 123.0,178.2 123.6,177.9 124.3,177.5 125.0,177.2 125.7,176.9 126.3,176.6 127.0,176.2 127.7,175.9 128.4,175.6 129.1,175.2 129.7,174.9 130.4,174.6 131.1,174.2 131.8,173.9 132.4,173.6 133.1,173.2 133.8,172.9 134.5,172.6 135.2,172.3 135.8,171.9 136.5,171.6 137.2,171.3 137.9,170.9 138.5,170.6 139.2,170.3 139.9,169.9 140.6,169.6 141.3,169.3 141.9,168.9 142.6,168.6 143.3,168.3 144.0,168.0 144.6,167.6 145.3,167.3 146.0,167.0 146.7,167.0 147.4,167.0 148.0,167.0 148.7,167.0 149.4,167.0 150.1,167.0 150.8,167.0 151.4,167.0 152.1,167.0 152.8,167.0 153.5,167.0 154.1,167.0 154.8,167.0 155.5,167.0 156.2,167.0 156.9,167.0 157.5,167.0 158.2,167.0 158.9,167.0 159.6,167.0 160.2,167.0 160.9,167.0 161.6,167.0 162.3,167.0 163.0,167.0 163.6,167.0 164.3,167.0 165.0,167.0 165.7,167.0 166.3,167.0 167.0,167.0 167.7,167.0 168.4,167.0 169.1,167.0 169.7,167.0 170.4,167.0 171.1,167.0 171.8,167.0 172.4,167.0 173.1,167.0 173.8,167.0 174.5,167.0 175.2,167.0 175.8,167.0 176.5,167.0 177.2,167.0 177.9,167.0 178.5,167.0 179.2,167.0 179.9,167.0 180.6,167.0 181.3,167.0 181.9,167.0 182.6,167.0 183.3,167.0 184.0,167.0 184.7,167.0 185.3,167.0 186.0,167.0 186.7,167.0 187.4,167.0 188.0,167.0 188.7,167.0 189.4,167.0 190.1,167.0 190.8,167.0 191.4,167.0 192.1,167.0 192.8,167.0 193.5,167.0 194.1,167.0 194.8,167.0 195.5,167.0 196.2,167.0 196.9,167.0 197.5,167.0 198.2,167.0 198.9,167.0 199.6,167.0 200.2,167.0 200.9,167.0 201.6,167.0 202.3,167.0 203.0,167.0 203.6,167.0 204.3,167.0 205.0,167.0 205.7,167.0 206.3,167.0 207.0,167.0 207.7,167.0 208.4,167.0 209.1,167.0 209.7,167.0 210.4,167.0 211.1,167.0 211.8,167.0 212.4,167.0 213.1,167.0 213.8,167.0 214.5,167.0 215.2,167.0 215.8,167.0 216.5,167.0 217.2,167.0 217.9,167.0 218.6,167.0 219.2,167.0 219.9,167.0 220.6,167.0 221.3,167.0 221.9,167.0 222.6,167.0 223.3,167.0 224.0,167.0 224.7,167.0 225.3,167.0 226.0,167.0 226.7,167.0 227.4,167.0 228.0,167.0 228.7,167.0 229.4,167.0 230.1,167.0 230.8,167.0 231.4,167.0 232.1,167.0 232.8,167.0 233.5,167.0 234.1,167.0 234.8,167.0 235.5,167.0 236.2,167.0 236.9,167.0 237.5,167.0 238.2,167.0 238.9,167.1 239.6,167.1 240.2,167.1 240.9,167.1 241.6,167.1 242.3,167.1 243.0,167.1 243.6,167.1 244.3,167.1 245.0,167.1 245.7,167.1 246.3,167.1 247.0,167.1 247.7,167.1 248.4,167.1 249.1,167.1 249.7,167.1 250.4,167.1 251.1,167.1 251.8,167.1 252.4,167.1 253.1,167.1 253.8,167.1 254.5,167.1 255.2,167.1 255.8,167.1 256.5,167.1 257.2,167.1 257.9,167.1 258.6,167.1 259.2,167.1 259.9,167.1 260.6,167.1 261.3,167.1 261.9,167.1 262.6,167.1 263.3,167.1 264.0,167.1 264.7,167.1 265.3,167.1 266.0,167.1 266.7,167.1 267.4,167.1 268.0,167.1 268.7,167.1 269.4,167.1 270.1,167.1 270.8,167.1 271.4,167.1 272.1,167.1 272.8,167.1 273.5,167.1 274.1,167.1 274.8,167.1 275.5,167.1 276.2,167.1 276.9,167.1 277.5,167.1 278.2,167.1 278.9,167.1 279.6,167.1 280.2,167.1 280.9,167.1 281.6,167.1 282.3,167.1 283.0,167.1 283.6,167.1 284.3,167.1 285.0,167.1 285.7,167.1 286.4,167.1 287.0,167.1 287.7,167.1 288.4,167.1 289.1,167.1 289.7,167.1 290.4,167.1 291.1,167.1 291.8,167.1 292.5,167.1 293.1,167.1 293.8,167.1 294.5,167.1 295.2,167.1 295.8,167.1 296.5,167.1 297.2,167.1 297.9,167.1 298.6,167.1 299.2,167.1 299.9,167.1 300.6,167.1 301.3,167.1 301.9,167.1 302.6,167.1 303.3,167.1 304.0,167.1 304.7,167.1 305.3,167.1 306.0,167.1 306.7,167.1 307.4,167.1 308.0,167.1 308.7,167.1 309.4,167.1 310.1,167.1 310.8,167.1 311.4,167.1 312.1,167.1 312.8,167.1 313.5,167.1 314.1,167.1 314.8,167.1 315.5,167.1 316.2,167.1 316.9,167.1 317.5,167.1 318.2,167.1 318.9,167.1 319.6,167.1 320.2,167.1 320.9,167.1 321.6,167.1 322.3,167.1 323.0,167.1 323.6,167.1 324.3,167.1 325.0,167.1 325.7,167.1 326.4,167.1 327.0,167.1 327.7,167.1 328.4,167.1 329.1,167.1 329.7,167.1 330.4,167.1 331.1,167.1 331.8,167.1 332.5,167.1 333.1,167.1 333.8,167.1 334.5,167.1 335.2,167.1 335.8,167.1 336.5,167.1 337.2,167.1 337.9,167.1 338.6,167.1 339.2,167.1 339.9,167.1 340.6,167.1 341.3,167.1 341.9,167.1 342.6,167.1 343.3,167.1 344.0,167.1 344.7,167.1 345.3,167.1 346.0,167.1 346.7,167.1 347.4,167.1 348.0,167.1 348.7,167.1 349.4,167.1 350.1,167.1 350.8,167.1 351.4,167.1 352.1,167.1 352.8,167.1 353.5,167.1 354.1,167.1 354.8,167.1 355.5,167.1 356.2,167.1 356.9,167.1 357.5,167.1 358.2,167.1 358.9,167.1 359.6,167.1 360.3,167.1 360.9,167.1 361.6,167.1 362.3,167.1 363.0,167.1 363.6,167.1 364.3,167.1 365.0,167.1 365.7,167.1 366.4,167.1 367.0,167.1 367.7,167.1 368.4,167.1 369.1,167.1 369.7,167.1 370.4,167.1 371.1,167.1 371.8,167.1 372.5,167.1 373.1,167.1 373.8,167.1 374.5,167.1 375.2,167.1 375.8,167.1 376.5,167.1 377.2,167.1 377.9,167.1 378.6,167.1 379.2,167.1 379.9,167.1 380.6,167.1 381.3,167.1 381.9,167.1 382.6,167.1 383.3,167.1 384.0,167.1 384.7,167.1 385.3,167.1 386.0,167.1 386.7,167.1 387.4,167.1 388.1,167.1 388.7,167.1 389.4,167.1 390.1,167.1 390.8,167.1 391.4,167.1 392.1,167.1 392.8,167.1 393.5,167.1 394.2,167.1 394.8,167.1 395.5,167.1 396.2,167.1 396.9,167.1 397.5,167.1 398.2,167.1 398.9,167.1 399.6,167.1 400.3,167.1 400.9,167.1 401.6,167.1 402.3,167.1 403.0,167.1 403.6,167.1 404.3,167.1 405.0,167.1 405.7,167.1 406.4,167.1 407.0,167.1 407.7,167.1 408.4,167.1 409.1,167.1 409.7,167.1 410.4,167.1 411.1,167.1 411.8,167.1 412.5,167.1 413.1,167.1 413.8,167.1 414.5,167.1 415.2,167.1 415.8,167.1 416.5,167.1 417.2,167.1 417.9,167.1 418.6,167.1 419.2,167.1 419.9,167.1 420.6,167.1 421.3,167.1 421.9,167.1 422.6,167.1 423.3,167.1 424.0,167.1 424.7,167.1 425.3,167.1 426.0,167.1 426.7,167.1 427.4,167.1 428.1,167.1 428.7,167.1 429.4,167.1 430.1,167.1 430.8,167.1 431.4,167.1 432.1,167.1 432.8,167.1 433.5,167.1 434.2,167.1 434.8,167.1 435.5,167.1 436.2,167.1 436.9,167.1 437.5,167.1 438.2,167.1 438.9,167.1 439.6,167.1 440.3,167.1 440.9,167.1 441.6,167.1 442.3,167.1 443.0,167.1 443.6,167.1 444.3,167.1 445.0,167.1 445.7,167.1 446.4,167.1 447.0,167.1 447.7,167.1 448.4,167.1 449.1,167.1 449.7,167.1 450.4,167.1 451.1,167.1 451.8,167.1 452.5,167.1 453.1,167.1 453.8,167.1 454.5,167.1 455.2,167.1 455.9,167.1 456.5,167.1 457.2,167.1 457.9,167.1 458.6,167.1 459.2,167.1 459.9,167.1 460.6,167.1 461.3,167.1 462.0,167.1 462.6,167.1 463.3,167.1 464.0,167.1 464.7,167.1 465.3,167.1 466.0,167.1 466.7,167.1 467.4,167.1 468.1,167.1 468.7,167.1 469.4,167.1 470.1,167.1 470.8,167.1 471.4,167.1 472.1,167.1 472.8,167.1 473.5,167.1 474.2,167.1 474.8,167.1 475.5,167.1 476.2,167.1 476.9,167.1 477.5,167.1 478.2,167.1 478.9,167.1 479.6,167.1 480.3,167.1 480.9,167.1 481.6,167.1 482.3,167.1 483.0,167.1 483.6,167.1 484.3,167.1 485.0,167.1 485.7,167.1 486.4,167.1 487.0,167.1 487.7,167.1 488.4,167.1 489.1,167.1 489.8,167.1 490.4,167.1 491.1,167.1 491.8,167.1 492.5,167.1 493.1,167.1 493.8,167.1 494.5,167.1 495.2,167.1 495.9,167.1 496.5,167.1 497.2,167.1 497.9,167.1 498.6,167.1 499.2,167.1 499.9,167.1 500.6,167.1 501.3,167.1 502.0,167.1 502.6,167.1 503.3,167.1 504.0,167.1 504.7,167.1 505.3,167.1 506.0,167.1 506.7,167.1 507.4,167.1 508.1,167.1 508.7,167.1 509.4,167.1 510.1,167.1 510.8,167.1 511.4,167.1 512.1,167.1 512.8,167.1 513.5,167.1 514.2,167.1 514.8,167.1 515.5,167.1 516.2,167.1 516.9,167.1 517.5,167.1" fill="none" stroke="#EF6C00" stroke-width="2.1"/>
+<line x1="390.8" y1="102" x2="390.8" y2="164.0" stroke="#EF6C00" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="390.8" y="96" font-size="10.5" fill="#EF6C00" font-weight="bold" text-anchor="middle" stroke="#ffffff" stroke-width="3.5" paint-order="stroke">捕捉 40%</text>
+<text x="108.9" y="101.0" font-size="10" fill="#78909C" stroke="#ffffff" stroke-width="3" paint-order="stroke">1.20 V</text>
+<polyline points="66.0,206.0 66.9,187.8 67.8,171.2 68.7,156.0 69.6,142.1 70.5,129.5 71.4,118.0 72.3,107.5 73.2,98.1 74.1,89.6 75.0,81.9 75.9,75.0 76.8,68.9 77.8,63.5 78.7,58.6 79.6,54.4 80.5,50.7 81.4,47.6 82.3,44.9 83.2,42.6 84.1,40.7 85.0,39.2 85.9,38.0 86.8,37.1 87.7,36.6 88.6,36.2 89.5,36.2 90.4,36.3 91.3,36.7 92.2,37.2 93.1,37.9 94.0,38.8 94.9,39.8 95.8,41.0 96.7,42.2 97.6,43.6 98.5,45.0 99.4,46.6 100.4,48.2 101.3,49.9 102.2,51.6 103.1,53.4 104.0,55.3 104.9,57.1 105.8,59.0 106.7,61.0 107.6,63.0 108.5,64.9 109.4,66.9 110.3,69.0 111.2,71.0 112.1,73.0 113.0,75.0 113.9,77.1 114.8,79.1 115.7,81.1 116.6,83.1 117.5,85.1 118.4,87.1 119.3,89.1 120.2,91.0 121.1,93.0 122.0,94.9 123.0,96.8 123.9,98.7 124.8,100.6 125.7,102.4 126.6,104.2 127.5,106.0 128.4,107.8 129.3,109.6 130.2,111.3 131.1,113.0 132.0,114.7 132.9,116.4 133.8,118.0 134.7,119.7 135.6,121.3 136.5,122.8 137.4,124.4 138.3,125.9 139.2,127.4 140.1,128.9 141.0,130.3 141.9,131.8 142.8,133.2 143.7,134.5 144.6,135.9 145.6,137.2 146.5,138.5 147.4,139.8 148.3,141.1 149.2,142.3 150.1,143.6 151.0,144.8 151.9,145.9 152.8,147.1 153.7,148.2 154.6,149.3 155.5,150.4 156.4,151.5 157.3,152.6 158.2,153.6 159.1,154.6 160.0,155.6 160.9,156.6 161.8,157.6 162.7,158.5 163.6,159.4 164.5,160.3 165.4,161.2 166.3,162.1 167.2,163.0 168.2,163.8 169.1,164.6 170.0,165.4 170.9,166.2 171.8,167.0 172.7,167.8 173.6,168.5 174.5,169.3 175.4,170.0 176.3,170.7 177.2,171.4 178.1,172.1 179.0,172.7 179.9,173.4 180.8,174.0 181.7,174.7 182.6,175.3 183.5,175.9 184.4,176.5 185.3,177.1 186.2,177.6 187.1,178.2 188.0,178.7 188.9,179.3 189.8,179.8 190.8,180.3 191.7,180.8 192.6,181.3 193.5,181.8 194.4,182.3 195.3,182.8 196.2,183.2 197.1,183.7 198.0,184.1 198.9,184.5 199.8,185.0 200.7,185.4 201.6,185.8 202.5,186.2 203.4,186.6 204.3,187.0 205.2,187.3 206.1,187.7 207.0,188.1 207.9,188.4 208.8,188.8 209.7,189.1 210.6,189.4 211.5,189.8 212.4,190.1 213.4,190.4 214.3,190.7 215.2,191.0 216.1,191.3 217.0,191.6 217.9,191.9 218.8,192.2 219.7,192.4 220.6,192.7 221.5,193.0 222.4,193.2 223.3,193.5 224.2,193.7 225.1,194.0 226.0,194.2 226.9,194.4 227.8,194.7 228.7,194.9 229.6,195.1 230.5,195.3 231.4,195.5 232.3,195.8 233.2,196.0 234.1,196.2 235.0,196.3 236.0,196.5 236.9,196.7 237.8,196.9 238.7,197.1 239.6,197.3 240.5,197.4 241.4,197.6 242.3,197.8 243.2,197.9 244.1,198.1 245.0,198.3 245.9,198.4 246.8,198.6 247.7,198.7 248.6,198.8 249.5,199.0 250.4,199.1 251.3,199.3 252.2,199.4 253.1,199.5 254.0,199.7 254.9,199.8 255.8,199.9 256.7,200.0 257.6,200.1 258.6,200.3 259.5,200.4 260.4,200.5 261.3,200.6 262.2,200.7 263.1,200.8 264.0,200.9 264.9,201.0 265.8,201.1 266.7,201.2 267.6,201.3 268.5,201.4 269.4,201.5 270.3,201.6 271.2,201.7 272.1,201.7 273.0,201.8 273.9,201.9 274.8,202.0 275.7,202.1 276.6,202.2 277.5,202.2 278.4,202.3 279.3,202.4 280.2,202.4 281.2,202.5 282.1,202.6 283.0,202.7 283.9,202.7 284.8,202.8 285.7,202.8 286.6,202.9 287.5,203.0 288.4,203.0 289.3,203.1 290.2,203.1 291.1,203.2 292.0,203.3 292.9,203.3 293.8,203.4 294.7,203.4 295.6,203.5 296.5,203.5 297.4,203.6 298.3,203.6 299.2,203.7 300.1,203.7 301.0,203.8 301.9,203.8 302.8,203.8 303.8,203.9 304.7,203.9 305.6,204.0 306.5,204.0 307.4,204.1 308.3,204.1 309.2,204.1 310.1,204.2 311.0,204.2 311.9,204.2 312.8,204.3 313.7,204.3 314.6,204.3 315.5,204.4 316.4,204.4 317.3,204.4 318.2,204.5 319.1,204.5 320.0,204.5 320.9,204.6 321.8,204.6 322.7,204.6 323.6,204.6 324.5,204.7 325.4,204.7 326.4,204.7 327.3,204.7 328.2,204.8 329.1,204.8 330.0,204.8 330.9,204.8 331.8,204.9 332.7,204.9 333.6,204.9 334.5,204.9 335.4,205.0 336.3,205.0 337.2,205.0 338.1,205.0 339.0,205.0 339.9,205.1 340.8,205.1 341.7,205.1 342.6,205.1 343.5,205.1 344.4,205.1 345.3,205.2 346.2,205.2 347.1,205.2 348.0,205.2 349.0,205.2 349.9,205.2 350.8,205.3 351.7,205.3 352.6,205.3 353.5,205.3 354.4,205.3 355.3,205.3 356.2,205.3 357.1,205.4 358.0,205.4 358.9,205.4 359.8,205.4 360.7,205.4 361.6,205.4 362.5,205.4 363.4,205.4 364.3,205.4 365.2,205.5 366.1,205.5 367.0,205.5 367.9,205.5 368.8,205.5 369.7,205.5 370.6,205.5 371.6,205.5 372.5,205.5 373.4,205.5 374.3,205.6 375.2,205.6 376.1,205.6 377.0,205.6 377.9,205.6 378.8,205.6 379.7,205.6 380.6,205.6 381.5,205.6 382.4,205.6 383.3,205.6 384.2,205.6 385.1,205.7 386.0,205.7 386.9,205.7 387.8,205.7 388.7,205.7 389.6,205.7 390.5,205.7 391.4,205.7 392.3,205.7 393.2,205.7 394.2,205.7 395.1,205.7 396.0,205.7 396.9,205.7 397.8,205.7 398.7,205.7 399.6,205.7 400.5,205.8 401.4,205.8 402.3,205.8 403.2,205.8 404.1,205.8 405.0,205.8 405.9,205.8 406.8,205.8 407.7,205.8 408.6,205.8 409.5,205.8 410.4,205.8 411.3,205.8 412.2,205.8 413.1,205.8 414.0,205.8 414.9,205.8 415.8,205.8 416.8,205.8 417.7,205.8 418.6,205.8 419.5,205.8 420.4,205.8 421.3,205.8 422.2,205.8 423.1,205.8 424.0,205.9 424.9,205.9 425.8,205.9 426.7,205.9 427.6,205.9 428.5,205.9 429.4,205.9 430.3,205.9 431.2,205.9 432.1,205.9 433.0,205.9 433.9,205.9 434.8,205.9 435.7,205.9 436.6,205.9 437.5,205.9 438.4,205.9 439.4,205.9 440.3,205.9 441.2,205.9 442.1,205.9 443.0,205.9 443.9,205.9 444.8,205.9 445.7,205.9 446.6,205.9 447.5,205.9 448.4,205.9 449.3,205.9 450.2,205.9 451.1,205.9 452.0,205.9 452.9,205.9 453.8,205.9 454.7,205.9 455.6,205.9 456.5,205.9 457.4,205.9 458.3,205.9 459.2,205.9 460.1,205.9 461.0,205.9 462.0,205.9 462.9,205.9 463.8,205.9 464.7,205.9 465.6,205.9 466.5,205.9 467.4,205.9 468.3,205.9 469.2,205.9 470.1,205.9 471.0,205.9 471.9,205.9 472.8,205.9 473.7,206.0 474.6,206.0 475.5,206.0 476.4,206.0 477.3,206.0 478.2,206.0 479.1,206.0 480.0,206.0 480.9,206.0 481.8,206.0 482.7,206.0 483.6,206.0 484.6,206.0 485.5,206.0 486.4,206.0 487.3,206.0 488.2,206.0 489.1,206.0 490.0,206.0 490.9,206.0 491.8,206.0 492.7,206.0 493.6,206.0 494.5,206.0 495.4,206.0 496.3,206.0 497.2,206.0 498.1,206.0 499.0,206.0 499.9,206.0 500.8,206.0 501.7,206.0 502.6,206.0 503.5,206.0 504.4,206.0 505.3,206.0 506.2,206.0 507.2,206.0 508.1,206.0 509.0,206.0 509.9,206.0 510.8,206.0 511.7,206.0 512.6,206.0 513.5,206.0 514.4,206.0 515.3,206.0 516.2,206.0 517.1,206.0 518.0,206.0" fill="none" stroke="#B0BEC5" stroke-width="1.3" stroke-dasharray="4 3"/>
+<polyline points="66.0,206.0 66.7,205.7 67.4,205.3 68.0,205.0 68.7,204.7 69.4,204.3 70.1,204.0 70.7,203.7 71.4,203.4 72.1,203.0 72.8,202.7 73.5,202.4 74.1,202.0 74.8,201.7 75.5,201.4 76.2,201.0 76.8,200.7 77.5,200.4 78.2,200.0 78.9,199.7 79.6,199.4 80.2,199.1 80.9,198.7 81.6,198.4 82.3,198.1 83.0,197.7 83.6,197.4 84.3,197.1 85.0,196.7 85.7,196.4 86.3,196.1 87.0,195.7 87.7,195.4 88.4,195.1 89.1,194.8 89.7,194.4 90.4,194.1 91.1,193.8 91.8,193.4 92.4,193.1 93.1,192.8 93.8,192.4 94.5,192.1 95.2,191.8 95.8,191.4 96.5,191.1 97.2,190.8 97.9,190.5 98.5,190.1 99.2,189.8 99.9,189.5 100.6,189.1 101.3,188.8 101.9,188.5 102.6,188.1 103.3,187.8 104.0,187.5 104.6,187.1 105.3,186.8 106.0,186.5 106.7,186.2 107.4,185.8 108.0,185.5 108.7,185.2 109.4,184.8 110.1,184.5 110.7,184.2 111.4,183.8 112.1,183.5 112.8,183.2 113.5,182.8 114.1,182.5 114.8,182.2 115.5,181.8 116.2,181.5 116.8,181.2 117.5,180.9 118.2,180.5 118.9,180.2 119.6,179.9 120.2,179.5 120.9,179.2 121.6,178.9 122.3,178.5 123.0,178.2 123.6,177.9 124.3,177.5 125.0,177.2 125.7,176.9 126.3,176.6 127.0,176.2 127.7,175.9 128.4,175.6 129.1,175.2 129.7,174.9 130.4,174.6 131.1,174.2 131.8,173.9 132.4,173.6 133.1,173.2 133.8,172.9 134.5,172.6 135.2,172.3 135.8,171.9 136.5,171.6 137.2,171.3 137.9,170.9 138.5,170.6 139.2,170.3 139.9,169.9 140.6,169.6 141.3,169.3 141.9,168.9 142.6,168.6 143.3,168.3 144.0,168.0 144.6,167.6 145.3,167.3 146.0,167.0 146.7,166.6 147.4,166.3 148.0,166.0 148.7,165.6 149.4,165.3 150.1,165.0 150.8,164.6 151.4,164.3 152.1,164.0 152.8,163.7 153.5,163.3 154.1,163.0 154.8,162.7 155.5,162.3 156.2,162.0 156.9,161.7 157.5,161.3 158.2,161.0 158.9,160.7 159.6,160.3 160.2,160.0 160.9,159.7 161.6,159.4 162.3,159.0 163.0,158.7 163.6,158.7 164.3,158.7 165.0,158.7 165.7,158.7 166.3,158.7 167.0,158.7 167.7,158.7 168.4,158.7 169.1,158.7 169.7,158.7 170.4,158.7 171.1,158.7 171.8,158.7 172.4,158.7 173.1,158.7 173.8,158.7 174.5,158.7 175.2,158.7 175.8,158.7 176.5,158.7 177.2,158.7 177.9,158.7 178.5,158.7 179.2,158.7 179.9,158.7 180.6,158.7 181.3,158.7 181.9,158.7 182.6,158.7 183.3,158.7 184.0,158.7 184.7,158.7 185.3,158.7 186.0,158.7 186.7,158.7 187.4,158.7 188.0,158.7 188.7,158.7 189.4,158.7 190.1,158.7 190.8,158.7 191.4,158.7 192.1,158.7 192.8,158.7 193.5,158.7 194.1,158.7 194.8,158.7 195.5,158.7 196.2,158.7 196.9,158.7 197.5,158.7 198.2,158.7 198.9,158.7 199.6,158.7 200.2,158.7 200.9,158.7 201.6,158.7 202.3,158.7 203.0,158.7 203.6,158.7 204.3,158.7 205.0,158.7 205.7,158.7 206.3,158.7 207.0,158.7 207.7,158.7 208.4,158.7 209.1,158.7 209.7,158.7 210.4,158.7 211.1,158.7 211.8,158.7 212.4,158.7 213.1,158.7 213.8,158.7 214.5,158.7 215.2,158.7 215.8,158.7 216.5,158.7 217.2,158.7 217.9,158.7 218.6,158.7 219.2,158.7 219.9,158.7 220.6,158.7 221.3,158.7 221.9,158.7 222.6,158.7 223.3,158.7 224.0,158.7 224.7,158.7 225.3,158.7 226.0,158.7 226.7,158.7 227.4,158.7 228.0,158.7 228.7,158.7 229.4,158.7 230.1,158.7 230.8,158.7 231.4,158.7 232.1,158.7 232.8,158.7 233.5,158.7 234.1,158.7 234.8,158.7 235.5,158.8 236.2,158.8 236.9,158.8 237.5,158.8 238.2,158.8 238.9,158.8 239.6,158.8 240.2,158.8 240.9,158.8 241.6,158.8 242.3,158.8 243.0,158.8 243.6,158.8 244.3,158.8 245.0,158.8 245.7,158.8 246.3,158.8 247.0,158.8 247.7,158.8 248.4,158.8 249.1,158.8 249.7,158.8 250.4,158.8 251.1,158.8 251.8,158.8 252.4,158.8 253.1,158.8 253.8,158.8 254.5,158.8 255.2,158.8 255.8,158.8 256.5,158.8 257.2,158.8 257.9,158.8 258.6,158.8 259.2,158.8 259.9,158.8 260.6,158.8 261.3,158.8 261.9,158.8 262.6,158.8 263.3,158.8 264.0,158.8 264.7,158.8 265.3,158.8 266.0,158.8 266.7,158.8 267.4,158.8 268.0,158.8 268.7,158.8 269.4,158.8 270.1,158.8 270.8,158.8 271.4,158.8 272.1,158.8 272.8,158.8 273.5,158.8 274.1,158.8 274.8,158.8 275.5,158.8 276.2,158.8 276.9,158.8 277.5,158.8 278.2,158.8 278.9,158.8 279.6,158.8 280.2,158.8 280.9,158.8 281.6,158.8 282.3,158.8 283.0,158.8 283.6,158.8 284.3,158.8 285.0,158.8 285.7,158.8 286.4,158.8 287.0,158.8 287.7,158.8 288.4,158.8 289.1,158.8 289.7,158.8 290.4,158.8 291.1,158.8 291.8,158.8 292.5,158.8 293.1,158.8 293.8,158.8 294.5,158.8 295.2,158.8 295.8,158.8 296.5,158.8 297.2,158.8 297.9,158.8 298.6,158.8 299.2,158.8 299.9,158.8 300.6,158.8 301.3,158.8 301.9,158.8 302.6,158.8 303.3,158.8 304.0,158.8 304.7,158.8 305.3,158.8 306.0,158.8 306.7,158.8 307.4,158.8 308.0,158.8 308.7,158.8 309.4,158.8 310.1,158.8 310.8,158.8 311.4,158.8 312.1,158.8 312.8,158.8 313.5,158.8 314.1,158.8 314.8,158.8 315.5,158.8 316.2,158.8 316.9,158.8 317.5,158.8 318.2,158.8 318.9,158.8 319.6,158.8 320.2,158.8 320.9,158.8 321.6,158.8 322.3,158.8 323.0,158.8 323.6,158.8 324.3,158.8 325.0,158.8 325.7,158.8 326.4,158.8 327.0,158.8 327.7,158.8 328.4,158.8 329.1,158.8 329.7,158.8 330.4,158.8 331.1,158.8 331.8,158.8 332.5,158.8 333.1,158.8 333.8,158.8 334.5,158.8 335.2,158.8 335.8,158.8 336.5,158.8 337.2,158.8 337.9,158.8 338.6,158.8 339.2,158.8 339.9,158.8 340.6,158.8 341.3,158.8 341.9,158.8 342.6,158.8 343.3,158.8 344.0,158.8 344.7,158.8 345.3,158.8 346.0,158.8 346.7,158.8 347.4,158.8 348.0,158.8 348.7,158.8 349.4,158.8 350.1,158.8 350.8,158.8 351.4,158.8 352.1,158.8 352.8,158.8 353.5,158.8 354.1,158.8 354.8,158.8 355.5,158.8 356.2,158.8 356.9,158.8 357.5,158.8 358.2,158.8 358.9,158.8 359.6,158.8 360.3,158.8 360.9,158.8 361.6,158.8 362.3,158.8 363.0,158.8 363.6,158.8 364.3,158.8 365.0,158.8 365.7,158.8 366.4,158.8 367.0,158.8 367.7,158.8 368.4,158.8 369.1,158.8 369.7,158.8 370.4,158.8 371.1,158.8 371.8,158.8 372.5,158.8 373.1,158.8 373.8,158.8 374.5,158.8 375.2,158.8 375.8,158.8 376.5,158.8 377.2,158.8 377.9,158.8 378.6,158.8 379.2,158.8 379.9,158.8 380.6,158.8 381.3,158.8 381.9,158.8 382.6,158.8 383.3,158.8 384.0,158.8 384.7,158.8 385.3,158.8 386.0,158.8 386.7,158.8 387.4,158.8 388.1,158.8 388.7,158.8 389.4,158.8 390.1,158.8 390.8,158.8 391.4,158.8 392.1,158.8 392.8,158.8 393.5,158.8 394.2,158.8 394.8,158.8 395.5,158.8 396.2,158.8 396.9,158.8 397.5,158.8 398.2,158.8 398.9,158.8 399.6,158.8 400.3,158.8 400.9,158.8 401.6,158.8 402.3,158.8 403.0,158.8 403.6,158.8 404.3,158.8 405.0,158.8 405.7,158.8 406.4,158.8 407.0,158.8 407.7,158.8 408.4,158.8 409.1,158.8 409.7,158.8 410.4,158.8 411.1,158.8 411.8,158.8 412.5,158.8 413.1,158.8 413.8,158.8 414.5,158.8 415.2,158.8 415.8,158.8 416.5,158.8 417.2,158.8 417.9,158.8 418.6,158.8 419.2,158.8 419.9,158.8 420.6,158.8 421.3,158.8 421.9,158.8 422.6,158.8 423.3,158.8 424.0,158.8 424.7,158.8 425.3,158.8 426.0,158.8 426.7,158.8 427.4,158.8 428.1,158.8 428.7,158.8 429.4,158.8 430.1,158.8 430.8,158.8 431.4,158.8 432.1,158.8 432.8,158.8 433.5,158.8 434.2,158.8 434.8,158.8 435.5,158.8 436.2,158.8 436.9,158.8 437.5,158.8 438.2,158.8 438.9,158.8 439.6,158.8 440.3,158.8 440.9,158.8 441.6,158.8 442.3,158.8 443.0,158.8 443.6,158.8 444.3,158.8 445.0,158.8 445.7,158.8 446.4,158.8 447.0,158.8 447.7,158.8 448.4,158.8 449.1,158.8 449.7,158.8 450.4,158.8 451.1,158.8 451.8,158.8 452.5,158.8 453.1,158.8 453.8,158.8 454.5,158.8 455.2,158.8 455.9,158.8 456.5,158.8 457.2,158.8 457.9,158.8 458.6,158.8 459.2,158.8 459.9,158.8 460.6,158.8 461.3,158.8 462.0,158.8 462.6,158.8 463.3,158.8 464.0,158.8 464.7,158.8 465.3,158.8 466.0,158.8 466.7,158.8 467.4,158.8 468.1,158.8 468.7,158.9 469.4,158.9 470.1,158.9 470.8,158.9 471.4,158.9 472.1,158.9 472.8,158.9 473.5,158.9 474.2,158.9 474.8,158.9 475.5,158.9 476.2,158.9 476.9,158.9 477.5,158.9 478.2,158.9 478.9,158.9 479.6,158.9 480.3,158.9 480.9,158.9 481.6,158.9 482.3,158.9 483.0,158.9 483.6,158.9 484.3,158.9 485.0,158.9 485.7,158.9 486.4,158.9 487.0,158.9 487.7,158.9 488.4,158.9 489.1,158.9 489.8,158.9 490.4,158.9 491.1,158.9 491.8,158.9 492.5,158.9 493.1,158.9 493.8,158.9 494.5,158.9 495.2,158.9 495.9,158.9 496.5,158.9 497.2,158.9 497.9,158.9 498.6,158.9 499.2,158.9 499.9,158.9 500.6,158.9 501.3,158.9 502.0,158.9 502.6,158.9 503.3,158.9 504.0,158.9 504.7,158.9 505.3,158.9 506.0,158.9 506.7,158.9 507.4,158.9 508.1,158.9 508.7,158.9 509.4,158.9 510.1,158.9 510.8,158.9 511.4,158.9 512.1,158.9 512.8,158.9 513.5,158.9 514.2,158.9 514.8,158.9 515.5,158.9 516.2,158.9 516.9,158.9 517.5,158.9" fill="none" stroke="#2E7D32" stroke-width="2.1"/>
+<line x1="467.7" y1="102" x2="467.7" y2="155.7" stroke="#2E7D32" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="467.7" y="96" font-size="10.5" fill="#2E7D32" font-weight="bold" text-anchor="middle" stroke="#ffffff" stroke-width="3.5" paint-order="stroke">捕捉 28%</text>
+<text x="108.9" y="28.2" font-size="10" fill="#78909C" stroke="#ffffff" stroke-width="3" paint-order="stroke">2.10 V</text>
+<text x="188.0" y="29.7" font-size="10" fill="#90A4AE">破線 = 本来ホールドすべき値 (アンプ出力 ×2)</text>
+<text x="188.0" y="45.9" font-size="10" fill="#455A64">実線 = 電荷律速された実際のホールド値</text>
+</svg>
+<figcaption>現状 v2 の Peak Hold の数値シミュレーション（立ち上がり 60 ns / 減衰 200 ns のパルス）。
+破線が「本来ホールドすべき値（アンプ出力 ×2）」、実線が電荷律速された実際のホールド値。
+<b>振幅が大きいほど捕捉率が下がる</b>ため、単なる定数倍の減衰ではなく<b>非線形な圧縮</b>になる。</figcaption>
+</figure>
+
+<div class="scroll">
+<table>
+<tr><th>本来のホールド値</th><th>実際のホールド値</th><th>捕捉率</th></tr>
+<tr><td class="num">0.50 V</td><td class="num">0.33 V</td><td class="num" style="color:#C62828"><b>67 %</b></td></tr><tr><td class="num">1.20 V</td><td class="num">0.48 V</td><td class="num" style="color:#EF6C00"><b>40 %</b></td></tr><tr><td class="num">2.10 V</td><td class="num">0.58 V</td><td class="num" style="color:#2E7D32"><b>28 %</b></td></tr>
+</table>
+</div>
+
+<div class="bad">
+<b>本書の提案（79 ns パルス）では、この捕捉率が約 4% まで落ちる。</b>
+ピーク到達が 44 ns、パルス全体でも 200 ns 程度しかないので、1.36 V/µs では 0.3 V 弱しか充電できない。
+しかもこの値は振幅に依存するので、<b>ビーム強度に対して非線形</b>になる。TP2 直結が必須である理由がこれである。
+</div>
+
+<h3>B.3 実測との突き合わせ（前回）</h3>
+
+<div class="scroll">
+<table>
+<thead><tr><th>項目</th><th>結果</th></tr></thead>
+<tbody>
+<tr><td>v2 のドループ時定数</td><td><b>406〜442 µs</b>（<code>scope_2026-07-21_23-13-28.wfm</code> の 287 イベント、4 振幅帯とも一致）。計算値 C6 × (R24 ∥ (R6+R7)) = 22 nF × 22.1 kΩ = 487 µs と整合</td></tr>
+<tr><td>ピーク位置</td><td>287 イベント中 <b>93.4%</b> がトリガ直後の 1 点。12 µs サンプリングでは立ち上がりを分解できていない</td></tr>
+<tr><td>コンパレータと ADC の食い違い</td><td><code>idea.html</code> A-2 の「duty 40 ≒ ADC 90」を回路定数で検算すると、<code>Amplifier</code> ノードで 259 mV → Peak Hold ×2 で ADC 684 になるはずが実測 ADC 90。<b>7.6 倍の取りこぼし</b></td></tr>
+<tr><td>保存データの素性</td><td>すべての <code>.wfm</code> / <code>.csv</code> が A0 = <code>ANA_OUT</code>（Peak Hold 後）。<code>Amplifier</code> は A0 に配線されておらず、<b>MCU からは見えない</b></td></tr>
+<tr><td>v1 の τ = 199 µs</td><td>v1 は回路が別（C14 直列など）。v2 と混同しないこと</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>B.4 v3 アナログ基板案（宇宙線・γ 線スペクトル用）</h3>
+
+<p>前回まとめた v3 案は、要点だけ残すと次のとおり。<b>ビーム用途とは方向が逆</b>なので、本書の提案とは独立に進める。</p>
+
+<ul>
+<li><b>電荷積分（CSA）を入れてから CR-RC 整形する。</b>細いパルスをいきなり CR-RC に通しても立ち上がりは速いままなので、
+いったん電荷をステップに変換する段が必須。CSA なら出力電流が足りなくても電荷が C<sub>f</sub> に保存されるので振幅が正しい。</li>
+<li><b>整形時定数を 1 / 3.3 / 11 / 33 µs の 4 レンジで可変に。</b>τ ≥ 10 µs にすると 83.3 kHz の DMA ADC でピーク近傍に点が乗るので、
+<b>Peak Hold そのものが不要になる</b>（ドループ・リセット・デッドタイムがまとめて消える）。</li>
+<li><b>ゲインは「上」ではなく「下」に伸ばす。</b>現状の最小ゲイン ×5 でも高すぎる。</li>
+<li><b>制御は全部 I2C にする。</b>空き MCU ピンは A3（GPIO4 / ADC1_CH3）と A7（GPIO14 / ADC2）の 2 本しかなく、
+CS2（D9 / GPIO18）は microSD が使っているので SPI の PGA は載せられない。MCP4728（4ch DAC）+ MCP23008（I/O エキスパンダ）なら追加ピンゼロ。</li>
+<li>同時に直す既知不具合：A0 への 5 V 直結、コンパレータのヒステリシス不足（duty 16 で発振）、ベースライン 0 V 貼り付き、
+<code>C6</code> と <code>R28</code> の回路図と BOM の値不整合。</li>
+</ul>
+
+<div class="note">
+<b>本書と v3 案の関係。</b>v3 は「宇宙線・γ 線のエネルギースペクトルを正しく測る」ための設計で、パルスを<b>遅くして</b>分解能を稼ぐ方向。
+本書はビーム強度・時間構造を測るためにパルスを<b>速くする</b>方向。両立しないので、
+子基板 2 枚（付録A）＋ 必要なら v3 メイン基板、という構成にするのが素直である。
+</div>
+
+</section>
+
+</main>
+
+<footer>
+Accel Kitchen — Cosmic Ray Detector / shaping.html（パルスビーム対応：SiPM 60035 → 30020）<br>
+根拠データ：onsemi C-Series データシート（typ 値）、<code>cosmic-ray-detector.kicad_sch</code> / <code>.kicad_pcb</code> のネット実接続、
+<code>cosmic-ray-detector_splited2.kicad_pcb</code>、<code>scope_2026-07-21_23-13-28.wfm</code>（287 イベント）、<code>idea.html</code>、<code>PULSE_REPORT.html</code><br>
+時定数・飽和・信号レベルの数値は、各段を 1 次遅れとみなした畳み込みモデルによる計算値（光取り出し効率 η = 0.5 を仮定）。
+</footer>
+
+</body>
+</html>

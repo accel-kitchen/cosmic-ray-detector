@@ -1,0 +1,56 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ケース開口位置の変更</title><style>
+:root{--bg:#f4f6f8;--card:#fff;--fg:#1f2d38;--mut:#5d6d7a;--wall:#dfe6ea;--old:#d9534f;--new:#1f8a5b;--line:#b8c4cc}
+@media(prefers-color-scheme:dark){:root{--bg:#14191d;--card:#1d252b;--fg:#e6edf1;--mut:#9aabb7;--wall:#2a353d;--old:#ff8a84;--new:#4fd19a;--line:#4a5a65}}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.7 "Segoe UI","Yu Gothic UI",sans-serif}
+main{max-width:760px;margin:0 auto;padding:24px 16px 56px}h1{font-size:24px;margin:0 0 4px}h2{font-size:18px;margin:28px 0 8px}
+p.lead{color:var(--mut);margin:0 0 16px}.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:12px 0}
+svg{width:100%;height:auto;display:block}.wall{fill:var(--wall);stroke:var(--line);stroke-width:1.5}
+.old{fill:none;stroke:var(--old);stroke-width:2;stroke-dasharray:6 4}.new{fill:var(--new);fill-opacity:.28;stroke:var(--new);stroke-width:2.2}
+.ghost{fill:none;stroke:var(--new);stroke-width:1.5;stroke-dasharray:2 3}
+.axis{stroke:var(--mut);stroke-width:1;stroke-dasharray:2 3}.arr{stroke:var(--fg);stroke-width:2;fill:none}
+.t{fill:var(--fg);font-size:13px}.t.b{font-weight:600}.t.sm{font-size:11px;fill:var(--mut)}
+.key span{display:inline-block;margin-right:18px}.key i{display:inline-block;width:22px;height:12px;vertical-align:middle;margin-right:6px;border:2px solid}
+.k-old{border-color:var(--old);border-style:dashed}.k-new{border-color:var(--new);background:rgba(31,138,91,.28)}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left}th{color:var(--mut);font-weight:600}
+.note{color:var(--mut);font-size:13px}</style></head><body><main>
+<h1>ケース開口位置の変更</h1>
+<p class="lead">cosmic-ray-detector-v2-compact（base.stl）。OLED窓・RESET・LED・オーディオ開口を6 mm上へ（RESET・LEDはΦ7.5に拡大）、USB開口は下端拡張のうえ、さらに10 mm大型化（幅16→26、上端+10）。単位 mm、z は基板下面基準（上が＋）。</p>
+<div class="card key"><span><i class="k-old"></i>変更前</span><span><i class="k-new"></i>変更後</span><span>灰色 = 壁を外から見た図（底面 z = −20.4）</span></div>
+<h2>前面（OLED窓 / RESET / LED）</h2><div class="card"><svg viewBox="0 0 518 422" role="img" aria-label="前面">
+<rect x="34.0" y="34.0" width="450.0" height="354.0" class="wall"/>
+<line x1="26.0" x2="492.0" y1="265.6" y2="265.6" class="axis"/><text x="38.0" y="261.6" class="t sm">z=0 基板下面</text>
+<rect x="194.8" y="155.8" width="160.8" height="96.6" rx="4" class="old"/>
+<circle cx="106.0" cy="250.0" r="19.5" class="old"/>
+<circle cx="160.0" cy="250.0" r="19.5" class="old"/>
+<rect x="194.8" y="119.8" width="160.8" height="96.6" rx="4" class="new"/>
+<circle cx="106.0" cy="214.0" r="22.5" class="new"/>
+<circle cx="161.5" cy="214.0" r="22.5" class="new"/>
+<text x="275.2" y="110.2" class="t b" text-anchor="middle">OLED窓</text>
+<text x="106.0" y="184.0" class="t b" text-anchor="middle">RESET</text>
+<text x="187.0" y="184.0" class="t b" text-anchor="start">LED</text>
+<line x1="394.0" x2="394.0" y1="202.0" y2="172.0" class="arr"/><path d="M389.0,176.0 L394.0,166.0 L399.0,176.0" class="arr"/><text x="403.0" y="184.0" class="t b">+6 mm</text>
+</svg></div>
+<h2>背面（オーディオ OUT・IN1〜3、microSD）</h2><div class="card"><svg viewBox="0 0 584 422" role="img" aria-label="背面">
+<rect x="34.0" y="34.0" width="516.0" height="354.0" class="wall"/>
+<line x1="26.0" x2="558.0" y1="265.6" y2="265.6" class="axis"/><text x="38.0" y="261.6" class="t sm">z=0 基板下面</text>
+<rect x="79.0" y="202.0" width="300.0" height="120.0" rx="4" class="old"/>
+<rect x="79.0" y="166.0" width="300.0" height="120.0" rx="4" class="new"/>
+<text x="229.0" y="226.0" class="t b" text-anchor="middle">オーディオ OUT・IN1-3 + microSD 開口 50 × 20</text>
+<line x1="436.0" x2="436.0" y1="193.6" y2="163.6" class="arr"/><path d="M431.0,167.6 L436.0,157.6 L441.0,167.6" class="arr"/><text x="445.0" y="175.6" class="t b">+6 mm</text>
+</svg></div>
+<h2>USB側面</h2><div class="card"><svg viewBox="0 0 518 422" role="img" aria-label="USB側面">
+<rect x="34.0" y="34.0" width="450.0" height="354.0" class="wall"/>
+<line x1="26.0" x2="492.0" y1="265.6" y2="265.6" class="axis"/><text x="38.0" y="261.6" class="t sm">z=0 基板下面</text>
+<rect x="85.6" y="338.8" width="96.0" height="49.2" rx="4" class="old"/>
+<rect x="85.6" y="388.0" width="96.0" height="10.8" class="ghost"/>
+<rect x="55.6" y="278.8" width="156.0" height="109.2" rx="4" class="new"/>
+<rect x="55.6" y="388.0" width="156.0" height="46.8" class="ghost"/>
+<text x="133.6" y="263.2" class="t b" text-anchor="middle">USB</text>
+<line x1="232.0" x2="232.0" y1="338.8" y2="284.8" class="arr"/><path d="M227.0,288.8 L232.0,278.8 L237.0,288.8" class="arr"/><text x="241.0" y="308.8" class="t b">+10 mm</text>
+<text x="133.6" y="421.6" class="t b" text-anchor="middle">幅 16→26 mm</text>
+</svg>
+<p class="note">※ 変更前の開口は既にケース底面（z = −20.4）を越えて下まで抜けていたため、下端の拡張では穴形状は変わらず、拡大は上端+10 mmと左右各5 mmです（点線は底面より下の仮想部分）。</p></div>
+<h2>数値一覧</h2><div class="card"><table><tr><th>開口</th><th>変更前 z (mm)</th><th>変更後 z (mm)</th><th>変化</th></tr><tr><td>OLED窓 (Y 56.8–83.6)</td><td>2.2 … 18.3</td><td>8.2 … 24.3</td><td>▲ +6</td></tr><tr><td>RESET穴 (Y 42)</td><td>Ø6.5 / 中心 2.595</td><td>Ø7.5 / 中心 8.595</td><td>▲ +6、径 +1</td></tr><tr><td>LED穴</td><td>Ø6.5 / Y 51 / 中心 2.595</td><td>Ø7.5 / Y 51.25 / 中心 8.595</td><td>▲ +6、径 +1</td></tr><tr><td>オーディオ共通開口 50 × 20</td><td>−9.405 … 10.595</td><td>−3.405 … 16.595</td><td>▲ +6</td></tr><tr><td>USB開口 高さ</td><td>−22.2 … −12.2</td><td>底面まで … −2.2</td><td>上端 +10 / 幅 16→26 (Y 33.6–59.6)</td></tr></table></div>
+<p class="note">導光部品はLED穴の高さに合わせて縦の落差が 9.3 → 3.3 mm になり、全高が 14.855 → 9.355 mm に短くなりました。RESET・LED穴は径 Ø6.5 → Ø7.5 とし、穴同士・LED穴とOLED窓の壁は約1.75 mmです（従来 2.5 mm）。再生成: <code>cad/build_compact_enclosure.py</code>（<code>RAISE</code> / <code>USB_EXTEND</code>）。</p>
+</main></body></html>

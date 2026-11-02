@@ -1,0 +1,45 @@
+[   12050ms] TypeError: Cannot read properties of null (reading 'addEventListener')
+    at http://localhost:8791/lp/assets/js/sims.js:521:51
+    at Array.forEach (<anonymous>)
+    at Object.signal (http://localhost:8791/lp/assets/js/sims.js:521:34)
+    at http://localhost:8791/lp/assets/js/main.js:322:7
+    at http://localhost:8791/lp/assets/js/main.js:355:3
+[  147475ms] [ERROR] THREE.WebGLProgram: Shader Error 0 - VALIDATE_STATUS false
+
+Material Name: 
+Material Type: MeshStandardMaterial
+
+Program Info Log: 
+
+ @ https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js:20345
+[  147575ms] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid @ https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js:23305
+[  147631ms] [ERROR] THREE.WebGLProgram: Shader Error 1282 - VALIDATE_STATUS false
+
+Material Name: 
+Material Type: MeshBasicMaterial
+
+Program Info Log: 
+
+ @ https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js:20345
+[  147632ms] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid @ https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js:23305
+[  147648ms] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid @ https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js:23305
+[  147650ms] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid @ https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js:23305
+[  147664ms] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid @ https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js:23305
+[  147665ms] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid @ https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js:23305
+[  147673ms] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid @ https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js:23305
+[  147674ms] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid @ https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js:23305
+[  147679ms] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid @ https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js:23305
+[  147681ms] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid @ https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js:23305
+[  147682ms] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid @ https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js:23305
+[  147710ms] [ERROR] THREE.WebGLProgram: Shader Error 1282 - VALIDATE_STATUS false
+
+Material Name: SphericalGaussianBlur
+Material Type: ShaderMaterial
+
+Program Info Log: 
+
+ @ https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js:20345
+[  147711ms] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid @ https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js:23305
+[  151254ms] [WARNING] WebGL: CONTEXT_LOST_WEBGL: loseContext: context lost @ http://localhost:8791/lp/index.html?v=2:0
+[  152315ms] [LOG] THREE.WebGLRenderer: Context Lost. @ https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js:29529
+[  153386ms] [LOG] THREE.WebGLRenderer: Context Restored. @ https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js:29537
