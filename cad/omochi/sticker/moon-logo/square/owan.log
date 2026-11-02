@@ -1,0 +1,31 @@
+{
+  "thread_id": "0e1ca9aa-b0df-4c4f-8cb3-5c4302bfcdb2",
+  "status": "done",
+  "items": [
+    {
+      "type": "assistant",
+      "text": "画像を生成しました。OWANの文字、COSMIC RAY DETECTOR v1、お椀・月・雲・桜・星の配置を保ちつつ、ご指定の4点を反映しています。確認なしでの1枚生成のため、そのままの出力となります。"
+    },
+    {
+      "type": "generator",
+      "artifacts": [
+        {
+          "type": "image",
+          "content": "https://a.lovart.ai/artifacts/agent/6eJaLgxIlP3iKHyP.png"
+        }
+      ],
+      "name": "artifacts"
+    }
+  ],
+  "final_status": "done",
+  "project_id": "bf2b8a13a0b44bdf8813864cb06fc0ea",
+  "generation_succeeded": true,
+  "downloaded": [
+    {
+      "type": "image",
+      "url": "https://a.lovart.ai/artifacts/agent/6eJaLgxIlP3iKHyP.png",
+      "local_path": "out-owan\\lovart_967a7038c406.png",
+      "new": true
+    }
+  ]
+}

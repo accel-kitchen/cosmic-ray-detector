@@ -1,0 +1,35 @@
+{
+  "thread_id": "2cd8aa7f-a9fd-49ce-af8f-832224e1130b",
+  "status": "done",
+  "items": [
+    {
+      "type": "assistant",
+      "text": "OWAN バージョン1 のステッカーを生成します。"
+    },
+    {
+      "type": "assistant",
+      "text": "OWAN v1 のステッカーを生成しました。OHASHI v2 の構図・文字並び・雰囲気を踏襲しつつ、指定の青緑寄りの紺地、金色の月と湯気の立つお椀、OWAN 版のテキスト、クリーム色の加速キッチンロゴを配置しています。"
+    },
+    {
+      "type": "generator",
+      "artifacts": [
+        {
+          "type": "image",
+          "content": "https://a.lovart.ai/artifacts/agent/8TOtzCYJlk4f2HuM.png"
+        }
+      ],
+      "name": "artifacts"
+    }
+  ],
+  "final_status": "done",
+  "project_id": "bf2b8a13a0b44bdf8813864cb06fc0ea",
+  "generation_succeeded": true,
+  "downloaded": [
+    {
+      "type": "image",
+      "url": "https://a.lovart.ai/artifacts/agent/8TOtzCYJlk4f2HuM.png",
+      "local_path": "out-owanA\\lovart_7dbd35e5042e.png",
+      "new": true
+    }
+  ]
+}

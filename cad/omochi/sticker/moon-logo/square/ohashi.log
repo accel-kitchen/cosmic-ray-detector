@@ -1,0 +1,31 @@
+{
+  "thread_id": "8127f837-f95f-44f6-b0e7-6660948358e0",
+  "status": "done",
+  "items": [
+    {
+      "type": "assistant",
+      "text": "画像を生成しました。3:4の長方形に、お箸・月を琥珀色、地を深い藍色、OHASHIの意味文の頭文字をピンクに強調し、最下部を加速キッチンのロゴに差し替えています。\n\nhttps://a.lovart.ai/artifacts/agent/T687NnDlPJmsqusj.png"
+    },
+    {
+      "type": "generator",
+      "artifacts": [
+        {
+          "type": "image",
+          "content": "https://a.lovart.ai/artifacts/agent/T687NnDlPJmsqusj.png"
+        }
+      ],
+      "name": "artifacts"
+    }
+  ],
+  "final_status": "done",
+  "project_id": "bf2b8a13a0b44bdf8813864cb06fc0ea",
+  "generation_succeeded": true,
+  "downloaded": [
+    {
+      "type": "image",
+      "url": "https://a.lovart.ai/artifacts/agent/T687NnDlPJmsqusj.png",
+      "local_path": "out-ohashi\\lovart_b55b0ed08dc6.png",
+      "new": true
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "thread_id": "c1ef467f-4527-49b4-b34a-1c2c2a235348",
+  "status": "done",
+  "items": [
+    {
+      "type": "assistant",
+      "text": "完成しました。略称の意味を「Online Watcher of」「Air-shower Newcomers」に変更し、頭文字 O・W・A・N をミントグリーンで約15%大きく太く、他の文字はクリーム色のまま、フラットカラーで再作成しています。下部のロゴも添付2枚目の「Accel Kitchen」に置き換えています。"
+    },
+    {
+      "type": "generator",
+      "artifacts": [
+        {
+          "type": "image",
+          "content": "https://a.lovart.ai/artifacts/agent/38dDt1B2AK8vf9OF.png"
+        }
+      ],
+      "name": "artifacts"
+    }
+  ],
+  "final_status": "done",
+  "project_id": "bf2b8a13a0b44bdf8813864cb06fc0ea",
+  "generation_succeeded": true,
+  "downloaded": [
+    {
+      "type": "image",
+      "url": "https://a.lovart.ai/artifacts/agent/38dDt1B2AK8vf9OF.png",
+      "local_path": "out-nc\\lovart_a630009bfb45.png",
+      "new": true
+    }
+  ]
+}

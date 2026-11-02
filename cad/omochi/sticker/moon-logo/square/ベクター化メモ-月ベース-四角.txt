@@ -1,0 +1,38 @@
+OWAN (v1) / OHASHI (v2) ステッカー(月ベース・全面の夜空・四角切り・頭文字を強調・色違い)ベクター化メモ
+2026-10-25
+
+【経緯】
+rect2/(全面の夜空・角丸)に対する、次の4点の依頼を反映した。
+1. 色の違いを大きく: 地だけでなく、金・クリーム・頭文字の色もそれぞれ変えた(下の【色】)。
+2. 外形を、角を丸めない四角(直角の四隅)にした。仕上がり 50.32 × 68 mm、塗り足し 3 mm。切り抜き線も四角。
+3. 略称の意味の頭文字を強調: 頭文字だけ、他の文字より約15%大きく、太く、アクセント色にした(OWAN は O W A N、OHASHI は O H A S H I)。
+4. OWAN の略称の意味を、宇宙線に特化した v1 に合わせて変えた(暫定案)。
+    旧: Online Watcher of Ambient Natural radiation(身のまわりの自然放射線)
+    新: Online Watcher of Air-shower Newcomers(2026-10-25 に確定。空気シャワー = 宇宙線が大気で作る粒子のシャワー、から来る「お客さん」。頭文字 O W A N は変わらない)
+    最初の暫定案は Air-shower Noise だったが、宇宙線を邪魔者と呼ぶ印象になるので Newcomers に決まった。gen-owan-noise.png が旧案の生成画像。
+    OHASHI は変更なし: Online Hands-on Analyzer of Scintillation Hits, Individually
+    ※ サイト・マニュアル・ショップへの反映は別途(同日に依頼あり)。
+
+【ファイル】
+- sticker-owan-night-vector.svg / sticker-ohashi-night-vector.svg ... 層つき(ground / art / logo-lockup / cutline)。mm 単位。
+- sticker-owan-night-print.pdf / sticker-ohashi-night-print.pdf ... 入稿用。切り抜き線なし。ページ 56.32 × 74 mm、TrimBox 50.32 × 68 mm、画像 0、フォント 0。
+- web/sticker-owan-night.svg / web/sticker-ohashi-night.svg ... サイト・アプリ用(約 39 KB / 42 KB)。viewBox 50.32 × 68、塗り足しと切り抜き線なし、四角。
+- gen-owan.png / gen-ohashi.png(Lovart / GPT Image 2.5 の生成結果。元は base-*.png = rect2/ の A 案、プロンプト p_*.txt)、proof-pair.png、gen-pair.png
+- tools/(mv_labels → mv_snap → mv_trace → mv_build_full → mv_post_full の順)、work-*/
+
+【色】(RGB)
+    OWAN   ... 地 #0B4F57(青緑)/ 名前・略称 #F3F6E3(ミント寄りの白)/ 月・お椀・副題 #F2D14A(レモン寄りの金)/ 頭文字 #8EE3B5(ミント)/ 桜 #FBA6C4
+    OHASHI ... 地 #1F2A80(藍)/ 名前・略称 #FBEFE0(暖かい白)/ 月・お箸・副題 #F7A935(橙寄りの琥珀)/ お箸の影 #B8601A / 頭文字と桜 #FF9EC0(ピンク)
+    ロゴはクリーム色一色(玉の縁は地の色、珊瑚の玉は桜色)。本物のロゴの曲線を幅 30 mm で置いた。
+    色の値は生成画像から測った色を、ベクター化のとき上の値に置き換えたもの(mv_build_full.py の WAYS)。
+
+【確認した値】
+- 切り抜き線に最も近い絵(20 px/mm): OWAN 2.90 mm、OHASHI 3.20 mm。
+- web 版と入稿版の差: 色が大きくちがう画素は OWAN 0.25%、OHASHI 0.22%(縁の1画素)。
+- PDF: 画像 0、フォント 0。
+
+【未対応・確認が必要なこと】
+- ロゴの使用許可、AI 生成画像の権利、書体の権利、商標は未確認。
+- ロゴ(高さ約 3.6 mm)と略称の行は小さい。試し刷りで確認する。
+- 全面ベタの印刷ムラ、CMYK、入稿先指定(切り抜き線の色)、v1 の箱の窓をふさがないかは未確認。
+- サイトとコンソールはスタイル15の SVG のまま。
