@@ -270,7 +270,7 @@
     ctx.fillText(t('meter.fullScale', { n: rg.full }), 20, H - 20);
     ctx.textAlign = 'right';
     ctx.fillStyle = C.ink4;
-    ctx.fillText('OHASHI · COSMIC RAY', W - 20, H - 20);
+    ctx.fillText(modelProfile.id === 'omame' ? 'OMAME · COSMIC RAY' : 'OHASHI · COSMIC RAY', W - 20, H - 20);
     if (m.conn && m.rate > rg.full && !(m.rangeMode === 'auto' && m.ri < RANGES.length - 1)) {
       ctx.fillStyle = C.coral2;
       ctx.globalAlpha = 0.55 + 0.45 * Math.sin(performance.now() / 120);

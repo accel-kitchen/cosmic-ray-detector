@@ -51,10 +51,12 @@ const settings = {
 
 // ========== Firmware constants (match description.md) ==========
 const ADC_MAX = 4095;                  // 12-bit ADC
+const EVENT_TOKEN_COUNT_GPS = 18;      // 13 + PPS_UTC[s] PPS_dt[us] PPS_period[us] Lat Lon (GPS 対応ファーム。旧ファームは 13)
 const EVENT_TOKEN_COUNT = 13;          // count, time_us, adc, deadtime_us, T, H, P, d1..3, a1..3
 const VALID_MODES = ['DIGITAL', 'DUAL', 'ANALOG'];
 
 // Throttling / memory caps (to keep the page responsive under high event rates)
+const GPS_LOG_MAX           = 200000;  // 保存用に持つ GPS 行の上限 (PPS は 10 秒ごとなので約 23 日分)
 const MAX_EVENTS            = 1000000; // cap on state.events kept in memory (table/recompute/download). Oldest dropped past this, with a visible warning.
 // Trimming the head of a 1M-element array is O(n), so it is done in chunks:
 // the array may overshoot MAX_EVENTS by this much, then one splice brings it back.
@@ -171,11 +173,16 @@ const state = {
   threshold: null,        // int (0-4095)
   pwmDuty: null,          // int (0-255), comparator threshold on D2
   pwmCalibrating: false,  // AUTO_PWM in progress
+  hv: null,               // OMAME only: SiPM bias setting in V (25.9 | 27.1 | 27.9) | null
   sdEnabled: null,        // bool | null
   extEnabled: null,       // bool | null
   oledEnabled: null,      // bool | null
   buzzerEnabled: null,    // bool | null
   vibEnabled: null,       // bool | null
+  gpsEnabled: null,       // bool | null
+  gpsLog: [],             // 測定データと一緒に保存する GPS の行 { kind:'gps', pc_timestamp, line, demo } (イベントと同じ到着順)
+  gpsRec: { pps: 0, pos: 0, lastPpsUtc: null, lastPpsAt: 0, clockDiffMs: null },  // 記録した PPS / 位置の件数と最新の PPS
+  gps: null,              // GPS の受信状況 { valid, fix, sats, lat, lon, alt, nmea, ppsCount, ppsAgeMs, ... } | null
   beepMin: null,          // int Hz (pitch at threshold) | null
   beepMax: null,          // int Hz (pitch at ADC max) | null
   beepMs: null,           // int ms (beep duration) | null
@@ -502,12 +509,12 @@ async function connectBLE() {
   if (state.isConnected || state.reconnecting) return;
   if (mixesDemo(false)) { Bus.emit('alert', { key: 'demo.mixedReal' }); return; }
   clearConnError();
-  const targetName = (settings.bleName || 'CosmicRay').trim() || 'CosmicRay';
+  const targetName = (settings.bleName || modelProfile.bleDefault).trim() || modelProfile.bleDefault;
 
   let device;
   try {
     device = await navigator.bluetooth.requestDevice({
-      filters: [{ name: targetName }],
+      filters: [modelProfile.blePrefix ? { namePrefix: targetName } : { name: targetName }],
       optionalServices: [BLE_SERVICE_UUID]
     });
   } catch (e) {
@@ -738,10 +745,41 @@ async function sendCommandNow(cmd) {
 // first because the auto-save file name waits for it.
 const REFRESH_COMMANDS = [
   'GET_BLENAME', 'GET_THRESH', 'GET_PWM', 'GET_MODE', 'GET_SCOPE',
-  'GET_SD', 'GET_EXT', 'GET_OLED', 'GET_BUZZER', 'GET_VIB',
+  'GET_SD', 'GET_EXT', 'GET_OLED', 'GET_BUZZER', 'GET_VIB', 'GET_GPS',
   'GET_AUTO_MARGIN', 'GET_BEEP', 'GET_VIB_MS', 'GET_BTADDR',
 ];
 let refreshGen = 0;
+
+// ========== Detector model profile ==========
+// OHASHI (v2, ESP32-S3) と OMAME (MUON FOB, nRF52840) は同じ行の形式・同じコマンド名で話す。
+// 違いは「この基板に無いもの」と「OMAME だけにあるもの」だけなので、ページは 1 つのまま、
+// 機種ごとの差をこの表に集める。'v2' の値は従来の挙動そのもの（既定）。
+//   bleDefault : Bluetooth の名前の既定（入力欄の初期値）
+//   blePrefix  : true なら前方一致で探す（MuonFob の既定名は MuonFob-XXXX で、下 4 桁が個体ごとに違う）
+//   bleKey     : 最後に使った名前を覚える localStorage のキー（機種どうしで混ざらないように分ける）
+//   refresh    : 接続直後と再起動後に送る問い合わせ
+//   hv         : 高電圧の設定（GET_HV / SET_HV）がある
+const MODEL_PROFILES = {
+  v2: {
+    id: 'v2',
+    bleDefault: 'CosmicRay', blePrefix: false, bleKey: 'bleName',
+    refresh: REFRESH_COMMANDS,
+    hv: false,
+  },
+  omame: {
+    id: 'omame',
+    bleDefault: 'MuonFob', blePrefix: true, bleKey: 'bleName_omame',
+    // OMAME には GPS が無い（GET_GPS は "Unknown command" になる）。GET_HV は OMAME だけ。
+    refresh: REFRESH_COMMANDS.filter(c => c !== 'GET_GPS').concat('GET_HV'),
+    hv: true,
+  },
+};
+let modelProfile = MODEL_PROFILES.v2;
+
+// 機種を切り替える。画面側（ui.js）が選択の直後と起動時に呼ぶ。
+function setModelProfile(id) {
+  modelProfile = MODEL_PROFILES[id] || MODEL_PROFILES.v2;
+}
 
 // Sent one at a time through the command chain; a newer call supersedes an older one.
 async function refreshDeviceState() {
@@ -749,9 +787,10 @@ async function refreshDeviceState() {
   // GET_BTADDR は新しめのファームだけが応答する。無応答なら「取得不可」に切り替える。
   state.conn.btAddr = null;
   state.conn.btAddrTimedOut = false;
+  if (modelProfile.hv) state.hv = null;   // GET_HV の応答が来るまで「取得中」
   // Give a board that is still booting a moment before the first GET.
   await sleep(800);
-  for (const cmd of REFRESH_COMMANDS) {
+  for (const cmd of modelProfile.refresh) {
     if (gen !== refreshGen || !state.isConnected) return;
     await sendCommand(cmd);
     await sleep(CMD_GAP_MS);
@@ -793,6 +832,71 @@ function setScopeDeviceOn(on) {
 // ========== Data Processing ==========
 let uiDirty = false;     // table/env/ext/histogram/rawDisplay
 let statsDirty = false;  // stats cards
+
+// GPS の行 (GPS スイッチが ON のときだけファームが出す):
+//   "### GPS fix=1 sats=8 lat=35.681236 lon=139.767125 alt=12.3"            (60 秒ごと)
+//   "### GPS status: nmea=ok valid=1 fix=1 sats=8 lat=.. lon=.. alt=.. utc=.." (GET_GPS の応答 1/2)
+//   "### GPS status: pps_count=.. pps_age_ms=.. pps_period_us=.. sync=.. lines_ok=.. lines_bad=.." (同 2/2)
+// 拾ったら true を返す。"### GPS: UART1 ..." のような説明行は拾わない。
+function parseGpsLine(line) {
+  // 記録する行: "### PPS <t_us> <utc_epoch_s>" と "### GPS fix=..." (ファームが SD に書くものと同じ形)。
+  // 測定の一時停止中は、イベントと同じく記録しない。
+  const pps = line.match(/^#+\s*PPS\s+(\d+)\s+(\d+)\s*$/i);
+  if (pps) {
+    recordGpsLine(line, true, parseInt(pps[2]));
+    Bus.emit('device', 'gps');
+    return true;
+  }
+  const m = line.match(/^#+\s*GPS\s+(status:|fix=)/i);
+  if (!m) return false;
+  const g = state.gps || (state.gps = {});
+  const num = v => { const n = parseFloat(v); return Number.isFinite(n) ? n : null; };
+  for (const [, k, v] of line.matchAll(/(\w+)=(\S+)/g)) {
+    switch (k) {
+      case 'nmea':          g.nmea = v === 'ok'; break;
+      case 'valid':         g.valid = v === '1'; break;
+      case 'fix':           g.fix = num(v); break;
+      case 'sats':          g.sats = num(v); break;
+      case 'lat':           g.lat = num(v); break;
+      case 'lon':           g.lon = num(v); break;
+      case 'alt':           g.alt = num(v); break;
+      case 'utc':           g.utc = num(v); break;
+      case 'pps_count':     g.ppsCount = num(v); break;
+      case 'pps_age_ms':    g.ppsAgeMs = num(v); break;
+      case 'pps_period_us': g.ppsPeriodUs = num(v); break;
+      case 'sync':          g.sync = num(v); break;
+      case 'lines_ok':      g.linesOk = num(v); break;
+      case 'lines_bad':     g.linesBad = num(v); break;
+    }
+  }
+  if (m[1].toLowerCase() === 'fix=') g.valid = true;   // 位置の行は有効な RMC のときだけ出る
+  g.updatedAt = Date.now();
+  if (m[1].toLowerCase() === 'fix=') recordGpsLine(line, false);
+  Bus.emit('device', 'gps');
+  return true;
+}
+
+// GPS の行を保存の対象に入れる。測定データ (.dat / .csv) には '#' で始まる行としてそのまま入る。
+// pandas なら read_csv(path, comment='#') で読み飛ばせる。
+function recordGpsLine(line, isPps, utc) {
+  const r = state.gpsRec;
+  if (isPps) {
+    r.lastPpsUtc = utc; r.lastPpsAt = Date.now();
+    // PPS 行はファームが RMC を受けた直後に出すので、PC の時計で見て PPS から 0〜1 秒ほど遅れて届く。
+    // それを大きく外れるときは、NMEA の秒と PPS の対応が 1 秒ずれているか、PC の時計が合っていない。
+    r.clockDiffMs = r.lastPpsAt - utc * 1000;
+  }
+  if (state.paused) return;
+  if (isPps) r.pps++; else r.pos++;
+  const rec = { kind: 'gps', pc_timestamp: Date.now(), line: line.replace(/^#+/, '###'), demo: state.connectionType === 'demo' };
+  state.gpsLog.push(rec);
+  if (state.gpsLog.length > GPS_LOG_MAX) state.gpsLog.splice(0, state.gpsLog.length - GPS_LOG_MAX);
+  if (state.autoSave.enabled) {
+    const fmt = settings.autoSaveFormat;
+    if (fmt === 'dat' || fmt === 'both') state.autoSave.queues.dat.push(rec);
+    if (fmt === 'csv' || fmt === 'both') state.autoSave.queues.csv.push(rec);
+  }
+}
 
 function processLine(line) {
   if (!line) return;
@@ -907,7 +1011,7 @@ function processLine(line) {
       // デモの仮想基板の名前は保存しない。次に実機へ BLE 接続するときの
       // 名前フィルタを、デモで付けた名前で上書きしてしまうため（N-16）。
       if (state.connectionType !== 'demo') {
-        try { localStorage.setItem('bleName', name); } catch (_) {}
+        try { localStorage.setItem(modelProfile.bleKey, name); } catch (_) {}
       }
       Bus.emit('device', 'blename');
     }
@@ -934,11 +1038,13 @@ function processLine(line) {
     ['OLED:',   'oledEnabled',   'featOLED'],
     ['BUZZER:', 'buzzerEnabled', 'featBUZZER'],
     ['VIB:',    'vibEnabled',    'featVIB'],
+    ['GPS:',    'gpsEnabled',    'featGPS'],
   ]) {
     if (line.startsWith(prefix)) {
       const val = line.substring(prefix.length).trim().toUpperCase();
       if (val === 'ON' || val === 'OFF') {
         state[key] = (val === 'ON');
+        if (key === 'gpsEnabled' && !state.gpsEnabled) state.gps = null;
         Bus.emit('device', 'feature');
         return;
       }
@@ -947,6 +1053,15 @@ function processLine(line) {
 
   // Boot header / informational lines
   if (line.startsWith('###') || line.startsWith('#')) {
+    if (parseGpsLine(line)) return;
+    // OMAME だけ: "### HV: 27.1 V (HV_TRIM Hi-Z)" (起動時 / GET_HV / SET_HV の応答)。
+    // "### HV changed: ..." や "### HV ..." の説明行は数字が続かないので拾わない。
+    const hv = line.match(/^#+\s*HV:\s*(\d+(?:\.\d+)?)\s*V\b/i);
+    if (hv && modelProfile.hv) {
+      state.hv = parseFloat(hv[1]);
+      Bus.emit('device', 'hv');
+      return;
+    }
     // "### Signal threshold: 120 (Duty 30)"
     const m = line.match(/Signal threshold:\s*(\d+)\s*\(Duty\s*(\d+)\)/i);
     if (m) {
@@ -1004,7 +1119,8 @@ function processLine(line) {
   // glued to the next one has more, a truncated one has fewer: drop both (C-1). The firmware
   // sets the USB-CDC TX timeout to 0 while counting, so a stalled host can lose a line's tail.
   const parts = line.split(/\s+/);
-  if (parts.length !== EVENT_TOKEN_COUNT) return;
+  const withGps = parts.length === EVENT_TOKEN_COUNT_GPS;
+  if (parts.length !== EVENT_TOKEN_COUNT && !withGps) return;
 
   const count       = parseInt(parts[0]);
   const timestampUs = parseInt(parts[1]);   // device Time, microseconds (v2 firmware)
@@ -1025,6 +1141,17 @@ function processLine(line) {
         inAdc(adc) && Number.isInteger(deadtimeUs) && deadtimeUs >= 0 &&
         dig.every(d => d === 0 || d === 1) && ana.every(inAdc))) return;
 
+  // GPS 対応ファームの末尾 5 列。GPS なしは "0 -1 0 nan nan"。
+  let ppsUtc = 0, ppsDt = -1, ppsPeriod = 0, lat = NaN, lon = NaN;
+  if (withGps) {
+    ppsUtc = parseInt(parts[13]); ppsDt = parseInt(parts[14]); ppsPeriod = parseInt(parts[15]);
+    lat = parseFloat(parts[16]); lon = parseFloat(parts[17]);
+    if (!(Number.isInteger(ppsUtc) && ppsUtc >= 0 && Number.isInteger(ppsDt) && ppsDt >= -1 &&
+          Number.isInteger(ppsPeriod) && ppsPeriod >= 0)) return;
+    if ((!isNaN(lat) && Math.abs(lat) > 90) || (!isNaN(lon) && Math.abs(lon) > 180)) return;
+    if (ppsDt < 0 || ppsUtc === 0 || ppsPeriod === 0) { ppsUtc = 0; ppsDt = -1; ppsPeriod = 0; }
+  }
+
   const event = {
     count,
     timestamp_us: timestampUs,
@@ -1038,6 +1165,8 @@ function processLine(line) {
     // in memory, and each array costs an extra heap object per event (R-17).
     d1: dig[0], d2: dig[1], d3: dig[2],
     a1: ana[0], a2: ana[1], a3: ana[2],
+    pps_utc: ppsUtc, pps_dt_us: ppsDt, pps_period_us: ppsPeriod,   // 直前の PPS の UTC[s]・そこからの経過[µs]・PPS の間隔[µs] (GPS なしは 0 / -1 / 0)
+    lat, lon,
     seg: 0,           // rate segment id (set by rateTrack)
     wall_us: 0,       // device clock mapped onto wall time, fixed at arrival (R-11)
     demo: state.connectionType === 'demo',   // never uploaded, even by Re-send
@@ -1256,8 +1385,8 @@ async function autoSaveFileName(dirHandle, prefix, day, fmt) {
   return nameOf(part);
 }
 
-const DAT_COLUMNS = '# Event\tPC_Timestamp\tTime[us]\tADC[0-4095]\tDeadtime[us]\tTemp[C]\tHum[%]\tPress[hPa]\tDig1\tDig2\tDig3\tAna1\tAna2\tAna3\n';
-const CSV_COLUMNS = 'Event,PC_Timestamp,Time_us,ADC,Deadtime_us,Temp_C,Hum_pct,Press_hPa,Dig1,Dig2,Dig3,Ana1,Ana2,Ana3\n';
+const DAT_COLUMNS = '# Event\tPC_Timestamp\tTime[us]\tADC[0-4095]\tDeadtime[us]\tTemp[C]\tHum[%]\tPress[hPa]\tDig1\tDig2\tDig3\tAna1\tAna2\tAna3\tPPS_UTC_s\tPPS_dt_us\tPPS_period_us\tLat\tLon\tUTC_GPS\n';
+const CSV_COLUMNS = 'Event,PC_Timestamp,Time_us,ADC,Deadtime_us,Temp_C,Hum_pct,Press_hPa,Dig1,Dig2,Dig3,Ana1,Ana2,Ana3,PPS_UTC_s,PPS_dt_us,PPS_period_us,Lat,Lon,UTC_GPS\n';
 
 // One header builder for every path -- auto-save and download, .dat and .csv --
 // so all files carry the same metadata (R-15). Metadata lines start with '#';
@@ -1270,20 +1399,34 @@ function buildFileHeader(format, isDemo) {
   if (comment) for (const l of comment.split(/\r?\n/)) lines.push('# ' + l);
   if (isDemo) lines.push(DEMO_FILE_NOTE.trimEnd());
   lines.push('# Source: CosmicRay Recorder v2 (v2/index.html)');
+  // OMAME だけ追加する注釈行（# で始まるので列の読み取りには影響しない。OHASHI の出力は従来どおり）
+  if (modelProfile.id === 'omame') {
+    lines.push('# Detector model: OMAME (MUON FOB). Temp column = nRF52840 die temperature, not ambient; Hum / Press = nan; Dig / Ana = 0.');
+    if (state.hv != null) lines.push(`# SiPM bias setting: ${state.hv} V`);
+  }
   if (state.bleName)           lines.push(`# Device: ${state.bleName}`);
   if (state.conn.btAddr)       lines.push(`# Board address: ${state.conn.btAddr}`);
   if (state.mode)              lines.push(`# Trigger mode: ${state.mode}`);
   if (state.threshold != null) lines.push(`# Signal threshold: ${state.threshold} / 4095`);
-  if (state.pwmDuty != null)   lines.push(`# Comparator PWM duty: ${state.pwmDuty} / 255`);
+  if (state.pwmDuty != null && modelProfile.id !== 'omame') lines.push(`# Comparator PWM duty: ${state.pwmDuty} / 255`);   // OMAME にコンパレータは無い
+  if (state.gpsEnabled) {
+    const g = state.gps;
+    if (g && g.valid && g.lat != null && g.lon != null) {
+      lines.push(`# GPS position: lat ${g.lat.toFixed(6)} lon ${g.lon.toFixed(6)}` + (g.alt != null ? ` alt ${g.alt.toFixed(1)} m` : '') + (g.sats != null ? ` (${g.sats} satellites)` : ''));
+    }
+    lines.push('# GPS: "### PPS <Time[us]> <UTC unix seconds>" lines mark the 1PPS edges on the same clock as Time[us]; "### GPS fix=.." lines give the position.');
+  }
   lines.push('# PC_Timestamp: UTC (trailing Z). Time / Deadtime: board counters in microseconds since boot or RESET.');
   lines.push('# Column 2 (PC_Timestamp) is added by this page, so later columns sit one to the right of the firmware / SD log.');
+  lines.push('# PPS_UTC_s / PPS_dt_us / PPS_period_us / Lat / Lon come from the firmware (empty without GPS). UTC_GPS (last column) = PPS_UTC_s + PPS_dt_us / PPS_period_us, computed by this page.');
   return lines.join('\n') + '\n' + (format === 'csv' ? CSV_COLUMNS : DAT_COLUMNS);
 }
 
 // File name base from the board's BLE name, without the DEMO_ mark.
 function getFileBase() {
-  const name = (state.bleName || state.conn.bleName || 'CosmicRay').trim();
-  return name.replace(/[^A-Za-z0-9_\-]/g, '_') || 'CosmicRay';
+  const fallback = modelProfile.bleDefault;
+  const name = (state.bleName || state.conn.bleName || fallback).trim();
+  return name.replace(/[^A-Za-z0-9_\-]/g, '_') || fallback;
 }
 
 // デモの合成データは、あとから本物と取り違えないようファイル名の頭で分かるようにする。
@@ -1291,16 +1434,40 @@ function getFilePrefix(isDemo = demo.on) {
   return (isDemo ? 'DEMO_' : '') + getFileBase();
 }
 
+// イベントの UTC (GPS)。直前の PPS の UTC に、PPS からの経過を PPS の間隔で割った分を足す。
+// 間隔で割るのは、水晶の誤差 (数十 ppm なら 1 秒で数十 µs) を消すため。GPS なしは null。
+function eventUtcParts(ev) {
+  if (!ev.pps_period_us || ev.pps_dt_us < 0 || !ev.pps_utc) return null;
+  const totalUs = Math.round(ev.pps_dt_us * 1e6 / ev.pps_period_us);
+  return { s: ev.pps_utc + Math.floor(totalUs / 1e6), us: totalUs % 1e6 };
+}
+
+// 2026-11-12T01:02:03.123456Z (µs まで)。GPS なしは空。
+function eventUtcString(ev) {
+  const u = eventUtcParts(ev);
+  if (!u) return '';
+  return new Date(u.s * 1000).toISOString().slice(0, 19) + '.' + String(u.us).padStart(6, '0') + 'Z';
+}
+
+// ファームのイベント行の末尾 5 列 + 計算した UTC。GPS なしは空欄。
+function eventGpsFields(ev) {
+  const has = ev.pps_dt_us >= 0 && ev.pps_utc > 0;
+  const deg = v => (isNaN(v) ? '' : v.toFixed(5));
+  return [has ? ev.pps_utc : '', has ? ev.pps_dt_us : '', has ? ev.pps_period_us : '', deg(ev.lat), deg(ev.lon), eventUtcString(ev)];
+}
+
 // Pressure keeps the firmware's one decimal; a second digit would be invented precision.
 function eventToDatLine(ev) {
+  if (ev.kind === 'gps') return ev.line + '\n';
   const pcTs = new Date(ev.pc_timestamp).toISOString().replace('T', '-').replace(/:/g, '-');
   const f = (v, d = 1) => (isNaN(v) ? '' : v.toFixed(d));
-  return `${ev.count}\t${pcTs}\t${ev.timestamp_us}\t${ev.adc}\t${ev.deadtime_us}\t${f(ev.temp_c, 1)}\t${f(ev.hum_pct, 1)}\t${f(ev.press_hpa, 1)}\t${ev.d1}\t${ev.d2}\t${ev.d3}\t${ev.a1}\t${ev.a2}\t${ev.a3}\n`;
+  return `${ev.count}\t${pcTs}\t${ev.timestamp_us}\t${ev.adc}\t${ev.deadtime_us}\t${f(ev.temp_c, 1)}\t${f(ev.hum_pct, 1)}\t${f(ev.press_hpa, 1)}\t${ev.d1}\t${ev.d2}\t${ev.d3}\t${ev.a1}\t${ev.a2}\t${ev.a3}\t${eventGpsFields(ev).join('\t')}\n`;
 }
 
 function eventToCsvLine(ev) {
+  if (ev.kind === 'gps') return ev.line + '\n';
   const f = (v, d = 1) => (isNaN(v) ? '' : v.toFixed(d));
-  return `${ev.count},${new Date(ev.pc_timestamp).toISOString()},${ev.timestamp_us},${ev.adc},${ev.deadtime_us},${f(ev.temp_c, 1)},${f(ev.hum_pct, 1)},${f(ev.press_hpa, 1)},${ev.d1},${ev.d2},${ev.d3},${ev.a1},${ev.a2},${ev.a3}\n`;
+  return `${ev.count},${new Date(ev.pc_timestamp).toISOString()},${ev.timestamp_us},${ev.adc},${ev.deadtime_us},${f(ev.temp_c, 1)},${f(ev.hum_pct, 1)},${f(ev.press_hpa, 1)},${ev.d1},${ev.d2},${ev.d3},${ev.a1},${ev.a2},${ev.a3},${eventGpsFields(ev).join(',')}\n`;
 }
 
 // Writes one format's queue to `dir` under the file name base `base`. Both are
@@ -1323,13 +1490,14 @@ async function flushAutoSaveFormat(fmt, dir, base) {
       const nextMidnight = new Date(d0.getFullYear(), d0.getMonth(), d0.getDate() + 1).getTime();
       const isDemo = !!batch[i].demo;
       const parts = [];
-      let j = i;
+      let j = i, nEvents = 0;
       while (j < batch.length && batch[j].pc_timestamp < nextMidnight && !!batch[j].demo === isDemo) {
+        if (batch[j].kind !== 'gps') nEvents++;
         parts.push(lineOf(batch[j++]));
       }
       const name = await autoSaveFileName(dir, (isDemo ? 'DEMO_' : '') + base, day, fmt);
       await appendToFile(dir, name, parts.join(''), buildFileHeader(fmt, isDemo));
-      as.written[fmt] += j - i;
+      as.written[fmt] += nEvents;
       as.lastFile[fmt] = name;
       i = j;
     }
@@ -1999,6 +2167,8 @@ function applyConnectionState(connected) {
     state.oledEnabled = null;
     state.buzzerEnabled = null;
     state.vibEnabled = null;
+    state.gpsEnabled = null;
+    state.gps = null;
     state.beepMin = null;
     state.beepMax = null;
     state.beepMs = null;
@@ -2069,6 +2239,18 @@ let exporting = false;
 function exportDat() { exportData('dat'); }
 function exportCsv() { exportData('csv'); }
 
+function mergeGpsLog(evs, log) {
+  if (!log.length) return evs.slice();
+  const out = [];
+  let g = 0;
+  for (const ev of evs) {
+    while (g < log.length && log[g].pc_timestamp < ev.pc_timestamp) out.push(log[g++]);
+    out.push(ev);
+  }
+  while (g < log.length) out.push(log[g++]);
+  return out;
+}
+
 const yieldToUI = () => new Promise(r => setTimeout(r, 0));
 
 function setExportBusy(busy) {
@@ -2085,7 +2267,8 @@ async function exportData(format) {
   setExportBusy(true);
 
   // Snapshot so events arriving (or being dropped at the cap) mid-export don't shift indices.
-  const events = state.events.slice();
+  // GPS の行 (PPS / 位置) をイベントの到着順に差し込む。同時刻ならイベントが先。
+  const events = mergeGpsLog(state.events, state.gpsLog);
   const total = events.length;
 
   // Any synthetic event in the file makes it a demo file, whether or not the
@@ -2406,7 +2589,7 @@ const demo = {
   // 仮想デバイスの設定値 (ファームの Preferences 相当)。
   dev: {
     threshold: 120, duty: 34, mode: 'DIGITAL', autoMargin: 50,
-    sd: false, ext: true, oled: true, buzzer: true, vib: false,
+    sd: false, ext: true, oled: true, buzzer: true, vib: false, gps: false,
     beepMin: 500, beepMax: 4000, beepMs: 25,
     vibMin: 20, vibMax: 120,
     bleName: 'CosmicRay',
@@ -2414,6 +2597,31 @@ const demo = {
   scope: { on: false, rate: 3, enterMs: 0, emitted: 0, nextMs: 0, rearm: 5, trig: 'NORMAL' },
   audio: null,
 };
+
+// 機種ごとの仮想基板。OHASHI（v2）は上の demo.dev そのまま。
+// OMAME は実機ファームの応答に合わせる: PWM は無し(0)、トリガーは ANALOG のみ、SD / EXT / GPS は無い、
+// OLED のスイッチは LED、HV は 3 段（0 = 25.9 V / 1 = 27.1 V / 2 = 27.9 V）。
+demo.devs = {
+  v2: demo.dev,
+  omame: {
+    threshold: 120, duty: 0, mode: 'ANALOG', autoMargin: 50,
+    sd: false, ext: false, oled: true, buzzer: true, vib: false, gps: false,
+    beepMin: 500, beepMax: 4000, beepMs: 25,
+    vibMin: 20, vibMax: 120,
+    bleName: 'MuonFob',
+    hv: 1,
+  },
+};
+const DEMO_HV_TEXT = ['25.9', '27.1', '27.9'];
+const DEMO_HV_TRIM = ['High', 'Hi-Z', 'Low'];
+
+// オシロの 1 窓の形。OHASHI は 12 us 間隔でピークホールド出力、OMAME は 6 us 間隔でアンプの生の出力
+// （16 点前 + 1 + 64 点後 = 81 点、ファームの SCOPE_PRE / SCOPE_POST）。
+function demoWaveGeom() {
+  return modelProfile.id === 'omame'
+    ? { pre: 16, post: 64, periodNs: 6000, tauUs: 25, riseUs: 2 }
+    : { pre: DEMO_SCOPE_PRE, post: DEMO_SCOPE_POST, periodNs: DEMO_SCOPE_PERIOD_NS, tauUs: DEMO_TAU_US, riseUs: DEMO_RISE_US };
+}
 
 // --- 乱数 -------------------------------------------------------------------
 
@@ -2549,7 +2757,11 @@ function demoMakeEvent(tMs) {
   // デッドタイム: 1 イベントの処理時間 + 2 秒ごとの OLED 書き換え。
   demo.deadtimeUs += DEMO_EVT_DEADTIME_US + (d.ext ? DEMO_EXT_DEADTIME_US : 0)
                    + Math.round(Math.abs(demoRandN()) * 12);
-  if (d.oled && tMs - demo.lastDisplayMs >= DEMO_DISPLAY_INTERVAL_MS) {
+  if (modelProfile.id === 'omame') {
+    // OMAME: 画面の書き換えは無い。LED が 10 ms 光る間と、止まってから数え直すまでの 10 ms が
+    // デッドタイム（ファームの LED_MS / SETTLE_MS）。ブザー・振動も同様に数えない。
+    if (d.oled) demo.deadtimeUs += 20000;
+  } else if (d.oled && tMs - demo.lastDisplayMs >= DEMO_DISPLAY_INTERVAL_MS) {
     demo.lastDisplayMs = tMs;
     demo.deadtimeUs += DEMO_OLED_DEADTIME_US + Math.round(demoRandN() * 1500);
   }
@@ -2566,14 +2778,30 @@ function demoMakeEvent(tMs) {
   }
 
   const e = demo.env;
-  // ファームの snprintf("%lu %llu %d %llu %.1f %.1f %.1f %d %d %d %d %d %d") と同じ並び。
+  // OMAME: 温度は nRF52840 のチップ温度、湿度と気圧は "nan"（BME280 が無い）。
+  const omame = modelProfile.id === 'omame';
+  // ファームの snprintf("%lu %llu %d %llu %.1f %.1f %.1f %d %d %d %d %d %d %lu %ld %lu %.5f %.5f") と同じ並び。
+  // 末尾 5 列 (PPS_UTC / PPS_dt / PPS_period / Lat / Lon) は GPS 対応ファームだけ。GPS が OFF なら "0 -1 0 nan nan"。
+  const tUs = Math.round((tMs - demo.startMs) * 1000);
+  let gpsTail = [];
+  if (!omame) {
+    if (d.gps) {
+      const secN = Math.floor((tUs - 137) / 1000000);
+      gpsTail = [demoUtcBase() + secN, tUs - (secN * 1000000 + 137), 1000003, '35.68124', '139.76712'];
+    } else {
+      gpsTail = [0, -1, 0, 'nan', 'nan'];
+    }
+  }
   processLine([
     demo.count,
-    Math.round((tMs - demo.startMs) * 1000),
+    tUs,
     adc,
     demo.deadtimeUs,
-    e.temp.toFixed(1), e.hum.toFixed(1), e.press.toFixed(1),
+    omame ? (e.temp + 6).toFixed(1) : e.temp.toFixed(1),
+    omame ? 'nan' : e.hum.toFixed(1),
+    omame ? 'nan' : e.press.toFixed(1),
     dig[0], dig[1], dig[2], ana[0], ana[1], ana[2],
+    ...gpsTail,
   ].join(' '));
 
   if (demo.sound && d.buzzer) demoBeep(adc, tMs);
@@ -2584,9 +2812,10 @@ function demoMakeEvent(tMs) {
 // free = 連続撮影（トリガーなし）。トリガーを待たずに窓を出すので、たいていはベースライン
 // とノイズだけで、窓の中に事象が入ったときだけパルスが見える。
 function demoEmitWaveform(tMs, free) {
-  const npre = DEMO_SCOPE_PRE;
-  const ntot = DEMO_SCOPE_PRE + 1 + DEMO_SCOPE_POST;
-  const dtUs = DEMO_SCOPE_PERIOD_NS / 1000;
+  const G = demoWaveGeom();
+  const npre = G.pre;
+  const ntot = G.pre + 1 + G.post;
+  const dtUs = G.periodNs / 1000;
   const base = demoBaseline();
   const winSec = ntot * dtUs / 1e6;
   const shower = (tMs < demo.burstUntilMs) && Math.random() < 0.75;
@@ -2600,14 +2829,14 @@ function demoEmitWaveform(tMs, free) {
   // 連続撮影ではトリガ点がないので、窓のどこに来てもよい。
   const tStart = free ? Math.random() * (ntot * dtUs - 100) - npre * dtUs
                       : -(4 + 8 * Math.random());
-  const tau = DEMO_TAU_US * (0.88 + 0.24 * Math.random());
+  const tau = G.tauUs * (0.88 + 0.24 * Math.random());
 
   const raw = new Float64Array(ntot);
   let mx = 0;
   if (pulse) {
     for (let i = 0; i < ntot; i++) {
       const t = (i - npre) * dtUs - tStart;
-      const s = (t < 0) ? 0 : (1 - Math.exp(-t / DEMO_RISE_US)) * Math.exp(-t / tau);
+      const s = (t < 0) ? 0 : (1 - Math.exp(-t / G.riseUs)) * Math.exp(-t / tau);
       raw[i] = s;
       if (s > mx) mx = s;
     }
@@ -2616,11 +2845,11 @@ function demoEmitWaveform(tMs, free) {
   if (pulse && !free && Math.random() < 1 - Math.exp(-demoRate(tMs) * winSec)) {
     const t2 = Math.random() * (ntot - npre) * dtUs;
     const amp2 = (demoSampleAdc(false) - base) / Math.max(1, amp);
-    const tau2 = DEMO_TAU_US * (0.88 + 0.24 * Math.random());
+    const tau2 = G.tauUs * (0.88 + 0.24 * Math.random());
     for (let i = 0; i < ntot; i++) {
       const t = (i - npre) * dtUs - t2;
       if (t < 0) continue;
-      raw[i] += amp2 * mx * (1 - Math.exp(-t / DEMO_RISE_US)) * Math.exp(-t / tau2);
+      raw[i] += amp2 * mx * (1 - Math.exp(-t / G.riseUs)) * Math.exp(-t / tau2);
     }
   }
 
@@ -2635,7 +2864,7 @@ function demoEmitWaveform(tMs, free) {
 
   demo.scope.emitted++;
   processLine('WF,' + demo.scope.emitted + ',' + Math.round(tMs - demo.scope.enterMs) +
-              ',U,' + npre + ',' + ntot + ',' + DEMO_SCOPE_PERIOD_NS + ',' + v.join(','));
+              ',U,' + npre + ',' + ntot + ',' + G.periodNs + ',' + v.join(','));
 }
 
 // ファームの再アームの規則。トリガーモードでは、ベースライン（約 86）が再アームの水準より
@@ -2719,6 +2948,18 @@ function demoTick() {
     }
   }
 
+  // GPS が ON のデモは、実機と同じ形の PPS 行 (10 秒ごと) と位置の行 (60 秒ごと) を出す。
+  if (demo.dev.gps && now >= (demo.nextPpsMs || 0)) {
+    const sec = Math.floor((now - demo.startMs) / 1000);
+    const utc = demoUtcBase() + sec;
+    processLine('### PPS ' + (sec * 1000000 + 137) + ' ' + utc);
+    if (sec % 60 < 10 || !demo.gpsFixLogged) {
+      demo.gpsFixLogged = true;
+      processLine('### GPS fix=1 sats=9 lat=35.681236 lon=139.767125 alt=12.3');
+    }
+    demo.nextPpsMs = now + 10000;
+  }
+
   if (now - demo.lastInfoMs > 500) {
     demo.lastInfoMs = now;
     Bus.emit('demoInfo');
@@ -2734,6 +2975,8 @@ function demoCommand(cmd) {
   const say = (line, ms) => setTimeout(() => { if (demo.on) processLine(line); }, ms == null ? 30 : ms);
   const threshLine = () => 'THRESH:' + d.threshold + ' DUTY:' + d.duty;
   const clampI = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+
+  if (modelProfile.id === 'omame' && demoCommandOmame(cmd, d, say)) return;
 
   if (cmd.startsWith('SET_THRESH:')) {
     const n = parseInt(cmd.slice(11));
@@ -2866,19 +3109,105 @@ function demoCommand(cmd) {
   } else {
     // 機能トグル (SET_SD / SET_EXT / SET_OLED / SET_BUZZER / SET_VIB と GET_*)
     for (const [name, key] of [['SD', 'sd'], ['EXT', 'ext'], ['OLED', 'oled'],
-                               ['BUZZER', 'buzzer'], ['VIB', 'vib']]) {
+                               ['BUZZER', 'buzzer'], ['VIB', 'vib'], ['GPS', 'gps']]) {
       if (cmd === 'GET_' + name) {
         say(name + ':' + (d[key] ? 'ON' : 'OFF'));
+        if (name === 'GPS' && d.gps) demoGpsStatus(say);
         return;
       }
       if (cmd.startsWith('SET_' + name + ':')) {
         const val = cmd.slice(name.length + 5).toUpperCase();
         if (val === 'ON' || val === 'OFF') d[key] = (val === 'ON');
         say(name + ':' + (d[key] ? 'ON' : 'OFF'));
+        if (name === 'GPS' && d.gps) demoGpsStatus(say);
         return;
       }
     }
   }
+}
+
+// OMAME（MUON FOB）の実機ファームが OHASHI と違う答え方をするコマンド。処理したら true を返し、
+// 残りは demoCommand の共通の処理（しきい値・ブザー・振動・オシロ・BLE 名など）に任せる。
+// 文言は firmware/muon_fob/muon_fob.ino の runCommand と同じ。
+function demoCommandOmame(cmd, d, say) {
+  if (cmd.startsWith('SET_PWM:') || cmd.startsWith('AUTO_PWM')) {
+    say('### MuonFob has no comparator threshold (ANALOG trigger only).');
+    say('PWM:0', 40);
+  } else if (cmd === 'GET_PWM') {
+    say('PWM:0');
+  } else if (cmd === 'GET_THRESH' || cmd.startsWith('SET_THRESH:')) {
+    if (cmd.startsWith('SET_THRESH:')) {
+      const n = parseInt(cmd.slice(11));
+      if (!isNaN(n) && n >= 0 && n <= ADC_MAX) d.threshold = n;
+    }
+    say('THRESH:' + d.threshold + ' DUTY:0');
+  } else if (cmd === 'AUTO_THRESH' || cmd.startsWith('AUTO_THRESH:')) {
+    if (cmd.startsWith('AUTO_THRESH:')) {
+      const m = parseInt(cmd.slice(12));
+      if (!isNaN(m)) d.autoMargin = Math.min(ADC_MAX, Math.max(0, m));
+    }
+    say('### Auto-calibrating threshold...');
+    setTimeout(() => {
+      if (!demo.on) return;
+      const mn = Math.round(Math.abs(demoRandN()) * 3);
+      const mx = Math.round(24 + Math.abs(demoRandN()) * 10);
+      d.threshold = Math.min(ADC_MAX, mx + d.autoMargin);
+      processLine('### Auto-threshold calib: min=' + mn + ' max=' + mx +
+                  ' margin=' + d.autoMargin + ' -> thr=' + d.threshold);
+      processLine('THRESH:' + d.threshold + ' DUTY:0');
+      processLine('AUTO_MARGIN:' + d.autoMargin);
+    }, 1200);
+  } else if (cmd.startsWith('SET_MODE:')) {
+    if (cmd.slice(9) !== 'ANALOG') say('### MuonFob: only the ANALOG trigger is available (no comparator).');
+    say('MODE:ANALOG', 40);
+  } else if (cmd === 'GET_MODE') {
+    say('MODE:ANALOG');
+  } else if (cmd.startsWith('SET_SD:')) {
+    say('### MuonFob: no microSD on this board.'); say('SD:OFF', 40);
+  } else if (cmd === 'GET_SD') {
+    say('SD:OFF');
+  } else if (cmd.startsWith('SET_EXT:')) {
+    say('### MuonFob: no external inputs on this board.'); say('EXT:OFF', 40);
+  } else if (cmd === 'GET_EXT') {
+    say('EXT:OFF');
+  } else if (cmd === 'GET_HV') {
+    say('### HV: ' + DEMO_HV_TEXT[d.hv] + ' V (HV_TRIM ' + DEMO_HV_TRIM[d.hv] + ')');
+  } else if (cmd.startsWith('SET_HV:')) {
+    const a = cmd.slice(7);
+    const lv = DEMO_HV_TEXT.indexOf(a);
+    if (lv >= 0) {
+      d.hv = lv;
+      // 昇圧が落ち着くまで計数しない（ファームの blankFor(50)）。
+      demo.nextEventMs = Math.max(demo.nextEventMs, performance.now() + 50);
+      say('### HV changed: run AUTO_THRESH after a few seconds (the gain moved).');
+    } else {
+      say('### SET_HV: use 25.9, 27.1 or 27.9');
+    }
+    say('### HV: ' + DEMO_HV_TEXT[d.hv] + ' V (HV_TRIM ' + DEMO_HV_TRIM[d.hv] + ')', 60);
+  } else if (cmd === 'GET_STAT') {
+    say('### STAT count=' + demo.count + ' elapsed_us=' + Math.round((performance.now() - demo.startMs) * 1000) +
+        ' dead_us=' + demo.deadtimeUs + ' overruns=0 dropped_lines=0 thr=' + d.threshold + ' hv=' + DEMO_HV_TEXT[d.hv]);
+  } else if (cmd === 'GET_GPS' || cmd.startsWith('SET_GPS:')) {
+    say('### Unknown command: ' + cmd + ' (HELP for the list)');
+  } else {
+    return false;
+  }
+  return true;
+}
+
+// デモ用の GPS 応答 (屋外で測位できているときの形)。
+// デモ開始 (Time[us] = 0) の UTC 秒。デモの PPS / イベントの UTC はここからの経過で決める。
+function demoUtcBase() {
+  if (demo.utcBase == null || demo.utcBaseFor !== demo.startMs) {
+    demo.utcBase = Math.floor(Date.now() / 1000) - Math.floor((performance.now() - demo.startMs) / 1000);
+    demo.utcBaseFor = demo.startMs;
+  }
+  return demo.utcBase;
+}
+
+function demoGpsStatus(say) {
+  say('### GPS status: nmea=ok valid=1 fix=1 sats=9 lat=35.681236 lon=139.767125 alt=12.3 utc=' + Math.floor(Date.now() / 1000), 60);
+  say('### GPS status: pps_count=' + 600 + ' pps_age_ms=412 pps_period_us=1000003 sync=12 lines_ok=480 lines_bad=0', 90);
 }
 
 // RESET と再起動の共通部分: 計数・経過時間・デッドタイムを 0 からやり直す。
@@ -2906,7 +3235,9 @@ function demoSetScope(on) {
     s.emitted = 0;
     s.nextMs = now + 200;
     processLine('### SCOPE: ON - counting is PAUSED while the scope is open.');
-    processLine('###        A0 is the PEAK-HOLD output, not the raw amplifier pulse.');
+    processLine(modelProfile.id === 'omame'
+      ? '###        SIG is the raw amplifier output (this board has no peak-hold).'
+      : '###        A0 is the PEAK-HOLD output, not the raw amplifier pulse.');
     processLine(s.trig === 'FREE'
       ? '###        FREE-RUN: no trigger, one window every ' + Math.round(1000 / Math.max(1, s.rate)) + ' ms.'
       : '###        trigger above ' + demo.dev.threshold + ', re-arm at or below ' + demoScopeRearmLevel() +
@@ -2925,6 +3256,21 @@ function demoSetScope(on) {
 
 function demoBootBanner() {
   const d = demo.dev;
+  if (modelProfile.id === 'omame') {
+    [
+      'Booting MuonFob v0.1...',
+      '### MuonFob v0.1 (XIAO nRF52840) - cosmic-ray-detector-keyholder',
+      '### DEMO BOARD - synthetic data, no hardware attached',
+      '### Signal threshold: ' + d.threshold + ' (Duty 0)',
+      'MODE:ANALOG', 'SD:OFF', 'EXT:OFF', d.oled ? 'OLED:ON' : 'OLED:OFF', d.vib ? 'VIB:ON' : 'VIB:OFF',
+      '### Trigger: ANALOG only. SIG (amplifier output, no peak-hold) sampled every 6 us; peak = 3-point parabola.',
+      '### OLED switch = the 3 RGB LEDs (no OLED on this board). SD / EXT are not fitted.',
+      '### Temp = nRF52840 die temperature (not ambient). Hum / Press = nan.',
+      '### HV: ' + DEMO_HV_TEXT[d.hv] + ' V (HV_TRIM ' + DEMO_HV_TRIM[d.hv] + ')',
+      '### Event Time[us] ADC[0-4095] Deadtime[us] Temp[C] Hum[%] Press[hPa] Dig1 Dig2 Dig3 Ana1 Ana2 Ana3',
+    ].forEach((l, i) => setTimeout(() => { if (demo.on) processLine(l); }, 60 + i * 40));
+    return;
+  }
   const lines = [
     'Booting v2...',
     '### Accel Kitchen',
@@ -2958,7 +3304,8 @@ function connectDemo() {
   demo.scope = { on: false, rate: parseInt(settings.scopeRate) || 3, enterMs: 0, emitted: 0, nextMs: 0 };
   // BLE 名は画面の入力欄をそのまま名乗る。デモが勝手に別名を保存して、
   // 次に実機へ BLE 接続するときの名前フィルタを壊さないため。
-  demo.dev.bleName = (settings.bleName || 'CosmicRay').trim() || 'CosmicRay';
+  demo.dev = demo.devs[modelProfile.id] || demo.devs.v2;
+  demo.dev.bleName = (settings.bleName || modelProfile.bleDefault).trim() || modelProfile.bleDefault;
 
   state.connectionType = 'demo';
   state.isConnected = true;
@@ -2995,6 +3342,8 @@ function demoFmtRate(r) {
 function clearAllData() {
   if (state.isConnected) sendCommand('RESET');
   state.events = [];
+  state.gpsLog = [];
+  state.gpsRec = { pps: 0, pos: 0, lastPpsUtc: null, lastPpsAt: 0, clockDiffMs: null };
   state.rateHistory = [];
   state.rawLines = [];
   state.stats = newStats();

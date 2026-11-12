@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600" role="img">
+<title>OMAME (MUON FOB): top view of the case lid, smoked acrylic with three particle tracks engraved on the back, three LEDs and a key ring.</title>
+<defs>
+  <linearGradient id="smoke" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#4a4f5a"/>
+    <stop offset="1" stop-color="#2a2d35"/>
+  </linearGradient>
+  <radialGradient id="glowA" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ffc35a" stop-opacity=".95"/><stop offset="1" stop-color="#ffc35a" stop-opacity="0"/></radialGradient>
+  <radialGradient id="glowB" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#6fe3d2" stop-opacity=".95"/><stop offset="1" stop-color="#6fe3d2" stop-opacity="0"/></radialGradient>
+  <radialGradient id="glowC" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ff7fae" stop-opacity=".95"/><stop offset="1" stop-color="#ff7fae" stop-opacity="0"/></radialGradient>
+</defs>
+<rect width="800" height="600" fill="#f4f1ea"/>
+<!-- key ring (behind the case) -->
+<circle cx="718" cy="304" r="64" fill="none" stroke="#9aa0a8" stroke-width="13"/>
+<circle cx="718" cy="304" r="64" fill="none" stroke="#d7dbe0" stroke-width="4" stroke-dasharray="40 300" transform="rotate(-30 718 304)"/>
+<!-- soft shadow -->
+<rect x="52" y="148" width="642" height="336" rx="44" fill="#000" opacity=".12"/>
+<!-- lid: 45.85 x 24 mm, R3 (14 px per mm) -->
+<rect x="44" y="136" width="642" height="336" rx="42" fill="url(#smoke)"/>
+<rect x="44" y="136" width="642" height="336" rx="42" fill="none" stroke="#1d1f25" stroke-width="3"/>
+<!-- key-ring tube slot -->
+<path d="M626 266 h60 v76 h-60 a38 38 0 0 1 0 -76z" fill="#14161b" opacity=".55"/>
+<!-- crystal and SiPM, seen faintly through the smoke -->
+<rect x="76" y="196" width="196" height="196" rx="8" fill="#b7ef75" opacity=".16"/>
+<rect x="318" y="160" width="86" height="290" rx="6" fill="#f0b24a" opacity=".13"/>
+<!-- three engraved tracks -->
+<g stroke="#e9ecf1" stroke-linecap="round" fill="none" opacity=".82">
+  <path d="M120 440 L300 190" stroke-width="3"/>
+  <path d="M250 450 L470 215" stroke-width="2.4" stroke-dasharray="2 7"/>
+  <path d="M430 450 L560 170" stroke-width="3"/>
+  <circle cx="300" cy="190" r="5" fill="#e9ecf1" stroke="none"/>
+</g>
+<!-- LED windows -->
+<circle cx="560" cy="212" r="46" fill="url(#glowA)"/><circle cx="560" cy="212" r="15" fill="#ffd993"/>
+<circle cx="560" cy="304" r="46" fill="url(#glowB)"/><circle cx="560" cy="304" r="15" fill="#aef2e7"/>
+<circle cx="560" cy="396" r="46" fill="url(#glowC)"/><circle cx="560" cy="396" r="15" fill="#ffc0d8"/>
+<!-- sound holes -->
+<g fill="#0e1014"><circle cx="438" cy="168" r="3"/><circle cx="438" cy="184" r="3"/><circle cx="438" cy="200" r="3"/></g>
+</svg>

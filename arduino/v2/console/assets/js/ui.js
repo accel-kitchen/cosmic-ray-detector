@@ -19,7 +19,7 @@ function lsGet(key) { try { return localStorage.getItem(key); } catch (_) { retu
 function lsSet(key, value) { try { localStorage.setItem(key, value); } catch (_) {} }
 
 // Buttons that wait for the board (re-enabled by its reply or a timeout).
-const busy = { autoThresh: false, autoThreshM: 0, testVib: false, modeSwitch: null, rename: null };
+const busy = { autoThresh: false, autoThreshM: 0, testVib: false, modeSwitch: null, rename: null, hv: null, hvPrev: null };
 let uiAlert = null;   // { key, params } raised by core (folder API missing, demo upload)
 
 // ========== Detector model ==========
@@ -32,11 +32,31 @@ let modelChosen = false;
 function chooseModel(model) {
   lsSet(MODEL_KEY, model);
   if (model === 'v1') { location.href = 'v1.html'; return; }
+  // v2 (OHASHI) と omame (OMAME) はこのページ。違いは機種プロファイル（core.js の MODEL_PROFILES）。
+  setModelProfile(model);
+  applyModel();
   modelChosen = true;
   // ?choose を外しておく（付いたままだと再読み込みでまた選ぶ画面になる）
   if (new URLSearchParams(location.search).has('choose')) history.replaceState(null, '', location.pathname + location.hash);
   renderView();
   window.scrollTo(0, 0);
+}
+
+// 機種を切り替えたあとの画面の合わせ込み。出し分けは body[data-model]（CSS）、文言は t() の「キー@omame」。
+// 機種ごとに Bluetooth 名を別々に覚える（OHASHI の名前で OMAME を探さないように）。
+function loadBleNameForModel() {
+  const saved = lsGet(modelProfile.bleKey);
+  settings.bleName = saved || modelProfile.bleDefault;
+  state.bleName = saved || undefined;
+  $('bleName').value = $('advBleName').value = settings.bleName;
+  $('bleName').placeholder = $('advBleName').placeholder = modelProfile.bleDefault;
+}
+
+function applyModel(skipRender) {
+  document.body.dataset.model = modelProfile.id;
+  $('brandVer').textContent = modelProfile.id === 'omame' ? 'OMAME · MUON FOB' : 'OHASHI · v2';
+  loadBleNameForModel();
+  if (!skipRender) applyLanguage();   // 文言を引き直し、画面全体を描き直す
 }
 
 function showModelChooser() {
@@ -241,7 +261,7 @@ function renderConnDetail() {
 }
 
 // ========== Device settings (Advanced drawer) ==========
-const FEATURE_KEYS = { SD: 'sdEnabled', EXT: 'extEnabled', OLED: 'oledEnabled', BUZZER: 'buzzerEnabled', VIB: 'vibEnabled' };
+const FEATURE_KEYS = { SD: 'sdEnabled', EXT: 'extEnabled', OLED: 'oledEnabled', BUZZER: 'buzzerEnabled', VIB: 'vibEnabled', GPS: 'gpsEnabled' };
 
 function renderThreshInfo() {
   const el = $('threshInfo');
@@ -271,6 +291,21 @@ function renderVibInfo() {
   if (!state.isConnected) el.textContent = '';
   else if (state.vibMin != null) el.textContent = t('vib.current', { min: state.vibMin, max: state.vibMax });
   else el.textContent = t('vib.fetching');
+}
+
+// OMAME だけ: SiPM のバイアス電圧（HV）。25.9 / 27.1 / 27.9 V の 3 段。
+function renderHv() {
+  const on = state.isConnected;
+  const el = $('hvInfo');
+  $('hvSelect').querySelectorAll('button').forEach(b => {
+    b.disabled = !on || busy.hv != null;
+    b.classList.toggle('active', on && state.hv != null && parseFloat(b.dataset.hv) === state.hv);
+  });
+  if (!on) el.textContent = '';
+  else if (busy.hv != null) el.textContent = t('hv.switching', { v: busy.hv });
+  else if (state.hv != null) el.textContent = t('hv.current', { v: state.hv });
+  else el.textContent = t('hv.fetching');
+  if (!on) $('hvAfter').hidden = true;
 }
 
 const modeName = m => m ? m.charAt(0) + m.slice(1).toLowerCase() : '--';
@@ -304,6 +339,62 @@ function renderFeatures() {
       sw.title = state.isConnected ? t(v ? 'common.on' : 'common.off') : '';
     }
   });
+  renderGpsInfo();
+}
+
+// GPS の状態。スイッチが ON のときだけ見せる。
+function renderGpsInfo() {
+  renderGpsAux();
+  const box = $('gpsBox'), info = $('gpsInfo'), btn = $('btnGpsToUpload');
+  const on = state.isConnected && state.gpsEnabled === true;
+  box.hidden = !on;
+  if (!on) return;
+  const g = state.gps;
+  const hasPos = !!(g && g.valid && g.lat != null && g.lon != null);
+  let msg;
+  if (!g || g.nmea === undefined) msg = t('gps.waiting');
+  else if (!g.nmea) msg = t('gps.noNmea');
+  else if (!hasPos) msg = t('gps.searching', { sats: g.sats ?? 0 });
+  else msg = t('gps.fixed', { sats: g.sats ?? '?', lat: g.lat.toFixed(6), lon: g.lon.toFixed(6), alt: g.alt != null ? g.alt.toFixed(1) : '?' });
+  if (g && g.ppsCount !== undefined) {
+    const ppsOk = g.ppsCount > 0 && g.ppsAgeMs != null && g.ppsAgeMs < 3000;
+    msg += '\n' + t('gps.pps', { state: t(ppsOk ? 'gps.ppsOk' : 'gps.ppsNone'), sync: g.sync ?? 0, ok: g.linesOk ?? 0, bad: g.linesBad ?? 0 });
+  } else if (!g) {
+    msg += '\n' + t('gps.hint');
+  }
+  if (state.gpsRec.pps || state.gpsRec.pos) msg += '\n' + t('gps.rec', gpsRecParams());
+  const cd = state.gpsRec.clockDiffMs;
+  if (cd != null && (cd < -300 || cd > 1500)) msg += '\n' + t('gps.clockOff', { sec: (cd / 1000).toFixed(1) });
+  info.textContent = msg;
+  btn.hidden = !hasPos;
+}
+
+const gpsRecParams = () => {
+  const r = state.gpsRec;
+  return { pps: r.pps, pos: r.pos, utc: r.lastPpsUtc != null ? new Date(r.lastPpsUtc * 1000).toISOString().replace('.000Z', 'Z') : '--' };
+};
+
+// 測定画面の「GPS」欄。スイッチが ON の間だけ出し、記録した PPS の件数を添える。
+function renderGpsAux() {
+  const on = state.isConnected && state.gpsEnabled === true;
+  $('gpsAux').hidden = !on;
+  if (!on) return;
+  const g = state.gps, r = state.gpsRec;
+  const hasPos = !!(g && g.valid && g.lat != null && g.lon != null);
+  let head;
+  if (!g || g.nmea === undefined) head = t('gps.auxWait');
+  else if (!g.nmea) head = t('gps.auxNoNmea');
+  else if (!hasPos) head = t('gps.auxSearching');
+  else head = t('gps.auxFixed', { sats: g.sats ?? '?' });
+  $('gpsAuxVal').textContent = r.pps ? head + ' · ' + t('gps.auxRec', { pps: r.pps }) : head;
+  $('gpsAuxVal').title = t('gps.auxTitle', gpsRecParams());
+}
+
+// ON の間、機能のドロワーが開いていれば状態を取り直す (位置の行は 60 秒に 1 回しか出ないので)。
+function pollGps() {
+  if (!state.isConnected || state.gpsEnabled !== true) return;
+  const drawer = $('adv-features');
+  if (drawer && drawer.open) sendCommand('GET_GPS');
 }
 
 function renderBleNameInfo() {
@@ -336,6 +427,7 @@ function renderDeviceAll() {
   renderBeepInfo();
   renderVibInfo();
   renderModeInfo();
+  renderHv();
   renderBleNameInfo();
   renderDeviceControls();
 }
@@ -462,7 +554,8 @@ function updateTable() {
       <td>${fmt(ev.hum_pct, 1)}</td>
       <td>${fmt(ev.press_hpa, 1)}</td>
       <td>${ev.d1}</td><td>${ev.d2}</td><td>${ev.d3}</td>
-      <td>${ev.a1}</td><td>${ev.a2}</td><td>${ev.a3}</td>`;
+      <td>${ev.a1}</td><td>${ev.a2}</td><td>${ev.a3}</td>
+      <td>${eventUtcString(ev).slice(11, -1) || '--'}</td>`;
   }
   lastTableLength = events.length;
   while (tbody.rows.length > maxRows) tbody.deleteRow(tbody.rows.length - 1);
@@ -492,6 +585,7 @@ function updateUIBatch() {
   updateTable();
   updateEnvCards();
   updateExtGrid();
+  renderGpsInfo();
   updateRawDisplay();
   $('noDataMsg').hidden = state.events.length > 0;
   renderExportButtons();
@@ -632,7 +726,8 @@ function renderDemoInfo() {
   const lines = [t('demo.info', {
     lam: demoFmtRate(demoRate(now)),
     n: demo.count.toLocaleString(uiLocale()),
-    temp: demo.env.temp.toFixed(1),
+    // OMAME のイベントの温度は、環境温度 + 6 のチップ温度（core.js の demoMakeEvent と同じ）
+    temp: (demo.env.temp + (modelProfile.id === 'omame' ? 6 : 0)).toFixed(1),
     press: demo.env.press.toFixed(1),
   })];
   if (demo.scope.on) lines.push(t('demo.infoScope'));
@@ -956,6 +1051,7 @@ Bus.on('conn', connected => {
     busy.autoThresh = false;
     busy.testVib = false;
     busy.modeSwitch = null;
+    busy.hv = null;
   }
   renderView();
   renderStatus();
@@ -994,6 +1090,12 @@ Bus.on('device', key => {
     case 'margin':
       $('autoMargin').value = state.autoMargin;
       break;
+    case 'hv':
+      // 切り替えた直後の応答なら、ゲインが動いたので自動校正を勧める
+      if (busy.hv != null && state.hv !== busy.hvPrev) $('hvAfter').hidden = false;
+      busy.hv = null;
+      renderHv();
+      break;
     case 'beep':
       $('beepMin').value = state.beepMin;
       $('beepMax').value = state.beepMax;
@@ -1014,6 +1116,10 @@ Bus.on('device', key => {
       break;
     case 'feature':
       renderFeatures();
+      if (state.gpsEnabled === true && !state.gps) sendCommand('GET_GPS');
+      break;
+    case 'gps':
+      renderGpsInfo();
       break;
     case 'scopeRate':
       $('scopeRate').value = settings.scopeRate;
@@ -1082,6 +1188,7 @@ Bus.on('cleared', () => {
   updateStats();
   updateEnvCards();
   updateExtGrid();
+  renderGpsInfo();
   renderDemoBand();
   renderView();
   redrawCharts();
@@ -1252,6 +1359,21 @@ function bindControls() {
     });
   });
 
+  // --- OMAME: SiPM bias (HV). The board answers "### HV: <v> V (...)", which core turns into state.hv.
+  $('hvSelect').querySelectorAll('button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (!state.isConnected || btn.disabled) return;
+      busy.hv = btn.dataset.hv;
+      busy.hvPrev = state.hv;
+      renderHv();
+      sendCommand(`SET_HV:${btn.dataset.hv}`);
+      // 応答が来なかったときもボタンを戻す
+      setTimeout(() => { if (busy.hv != null) { busy.hv = null; renderHv(); } }, 3000);
+    });
+  });
+  $('btnHvAuto').addEventListener('click', () => $('btnAutoThresh').click());
+  $('btnAutoThresh').addEventListener('click', () => { $('hvAfter').hidden = true; });
+
   // --- feature switches: send the opposite of what the board reported
   qsa('.switch[data-feature]').forEach(sw => {
     sw.addEventListener('click', () => {
@@ -1261,6 +1383,18 @@ function bindControls() {
       sendCommand(`SET_${feat}:${cur === true ? 'OFF' : 'ON'}`);
     });
   });
+
+  // --- GPS
+  $('btnGpsToUpload').addEventListener('click', () => {
+    const g = state.gps;
+    if (!g || g.lat == null || g.lon == null) return;
+    $('uploadLat').value = g.lat.toFixed(6);
+    $('uploadLon').value = g.lon.toFixed(6);
+    readUploadForm();
+    saveUploadConfig();
+    updateUploadUI();
+  });
+  setInterval(pollGps, 10000);
 
   // --- beep / vibration
   $('btnSetBeep').addEventListener('click', () => {
@@ -1492,16 +1626,13 @@ function bindControls() {
 // ========== Start ==========
 document.addEventListener('DOMContentLoaded', () => {
   currentLang = detectLanguage();
-  modelChosen = lsGet(MODEL_KEY) === 'v2' && !new URLSearchParams(location.search).has('choose');
+  const savedModel = lsGet(MODEL_KEY);
+  modelChosen = (savedModel === 'v2' || savedModel === 'omame') && !new URLSearchParams(location.search).has('choose');
+  setModelProfile(savedModel === 'omame' ? 'omame' : 'v2');
   renderModelChooser();
 
-  // Inputs -> settings, and the Bluetooth name remembered from the last board.
-  const savedBleName = lsGet('bleName');
-  if (savedBleName) {
-    settings.bleName = savedBleName;
-    state.bleName = savedBleName;
-  }
-  $('bleName').value = $('advBleName').value = settings.bleName;
+  // Inputs -> settings, and the Bluetooth name remembered from the last board (kept per model).
+  applyModel(true);
   settings.baudRate = parseInt($('baudRate').value) || 9600;
   settings.binWidth = parseInt($('binWidth').value);
   settings.histLog = $('histLogScale').checked;

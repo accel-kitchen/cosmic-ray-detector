@@ -1,6 +1,6 @@
 {
   "name": "CosmicRay Recorder v2 firmware",
-  "version": "2026-10-24",
+  "version": "2026-11-12b",
   "new_install_prompt_erase": false,
   "new_install_improv_wait_time": 0,
   "builds": [

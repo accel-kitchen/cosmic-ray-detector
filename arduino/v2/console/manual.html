@@ -758,8 +758,8 @@ python -m http.server 8000</code></pre>
     <h2 id="a-format"><span class="no">付録 A</span>ファイルとログの形式</h2>
     <h3>検出器が送る行</h3>
     <p>イベントのたびに、USB と Bluetooth の両方へ 1 行ずつ送られます。空白区切りです。microSD のログも同じ形です。</p>
-    <pre><code>### Event Time[us] ADC[0-4095] Deadtime[us] Temp[C] Hum[%] Press[hPa] Dig1 Dig2 Dig3 Ana1 Ana2 Ana3
-42 18732450 1940 1203000 24.3 48.2 1013.2 1 0 1 2448 112 2804</code></pre>
+    <pre><code>### Event Time[us] ADC[0-4095] Deadtime[us] Temp[C] Hum[%] Press[hPa] Dig1 Dig2 Dig3 Ana1 Ana2 Ana3 PPS_UTC[s] PPS_dt[us] PPS_period[us] Lat[deg] Lon[deg]
+42 18732450 1940 1203000 24.3 48.2 1013.2 1 0 1 2448 112 2804 1794485745 485158 1000003 35.68124 139.76712</code></pre>
     <div class="table-wrap"><table>
       <thead><tr><th>列</th><th>意味</th><th>範囲・単位</th></tr></thead>
       <tbody>
@@ -767,6 +767,8 @@ python -m http.server 8000</code></pre>
         <tr><td>Time[us]</td><td>起動（または RESET）からの時間</td><td>µs</td></tr>
         <tr><td>ADC</td><td>この検出器のピークホールドの値</td><td>0〜4095</td></tr>
         <tr><td>Deadtime[us]</td><td>デッドタイムの累計</td><td>µs</td></tr>
+        <tr><td>PPS_UTC[s] / PPS_dt[us] / PPS_period[us]</td><td>直前の GPS 1PPS エッジの UTC、そこからイベントまでの経過、その PPS の間隔。GPS が OFF のときや PPS が無いときは <code>0 -1 0</code></td><td>unix 秒 / µs / µs</td></tr>
+        <tr><td>Lat[deg] / Lon[deg]</td><td>GPS の位置（測位できていないときは <code>nan</code>）</td><td>度（小数 5 桁、約 1 m）</td></tr>
         <tr><td>Temp[C] / Hum[%] / Press[hPa]</td><td>BME280 の温度・湿度・気圧（2 秒ごとに更新）</td><td>°C / %RH / hPa</td></tr>
         <tr><td><span class="tag tag-new">v2</span>Dig1〜3</td><td>外部検出器 1〜3 のデジタル値</td><td>0 / 1</td></tr>
         <tr><td><span class="tag tag-new">v2</span>Ana1〜3</td><td>外部検出器 1〜3 のアナログ値</td><td>0〜4095</td></tr>
@@ -799,19 +801,21 @@ python -m http.server 8000</code></pre>
       </svg>
       <figcaption>小さい数字は 0 から数えた列の番号です。プログラムで読むときは、ファイルによって ADC が 2 列目か 3 列目かが変わることに気をつけてください（解析のページは見出しの行から自動で見分けます）。</figcaption>
     </figure>
+    <p><strong>イベントの UTC</strong> は <code>PPS_UTC + PPS_dt / PPS_period</code> 秒です。PPS の間隔で割るのは、水晶の誤差（数十 ppm なら 1 秒で数十 µs）を消すためです。<code>Time[us]</code> は、DIGITAL / DUAL ではトリガ割り込みが最初のエッジで取った時刻、ANALOG ではしきい値超えを見つけた直後の時刻です（OLED・SD・BLE でループが止まった分の遅れは ANALOG に残ります）。旧ファームの 13 列の行も、このページは受け付けます。</p>
     <p>上の列の 2 列目に <strong>PC_Timestamp</strong>（このパソコンの時計、UTC、末尾 <code>Z</code>）を足した形です。そのため 3 列目以降は、検出器の行より 1 つ右にずれます。<code>.dat</code> はタブ区切り、<code>.csv</code> はカンマ区切りです。</p>
     <pre><code># 屋上・水平・晴れ                       ← メモ
 # Source: CosmicRay Recorder v2
 # Device: CosmicRay
 # Trigger mode: ANALOG
 # Signal threshold: 120 / 4095
-# Event	PC_Timestamp	Time[us]	ADC[0-4095]	Deadtime[us]	Temp[C]	Hum[%]	Press[hPa]	Dig1	Dig2	Dig3	Ana1	Ana2	Ana3
-1	2026-10-07-03-12-45.118Z	18732450	1940	1203000	24.3	48.2	1013.2	1	0	1	2448	112	2804</code></pre>
+# Event	PC_Timestamp	Time[us]	ADC[0-4095]	Deadtime[us]	Temp[C]	Hum[%]	Press[hPa]	Dig1	Dig2	Dig3	Ana1	Ana2	Ana3	PPS_UTC_s	PPS_dt_us	PPS_period_us	Lat	Lon	UTC_GPS
+1	2026-10-07-03-12-45.118Z	18732450	1940	1203000	24.3	48.2	1013.2	1	0	1	2448	112	2804	1794485745	485158	1000003	35.68124	139.76712	2026-11-12T12:15:45.485157Z</code></pre>
     <div class="note note-ok"><svg class="i"><use href="#i-check"/></svg><div>
       <p><code>#</code> で始まる行はメモです。Python の pandas で読むときは、<strong>.csv</strong> なら <code>read_csv(path, comment='#')</code> でそのまま読めます（列名の行は <code>#</code> なしで入っています）。<strong>.dat</strong> は列名の行も <code>#</code> で始まるので、<code>comment='#'</code> だけだと最初のイベントが列名として扱われ、1 件欠けます。列名を自分で渡してください。</p>
     </div></div>
     <pre><code>cols = ['Event', 'PC_Timestamp', 'Time_us', 'ADC', 'Deadtime_us', 'Temp_C', 'Hum_pct', 'Press_hPa',
-        'Dig1', 'Dig2', 'Dig3', 'Ana1', 'Ana2', 'Ana3']
+        'Dig1', 'Dig2', 'Dig3', 'Ana1', 'Ana2', 'Ana3',
+        'PPS_UTC_s', 'PPS_dt_us', 'PPS_period_us', 'Lat', 'Lon', 'UTC_GPS']
 df = pd.read_csv(path, sep='\t', comment='#', header=None, names=cols)</code></pre>
 
     <!-- ============================================================ -->
@@ -863,8 +867,8 @@ df = pd.read_csv(path, sep='\t', comment='#', header=None, names=cols)</code></p
       <p>最短・中間・最長で順に振動させます。待っている間は計数が止まりますが、その時間はデッドタイムに入るので計数率は狂いません。</p></div>
 
     <h3>機能のオン / オフ</h3>
-    <div class="cmd"><div class="syntax">SET_SD / SET_EXT / SET_OLED / SET_BUZZER / SET_VIB :ON|OFF</div>
-      <p>microSD・外部検出器・OLED・ブザー・振動をオン / オフします（初期値はすべて ON）。読むときは <code>GET_SD</code> などで、応答は <code>SD:ON</code>、<code>BUZZER:OFF</code> の形です。</p></div>
+    <div class="cmd"><div class="syntax">SET_SD / SET_EXT / SET_OLED / SET_BUZZER / SET_VIB / SET_GPS :ON|OFF</div>
+      <p>microSD・外部検出器・OLED・ブザー・振動をオン / オフします（初期値はすべて ON。GPS だけは初期値 OFF）。GPS を ON にすると UART1 の NMEA 受信と 1PPS の計時を始め、Console の「検出器の機能」に測位の状態が出ます。ON の間、10 秒ごとの <code>### PPS &lt;Time[us]&gt; &lt;UTC unix 秒&gt;</code> と、位置の <code>### GPS fix=… lat=… lon=…</code> が SD と測定データ (.dat / .csv) に <code>#</code> 行として入ります（USB 接続のとき。BLE には流しません）。読むときは <code>GET_SD</code> などで、応答は <code>SD:ON</code>、<code>BUZZER:OFF</code> の形です。</p></div>
 
     <h3>システム</h3>
     <div class="cmd"><div class="syntax">GET_BLENAME / SET_BLENAME:&lt;name&gt;</div>

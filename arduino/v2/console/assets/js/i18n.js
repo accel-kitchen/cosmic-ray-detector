@@ -35,6 +35,26 @@ const I18N = {
     'model.last': '前回',
     'model.note': '選んだ機種は覚えておき、次からはすぐ接続の画面を開きます。あとから「機種を選び直す」で変えられます。',
     'model.change': '機種を選び直す',
+    'model.omameName': 'お豆',
+    'model.omamePhoto': 'ケース v4 の蓋の設計図（スモークのアクリル、裏に飛跡の彫刻）',
+    'model.omameDesc': 'キーホルダーにつける小さな検出器（MUON FOB）。',
+    // --- OMAME（キー末尾の @omame は、OMAME を選んだときだけ元のキーの代わりに使う）
+    'app.title@omame': 'CosmicRay Recorder · OMAME',
+    'feat.oled@omame': 'LED（光る 3 つ）',
+    'feat.desc@omame': '使わない機能を止めると、デッドタイムが減り、電池も長持ちします。OMAME には microSD・外部検出器・GPS・画面は付いていません。',
+    'env.temp@omame': 'チップ温度',
+    'scope.desc@omame': 'オシロスコープを開いている間、検出器は宇宙線を数えるのを止めて、アンプの出力（SIG）の波形を送ってきます（6 µs ごとに 1 点、1 窓 81 点）。止まっていた時間はファームがデッドタイムに足し、この画面はライブタイムで割るので、カウントレートは正しいままです。10 分間操作がなければ、自動で閉じて計数に戻ります。',
+    'scope.holdNote@omame': '見えているのはアンプの生の出力です（OMAME にはピークホールド回路がありません）。パルスの形がそのまま見えます。',
+    'scope.trigNote@omame': '「トリガー」は、SIG がしきい値を超えたときだけ波形を撮ります。1 本撮ったあとは、SIG が「再アーム」の水準以下に戻るまで次を撮りません。再アームの水準は「しきい値 − 入力欄の値」（初期値 5）で、青緑の点線で表示され、しきい値の線をドラッグすると一緒に動きます。ベースラインがこの水準より下に出ないと、開いても波形が 1 本も出ません。「連続」は、トリガーを待たずに最新の窓を一定の間隔で撮り続けるモードで、ベースラインやしきい値に届かない小さな信号を見るのに使います。',
+    'hv.title': 'SiPM のバイアス電圧（HV）',
+    'hv.desc': '昇圧回路が SiPM にかける電圧を 3 段階から選びます。高いほどゲイン（信号の大きさ）が上がりますが、ノイズも増えます。切り替えるとゲインが変わるので、数秒待ってから「自動校正」でしきい値を合わせ直してください。',
+    'hv.current': '現在: {v} V',
+    'hv.fetching': '基板に問い合わせています…',
+    'hv.switching': '{v} V に切り替えています…',
+    'hv.changed': 'ゲインが変わりました。数秒待ってから、「自動校正」でしきい値を合わせ直してください。',
+    'hv.autoNow': '自動校正する',
+    'hv.err': 'HV は 25.9 / 27.1 / 27.9 V から選びます。',
+    'flash.omame': 'OMAME（nRF52840）のファームの書き込みは、このアプリでは行いません。',
     'nav.plotter': '解析',
     'nav.plotterTitle': '保存したデータを解析する（別のタブで開きます）',
     'nav.plotterOpen': '保存したデータを解析する',
@@ -46,6 +66,8 @@ const I18N = {
 
     // --- 最初の画面 ---
     'connect.eyebrow': '宇宙線検出器 v2 のデータ記録アプリ',
+    'connect.eyebrow@omame': '宇宙線検出器 OMAME（MUON FOB）のデータ記録アプリ',
+    'notes.v2only@omame': 'OMAME 専用です。ほかの機種は「機種を選び直す」から選んでください。',
     'connect.title': '宇宙線を数えよう',
     'connect.lead': '検出器をパソコンにつなぐと、届いた宇宙線がその場でグラフになります。',
     'connect.note': 'Chrome か Edge で動きます。Bluetooth は https:// か localhost で開いたページでだけ使えます。',
@@ -174,6 +196,7 @@ const I18N = {
     'table.temp': '温度 [°C]',
     'table.hum': '湿度 [%]',
     'table.press': '気圧 [hPa]',
+    'table.gpsUtc': 'GPS の UTC',
     'table.noData': 'データを待っています…',
     'raw.desc': '検出器から届いた行をそのまま表示しています（最新 100 行）。',
     'raw.waiting': '接続を待っています…',
@@ -246,6 +269,7 @@ const I18N = {
     'demo.burst': 'バーストを起こす',
     'demo.sound': 'ブザー音を鳴らす',
     'demo.info': 'λ ≈ {lam} 回/秒 · 生成 {n} 件 · {temp} °C / {press} hPa',
+    'demo.info@omame': 'λ ≈ {lam} 回/秒 · 生成 {n} 件 · チップ温度 {temp} °C',
     'demo.infoScope': 'オシロスコープ表示中は計数が止まります（実機と同じ動き）。',
     'demo.infoBurst': 'バースト発生中 — レートのグラフと外部検出器の表示を見てください。',
     'demo.connected': '接続中 · デモ',
@@ -272,6 +296,7 @@ const I18N = {
     'mode.switching': '{mode} に切り替えています…',
     'thresh.signalLabel': '信号しきい値（0〜4095）',
     'thresh.current': '基板: {sig} / 4095 · PWM duty {duty} / 255',
+    'thresh.current@omame': '基板: {sig} / 4095',
     'thresh.fetching': '取得中…',
     'thresh.calibrating': '自動校正中（マージン {m}）…',
     'thresh.marginLabel': '自動校正のマージン',
@@ -290,7 +315,26 @@ const I18N = {
     'feat.oled': 'OLED 画面',
     'feat.buzzer': 'ブザー',
     'feat.vib': '振動モーター',
+    'feat.gps': 'GPS モジュール',
     'feat.fetching': '取得中…',
+    'gps.hint': 'GPS を使うときは ON にします。TXD を J4-4 (GPIO21)、1PPS を A3 に配線してください。屋外で測位できるまで数分かかります。',
+    'gps.waiting': 'GPS からの応答を待っています…',
+    'gps.noNmea': 'NMEA を受信できていません。配線 (TXD → J4-4) とボーレート 9600 を確認してください。',
+    'gps.searching': 'NMEA を受信中。まだ測位できていません (衛星 {sats} 個)。空の開けた場所に置いてください。',
+    'gps.fixed': '測位できています (衛星 {sats} 個)\n緯度 {lat}　経度 {lon}　高度 {alt} m',
+    'gps.pps': '1PPS: {state}　同期 {sync} 回　NMEA {ok} 行 (不正 {bad} 行)',
+    'gps.ppsOk': '受信中',
+    'gps.ppsNone': '未受信',
+    'gps.aux': 'GPS',
+    'gps.clockOff': '⚠ PPS の UTC が PC の時計と {sec} 秒ずれています。NMEA の秒と PPS の対応 (GPS_RMC_SEC_OFFSET) か、PC の時計を確認してください。',
+    'gps.auxWait': '待機中',
+    'gps.auxNoNmea': 'NMEA なし',
+    'gps.auxSearching': '測位中',
+    'gps.auxFixed': '{sats} 衛星',
+    'gps.auxRec': 'PPS {pps}',
+    'gps.auxTitle': '記録した PPS {pps} 件・位置 {pos} 件(測定データに ### 行として入ります)。最新の PPS の UTC: {utc}',
+    'gps.rec': '測定データに記録: PPS {pps} 件・位置 {pos} 件(最新の PPS の UTC: {utc})',
+    'gps.useForUpload': 'この位置を送信設定の緯度・経度に入れる',
     'beep.title': 'ブザー',
     'beep.desc': '信号が大きいほど高い音にします（対数）。最低 = しきい値ちょうどの音、最高 = ADC 最大の音。',
     'beep.minLabel': '最低 Hz',
@@ -446,6 +490,26 @@ const I18N = {
     'model.last': 'Last time',
     'model.note': 'Your choice is remembered, so next time the connect screen opens straight away. Use "Choose another model" to change it.',
     'model.change': 'Choose another model',
+    'model.omameName': 'the bean',
+    'model.omamePhoto': 'Lid drawing of case v4 (smoked acrylic, particle tracks engraved on the back)',
+    'model.omameDesc': 'A tiny detector for your key ring (MUON FOB).',
+    // --- OMAME (a key ending in @omame replaces the plain key only when OMAME is the chosen model)
+    'app.title@omame': 'CosmicRay Recorder · OMAME',
+    'feat.oled@omame': 'LEDs (the 3 lights)',
+    'feat.desc@omame': 'Switch off what you do not use to cut deadtime or save battery. OMAME has no microSD, external detectors, GPS or screen.',
+    'env.temp@omame': 'Chip temperature',
+    'scope.desc@omame': 'While the oscilloscope is open the detector stops counting and streams the waveform of the amplifier output (SIG), one point every 6 µs, 81 points per window. The firmware adds the paused time to deadtime and this page divides by live time, so the count rate stays correct. Left alone for 10 minutes, it closes by itself and counting resumes.',
+    'scope.holdNote@omame': 'What you see is the raw amplifier output (OMAME has no peak-hold circuit), so the pulse shape itself is visible.',
+    'scope.trigNote@omame': 'Triggered mode captures a waveform only when SIG goes above the threshold. After one capture it waits until SIG is back at or below the re-arm level. The level is the threshold minus the value in the box (default 5); it is the dotted teal line, and it moves together with the threshold line when you drag it. If the baseline never gets down to this level, no waveform ever appears. Free-run does not wait for a trigger: it keeps capturing the latest window at a fixed interval, to look at the baseline or at signals too small to reach the threshold.',
+    'hv.title': 'SiPM bias voltage (HV)',
+    'hv.desc': 'Pick the voltage the boost converter applies to the SiPM from three steps. Higher gives more gain (bigger signals) but more noise. Changing it moves the gain, so wait a few seconds and run "Auto-calibrate" to set the threshold again.',
+    'hv.current': 'Now: {v} V',
+    'hv.fetching': 'Asking the board…',
+    'hv.switching': 'Switching to {v} V…',
+    'hv.changed': 'The gain has moved. Wait a few seconds, then run "Auto-calibrate" to set the threshold again.',
+    'hv.autoNow': 'Auto-calibrate now',
+    'hv.err': 'HV must be one of 25.9 / 27.1 / 27.9 V.',
+    'flash.omame': 'This app does not flash the OMAME (nRF52840) firmware.',
     'nav.plotter': 'Analysis',
     'nav.plotterTitle': 'Analyse saved data (opens in a new tab)',
     'nav.plotterOpen': 'Analyse saved data',
@@ -456,6 +520,8 @@ const I18N = {
     'nav.flashTitle': 'Flash the firmware (opens in a new tab)',
 
     'connect.eyebrow': 'Data recorder for the v2 cosmic-ray detector',
+    'connect.eyebrow@omame': 'Data recorder for the OMAME (MUON FOB) cosmic-ray detector',
+    'notes.v2only@omame': 'For OMAME only. For another model, use "Choose another model".',
     'connect.title': 'Count cosmic rays',
     'connect.lead': 'Connect the detector to this computer and every cosmic ray that arrives shows up on the graphs right away.',
     'connect.note': 'Works in Chrome or Edge. Bluetooth only works on pages opened over https:// or localhost.',
@@ -582,6 +648,7 @@ const I18N = {
     'table.temp': 'Temp [°C]',
     'table.hum': 'Hum [%]',
     'table.press': 'Press [hPa]',
+    'table.gpsUtc': 'GPS UTC',
     'table.noData': 'Waiting for data…',
     'raw.desc': 'Lines exactly as the detector sent them (latest 100).',
     'raw.waiting': 'Waiting for a connection…',
@@ -652,6 +719,7 @@ const I18N = {
     'demo.burst': 'Trigger a burst',
     'demo.sound': 'Play the buzzer sound',
     'demo.info': 'λ ≈ {lam} cps · {n} events generated · {temp} °C / {press} hPa',
+    'demo.info@omame': 'λ ≈ {lam} cps · {n} events generated · chip {temp} °C',
     'demo.infoScope': 'The oscilloscope is open, so counting is paused — the real firmware does the same.',
     'demo.infoBurst': 'Burst in progress — watch the rate graph and the external detectors.',
     'demo.connected': 'Connected · Demo',
@@ -677,6 +745,7 @@ const I18N = {
     'mode.switching': 'Switching to {mode}…',
     'thresh.signalLabel': 'Signal threshold (0–4095)',
     'thresh.current': 'Board: {sig} / 4095 · PWM duty {duty} / 255',
+    'thresh.current@omame': 'Board: {sig} / 4095',
     'thresh.fetching': 'Reading…',
     'thresh.calibrating': 'Auto-calibrating (margin {m})…',
     'thresh.marginLabel': 'Auto-calibration margin',
@@ -695,7 +764,26 @@ const I18N = {
     'feat.oled': 'OLED screen',
     'feat.buzzer': 'Buzzer',
     'feat.vib': 'Vibration motor',
+    'feat.gps': 'GPS module',
     'feat.fetching': 'Reading…',
+    'gps.hint': 'Turn this on when a GPS module is wired: TXD to J4-4 (GPIO21), 1PPS to A3. A first fix outdoors can take a few minutes.',
+    'gps.waiting': 'Waiting for the GPS to answer…',
+    'gps.noNmea': 'No NMEA received. Check the wiring (TXD to J4-4) and that the module runs at 9600 baud.',
+    'gps.searching': 'Receiving NMEA, no fix yet ({sats} satellites). Place it where the sky is open.',
+    'gps.fixed': 'Fix acquired ({sats} satellites)\nLat {lat}   Lon {lon}   Alt {alt} m',
+    'gps.pps': '1PPS: {state}   synced {sync} times   NMEA {ok} lines ({bad} bad)',
+    'gps.ppsOk': 'receiving',
+    'gps.ppsNone': 'not received',
+    'gps.aux': 'GPS',
+    'gps.clockOff': '⚠ The PPS UTC differs from this PC clock by {sec} s. Check the NMEA-second to PPS pairing (GPS_RMC_SEC_OFFSET) or the PC clock.',
+    'gps.auxWait': 'waiting',
+    'gps.auxNoNmea': 'no NMEA',
+    'gps.auxSearching': 'searching',
+    'gps.auxFixed': '{sats} sats',
+    'gps.auxRec': 'PPS {pps}',
+    'gps.auxTitle': 'Recorded: {pps} PPS and {pos} position lines (written into the data as ### lines). UTC of the latest PPS: {utc}',
+    'gps.rec': 'Recorded in the data: {pps} PPS, {pos} position lines (latest PPS UTC: {utc})',
+    'gps.useForUpload': 'Use this position as the upload latitude / longitude',
     'beep.title': 'Buzzer',
     'beep.desc': 'Bigger signals beep at a higher pitch (logarithmic). Min = pitch at the threshold, Max = pitch at the ADC maximum.',
     'beep.minLabel': 'Min Hz',
@@ -847,6 +935,10 @@ const GLOSSARY = {
     scopeRearm: ['再アーム', '波形を 1 本撮ったあと、A0 が「しきい値 − この値」以下に戻るまで次を撮りません（初期値 5）。しきい値を動かすと、再アームの水準も一緒に動きます。水準がベースラインより低くなると、波形が出なくなります。'],
     tPeak: ['t_peak', 'トリガーの瞬間から、信号がいちばん高くなるまでの時間です。'],
     env: ['温度・湿度・気圧', '基板の BME280 センサーの値（最新のイベントの時点）。宇宙線の数は気圧によって少し変わります。'],
+    'env@omame': ['チップ温度', 'マイコン（nRF52840）のチップの温度です。外気温ではありません。SiPM のゲインは温度で少し変わるので、その目安になります。OMAME には湿度・気圧のセンサーはありません。'],
+    'peakHold@omame': ['生の出力', 'OMAME にはピークホールド回路がなく、アンプの出力を 6 µs ごとに読んでいます。オシロスコープにはパルスの形がそのまま見えます。'],
+    'scopeTrig@omame': ['撮り方', 'トリガー: SIG がしきい値を超えたときだけ撮ります。連続: トリガーを待たず、最新の窓を一定の間隔で撮り続けます。'],
+    'scopeRearm@omame': ['再アーム', '波形を 1 本撮ったあと、SIG が「しきい値 − この値」以下に戻るまで次を撮りません（初期値 5）。しきい値を動かすと、再アームの水準も一緒に動きます。水準がベースラインより低くなると、波形が出なくなります。'],
     format: ['保存形式', '.dat はタブ区切り、.csv はカンマ区切りのテキストです。どちらも先頭の # の行はメモです（pandas の .csv は comment=\'#\'。.dat は列名の行も # なので、names で列名を渡します。マニュアルの付録 A）。'],
   },
   en: {
@@ -872,15 +964,26 @@ const GLOSSARY = {
     scopeRearm: ['Re-arm', 'After one capture the next one waits until A0 is back at or below "threshold − this value" (default 5). When the threshold moves, the re-arm level moves with it. If the level falls under the baseline, no waveform ever appears.'],
     tPeak: ['t_peak', 'Time from the trigger to the highest point of the signal.'],
     env: ['Temperature, humidity, pressure', 'Readings of the BME280 sensor on the board at the latest event. The cosmic-ray rate changes slightly with air pressure.'],
+    'env@omame': ['Chip temperature', 'The temperature of the microcontroller chip (nRF52840), not the air. The SiPM gain drifts a little with temperature, so it is a rough guide. OMAME has no humidity or pressure sensor.'],
+    'peakHold@omame': ['Raw output', 'OMAME has no peak-hold circuit: it reads the amplifier output every 6 µs, so the oscilloscope shows the pulse shape itself.'],
+    'scopeTrig@omame': ['Capture mode', 'Triggered: capture only when SIG goes above the threshold. Free-run: no trigger, keep capturing the latest window at a fixed interval.'],
+    'scopeRearm@omame': ['Re-arm', 'After one capture the next one waits until SIG is back at or below "threshold − this value" (default 5). When the threshold moves, the re-arm level moves with it. If the level falls under the baseline, no waveform ever appears.'],
     format: ['File format', '.dat is tab-separated, .csv comma-separated text. In both, lines starting with # are notes (pandas: comment=\'#\' for .csv; in .dat the column-name row also starts with #, so pass the names yourself, see Appendix A of the manual).'],
   },
 };
 
 let currentLang = 'en';
 
+// 機種ごとの言い換え: OMAME を選んでいるときは「キー@omame」があればそちらを使う。
+// 無ければ従来のキー（OHASHI と同じ文言）に戻るので、書き分けが要るものだけ足せばよい。
+function modelSuffix() {
+  return (typeof modelProfile !== 'undefined' && modelProfile.id !== 'v2') ? '@' + modelProfile.id : '';
+}
+
 function t(key, params) {
   const dict = I18N[currentLang] || I18N.en;
-  let str = dict[key] ?? I18N.en[key] ?? key;
+  const sfx = modelSuffix();
+  let str = (sfx ? (dict[key + sfx] ?? I18N.en[key + sfx]) : undefined) ?? dict[key] ?? I18N.en[key] ?? key;
   if (params) {
     for (const [k, v] of Object.entries(params)) {
       str = str.split(`{${k}}`).join(v);
@@ -890,7 +993,13 @@ function t(key, params) {
 }
 
 function glossary(term) {
-  return (GLOSSARY[currentLang] && GLOSSARY[currentLang][term]) || GLOSSARY.en[term] || [term, ''];
+  const sfx = modelSuffix();
+  const G = GLOSSARY[currentLang] || {};
+  if (sfx) {
+    const m = G[term + sfx] || GLOSSARY.en[term + sfx];
+    if (m) return m;
+  }
+  return G[term] || GLOSSARY.en[term] || [term, ''];
 }
 
 // A choice made with the language switch wins; otherwise follow the browser.
