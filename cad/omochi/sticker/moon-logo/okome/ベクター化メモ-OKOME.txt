@@ -1,0 +1,39 @@
+OKOME（キーホルダー型の検出器 MUON FOB）ステッカー・紋章 ベクター化メモ
+2026-11-14
+
+【経緯】
+機種名を OMAME（お豆）から OKOME（お米）に改名した。OWAN・OHASHI と同じシリーズの見た目にするため、
+square/（夜空・四角・頭文字を強調）と同じ作り方で新しく作った。
+
+【生成】
+- Lovart（GPT Image）。添付は square/gen-owan.png、square/gen-ohashi.png（画風の見本）と、加速キッチンのロゴ（square/up_logo.txt と同じ URL）。
+- プロンプト: p_okome_A.txt（臙脂の地。採用）、p_okome_B.txt（深緑の地。不採用）。
+- 生成結果: out-A/、out-B/。採用した A を gen-okome.png にコピー。B は gen-okome-B-green.png（E の上に余計な点、粒子が白抜きの輪、地が四辺まで届いていてトレースの外形検出に合わない）。
+- 1 枚 21 クレジット。chat のあと pending_confirmation になるので confirm --thread-id で進める。
+
+【略称（2026-11-14 に確定。臙脂の地・副題とあわせて了承済み）】
+Online Keychain Observer of Muon Events（頭文字 O K O M E）
+副題: COSMIC RAY DETECTOR FOB
+
+【色】(RGB)
+地 #6E1F35（臙脂）/ 名前・略称・米粒・雲 #FFF3E3 / 月・丸カン・飛跡・副題 #F5BE3C / 頭文字・桜 #FFA6C4
+ロゴはクリーム色一色（玉の縁は地の色、珊瑚の玉はピンク）。本物のロゴの曲線を幅 30 mm で置いた。
+
+【手順】tools/（square/tools をコピーして okome を足したもの）
+mv_labels okome → mv_snap okome → mv_trace okome → mv_build_full okome → mv_post_full okome → mk_crest
+mk_crest の notch は、左の雲の縁取りで月が欠けたところ（月の中心 25.2, 16.2 mm、半径 12.4 mm）。
+
+【ファイル】
+- sticker-okome-night-vector.svg（層つき、mm 単位）、sticker-okome-night-print.pdf（入稿用、切り抜き線なし）
+- web/sticker-okome-night.svg → コンソールの assets/img/sticker-okome.svg（title と width/height を足したもの）
+- site/crest-okome.min.svg → コンソールの assets/img/crest-okome.svg（title を足したもの）
+- proof-okome.png（生成画像とトレースの比較）、crest-check.png（3 機種の紋章を並べたもの）
+
+【確認した値】
+- 切り抜き線に最も近い絵: 3.20 mm。PDF: ページ 56.32 × 74 mm、画像 0、フォント 0。
+- web 版と入稿版の差: 色が大きくちがう画素 0.17%。
+
+【未対応】
+- 略称を変えるときは、p_okome_A.txt の (4) を直して生成し直し、上の手順をやり直す。
+- 米粒のつや（ハイライト）はトレースでクリーム色に吸収されて消えた。
+- ロゴの使用許可、AI 生成画像の権利、試し刷りは OWAN・OHASHI と同じく未確認。

@@ -173,7 +173,7 @@ const state = {
   threshold: null,        // int (0-4095)
   pwmDuty: null,          // int (0-255), comparator threshold on D2
   pwmCalibrating: false,  // AUTO_PWM in progress
-  hv: null,               // OMAME only: SiPM bias setting in V (25.9 | 27.1 | 27.9) | null
+  hv: null,               // OKOME only: SiPM bias setting in V (25.9 | 27.1 | 27.9) | null
   sdEnabled: null,        // bool | null
   extEnabled: null,       // bool | null
   oledEnabled: null,      // bool | null
@@ -751,8 +751,8 @@ const REFRESH_COMMANDS = [
 let refreshGen = 0;
 
 // ========== Detector model profile ==========
-// OHASHI (v2, ESP32-S3) と OMAME (MUON FOB, nRF52840) は同じ行の形式・同じコマンド名で話す。
-// 違いは「この基板に無いもの」と「OMAME だけにあるもの」だけなので、ページは 1 つのまま、
+// OHASHI (v2, ESP32-S3) と OKOME (MUON FOB, nRF52840) は同じ行の形式・同じコマンド名で話す。
+// 違いは「この基板に無いもの」と「OKOME だけにあるもの」だけなので、ページは 1 つのまま、
 // 機種ごとの差をこの表に集める。'v2' の値は従来の挙動そのもの（既定）。
 //   bleDefault : Bluetooth の名前の既定（入力欄の初期値）
 //   blePrefix  : true なら前方一致で探す（MuonFob の既定名は MuonFob-XXXX で、下 4 桁が個体ごとに違う）
@@ -766,10 +766,10 @@ const MODEL_PROFILES = {
     refresh: REFRESH_COMMANDS,
     hv: false,
   },
-  omame: {
-    id: 'omame',
-    bleDefault: 'MuonFob', blePrefix: true, bleKey: 'bleName_omame',
-    // OMAME には GPS が無い（GET_GPS は "Unknown command" になる）。GET_HV は OMAME だけ。
+  okome: {
+    id: 'okome',
+    bleDefault: 'MuonFob', blePrefix: true, bleKey: 'bleName_okome',
+    // OKOME には GPS が無い（GET_GPS は "Unknown command" になる）。GET_HV は OKOME だけ。
     refresh: REFRESH_COMMANDS.filter(c => c !== 'GET_GPS').concat('GET_HV'),
     hv: true,
   },
@@ -1054,7 +1054,7 @@ function processLine(line) {
   // Boot header / informational lines
   if (line.startsWith('###') || line.startsWith('#')) {
     if (parseGpsLine(line)) return;
-    // OMAME だけ: "### HV: 27.1 V (HV_TRIM Hi-Z)" (起動時 / GET_HV / SET_HV の応答)。
+    // OKOME だけ: "### HV: 27.1 V (HV_TRIM Hi-Z)" (起動時 / GET_HV / SET_HV の応答)。
     // "### HV changed: ..." や "### HV ..." の説明行は数字が続かないので拾わない。
     const hv = line.match(/^#+\s*HV:\s*(\d+(?:\.\d+)?)\s*V\b/i);
     if (hv && modelProfile.hv) {
@@ -1399,16 +1399,16 @@ function buildFileHeader(format, isDemo) {
   if (comment) for (const l of comment.split(/\r?\n/)) lines.push('# ' + l);
   if (isDemo) lines.push(DEMO_FILE_NOTE.trimEnd());
   lines.push('# Source: CosmicRay Recorder v2 (v2/index.html)');
-  // OMAME だけ追加する注釈行（# で始まるので列の読み取りには影響しない。OHASHI の出力は従来どおり）
-  if (modelProfile.id === 'omame') {
-    lines.push('# Detector model: OMAME (MUON FOB). Temp column = nRF52840 die temperature, not ambient; Hum / Press = nan; Dig / Ana = 0.');
+  // OKOME だけ追加する注釈行（# で始まるので列の読み取りには影響しない。OHASHI の出力は従来どおり）
+  if (modelProfile.id === 'okome') {
+    lines.push('# Detector model: OKOME (MUON FOB). Temp column = nRF52840 die temperature, not ambient; Hum / Press = nan; Dig / Ana = 0.');
     if (state.hv != null) lines.push(`# SiPM bias setting: ${state.hv} V`);
   }
   if (state.bleName)           lines.push(`# Device: ${state.bleName}`);
   if (state.conn.btAddr)       lines.push(`# Board address: ${state.conn.btAddr}`);
   if (state.mode)              lines.push(`# Trigger mode: ${state.mode}`);
   if (state.threshold != null) lines.push(`# Signal threshold: ${state.threshold} / 4095`);
-  if (state.pwmDuty != null && modelProfile.id !== 'omame') lines.push(`# Comparator PWM duty: ${state.pwmDuty} / 255`);   // OMAME にコンパレータは無い
+  if (state.pwmDuty != null && modelProfile.id !== 'okome') lines.push(`# Comparator PWM duty: ${state.pwmDuty} / 255`);   // OKOME にコンパレータは無い
   if (state.gpsEnabled) {
     const g = state.gps;
     if (g && g.valid && g.lat != null && g.lon != null) {
@@ -2599,11 +2599,11 @@ const demo = {
 };
 
 // 機種ごとの仮想基板。OHASHI（v2）は上の demo.dev そのまま。
-// OMAME は実機ファームの応答に合わせる: PWM は無し(0)、トリガーは ANALOG のみ、SD / EXT / GPS は無い、
+// OKOME は実機ファームの応答に合わせる: PWM は無し(0)、トリガーは ANALOG のみ、SD / EXT / GPS は無い、
 // OLED のスイッチは LED、HV は 3 段（0 = 25.9 V / 1 = 27.1 V / 2 = 27.9 V）。
 demo.devs = {
   v2: demo.dev,
-  omame: {
+  okome: {
     threshold: 120, duty: 0, mode: 'ANALOG', autoMargin: 50,
     sd: false, ext: false, oled: true, buzzer: true, vib: false, gps: false,
     beepMin: 500, beepMax: 4000, beepMs: 25,
@@ -2615,10 +2615,10 @@ demo.devs = {
 const DEMO_HV_TEXT = ['25.9', '27.1', '27.9'];
 const DEMO_HV_TRIM = ['High', 'Hi-Z', 'Low'];
 
-// オシロの 1 窓の形。OHASHI は 12 us 間隔でピークホールド出力、OMAME は 6 us 間隔でアンプの生の出力
+// オシロの 1 窓の形。OHASHI は 12 us 間隔でピークホールド出力、OKOME は 6 us 間隔でアンプの生の出力
 // （16 点前 + 1 + 64 点後 = 81 点、ファームの SCOPE_PRE / SCOPE_POST）。
 function demoWaveGeom() {
-  return modelProfile.id === 'omame'
+  return modelProfile.id === 'okome'
     ? { pre: 16, post: 64, periodNs: 6000, tauUs: 25, riseUs: 2 }
     : { pre: DEMO_SCOPE_PRE, post: DEMO_SCOPE_POST, periodNs: DEMO_SCOPE_PERIOD_NS, tauUs: DEMO_TAU_US, riseUs: DEMO_RISE_US };
 }
@@ -2757,8 +2757,8 @@ function demoMakeEvent(tMs) {
   // デッドタイム: 1 イベントの処理時間 + 2 秒ごとの OLED 書き換え。
   demo.deadtimeUs += DEMO_EVT_DEADTIME_US + (d.ext ? DEMO_EXT_DEADTIME_US : 0)
                    + Math.round(Math.abs(demoRandN()) * 12);
-  if (modelProfile.id === 'omame') {
-    // OMAME: 画面の書き換えは無い。LED が 10 ms 光る間と、止まってから数え直すまでの 10 ms が
+  if (modelProfile.id === 'okome') {
+    // OKOME: 画面の書き換えは無い。LED が 10 ms 光る間と、止まってから数え直すまでの 10 ms が
     // デッドタイム（ファームの LED_MS / SETTLE_MS）。ブザー・振動も同様に数えない。
     if (d.oled) demo.deadtimeUs += 20000;
   } else if (d.oled && tMs - demo.lastDisplayMs >= DEMO_DISPLAY_INTERVAL_MS) {
@@ -2778,13 +2778,13 @@ function demoMakeEvent(tMs) {
   }
 
   const e = demo.env;
-  // OMAME: 温度は nRF52840 のチップ温度、湿度と気圧は "nan"（BME280 が無い）。
-  const omame = modelProfile.id === 'omame';
+  // OKOME: 温度は nRF52840 のチップ温度、湿度と気圧は "nan"（BME280 が無い）。
+  const okome = modelProfile.id === 'okome';
   // ファームの snprintf("%lu %llu %d %llu %.1f %.1f %.1f %d %d %d %d %d %d %lu %ld %lu %.5f %.5f") と同じ並び。
   // 末尾 5 列 (PPS_UTC / PPS_dt / PPS_period / Lat / Lon) は GPS 対応ファームだけ。GPS が OFF なら "0 -1 0 nan nan"。
   const tUs = Math.round((tMs - demo.startMs) * 1000);
   let gpsTail = [];
-  if (!omame) {
+  if (!okome) {
     if (d.gps) {
       const secN = Math.floor((tUs - 137) / 1000000);
       gpsTail = [demoUtcBase() + secN, tUs - (secN * 1000000 + 137), 1000003, '35.68124', '139.76712'];
@@ -2797,9 +2797,9 @@ function demoMakeEvent(tMs) {
     tUs,
     adc,
     demo.deadtimeUs,
-    omame ? (e.temp + 6).toFixed(1) : e.temp.toFixed(1),
-    omame ? 'nan' : e.hum.toFixed(1),
-    omame ? 'nan' : e.press.toFixed(1),
+    okome ? (e.temp + 6).toFixed(1) : e.temp.toFixed(1),
+    okome ? 'nan' : e.hum.toFixed(1),
+    okome ? 'nan' : e.press.toFixed(1),
     dig[0], dig[1], dig[2], ana[0], ana[1], ana[2],
     ...gpsTail,
   ].join(' '));
@@ -2976,7 +2976,7 @@ function demoCommand(cmd) {
   const threshLine = () => 'THRESH:' + d.threshold + ' DUTY:' + d.duty;
   const clampI = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 
-  if (modelProfile.id === 'omame' && demoCommandOmame(cmd, d, say)) return;
+  if (modelProfile.id === 'okome' && demoCommandOkome(cmd, d, say)) return;
 
   if (cmd.startsWith('SET_THRESH:')) {
     const n = parseInt(cmd.slice(11));
@@ -3126,10 +3126,10 @@ function demoCommand(cmd) {
   }
 }
 
-// OMAME（MUON FOB）の実機ファームが OHASHI と違う答え方をするコマンド。処理したら true を返し、
+// OKOME（MUON FOB）の実機ファームが OHASHI と違う答え方をするコマンド。処理したら true を返し、
 // 残りは demoCommand の共通の処理（しきい値・ブザー・振動・オシロ・BLE 名など）に任せる。
 // 文言は firmware/muon_fob/muon_fob.ino の runCommand と同じ。
-function demoCommandOmame(cmd, d, say) {
+function demoCommandOkome(cmd, d, say) {
   if (cmd.startsWith('SET_PWM:') || cmd.startsWith('AUTO_PWM')) {
     say('### MuonFob has no comparator threshold (ANALOG trigger only).');
     say('PWM:0', 40);
@@ -3235,7 +3235,7 @@ function demoSetScope(on) {
     s.emitted = 0;
     s.nextMs = now + 200;
     processLine('### SCOPE: ON - counting is PAUSED while the scope is open.');
-    processLine(modelProfile.id === 'omame'
+    processLine(modelProfile.id === 'okome'
       ? '###        SIG is the raw amplifier output (this board has no peak-hold).'
       : '###        A0 is the PEAK-HOLD output, not the raw amplifier pulse.');
     processLine(s.trig === 'FREE'
@@ -3256,7 +3256,7 @@ function demoSetScope(on) {
 
 function demoBootBanner() {
   const d = demo.dev;
-  if (modelProfile.id === 'omame') {
+  if (modelProfile.id === 'okome') {
     [
       'Booting MuonFob v0.1...',
       '### MuonFob v0.1 (XIAO nRF52840) - cosmic-ray-detector-keyholder',

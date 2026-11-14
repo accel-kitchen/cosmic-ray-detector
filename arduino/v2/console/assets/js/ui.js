@@ -29,10 +29,22 @@ let uiAlert = null;   // { key, params } raised by core (folder API missing, dem
 const MODEL_KEY = 'detectorModel';
 let modelChosen = false;
 
+// OKOME は 2026-11 まで OMAME という名前だった。旧名で覚えた機種と Bluetooth 名を引き継ぐ。
+function migrateOldModelName() {
+  try {
+    if (localStorage.getItem(MODEL_KEY) === 'omame') localStorage.setItem(MODEL_KEY, 'okome');
+    const oldBle = localStorage.getItem('bleName_omame');
+    if (oldBle !== null) {
+      if (localStorage.getItem('bleName_okome') === null) localStorage.setItem('bleName_okome', oldBle);
+      localStorage.removeItem('bleName_omame');
+    }
+  } catch (_) {}
+}
+
 function chooseModel(model) {
   lsSet(MODEL_KEY, model);
   if (model === 'v1') { location.href = 'v1.html'; return; }
-  // v2 (OHASHI) と omame (OMAME) はこのページ。違いは機種プロファイル（core.js の MODEL_PROFILES）。
+  // v2 (OHASHI) と okome (OKOME) はこのページ。違いは機種プロファイル（core.js の MODEL_PROFILES）。
   setModelProfile(model);
   applyModel();
   modelChosen = true;
@@ -42,8 +54,8 @@ function chooseModel(model) {
   window.scrollTo(0, 0);
 }
 
-// 機種を切り替えたあとの画面の合わせ込み。出し分けは body[data-model]（CSS）、文言は t() の「キー@omame」。
-// 機種ごとに Bluetooth 名を別々に覚える（OHASHI の名前で OMAME を探さないように）。
+// 機種を切り替えたあとの画面の合わせ込み。出し分けは body[data-model]（CSS）、文言は t() の「キー@okome」。
+// 機種ごとに Bluetooth 名を別々に覚える（OHASHI の名前で OKOME を探さないように）。
 function loadBleNameForModel() {
   const saved = lsGet(modelProfile.bleKey);
   settings.bleName = saved || modelProfile.bleDefault;
@@ -54,7 +66,7 @@ function loadBleNameForModel() {
 
 function applyModel(skipRender) {
   document.body.dataset.model = modelProfile.id;
-  $('brandVer').textContent = modelProfile.id === 'omame' ? 'OMAME · MUON FOB' : 'OHASHI · v2';
+  $('brandVer').textContent = modelProfile.id === 'okome' ? 'OKOME · MUON FOB' : 'OHASHI · v2';
   loadBleNameForModel();
   if (!skipRender) applyLanguage();   // 文言を引き直し、画面全体を描き直す
 }
@@ -293,7 +305,7 @@ function renderVibInfo() {
   else el.textContent = t('vib.fetching');
 }
 
-// OMAME だけ: SiPM のバイアス電圧（HV）。25.9 / 27.1 / 27.9 V の 3 段。
+// OKOME だけ: SiPM のバイアス電圧（HV）。25.9 / 27.1 / 27.9 V の 3 段。
 function renderHv() {
   const on = state.isConnected;
   const el = $('hvInfo');
@@ -726,8 +738,8 @@ function renderDemoInfo() {
   const lines = [t('demo.info', {
     lam: demoFmtRate(demoRate(now)),
     n: demo.count.toLocaleString(uiLocale()),
-    // OMAME のイベントの温度は、環境温度 + 6 のチップ温度（core.js の demoMakeEvent と同じ）
-    temp: (demo.env.temp + (modelProfile.id === 'omame' ? 6 : 0)).toFixed(1),
+    // OKOME のイベントの温度は、環境温度 + 6 のチップ温度（core.js の demoMakeEvent と同じ）
+    temp: (demo.env.temp + (modelProfile.id === 'okome' ? 6 : 0)).toFixed(1),
     press: demo.env.press.toFixed(1),
   })];
   if (demo.scope.on) lines.push(t('demo.infoScope'));
@@ -1359,7 +1371,7 @@ function bindControls() {
     });
   });
 
-  // --- OMAME: SiPM bias (HV). The board answers "### HV: <v> V (...)", which core turns into state.hv.
+  // --- OKOME: SiPM bias (HV). The board answers "### HV: <v> V (...)", which core turns into state.hv.
   $('hvSelect').querySelectorAll('button').forEach(btn => {
     btn.addEventListener('click', () => {
       if (!state.isConnected || btn.disabled) return;
@@ -1626,9 +1638,10 @@ function bindControls() {
 // ========== Start ==========
 document.addEventListener('DOMContentLoaded', () => {
   currentLang = detectLanguage();
+  migrateOldModelName();
   const savedModel = lsGet(MODEL_KEY);
-  modelChosen = (savedModel === 'v2' || savedModel === 'omame') && !new URLSearchParams(location.search).has('choose');
-  setModelProfile(savedModel === 'omame' ? 'omame' : 'v2');
+  modelChosen = (savedModel === 'v2' || savedModel === 'okome') && !new URLSearchParams(location.search).has('choose');
+  setModelProfile(savedModel === 'okome' ? 'okome' : 'v2');
   renderModelChooser();
 
   // Inputs -> settings, and the Bluetooth name remembered from the last board (kept per model).
