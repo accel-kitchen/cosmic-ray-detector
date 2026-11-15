@@ -17,7 +17,7 @@
 | K1 | v1 / v2 / v2.1 をケースの見た目で選ぶ | 最初の画面。画像は `assets/img/model-*.webp`（v1・v2 はケースの STL、v2.1 は LP の 3D データから描画） | デモ |
 | K2 | 選んだ機種を記憶（`localStorage.detectorModel`）。v2 は次回から接続画面、v1 は `v1.html` へ転送 | `index.html` の head と `ui.js` | デモ |
 | K3 | 機種を選び直す | 接続画面の見出しの横、v1 ページのロゴの下。`index.html?choose` でも開く | デモ |
-| K4 | ~~v2.1 は「準備中」で選べない~~ → 2026-11-15 から選べる（K10〜K16） | 選ぶ画面。3 枚のカードの下に横長の 1 行で置く | デモ |
+| K4 | ~~v2.1 は「準備中」で選べない~~ → 2026-11-15 から選べる（K10〜K16） | 選ぶ画面 | デモ |
 | K5 | v1 のページ（旧 `v1/index.html`） | `v1.html`。旧パスは転送のみ | デモ（中身は旧ページのまま） |
 | K6 | OKOME（お米、MUON FOB）を選ぶカード。OHASHI と同じページ・同じ `core.js` を、機種プロファイル（`core.js` の `MODEL_PROFILES`）で切り替えて使う。`localStorage.detectorModel` = `okome`。カードの絵は `assets/img/okome-unit.svg`（ケース v4 の蓋の設計図をもとにした図。写真ではない）、紋章・ステッカーは `crest-okome.svg` / `sticker-okome.svg`（OWAN・OHASHI と同じ作り方: Lovart の生成画像をトレース。元データと手順は `cad/omochi/sticker/moon-logo/okome/`。地は臙脂 #6E1F35）。2026-11-14 に旧名 OMAME（お豆）から改名。旧名で保存された `detectorModel` = `omame` と `bleName_omame` は、開いたときに `okome` / `bleName_okome` へ引き継ぐ（`ui.js` の `migrateOldModelName`） | `index.html` の選ぶ画面、`ui.js` の `chooseModel` / `applyModel` / `migrateOldModelName` | デモ（日英）。選ぶ画面は 1366 / 700 / 375 px 幅で確認（700 px 前後では 2 列になり OKOME のカードが 1 枚だけ下の段に残る）。計測画面と詳細設定は約 1024 px のブラウザ枠 |
 | K7 | OKOME で隠すもの（基板に無い）: トリガーモード、コンパレータ PWM、SD・外部検出器・GPS のスイッチ、湿度・気圧・外部検出器・トリガーの表示、ファーム書き込みのリンク（nRF52840 用の書き込みはこのアプリに無い）。`body[data-model="okome"]` と `data-v2-only` / `data-okome-only` で出し分け | `console.css` の末尾近く、`index.html` | デモ |
@@ -35,7 +35,7 @@ Web Serial そのもの（ポートの選択・開く・DTR/RTS）は通って�
 
 | ID | 機能 | 場所 | 確認 |
 |---|---|---|---|
-| K10 | v2.1 のカード（写真は `assets/img/model-v2-1.webp`、横長の 1 行、色 #4A5D23）。選ぶと見出しが「v2.1」。Bluetooth の既定名は `CosmicRay`（OHASHI と同じ）だが、覚える名前は別のキー（`bleName_v21`） | 選ぶ画面、`ui.js` の `applyModel` | デモ（1366 / 375 px）・再生 |
+| K10 | v2.1 のカード（図は `assets/img/model-v2-1.webp`、色 #4A5D23）。ほかの 3 枚と同じ形・同じ大きさで、4 枚を 1 列（選ぶ画面だけ幅 1280 px まで）、1180 px 以下は 2 枚 × 2 段、600 px 以下は 1 枚ずつ。「この機種で始める」はカードの下にそろえる。選ぶと見出しが「v2.1」。Bluetooth の既定名は `CosmicRay`（OHASHI と同じ）だが、覚える名前は別のキー（`bleName_v21`） | 選ぶ画面、`ui.js` の `applyModel` | デモ（1920 / 1366 / 1100 / 700 / 375 px、日英）・再生 |
 | K11 | 接続直後の問い合わせ（`REFRESH_COMMANDS_V21`）: `GET_PWM`・`GET_GPS` を送らず、`GET_CFG`・`GET_BASE`・`GET_COIN_WIN` を送る。`#CFG` から FW・BOARD・VTH・OFS・TP2 の推定・ゲインの推定・HV を取る。A0 の静止値は `GET_BASE`（0.2 秒のトリム平均）から取り、`#CFG` の `BASE_mV` は使わない（ファームが計数中にイベントごとのトリガー直前の値で上書きするので、実機で GET_BASE 61.2 mV のとき 33.1 mV のようにばらつく）。接続・再起動のたびに v2.1 の値を消してから取り直す | `core.js` | 再生（送ったコマンドに v2 専用のものが無いこと） |
 | K12 | 行の解析は「形」で決める（選んだ機種ではなく）: 13 / 18 / 20 列のイベント行、`THRESH:<n> DUTY:<d>` と `THRESH:<n> VTH:<mV>`、`### Signal threshold: n (Duty d)` と `(VTH x mV)`、`VTH:` `OFS:` `BASE:` `HV:… MON:… K:…` `NOISE:` `#CFG` `VER:` `COIN_WIN:`、`### FMT:3 FW:… BOARD:…`、`### HV: … (HV_MON …)`、AUTO_VTH の掃引行、CALIBRATE / AUTO_BASE の経過、`### WARN:`。v2.1 のイベントには `base_adc` `peak_mv` `peakt_us` `flags` `dt1〜3` を足す（v2 / OKOME のイベントには足さない）。違う機種の基板につないだら知らせる（`notice.boardIsV21` / `notice.boardNotV21`） | `core.js` の `parseV21Reply` / `parseV21Info` / `noteBoardModel` | 再生（1650 件、THRESH 152、VTH 212.0、OFS 922.5、ゲイン 62.1、TP2 108.0、HV、NOISE、Flags） |
 | K13 | 詳細設定 > トリガーとしきい値: PWM の組を隠し（`data-hide-v21`）、「コンパレータのしきい値 VTH」（`SET_VTH` / `GET_VTH` / `AUTO_VTH:<目標>,<余裕>`、掃引の途中経過）、「ベースラインと較正」（`CALIBRATE` は確認ダイアログ付き、`AUTO_BASE:<持ち上げ>`、`GET_BASE`、`NOISE:<ms>` の結果、55 mV 未満の注意、`### WARN`）、「SiPM の電圧（HV）」（監視だけ。`GET_HV`、`SET_HV_CAL:<V>` は確認ダイアログ付き）を出す（`data-v21-only`）。GPS のスイッチも隠す | `index.html`、`ui.js` の `renderV21` | 表示は再生。操作（AUTO_VTH・CALIBRATE・NOISE）はデモ |

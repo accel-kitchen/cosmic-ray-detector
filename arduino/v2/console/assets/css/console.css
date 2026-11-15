@@ -284,6 +284,8 @@ body[data-view="scope"] .save-fab { display: none; }
   min-height: calc(100vh - var(--head-h) - var(--msgs-h) - 60px);
 }
 .view-connect > *, .view-model > * { max-width: 1060px; margin-left: auto; margin-right: auto; }
+/* 機種を選ぶ画面は 4 枚を 1 列に並べるので少し広く（1 枚の幅が 3 枚のときとほぼ同じになる） */
+.view-model > * { max-width: 1280px; }
 .eyebrow { font-size: 13px; color: var(--ink-3); letter-spacing: .06em; }
 .model-change { margin-left: 14px; letter-spacing: 0; }
 
@@ -315,21 +317,18 @@ button.model:hover img { transform: translateY(-3px); }
 .model-soon .model-name { color: var(--ink-3); }
 
 /* OWAN / OHASHI cards: a real photo, the sticker that goes on the box, and what to look for */
-.models { grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: stretch; }
+.models { grid-template-columns: repeat(4, minmax(0, 1fr)); align-items: stretch; }
 .model-main { gap: 10px; border-top: 6px solid var(--tone); }
+/* 名前の行が折り返して高さが違っても、「この機種で始める」はカードの下にそろえる */
+.model-main .model-go { margin-top: auto; }
 .model-owan { --tone: #0B4F57; }
 .model-ohashi { --tone: #1F2A80; }
 .model-okome { --tone: #6E1F35; }
+.model-v21 { --tone: #4A5D23; }
 /* 準備中のカードは、3 枚の下に横長の 1 行で */
 .model-soon { grid-column: 1 / -1; display: grid; grid-template-columns: 220px minmax(0, 1fr); grid-template-rows: auto 1fr; column-gap: 20px; row-gap: 2px; padding: 0 20px 0 0; }
 .model-soon .model-fig { grid-row: 1 / 3; margin: 0; border-bottom: 0; border-right: 1px solid var(--rule); border-radius: 6px 0 0 6px; }
 .model-soon .model-name { margin-top: 14px; }
-/* v2.1 のカードも 3 枚の下に横長の 1 行で（写真 | 名前・見分け方・始める） */
-.model-wide { grid-column: 1 / -1; display: grid; grid-template-columns: 220px minmax(0, 1fr); grid-template-rows: auto auto 1fr; column-gap: 20px; row-gap: 4px; padding: 0 20px 0 0; border-top: 6px solid var(--tone); }
-.model-wide .model-fig { grid-row: 1 / 4; margin: 0; border-bottom: 0; border-right: 1px solid var(--rule); border-radius: 6px 0 0 6px; }
-.model-wide .model-name { margin-top: 14px; }
-.model-wide .model-go { align-self: end; padding-bottom: 16px; }
-.model-v21 { --tone: #4A5D23; }
 
 /* 機種ごとの出し分け。OKOME を選んでいる間（body[data-model="okome"]）は、基板に無いものを隠し、
    OKOME だけのもの（HV など）を出す。OHASHI（既定）では今までどおり */
@@ -764,12 +763,17 @@ body[data-view="scope"] #btnCloseScope { display: inline-flex; }
   .topbar-row { flex-wrap: wrap; row-gap: 6px; }
 }
 
+/* 機種のカード 4 枚: 1 列に 4 枚では細くなる幅から 2 枚 × 2 段 */
+@media (max-width: 1180px) {
+  .models { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+}
+
 @media (max-width: 900px) {
   .topbar-row { flex-wrap: wrap; row-gap: 6px; padding: 8px 16px; }
   .status { border-left: 0; padding-left: 0; }
   .choices, .steps { grid-template-columns: minmax(0, 1fr); }
   .models { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
-  .model-soon, .model-wide { grid-column: 1 / -1; }
+  .model-soon { grid-column: 1 / -1; }
   .hero-title { font-size: 36px; }
   .view-connect, .view-model { padding: 32px 16px; }
 }
@@ -781,10 +785,6 @@ body[data-view="scope"] #btnCloseScope { display: inline-flex; }
   .model-soon .model-fig { grid-row: 1 / 3; margin: 0; border-bottom: 0; border-right: 1px solid var(--rule); border-radius: 6px 0 0 6px; }
   .model-soon .model-name { margin-top: 12px; font-size: 20px; }
   .model-soon .model-desc { font-size: 12.5px; padding-bottom: 12px; }
-  .model-wide { grid-template-columns: 42% minmax(0, 1fr); column-gap: 14px; row-gap: 2px; padding: 0 14px 0 0; }
-  .model-wide .model-name { margin-top: 12px; font-size: 20px; }
-  .model-wide .model-desc { font-size: 12.5px; }
-  .model-wide .model-go { padding-bottom: 12px; }
   .model-main { padding: 0 16px 16px; }
   .model-main .model-fig { margin: 0 -16px 4px; }
 }
