@@ -53,6 +53,9 @@ const settings = {
 const ADC_MAX = 4095;                  // 12-bit ADC
 const EVENT_TOKEN_COUNT_GPS = 18;      // 13 + PPS_UTC[s] PPS_dt[us] PPS_period[us] Lat Lon (GPS 対応ファーム。旧ファームは 13)
 const EVENT_TOKEN_COUNT = 13;          // count, time_us, adc, deadtime_us, T, H, P, d1..3, a1..3
+// v2.1 基板のファーム（FW 2.1.x、ログ形式 FMT:3）。先頭 13 列は v2 と同じ並びで、後ろに
+// Base[ADC] Peak[mV] PeakT[us] Flags Dt1[us] Dt2[us] Dt3[us] が付く。3 列目 ADC は「整形パルスの高さ − 直前のベースライン」。
+const EVENT_TOKEN_COUNT_FMT3 = 20;
 const VALID_MODES = ['DIGITAL', 'DUAL', 'ANALOG'];
 
 // Throttling / memory caps (to keep the page responsive under high event rates)
@@ -119,6 +122,31 @@ function newStats() {
     sumAdc: 0, maxAdc: 0,
     digHits: [0, 0, 0],
     sumAna:  [0, 0, 0],
+    // v2.1（FMT:3）のイベントだけ: Flags の内訳（1 = 前後と重なり、2 = ADC 飽和、16 = ベースライン 55 mV 未満）
+    nFmt3: 0, flagPile: 0, flagSat: 0, flagLowBase: 0,
+  };
+}
+
+// v2.1 だけにある基板の値（MCP4728 の VTH / OFS、A0 の静止値、ゲインの推定、HV の監視値、NOISE の結果）。
+// v2 / OKOME のファームはこれらを出さないので、ずっと null のまま。
+function newV21State() {
+  return {
+    fw: null, board: null,
+    vth: null,          // コンパレータのしきい値 [mV]（MCP4728 ch A。アンプ出力の絶対電圧）
+    ofs: null,          // ベースラインの持ち上げ [mV]（MCP4728 ch C）
+    baseMv: null,       // A0 の静止値 [mV]（GET_BASE / #CFG）。55 mV 未満は小さいパルスが欠ける
+    tp2Mv: null,        // AUTO_VTH から推定したアンプ出力の静止電圧 [mV]
+    gain: null,         // ch C の傾きから推定したゲイン
+    hvV: null, hvMonMv: null, hvK: null,   // HV の監視値（固定 29.0 V。変えられない）
+    coinWin: null,
+    noise: null,        // 最後の NOISE: の結果 { n, mean, rms, p2, p50, p98, min, max, zero, trim }
+    vthCal: false,      // AUTO_VTH の掃引中
+    vthSweep: null,     // 掃引の最新の点 { mv, rate }
+    vthResult: null,    // "AUTO_VTH: release ... knee ..." の行
+    cal: null,          // 'CALIBRATE' | 'AUTO_BASE' 実行中
+    calMsg: null,       // 較正の最新の経過の行
+    noiseBusy: false,   // NOISE の測定中
+    lastWarn: null,     // 最後の "### WARN: ..." / "### ERROR: ..."
   };
 }
 
@@ -174,6 +202,7 @@ const state = {
   pwmDuty: null,          // int (0-255), comparator threshold on D2
   pwmCalibrating: false,  // AUTO_PWM in progress
   hv: null,               // OKOME only: SiPM bias setting in V (25.9 | 27.1 | 27.9) | null
+  v21: newV21State(),     // v2.1 only (see newV21State)
   sdEnabled: null,        // bool | null
   extEnabled: null,       // bool | null
   oledEnabled: null,      // bool | null
@@ -331,6 +360,7 @@ function onConnected(opts) {
   const keepPaused = reconnect && state.paused;
   state.connectedAtMs = Date.now();
   state.bleNameKnown = false;
+  state.conn.board = null;   // 基板が名乗った版（"v2.1" など）。違う機種を選んでいたら知らせる
   clearConnError();
   applyConnectionState(true);
   if (keepPaused) setLoggingPaused(true);
@@ -748,6 +778,15 @@ const REFRESH_COMMANDS = [
   'GET_SD', 'GET_EXT', 'GET_OLED', 'GET_BUZZER', 'GET_VIB', 'GET_GPS',
   'GET_AUTO_MARGIN', 'GET_BEEP', 'GET_VIB_MS', 'GET_BTADDR',
 ];
+// v2.1 のファームには GET_PWM（案内だけ返す）と GET_GPS（Unknown command）が無い。
+// 代わりに GET_CFG で VTH / OFS / ゲインの推定 / HV をまとめて取り、A0 の静止値は GET_BASE で測る
+// （0.2 秒。計数は止まらない）。
+const REFRESH_COMMANDS_V21 = [
+  'GET_BLENAME', 'GET_THRESH', 'GET_MODE', 'GET_SCOPE',
+  'GET_SD', 'GET_EXT', 'GET_OLED', 'GET_BUZZER', 'GET_VIB',
+  'GET_AUTO_MARGIN', 'GET_BEEP', 'GET_VIB_MS', 'GET_BTADDR',
+  'GET_CFG', 'GET_BASE', 'GET_COIN_WIN',
+];
 let refreshGen = 0;
 
 // ========== Detector model profile ==========
@@ -758,20 +797,31 @@ let refreshGen = 0;
 //   blePrefix  : true なら前方一致で探す（MuonFob の既定名は MuonFob-XXXX で、下 4 桁が個体ごとに違う）
 //   bleKey     : 最後に使った名前を覚える localStorage のキー（機種どうしで混ざらないように分ける）
 //   refresh    : 接続直後と再起動後に送る問い合わせ
-//   hv         : 高電圧の設定（GET_HV / SET_HV）がある
+//   hv         : 高電圧の設定（GET_HV / SET_HV）がある（OKOME の 3 段）。v2.1 の HV は監視だけなので false
+//   fmt3       : v2.1 のファーム（FMT:3）。VTH / OFS / CALIBRATE / HV の監視があり、PWM と GPS が無い。
+//                保存ファイルの列も v2.1 の形（GPS の列の代わりに Base / Peak / PeakT / Flags / Dt1〜3）
+//   scopeTrig  : オシロの撮り方（SET_SCOPE_TRIG）と再アーム（SET_SCOPE_REARM）がある
+//   scopePausesCount : オシロを開いている間、計数が止まる（v2.1 は DMA が回り続けるので止まらない）
 const MODEL_PROFILES = {
   v2: {
     id: 'v2',
     bleDefault: 'CosmicRay', blePrefix: false, bleKey: 'bleName',
     refresh: REFRESH_COMMANDS,
-    hv: false,
+    hv: false, fmt3: false, scopeTrig: true, scopePausesCount: true,
   },
   okome: {
     id: 'okome',
     bleDefault: 'MuonFob', blePrefix: true, bleKey: 'bleName_okome',
     // OKOME には GPS が無い（GET_GPS は "Unknown command" になる）。GET_HV は OKOME だけ。
     refresh: REFRESH_COMMANDS.filter(c => c !== 'GET_GPS').concat('GET_HV'),
-    hv: true,
+    hv: true, fmt3: false, scopeTrig: true, scopePausesCount: true,
+  },
+  v21: {
+    id: 'v21',
+    // 実機の既定名は v2 と同じ CosmicRay。覚えておく名前は v2 と別のキーにする（混ざらないように）。
+    bleDefault: 'CosmicRay', blePrefix: false, bleKey: 'bleName_v21',
+    refresh: REFRESH_COMMANDS_V21,
+    hv: false, fmt3: true, scopeTrig: false, scopePausesCount: false,
   },
 };
 let modelProfile = MODEL_PROFILES.v2;
@@ -788,6 +838,8 @@ async function refreshDeviceState() {
   state.conn.btAddr = null;
   state.conn.btAddrTimedOut = false;
   if (modelProfile.hv) state.hv = null;   // GET_HV の応答が来るまで「取得中」
+  // v2.1: 前の基板（や再起動前）の値・NOISE の結果・警告を持ち越さない。応答が来るまで「取得中」
+  if (modelProfile.fmt3) { state.v21 = newV21State(); Bus.emit('device', 'v21'); }
   // Give a board that is still booting a moment before the first GET.
   await sleep(800);
   for (const cmd of modelProfile.refresh) {
@@ -820,7 +872,8 @@ function setPwmCalibrating(on) {
 }
 
 // The firmware stops counting while the scope runs. Make that impossible to miss
-// (R-6), including for how long it has been stopped (N-6).
+// (R-6), including for how long it has been stopped (N-6). (v2.1 keeps counting:
+// the screen looks at modelProfile.scopePausesCount before saying it stopped.)
 function setScopeDeviceOn(on) {
   on = !!on;
   if (on && !scope.deviceOn) scope.deviceOnSinceMs = Date.now();
@@ -898,6 +951,180 @@ function recordGpsLine(line, isPps, utc) {
   }
 }
 
+// ========== v2.1 (FW 2.1.x, FMT:3) ==========
+// v2.1 のファームだけが出す応答と情報行。v2 / OKOME のファームはこの形の行を出さないので、
+// どの機種を選んでいても拾ってよい（違う機種の基板につないだことの検出にも使う）。
+// 形式は v2.1 の arduino/description.md（.ino が正）。
+
+// "KEY=val KEY=val"（sep '='）や "KEY:val KEY:val"（sep ':'）を { KEY: 'val' } にする。
+function kvPairs(text, sep) {
+  const out = {};
+  const re = sep === ':' ? /([A-Za-z_0-9]+):(\S+)/g : /([A-Za-z_0-9]+)=(\S+)/g;
+  for (const [, k, v] of text.matchAll(re)) out[k] = v;
+  return out;
+}
+const v21Num = s => { const n = parseFloat(s); return Number.isFinite(n) ? n : null; };
+
+// 基板が名乗った版と、選んでいる機種が食い違うときに 1 回だけ知らせる（接続ごと）。
+function noteBoardModel(board) {
+  if (!board || state.conn.board === board) return;
+  state.conn.board = board;
+  const isV21 = /^v2\.1/i.test(board);
+  if (isV21 && !modelProfile.fmt3) showNotice('notice.boardIsV21', {});
+  else if (!isV21 && modelProfile.fmt3) showNotice('notice.boardNotV21', {});
+}
+
+// 応答の行（'###' の付かないもの）。拾ったら true。
+function parseV21Reply(line) {
+  const v = state.v21;
+  let m;
+  if ((m = line.match(/^VTH:\s*(\d+(?:\.\d+)?)\s*$/))) {
+    v.vth = v21Num(m[1]);
+    // AUTO_VTH の結果もこの行で来る（このあと THRESH: が続く）
+    v.vthCal = false;
+    v.vthSweep = null;
+    Bus.emit('device', 'v21');
+    return true;
+  }
+  if ((m = line.match(/^OFS:\s*(\d+(?:\.\d+)?)\s*$/))) {
+    v.ofs = v21Num(m[1]);
+    if (v.cal === 'AUTO_BASE') v.cal = null;   // AUTO_BASE は最後に OFS: を返す
+    Bus.emit('device', 'v21');
+    return true;
+  }
+  if (line.startsWith('BASE:')) {
+    // BASE:<A0 mV> RAW:<adc> SLOPE:<s> GAIN:<推定> OFS:<mV>
+    const kv = kvPairs(line, ':');
+    if (kv.BASE != null) v.baseMv = v21Num(kv.BASE);
+    if (kv.GAIN != null && v21Num(kv.GAIN)) v.gain = v21Num(kv.GAIN);
+    if (kv.OFS != null) v.ofs = v21Num(kv.OFS);
+    Bus.emit('device', 'v21');
+    return true;
+  }
+  if ((m = line.match(/^HV:\s*(\d+(?:\.\d+)?)\s+MON:\s*(\d+(?:\.\d+)?)\s+K:\s*(\d+(?:\.\d+)?)/))) {
+    v.hvV = v21Num(m[1]);
+    v.hvMonMv = v21Num(m[2]);
+    v.hvK = v21Num(m[3]);
+    Bus.emit('device', 'v21');
+    return true;
+  }
+  if (line.startsWith('NOISE:')) {
+    // NOISE:n=.. mean=.. rms=.. p2=.. p50=.. p98=.. min=.. max=.. zero=.. raw_p50=.. trim=..（n・zero 以外は mV）
+    const kv = kvPairs(line.slice(6), '=');
+    v.noise = {
+      n: v21Num(kv.n), mean: v21Num(kv.mean), rms: v21Num(kv.rms),
+      p2: v21Num(kv.p2), p50: v21Num(kv.p50), p98: v21Num(kv.p98),
+      min: v21Num(kv.min), max: v21Num(kv.max), zero: v21Num(kv.zero), trim: v21Num(kv.trim),
+    };
+    v.noiseBusy = false;
+    Bus.emit('device', 'v21');
+    return true;
+  }
+  if (line.startsWith('#CFG')) {
+    const kv = kvPairs(line, '=');
+    if (kv.FW) v.fw = kv.FW;
+    if (kv.BOARD) { v.board = kv.BOARD; noteBoardModel(kv.BOARD); }
+    if (kv.VTH_mV != null) v.vth = v21Num(kv.VTH_mV);
+    if (kv.OFS_mV != null) v.ofs = v21Num(kv.OFS_mV);
+    // BASE_mV は使わない: ファームは計数中、イベントごとにトリガー直前の短い区間の平均で上書きするので、
+    // ダークパルスの揺れでばらつく（実機で GET_BASE 61.2 mV のとき #CFG は 33.1 mV）。A0 の静止値は
+    // GET_BASE（0.2 秒のトリム平均）の BASE: 行から取る（接続直後の問い合わせでも GET_BASE を送る）。
+    if (kv.TP2_mV != null) v.tp2Mv = v21Num(kv.TP2_mV);    // 未測定は nan
+    if (kv.GAIN != null) v.gain = v21Num(kv.GAIN) || null;  // 未測定は 0.0
+    if (kv.HV_V != null) v.hvV = v21Num(kv.HV_V);
+    if (kv.COIN_WIN_us != null) v.coinWin = v21Num(kv.COIN_WIN_us);
+    if (kv.MODE && VALID_MODES.includes(kv.MODE)) { state.mode = kv.MODE; Bus.emit('device', 'mode'); }
+    if (kv.THRESH != null && /^\d+$/.test(kv.THRESH)) {
+      state.threshold = parseInt(kv.THRESH);
+      settings.threshSignal = state.threshold;
+      Bus.emit('device', 'thresh');
+    }
+    if (v.cal === 'CALIBRATE') v.cal = null;   // CALIBRATE は最後に #CFG を出す
+    Bus.emit('device', 'v21');
+    return true;
+  }
+  if (line.startsWith('VER:')) {
+    const kv = kvPairs(line.slice(4), '=');
+    if (kv.FW) v.fw = kv.FW;
+    if (kv.BOARD) { v.board = kv.BOARD; noteBoardModel(kv.BOARD); }
+    Bus.emit('device', 'v21');
+    return true;
+  }
+  if ((m = line.match(/^COIN_WIN:\s*(\d+)\s*$/))) {
+    v.coinWin = parseInt(m[1]);
+    Bus.emit('device', 'v21');
+    return true;
+  }
+  // 受信ログに残すだけの応答（下のイベント行の判定に回さない）
+  if (/^(DAC|EXT_ANA|STAT):/.test(line)) return true;
+  return false;
+}
+
+// '###' の情報行。拾ったら true。
+function parseV21Info(line) {
+  const v = state.v21;
+  const text = line.replace(/^#+\s*/, '');
+  let m;
+  // 較正の途中の警告（"### AUTO_BASE: WARN ..."、"### CALIBRATE: WARN ... failed" など）も、
+  // 下のどの枝で拾っても画面に残す
+  if (/\bWARN\b|\bERROR\b/.test(text)) v.lastWarn = text;
+  if ((m = text.match(/^FMT:(\d+)\s+FW:(\S+)\s+BOARD:(\S+)/))) {
+    v.fw = m[2];
+    v.board = m[3];
+    noteBoardModel(m[3]);
+    Bus.emit('device', 'v21');
+    return true;
+  }
+  // "### HV: 28.69 V (HV_MON 2607.8 mV x 11.000)"（起動時と 60 秒ごと。v2.1 の HV は固定で、監視だけ）
+  if ((m = text.match(/^HV:\s*(\d+(?:\.\d+)?)\s*V\s*\(HV_MON\s*(\d+(?:\.\d+)?)\s*mV\s*x\s*(\d+(?:\.\d+)?)\)/))) {
+    v.hvV = v21Num(m[1]);
+    v.hvMonMv = v21Num(m[2]);
+    v.hvK = v21Num(m[3]);
+    Bus.emit('device', 'v21');
+    return true;
+  }
+  if (/^AUTO_VTH sweep/.test(text)) {
+    v.vthCal = true;
+    v.vthSweep = null;
+    v.vthResult = null;
+    Bus.emit('device', 'v21');
+    return true;
+  }
+  if (v.vthCal && (m = text.match(/^(\d+(?:\.\d+)?),(\d+)\s*$/))) {   // 掃引の 1 点 "### 130.0,1316940"
+    v.vthSweep = { mv: parseFloat(m[1]), rate: parseInt(m[2]) };
+    Bus.emit('device', 'v21');
+    return true;
+  }
+  if (/^AUTO_VTH:/.test(text)) {
+    v.vthResult = text;
+    Bus.emit('device', 'v21');
+    return true;
+  }
+  if (/^(First boot on this board|CALIBRATE:)/.test(text)) {
+    if (!/written to the MCP4728/.test(text)) v.cal = 'CALIBRATE';
+    v.calMsg = text;
+    Bus.emit('device', 'v21');
+    return true;
+  }
+  if (/^AUTO_BASE:/.test(text)) {
+    if (v.cal !== 'CALIBRATE') v.cal = 'AUTO_BASE';
+    v.calMsg = text;
+    Bus.emit('device', 'v21');
+    return true;
+  }
+  if (/^NOISE: collecting/.test(text)) {
+    v.noiseBusy = true;
+    Bus.emit('device', 'v21');
+    return true;
+  }
+  if (/^(WARN|ERROR):/.test(text)) {
+    v.lastWarn = text;
+    Bus.emit('device', 'v21');
+    return true;
+  }
+  return false;
+}
+
 function processLine(line) {
   if (!line) return;
 
@@ -923,14 +1150,20 @@ function processLine(line) {
     return;
   }
 
-  // Threshold response: "THRESH:<sig> DUTY:<duty>" (space-separated)
+  // Threshold response: "THRESH:<sig> DUTY:<duty>" (v2 / OKOME) or "THRESH:<sig> VTH:<mV>" (v2.1)
   if (line.startsWith('THRESH:')) {
-    const m = line.match(/^THRESH:\s*(\d+)\s+DUTY:\s*(\d+)/i);
+    const m = line.match(/^THRESH:\s*(\d+)(?:\s+DUTY:\s*(\d+))?(?:\s+VTH:\s*(\d+(?:\.\d+)?))?/i);
     if (m) {
       const sig = parseInt(m[1]);
-      const duty = parseInt(m[2]);
       state.threshold = sig;
-      setPwmDutyState(duty);
+      if (m[2] != null) {
+        setPwmDutyState(parseInt(m[2]));
+        if (modelProfile.fmt3) noteBoardModel('v2');   // DUTY を返すのは v2 / OKOME のファーム
+      }
+      if (m[3] != null) {
+        state.v21.vth = parseFloat(m[3]);
+        Bus.emit('device', 'v21');
+      }
       settings.threshSignal = sig;
       Bus.emit('device', 'thresh');
     }
@@ -947,6 +1180,10 @@ function processLine(line) {
     }
     return;
   }
+
+  // v2.1 (FW 2.1.x) の応答: VTH: / OFS: / BASE: / HV: / NOISE: / #CFG / VER: / DAC: / COIN_WIN: / EXT_ANA: / STAT:
+  // v2 / OKOME のファームはこの形の行を出さない。#CFG は '#' で始まるので、下の情報行より前で拾う。
+  if (parseV21Reply(line)) return;
 
   // Mode response / boot-time mode line: "MODE:DIGITAL" etc.
   if (line.startsWith('MODE:')) {
@@ -1062,13 +1299,14 @@ function processLine(line) {
       Bus.emit('device', 'hv');
       return;
     }
-    // "### Signal threshold: 120 (Duty 30)"
-    const m = line.match(/Signal threshold:\s*(\d+)\s*\(Duty\s*(\d+)\)/i);
+    if (parseV21Info(line)) return;
+    // "### Signal threshold: 120 (Duty 30)" (v2 / OKOME) or "### Signal threshold: 152 (VTH 212.0 mV)" (v2.1)
+    const m = line.match(/Signal threshold:\s*(\d+)\s*\((?:Duty\s*(\d+)|VTH\s*(\d+(?:\.\d+)?)\s*mV)\)/i);
     if (m) {
       const sig = parseInt(m[1]);
-      const duty = parseInt(m[2]);
       state.threshold = sig;
-      setPwmDutyState(duty);
+      if (m[2] != null) setPwmDutyState(parseInt(m[2]));
+      if (m[3] != null) { state.v21.vth = parseFloat(m[3]); Bus.emit('device', 'v21'); }
       settings.threshSignal = sig;
       Bus.emit('device', 'thresh');
     }
@@ -1115,12 +1353,15 @@ function processLine(line) {
   // event count will show a gap once logging resumes.
   if (state.paused) return;
 
-  // Event line: exactly 13 whitespace-separated tokens. A line that lost its CR/LF and was
-  // glued to the next one has more, a truncated one has fewer: drop both (C-1). The firmware
-  // sets the USB-CDC TX timeout to 0 while counting, so a stalled host can lose a line's tail.
+  // Event line: exactly 13 whitespace-separated tokens (18 with GPS, 20 from the v2.1 firmware).
+  // A line that lost its CR/LF and was glued to the next one has more, a truncated one has fewer:
+  // drop both (C-1). The firmware sets the USB-CDC TX timeout to 0 while counting, so a stalled
+  // host can lose a line's tail. The shape decides, not the chosen model: a board of another
+  // model still shows its events (and a notice says so).
   const parts = line.split(/\s+/);
   const withGps = parts.length === EVENT_TOKEN_COUNT_GPS;
-  if (parts.length !== EVENT_TOKEN_COUNT && !withGps) return;
+  const fmt3 = parts.length === EVENT_TOKEN_COUNT_FMT3;
+  if (parts.length !== EVENT_TOKEN_COUNT && !withGps && !fmt3) return;
 
   const count       = parseInt(parts[0]);
   const timestampUs = parseInt(parts[1]);   // device Time, microseconds (v2 firmware)
@@ -1152,6 +1393,19 @@ function processLine(line) {
     if (ppsDt < 0 || ppsUtc === 0 || ppsPeriod === 0) { ppsUtc = 0; ppsDt = -1; ppsPeriod = 0; }
   }
 
+  // v2.1 の末尾 7 列。PeakT は負になりうる（ピークがトリガより前）し、Dt1〜3 は「相手 − 自分」なので符号付き。
+  let baseAdc, peakMv, peakT, flags, dt;
+  if (fmt3) {
+    baseAdc = parseInt(parts[13]);
+    peakMv = parts[14] === 'nan' ? NaN : parseFloat(parts[14]);
+    peakT = parseInt(parts[15]);
+    flags = parseInt(parts[16]);
+    dt = [parseInt(parts[17]), parseInt(parts[18]), parseInt(parts[19])];
+    if (!(inAdc(baseAdc) && (Number.isFinite(peakMv) || parts[14] === 'nan') && Number.isInteger(peakT) &&
+          Number.isInteger(flags) && flags >= 0 && flags < 256 && dt.every(Number.isInteger))) return;
+    if (!modelProfile.fmt3) noteBoardModel('v2.1');
+  }
+
   const event = {
     count,
     timestamp_us: timestampUs,
@@ -1174,6 +1428,14 @@ function processLine(line) {
     uploaded: false,  // set when the server accepted it (R-3)
     rejected: false,  // set when the server refused it with HTTP 400
   };
+  if (fmt3) {
+    // v2.1 の列。v2 / OKOME のイベントには付けない（100 万件持つので、使わない欄は増やさない）
+    event.base_adc = baseAdc;
+    event.peak_mv = peakMv;
+    event.peakt_us = peakT;
+    event.flags = flags;
+    event.dt1 = dt[0]; event.dt2 = dt[1]; event.dt3 = dt[2];
+  }
   event.wall_us = uploadClockUs(event);
   rateTrack(event);
 
@@ -1210,6 +1472,12 @@ function processLine(line) {
                           if (pressHpa > s.maxPress) s.maxPress = pressHpa; }
   s.sumAdc  += adc;
   if (adc > s.maxAdc) s.maxAdc = adc;
+  if (fmt3) {
+    s.nFmt3++;
+    if (flags & 1)  s.flagPile++;
+    if (flags & 2)  s.flagSat++;
+    if (flags & 16) s.flagLowBase++;
+  }
   for (let i = 0; i < 3; i++) {
     if (dig[i] === 1) s.digHits[i]++;
     if (!isNaN(ana[i])) s.sumAna[i] += ana[i];
@@ -1387,6 +1655,9 @@ async function autoSaveFileName(dirHandle, prefix, day, fmt) {
 
 const DAT_COLUMNS = '# Event\tPC_Timestamp\tTime[us]\tADC[0-4095]\tDeadtime[us]\tTemp[C]\tHum[%]\tPress[hPa]\tDig1\tDig2\tDig3\tAna1\tAna2\tAna3\tPPS_UTC_s\tPPS_dt_us\tPPS_period_us\tLat\tLon\tUTC_GPS\n';
 const CSV_COLUMNS = 'Event,PC_Timestamp,Time_us,ADC,Deadtime_us,Temp_C,Hum_pct,Press_hPa,Dig1,Dig2,Dig3,Ana1,Ana2,Ana3,PPS_UTC_s,PPS_dt_us,PPS_period_us,Lat,Lon,UTC_GPS\n';
+// v2.1: 先頭 14 列は v2 と同じ。GPS の列の代わりにファームの FMT:3 の末尾 7 列（v2.1 に GPS は無い）。
+const DAT_COLUMNS_V21 = '# Event\tPC_Timestamp\tTime[us]\tADC[0-4095]\tDeadtime[us]\tTemp[C]\tHum[%]\tPress[hPa]\tDig1\tDig2\tDig3\tAna1\tAna2\tAna3\tBase[ADC]\tPeak[mV]\tPeakT[us]\tFlags\tDt1[us]\tDt2[us]\tDt3[us]\n';
+const CSV_COLUMNS_V21 = 'Event,PC_Timestamp,Time_us,ADC,Deadtime_us,Temp_C,Hum_pct,Press_hPa,Dig1,Dig2,Dig3,Ana1,Ana2,Ana3,Base_ADC,Peak_mV,PeakT_us,Flags,Dt1_us,Dt2_us,Dt3_us\n';
 
 // One header builder for every path -- auto-save and download, .dat and .csv --
 // so all files carry the same metadata (R-15). Metadata lines start with '#';
@@ -1404,11 +1675,20 @@ function buildFileHeader(format, isDemo) {
     lines.push('# Detector model: OKOME (MUON FOB). Temp column = nRF52840 die temperature, not ambient; Hum / Press = nan; Dig / Ana = 0.');
     if (state.hv != null) lines.push(`# SiPM bias setting: ${state.hv} V`);
   }
+  // v2.1 だけ追加する注釈行（# 行のみ。v2 / OKOME の出力は従来どおり）
+  const v21 = modelProfile.fmt3 ? state.v21 : null;
+  if (v21) {
+    lines.push(`# Detector model: v2.1` + (v21.fw ? ` (FW ${v21.fw}, log format FMT:3)` : ' (log format FMT:3)'));
+    if (v21.vth != null) lines.push(`# Comparator threshold VTH: ${v21.vth.toFixed(1)} mV (MCP4728 ch A, absolute amplifier-output voltage)`);
+    if (v21.ofs != null) lines.push(`# Baseline lift OFS: ${v21.ofs.toFixed(1)} mV (MCP4728 ch C)` + (v21.baseMv != null ? `; A0 baseline ${v21.baseMv.toFixed(1)} mV` : ''));
+    if (v21.gain != null) lines.push(`# Estimated amplifier gain: x${v21.gain.toFixed(1)}`);
+    if (v21.hvV != null) lines.push(`# HV (monitor): ${v21.hvV.toFixed(2)} V`);
+  }
   if (state.bleName)           lines.push(`# Device: ${state.bleName}`);
   if (state.conn.btAddr)       lines.push(`# Board address: ${state.conn.btAddr}`);
   if (state.mode)              lines.push(`# Trigger mode: ${state.mode}`);
-  if (state.threshold != null) lines.push(`# Signal threshold: ${state.threshold} / 4095`);
-  if (state.pwmDuty != null && modelProfile.id !== 'okome') lines.push(`# Comparator PWM duty: ${state.pwmDuty} / 255`);   // OKOME にコンパレータは無い
+  if (state.threshold != null) lines.push(`# Signal threshold: ${state.threshold} / 4095` + (v21 ? ' (above the baseline)' : ''));
+  if (state.pwmDuty != null && modelProfile.id !== 'okome' && !v21) lines.push(`# Comparator PWM duty: ${state.pwmDuty} / 255`);   // OKOME にコンパレータは無い。v2.1 は VTH
   if (state.gpsEnabled) {
     const g = state.gps;
     if (g && g.valid && g.lat != null && g.lon != null) {
@@ -1418,15 +1698,24 @@ function buildFileHeader(format, isDemo) {
   }
   lines.push('# PC_Timestamp: UTC (trailing Z). Time / Deadtime: board counters in microseconds since boot or RESET.');
   lines.push('# Column 2 (PC_Timestamp) is added by this page, so later columns sit one to the right of the firmware / SD log.');
+  if (v21) {
+    lines.push('# ADC = height of the shaped pulse above the baseline just before it. Base[ADC] / Peak[mV] / PeakT[us] / Flags / Dt1-3[us] come from the firmware (FMT:3).');
+    lines.push('# Flags (sum): 1 = overlaps another pulse, 2 = ADC saturated, 4 = peak at the edge of the search window, 8 = ANALOG trigger, 16 = baseline below 55 mV. Dt = coincident DIG_IN time - own trigger time.');
+    return lines.join('\n') + '\n' + (format === 'csv' ? CSV_COLUMNS_V21 : DAT_COLUMNS_V21);
+  }
   lines.push('# PPS_UTC_s / PPS_dt_us / PPS_period_us / Lat / Lon come from the firmware (empty without GPS). UTC_GPS (last column) = PPS_UTC_s + PPS_dt_us / PPS_period_us, computed by this page.');
   return lines.join('\n') + '\n' + (format === 'csv' ? CSV_COLUMNS : DAT_COLUMNS);
 }
 
 // File name base from the board's BLE name, without the DEMO_ mark.
+// v2.1 の基板も既定名は CosmicRay（OHASHI と同じ）。自動保存は同じ名前・同じ日のファイルに追記し、
+// 列の見出しは新しいファイルにしか書かないので、v2.1 は名前に _v21 を付けて別のファイルにする
+// （列の並びが違う行が 1 つのファイルに混ざらないように）。
 function getFileBase() {
   const fallback = modelProfile.bleDefault;
   const name = (state.bleName || state.conn.bleName || fallback).trim();
-  return name.replace(/[^A-Za-z0-9_\-]/g, '_') || fallback;
+  const base = name.replace(/[^A-Za-z0-9_\-]/g, '_') || fallback;
+  return modelProfile.fmt3 ? base + '_v21' : base;
 }
 
 // デモの合成データは、あとから本物と取り違えないようファイル名の頭で分かるようにする。
@@ -1456,18 +1745,29 @@ function eventGpsFields(ev) {
   return [has ? ev.pps_utc : '', has ? ev.pps_dt_us : '', has ? ev.pps_period_us : '', deg(ev.lat), deg(ev.lon), eventUtcString(ev)];
 }
 
+// v2.1 のファームの末尾 7 列。v2.1 の形でない行（別の機種の基板）は空欄。
+function eventV21Fields(ev) {
+  if (ev.flags === undefined) return ['', '', '', '', '', '', ''];
+  return [ev.base_adc, isNaN(ev.peak_mv) ? '' : ev.peak_mv.toFixed(1), ev.peakt_us, ev.flags, ev.dt1, ev.dt2, ev.dt3];
+}
+
+// 14 列目より後ろ: v2 / OKOME は GPS の列、v2.1 はファームの FMT:3 の列。
+function eventTailFields(ev) {
+  return modelProfile.fmt3 ? eventV21Fields(ev) : eventGpsFields(ev);
+}
+
 // Pressure keeps the firmware's one decimal; a second digit would be invented precision.
 function eventToDatLine(ev) {
   if (ev.kind === 'gps') return ev.line + '\n';
   const pcTs = new Date(ev.pc_timestamp).toISOString().replace('T', '-').replace(/:/g, '-');
   const f = (v, d = 1) => (isNaN(v) ? '' : v.toFixed(d));
-  return `${ev.count}\t${pcTs}\t${ev.timestamp_us}\t${ev.adc}\t${ev.deadtime_us}\t${f(ev.temp_c, 1)}\t${f(ev.hum_pct, 1)}\t${f(ev.press_hpa, 1)}\t${ev.d1}\t${ev.d2}\t${ev.d3}\t${ev.a1}\t${ev.a2}\t${ev.a3}\t${eventGpsFields(ev).join('\t')}\n`;
+  return `${ev.count}\t${pcTs}\t${ev.timestamp_us}\t${ev.adc}\t${ev.deadtime_us}\t${f(ev.temp_c, 1)}\t${f(ev.hum_pct, 1)}\t${f(ev.press_hpa, 1)}\t${ev.d1}\t${ev.d2}\t${ev.d3}\t${ev.a1}\t${ev.a2}\t${ev.a3}\t${eventTailFields(ev).join('\t')}\n`;
 }
 
 function eventToCsvLine(ev) {
   if (ev.kind === 'gps') return ev.line + '\n';
   const f = (v, d = 1) => (isNaN(v) ? '' : v.toFixed(d));
-  return `${ev.count},${new Date(ev.pc_timestamp).toISOString()},${ev.timestamp_us},${ev.adc},${ev.deadtime_us},${f(ev.temp_c, 1)},${f(ev.hum_pct, 1)},${f(ev.press_hpa, 1)},${ev.d1},${ev.d2},${ev.d3},${ev.a1},${ev.a2},${ev.a3},${eventGpsFields(ev).join(',')}\n`;
+  return `${ev.count},${new Date(ev.pc_timestamp).toISOString()},${ev.timestamp_us},${ev.adc},${ev.deadtime_us},${f(ev.temp_c, 1)},${f(ev.hum_pct, 1)},${f(ev.press_hpa, 1)},${ev.d1},${ev.d2},${ev.d3},${ev.a1},${ev.a2},${ev.a3},${eventTailFields(ev).join(',')}\n`;
 }
 
 // Writes one format's queue to `dir` under the file name base `base`. Both are
@@ -2463,8 +2763,11 @@ function scopeEnter() {
   Bus.emit('scopeMode');
   if (state.isConnected) {
     sendCommand('SET_SCOPE_RATE:' + (parseInt(settings.scopeRate) || 3));
-    sendCommand('SET_SCOPE_TRIG:' + (settings.scopeTrig === 'FREE' ? 'FREE' : 'NORMAL'));
-    sendCommand('SET_SCOPE_REARM:' + (parseInt(settings.scopeRearm) >= 0 ? parseInt(settings.scopeRearm) : 5));
+    // v2.1 のファームには撮り方と再アームが無い（コンパレータのトリガーごとに 1 本、レート上限まで）
+    if (modelProfile.scopeTrig) {
+      sendCommand('SET_SCOPE_TRIG:' + (settings.scopeTrig === 'FREE' ? 'FREE' : 'NORMAL'));
+      sendCommand('SET_SCOPE_REARM:' + (parseInt(settings.scopeRearm) >= 0 ? parseInt(settings.scopeRearm) : 5));
+    }
     sendCommand('SET_SCOPE:ON');
   }
   scopeStartKeepalive();
@@ -2611,13 +2914,28 @@ demo.devs = {
     bleName: 'MuonFob',
     hv: 1,
   },
+  // v2.1: 値は 2026-11-15 の 1 枚目の実機の初回起動（CALIBRATE の結果）に合わせた。
+  // しきい値はベースラインからの高さ、VTH はアンプ出力の絶対電圧 [mV]、HV は固定で監視だけ。
+  v21: {
+    threshold: 152, duty: 0, mode: 'DIGITAL', autoMargin: 10,
+    sd: true, ext: true, oled: true, buzzer: true, vib: true, gps: false,
+    beepMin: 500, beepMax: 4000, beepMs: 25,
+    vibMin: 20, vibMax: 120,
+    bleName: 'CosmicRay',
+    vth: 212.0, ofs: 922.5, slope: 0.09313, tp2: 108.0,
+    hvK: 11.0, hvTrue: 28.71, coinWin: 100, extAna: 0,
+  },
 };
+const DEMO_V21_BASE_RAW = 66;    // v2.1 の A0 の静止値 [ADC]（約 60 mV）
+const DEMO_V21_NOISE_LSB = 14;   // ダークパルスの積み重なりで揺れる分（実機はもっと大きい: rms 約 48 mV）
 const DEMO_HV_TEXT = ['25.9', '27.1', '27.9'];
 const DEMO_HV_TRIM = ['High', 'Hi-Z', 'Low'];
 
 // オシロの 1 窓の形。OHASHI は 12 us 間隔でピークホールド出力、OKOME は 6 us 間隔でアンプの生の出力
 // （16 点前 + 1 + 64 点後 = 81 点、ファームの SCOPE_PRE / SCOPE_POST）。
+// v2.1 は 12 us 間隔で整形パルス（2 極、tau 47 us。トリガーの約 46 us 後に頂点）、32 点前 + 1 + 128 点後。
 function demoWaveGeom() {
+  if (modelProfile.id === 'v21') return { pre: 32, post: 128, periodNs: 12000, tauUs: 46, riseUs: 0, crrc: true };
   return modelProfile.id === 'okome'
     ? { pre: 16, post: 64, periodNs: 6000, tauUs: 25, riseUs: 2 }
     : { pre: DEMO_SCOPE_PRE, post: DEMO_SCOPE_POST, periodNs: DEMO_SCOPE_PERIOD_NS, tauUs: DEMO_TAU_US, riseUs: DEMO_RISE_US };
@@ -2783,6 +3101,10 @@ function demoMakeEvent(tMs) {
   // ファームの snprintf("%lu %llu %d %llu %.1f %.1f %.1f %d %d %d %d %d %d %lu %ld %lu %.5f %.5f") と同じ並び。
   // 末尾 5 列 (PPS_UTC / PPS_dt / PPS_period / Lat / Lon) は GPS 対応ファームだけ。GPS が OFF なら "0 -1 0 nan nan"。
   const tUs = Math.round((tMs - demo.startMs) * 1000);
+  if (modelProfile.id === 'v21') {
+    demoMakeEventV21(tMs, tUs, adc, dig, ana);
+    return;
+  }
   let gpsTail = [];
   if (!okome) {
     if (d.gps) {
@@ -2805,6 +3127,53 @@ function demoMakeEvent(tMs) {
   ].join(' '));
 
   if (demo.sound && d.buzzer) demoBeep(adc, tMs);
+}
+
+// v2.1 のイベント行（20 列、ファームの FMT:3 と同じ並び）。オシロが ON なら、計数を続けたまま
+// トリガーごとに波形も出す（レート上限まで）。実機と同じく計数は止めない。
+function demoMakeEventV21(tMs, tUs, adc, dig, ana) {
+  const d = demo.dev;
+  const e = demo.env;
+  let base = Math.round(DEMO_V21_BASE_RAW + (e.temp - 25) * 0.6 + demoRandN() * DEMO_V21_NOISE_LSB * 0.6);
+  if (base < 0) base = 0;
+  const peakT = 48 + 12 * Math.max(-1, Math.min(1, Math.round(demoRandN() * 0.7)));
+  let flags = 0;
+  if (Math.random() < 0.02) flags |= 1;    // 前後のパルスと重なり
+  if (adc >= ADC_MAX - 40) flags |= 2;     // 飽和
+  if (base < 61) flags |= 16;              // A0 の静止値が 55 mV 未満（約 61 カウント）
+  const dt = dig.map(h => (h ? Math.round(demoRandN() * 3) : 0));
+  processLine([
+    demo.count, tUs, adc, demo.deadtimeUs,
+    e.temp.toFixed(1), e.hum.toFixed(1), e.press.toFixed(1),
+    dig[0], dig[1], dig[2], ana[0], ana[1], ana[2],
+    base, (adc * 0.905).toFixed(1), peakT, flags, dt[0], dt[1], dt[2],
+  ].join(' '));
+  if (demo.sound && d.buzzer) demoBeep(adc, tMs);
+  const s = demo.scope;
+  if (s.on && tMs - (s.lastWfMs || 0) >= 1000 / Math.max(1, s.rate)) {
+    s.lastWfMs = tMs;
+    demoEmitWaveformV21(tMs, adc, base);
+  }
+}
+
+// v2.1 の A0 の 1 窓: 2 極の整形パルス（t / tau · e^(1 − t/tau)、頂点はトリガーの約 46 us 後）に、
+// ダークパルスの積み重なりのようなゆっくりした揺れを足す。ADC の 0 で下が切れるのも実機と同じ。
+function demoEmitWaveformV21(tMs, adc, base) {
+  const G = demoWaveGeom();
+  const npre = G.pre, ntot = G.pre + 1 + G.post, dtUs = G.periodNs / 1000;
+  const tau = G.tauUs * (0.92 + 0.16 * Math.random());
+  const t0 = -Math.random() * 4;
+  const v = new Array(ntot);
+  let w = demoRandN() * DEMO_V21_NOISE_LSB;
+  for (let i = 0; i < ntot; i++) {
+    w = 0.85 * w + 0.53 * demoRandN() * DEMO_V21_NOISE_LSB;   // 相関のある揺れ（rms ≈ NOISE_LSB）
+    const t = (i - npre) * dtUs - t0;
+    const p = t > 0 ? adc * (t / tau) * Math.exp(1 - t / tau) : 0;
+    v[i] = Math.max(0, Math.min(ADC_MAX, Math.round(base + w + p)));
+  }
+  demo.scope.emitted++;
+  processLine('WF,' + demo.scope.emitted + ',' + Math.round(tMs - demo.scope.enterMs) +
+              ',U,' + npre + ',' + ntot + ',' + G.periodNs + ',' + v.join(','));
 }
 
 // --- 波形 (オシロ) ----------------------------------------------------------
@@ -2923,8 +3292,9 @@ function demoTick() {
   demoUpdateEnv(dt);
   demoMaybeBurst(now);
 
-  if (demo.scope.on) {
+  if (demo.scope.on && modelProfile.scopePausesCount) {
     // ファームはオシロ ON の間、計数を止める (### SCOPE: ON - counting is PAUSED)。
+    // （v2.1 は止めない。波形は demoMakeEventV21 がイベントのついでに出す）
     // デモも同じにしておかないと「オシロを開くとレートが落ちる」実機の癖が出ない。
     const free = demo.scope.trig === 'FREE';
     const eff = Math.min(demo.scope.rate, demoRate(now));
@@ -2977,6 +3347,7 @@ function demoCommand(cmd) {
   const clampI = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 
   if (modelProfile.id === 'okome' && demoCommandOkome(cmd, d, say)) return;
+  if (modelProfile.id === 'v21' && demoCommandV21(cmd, d, say)) return;
 
   if (cmd.startsWith('SET_THRESH:')) {
     const n = parseInt(cmd.slice(11));
@@ -3195,6 +3566,174 @@ function demoCommandOkome(cmd, d, say) {
   return true;
 }
 
+// v2.1（FW 2.1.0）の実機ファームが v2 と違う答え方をするコマンド。処理したら true を返し、
+// 残り（RESET・モード・BLE 名・ブザー・振動・機能スイッチ・オシロのレート）は共通の処理に任せる。
+// 文言は COSMICRAY_DETECTOR_ESP32-S3-Nano-v2.1.ino と、2026-11-15 に実機から取った応答に合わせた。
+function demoCommandV21(cmd, d, say) {
+  const clampI = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+  const f1 = x => x.toFixed(1);
+  const half = x => Math.round(x * 2) / 2;   // MCP4728 は 0.5 mV 刻み
+  const threshLine = () => 'THRESH:' + d.threshold + ' VTH:' + f1(d.vth);
+  // A0 の静止値は ch C に比例して動く（実機: 2047.5 mV で 170.5 mV、傾き 0.09313）
+  const a0At = ofs => Math.max(0, 170.5 - d.slope * (2047.5 - ofs));
+  const baseMv = () => a0At(d.ofs) + demoRandN() * 1.5;
+  const baseLine = () => { const b = baseMv(); return 'BASE:' + f1(b) + ' RAW:' + f1(b * 1.105) + ' SLOPE:' + d.slope.toFixed(5) + ' GAIN:' + f1(d.slope / 0.0015) + ' OFS:' + f1(d.ofs); };
+  const hvMon = () => d.hvTrue / 11.0 * 1000 + demoRandN() * 1.5;
+  const hvLine = () => { const m = hvMon(); return 'HV:' + (m * d.hvK / 1000).toFixed(2) + ' MON:' + f1(m) + ' K:' + d.hvK.toFixed(4); };
+  const cfgLine = () => '#CFG FW=2.1.0 BOARD=v2.1 FMT=3 MODE=' + d.mode + ' VTH_mV=' + f1(d.vth) + ' OFS_mV=' + f1(d.ofs) +
+    ' BASE_mV=' + f1(baseMv()) + ' TP2_mV=' + f1(d.tp2) + ' GAIN=' + f1(d.slope / 0.0015) + ' HV_V=' + (hvMon() * d.hvK / 1000).toFixed(2) +
+    ' TAU_us=47 THRESH=' + d.threshold + ' EXT=' + (d.ext ? 1 : 0) + ' EXT_ANA=' + d.extAna + ' COIN_WIN_us=' + d.coinWin + ' DAC=1';
+  // 決まった間隔で行を流す。計数を止めるコマンド（AUTO_VTH・AUTO_BASE・CALIBRATE）は、その間イベントを出さない。
+  const script = (lines, stepMs, pause) => {
+    const t0 = performance.now();
+    lines.forEach((l, i) => setTimeout(() => { if (demo.on) processLine(typeof l === 'function' ? l() : l); }, 40 + i * stepMs));
+    if (pause) demo.nextEventMs = Math.max(demo.nextEventMs, t0 + 40 + lines.length * stepMs);
+  };
+  const vthSweep = (target, margin) => {
+    const rateAt = mv => Math.round(1.3e6 * Math.exp(-(mv - 130) / 7.5) * (0.9 + 0.2 * Math.random()));
+    const lines = ['### AUTO_VTH sweep: VTH[mV],comp_rate[/s]'];
+    let knee = 130;
+    for (let mv = 130; mv <= 260; mv += 2) {
+      const r = rateAt(mv);
+      lines.push('### ' + f1(mv) + ',' + r);
+      knee = mv;
+      if (r <= target) break;
+    }
+    const vth = half(knee + margin);
+    lines.push(() => { d.vth = vth; return '### AUTO_VTH: release 130.0 mV (TP2 ~' + f1(d.tp2) + ' mV), knee ' + f1(knee) + ' mV, VTH ' + f1(vth) +
+      ' mV = TP2 + ' + f1(vth - d.tp2) + ' mV, rate ' + Math.round(target * 0.6) + '/s (target <= ' + target + '/s)'; });
+    lines.push(() => 'VTH:' + f1(d.vth));
+    lines.push(threshLine);
+    return lines;
+  };
+  const baseLines = lift => {
+    const ofs = half(Math.min(2047.5, Math.max(lift / d.slope, 2047.5 - (170.5 - 65.5) / d.slope)));
+    return [
+      '### AUTO_BASE: measuring the A0 slope against ch C (lift ' + lift + ' mV)...',
+      '### AUTO_BASE: A0 170.5 mV @ch C 2047.5 mV, 151.9 mV @1847.5 mV -> slope ' + d.slope.toFixed(5) + ' (gain ~x' + f1(d.slope / 0.0015) + ')',
+      () => { d.ofs = ofs; return baseLine(); },
+      () => 'OFS:' + f1(d.ofs),
+    ];
+  };
+  const threshLines = () => {
+    const p50 = Math.round(a0At(d.ofs) * 1.105), p98 = p50 + 140 + Math.round(Math.random() * 10);
+    return [
+      '### Auto-calibrating threshold...',
+      () => { d.threshold = clampI(p98 - p50 + d.autoMargin, 1, ADC_MAX);
+              return '### Auto-threshold calib: n=83840 p2=0 p50=' + p50 + ' p98=' + p98 + ' max=' + (p98 + 600) +
+                     ' rms=' + f1(DEMO_V21_NOISE_LSB * 3.4) + ' mV margin=' + d.autoMargin + ' -> thr=' + d.threshold; },
+      threshLine,
+      () => 'AUTO_MARGIN:' + d.autoMargin,
+    ];
+  };
+  let m;
+
+  if (cmd === 'GET_THRESH') {
+    say(threshLine());
+  } else if (cmd.startsWith('SET_THRESH:')) {
+    const n = parseInt(cmd.slice(11));
+    if (!isNaN(n)) d.threshold = clampI(n, 1, ADC_MAX);
+    say(threshLine());
+  } else if (cmd === 'AUTO_THRESH' || cmd.startsWith('AUTO_THRESH:')) {
+    if (cmd.startsWith('AUTO_THRESH:')) {
+      const mg = parseInt(cmd.slice(12));
+      if (!isNaN(mg)) d.autoMargin = clampI(mg, 0, ADC_MAX);
+    }
+    script(threshLines(), 350, false);
+  } else if (cmd === 'GET_PWM' || cmd.startsWith('SET_PWM:')) {
+    say('### SET_PWM/GET_PWM are for the v2 board. On v2.1 use SET_VTH:<mV> (MCP4728 ch A).');
+    say('VTH:' + f1(d.vth), 40);
+  } else if (cmd === 'GET_VTH') {
+    say('VTH:' + f1(d.vth));
+  } else if (cmd.startsWith('SET_VTH:')) {
+    const v = parseFloat(cmd.slice(8));
+    if (Number.isFinite(v)) d.vth = half(Math.min(2047.5, Math.max(0, v)));
+    say('VTH:' + f1(d.vth));
+    say(threshLine(), 40);
+  } else if ((m = cmd.match(/^AUTO_(?:VTH|PWM)(?::(\d+)(?:,(\d+(?:\.\d+)?))?)?$/))) {
+    script(vthSweep(m[1] != null ? Math.max(1, parseInt(m[1])) : 50, m[2] != null ? parseFloat(m[2]) : 4), 95, true);
+  } else if (cmd === 'GET_OFS') {
+    say('OFS:' + f1(d.ofs));
+  } else if (cmd.startsWith('SET_OFS:')) {
+    const v = parseFloat(cmd.slice(8));
+    if (Number.isFinite(v)) d.ofs = half(Math.min(2047.5, Math.max(0, v)));
+    demo.nextEventMs = Math.max(demo.nextEventMs, performance.now() + 300);
+    say('OFS:' + f1(d.ofs), 330);
+  } else if ((m = cmd.match(/^(?:AUTO_BASE|SET_BASE)(?::(\d+))?$/))) {
+    script(baseLines(m[1] != null ? clampI(parseInt(m[1]), 10, 300) : 50), 900, true);
+  } else if (cmd === 'GET_BASE') {
+    say(baseLine(), 220);
+  } else if (cmd === 'CALIBRATE') {
+    script([
+      '### CALIBRATE: AUTO_BASE -> AUTO_VTH -> AUTO_THRESH -> MCP4728 EEPROM',
+      ...baseLines(50), ...vthSweep(50, 4), ...threshLines(),
+      '### CALIBRATE: ch A / ch C written to the MCP4728 EEPROM.',
+      cfgLine, threshLine,
+    ], 110, true);
+  } else if (cmd === 'GET_DAC' || cmd === 'SAVE_DAC') {
+    say('DAC:VTH=' + f1(d.vth) + ',OFS=' + f1(d.ofs) + ',EE_VTH=' + f1(d.vth) + ',EE_OFS=' + f1(d.ofs) + ',PRESENT=1');
+  } else if (cmd === 'GET_HV') {
+    say(hvLine());
+  } else if (cmd.startsWith('SET_HV_CAL:')) {
+    const v = parseFloat(cmd.slice(11));
+    if (Number.isFinite(v) && v >= 20 && v <= 40) d.hvK = v * 1000 / (d.hvTrue / 11.0 * 1000);
+    say(hvLine());
+  } else if ((m = cmd.match(/^NOISE(?::(\d+))?$/))) {
+    const ms = m[1] != null ? clampI(parseInt(m[1]), 100, 60000) : 1000;
+    say('### NOISE: collecting A0 for ' + ms + ' ms (counting continues)...');
+    setTimeout(() => {
+      if (!demo.on) return;
+      const b = a0At(d.ofs), sd = DEMO_V21_NOISE_LSB * 0.905;
+      const n = Math.round(ms * 83.333);
+      const zero = Math.round(n * Math.max(0, 0.5 * (1 - Math.tanh(b / sd / 1.2))) * 0.2);
+      processLine('NOISE:n=' + n + ' mean=' + (b + 4).toFixed(2) + ' rms=' + sd.toFixed(2) + ' p2=' + Math.max(0, Math.round(b - 2 * sd)) +
+                  ' p50=' + Math.round(b) + ' p98=' + Math.round(b + 2.4 * sd) + ' min=' + Math.max(0, Math.round(b - 4 * sd)) +
+                  ' max=' + Math.round(b + 9 * sd) + ' zero=' + zero + ' raw_p50=' + Math.round(b * 1.105) + ' trim=' + (b - 0.5).toFixed(2));
+    }, ms + 30);
+  } else if (cmd === 'GET_STAT') {
+    const live = (performance.now() - demo.startMs) / 1000 - demo.deadtimeUs / 1e6;
+    say('STAT:count=' + demo.count + ' trig=' + demo.count + ' rejected=0 merged=0 lost=0 discarded=0 overflow=0 restarts=0 edges=' + demo.count +
+        ' storms=0 txdrop=0 bledrop=0 live_s=' + live.toFixed(1) + ' dead_s=' + (demo.deadtimeUs / 1e6).toFixed(3));
+  } else if (cmd === 'GET_CFG') {
+    say(cfgLine());
+  } else if (cmd === 'GET_VER') {
+    say('VER:FW=2.1.0 BOARD=v2.1 FMT=3');
+  } else if (cmd === 'GET_COIN_WIN') {
+    say('COIN_WIN:' + d.coinWin);
+  } else if (cmd.startsWith('SET_COIN_WIN:')) {
+    const n = parseInt(cmd.slice(13));
+    if (!isNaN(n)) d.coinWin = clampI(n, 1, 10000);
+    say('COIN_WIN:' + d.coinWin);
+  } else if (cmd === 'GET_EXT_ANA') {
+    say('EXT_ANA:' + d.extAna);
+  } else if (cmd.startsWith('SET_EXT_ANA:')) {
+    const n = parseInt(cmd.slice(12));
+    if (!isNaN(n)) d.extAna = clampI(n, 0, 3);
+    say('EXT_ANA:' + d.extAna);
+  } else if (/^(SET|GET)_(SCOPE_TRIG|SCOPE_REARM|GPS)\b/.test(cmd)) {
+    say('### Unknown command: ' + cmd + ' (HELP for the list)');
+  } else if (cmd.startsWith('SET_SCOPE:')) {
+    const on = cmd.slice(10).toUpperCase() === 'ON';
+    const s = demo.scope;
+    if (on === s.on) return true;
+    s.on = on;
+    if (on) {
+      s.enterMs = performance.now();
+      s.emitted = 0;
+      s.lastWfMs = 0;
+      say('### SCOPE: ON - counting continues (v2.1: the DMA keeps running).');
+      say('###        A0 is the shaped pulse (tau 47 us, peak ~46 us after the trigger).', 32);
+      say('SCOPE:ON', 34);
+    } else {
+      say('### SCOPE: OFF');
+      say('SCOPE:OFF', 32);
+    }
+  } else {
+    return false;
+  }
+  return true;
+}
+
 // デモ用の GPS 応答 (屋外で測位できているときの形)。
 // デモ開始 (Time[us] = 0) の UTC 秒。デモの PPS / イベントの UTC はここからの経過で決める。
 function demoUtcBase() {
@@ -3269,6 +3808,34 @@ function demoBootBanner() {
       '### HV: ' + DEMO_HV_TEXT[d.hv] + ' V (HV_TRIM ' + DEMO_HV_TRIM[d.hv] + ')',
       '### Event Time[us] ADC[0-4095] Deadtime[us] Temp[C] Hum[%] Press[hPa] Dig1 Dig2 Dig3 Ana1 Ana2 Ana3',
     ].forEach((l, i) => setTimeout(() => { if (demo.on) processLine(l); }, 60 + i * 40));
+    return;
+  }
+  if (modelProfile.id === 'v21') {
+    // 2 回目以降の起動（較正済みの基板）と同じ並び。実機の起動ログに合わせた。
+    const b = Math.max(0, 170.5 - d.slope * (2047.5 - d.ofs));
+    const cfg = '#CFG FW=2.1.0 BOARD=v2.1 FMT=3 MODE=' + d.mode + ' VTH_mV=' + d.vth.toFixed(1) + ' OFS_mV=' + d.ofs.toFixed(1) +
+      ' BASE_mV=' + b.toFixed(1) + ' TP2_mV=' + d.tp2.toFixed(1) + ' GAIN=' + (d.slope / 0.0015).toFixed(1) + ' HV_V=' + (d.hvTrue * d.hvK / 11).toFixed(2) +
+      ' TAU_us=47 THRESH=' + d.threshold + ' EXT=' + (d.ext ? 1 : 0) + ' EXT_ANA=' + d.extAna + ' COIN_WIN_us=' + d.coinWin + ' DAC=1';
+    [
+      'Booting v2.1...',
+      '### MCP4728: found. EEPROM ch A ' + d.vth.toFixed(1) + ' mV, ch C ' + d.ofs.toFixed(1) + ' mV',
+      "BLE: Advertising as '" + d.bleName + "'",
+      d.sd ? 'SD: init OK at 4000000 Hz' : 'SD: disabled (SD:OFF)',
+      'BME280: OK',
+      '### HV: ' + (d.hvTrue * d.hvK / 11).toFixed(2) + ' V (HV_MON ' + (d.hvTrue / 11 * 1000).toFixed(1) + ' mV x ' + d.hvK.toFixed(3) + ')',
+      'BASE:' + b.toFixed(1) + ' RAW:' + (b * 1.105).toFixed(1) + ' SLOPE:' + d.slope.toFixed(5) + ' GAIN:' + (d.slope / 0.0015).toFixed(1) + ' OFS:' + d.ofs.toFixed(1),
+      '##########################################################################################',
+      '### Accel Kitchen',
+      '### https://accel-kitchen.com/',
+      '### info@accel-kitchen.com',
+      '### FMT:3 FW:2.1.0 BOARD:v2.1',
+      '### DEMO BOARD - synthetic data, no hardware attached',
+      '### Signal threshold: ' + d.threshold + ' (VTH ' + d.vth.toFixed(1) + ' mV)',
+      cfg,
+      'MODE:' + d.mode, d.sd ? 'SD:ON' : 'SD:OFF', d.ext ? 'EXT:ON' : 'EXT:OFF', d.oled ? 'OLED:ON' : 'OLED:OFF', d.vib ? 'VIB:ON' : 'VIB:OFF',
+      '### Event Time[us] ADC Deadtime[us] Temp[C] Hum[%] Press[hPa] Dig1 Dig2 Dig3 Ana1 Ana2 Ana3 Base[ADC] Peak[mV] PeakT[us] Flags Dt1[us] Dt2[us] Dt3[us]',
+      '##########################################################################################',
+    ].forEach((l, i) => setTimeout(() => { if (demo.on) processLine(l); }, 60 + i * 30));
     return;
   }
   const lines = [

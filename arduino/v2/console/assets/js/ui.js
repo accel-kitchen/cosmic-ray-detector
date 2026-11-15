@@ -44,7 +44,7 @@ function migrateOldModelName() {
 function chooseModel(model) {
   lsSet(MODEL_KEY, model);
   if (model === 'v1') { location.href = 'v1.html'; return; }
-  // v2 (OHASHI) と okome (OKOME) はこのページ。違いは機種プロファイル（core.js の MODEL_PROFILES）。
+  // v2 (OHASHI)・okome (OKOME)・v21 (v2.1) はこのページ。違いは機種プロファイル（core.js の MODEL_PROFILES）。
   setModelProfile(model);
   applyModel();
   modelChosen = true;
@@ -66,7 +66,7 @@ function loadBleNameForModel() {
 
 function applyModel(skipRender) {
   document.body.dataset.model = modelProfile.id;
-  $('brandVer').textContent = modelProfile.id === 'okome' ? 'OKOME · MUON FOB' : 'OHASHI · v2';
+  $('brandVer').textContent = { okome: 'OKOME · MUON FOB', v21: 'v2.1' }[modelProfile.id] || 'OHASHI · v2';
   loadBleNameForModel();
   if (!skipRender) applyLanguage();   // 文言を引き直し、画面全体を描き直す
 }
@@ -81,7 +81,8 @@ function showModelChooser() {
 function renderModelChooser() {
   const last = lsGet(MODEL_KEY);
   qsa('.model[data-model]').forEach(card => {
-    card.querySelector('.model-last').hidden = card.dataset.model !== last;
+    const tag = card.querySelector('.model-last');
+    if (tag) tag.hidden = card.dataset.model !== last;
   });
 }
 
@@ -279,8 +280,83 @@ function renderThreshInfo() {
   const el = $('threshInfo');
   if (!state.isConnected) el.textContent = '';
   else if (busy.autoThresh) el.textContent = t('thresh.calibrating', { m: busy.autoThreshM });
-  else if (state.threshold != null) el.textContent = t('thresh.current', { sig: state.threshold, duty: state.pwmDuty ?? '?' });
+  else if (state.threshold != null) el.textContent = t('thresh.current', {
+    sig: state.threshold, duty: state.pwmDuty ?? '?', vth: state.v21.vth != null ? state.v21.vth.toFixed(1) : '?' });
   else el.textContent = t('thresh.fetching');
+}
+
+// ---- v2.1 だけ: コンパレータのしきい値（VTH）、ベースラインと較正、HV の監視 ----
+// AUTO_VTH・CALIBRATE・AUTO_BASE・NOISE は基板が返事をするまでボタンを押せなくする。返事が来なかった
+// ときのために、それぞれ時間で戻す（基板は数秒〜十数秒かかる）。
+const v21Timers = {};
+function v21Busy(key, ms) {
+  clearTimeout(v21Timers[key]);
+  v21Timers[key] = setTimeout(() => {
+    const v = state.v21;
+    if (key === 'vth') { v.vthCal = false; v.vthSweep = null; }
+    if (key === 'cal') v.cal = null;
+    if (key === 'noise') v.noiseBusy = false;
+    renderV21();
+  }, ms);
+}
+
+function renderV21() {
+  const on = state.isConnected, v = state.v21;
+  const f1 = x => (x == null ? '--' : x.toFixed(1));
+  const busyAny = v.vthCal || v.cal != null;
+
+  // VTH
+  let vthMsg = '';
+  if (on) {
+    if (v.vthCal) vthMsg = v.vthSweep ? t('vth.sweeping', { mv: f1(v.vthSweep.mv), rate: v.vthSweep.rate.toLocaleString(uiLocale()) }) : t('vth.sweepStart');
+    else if (v.vth != null) vthMsg = t('vth.current', { mv: f1(v.vth) }) + (v.tp2Mv != null ? ' · ' + t('vth.tp2', { tp2: f1(v.tp2Mv) }) : '');
+    else vthMsg = t('vth.fetching');
+  }
+  $('vthInfo').textContent = vthMsg;
+  const res = on && !v.vthCal && v.vthResult ? v.vthResult : '';
+  $('vthResult').textContent = res;
+  $('vthResult').hidden = !res;
+  if (v.vth != null && document.activeElement !== $('vthMv')) $('vthMv').value = v.vth;
+
+  // ベースラインと較正
+  let calMsg = '';
+  if (on) {
+    if (v.cal) calMsg = t('cal.running', { what: v.cal }) + (v.calMsg ? '\n' + v.calMsg : '');
+    else if (v.baseMv != null || v.ofs != null) {
+      calMsg = t('cal.status', { base: f1(v.baseMv), ofs: f1(v.ofs), gain: v.gain != null ? f1(v.gain) : '--' });
+    } else calMsg = t('cal.fetching');
+  }
+  $('calInfo').textContent = calMsg;
+  const low = on && !v.cal && v.baseMv != null && v.baseMv < 55;
+  $('calLow').hidden = !low;
+  $('calWarn').textContent = on && v.lastWarn ? v.lastWarn : '';
+  $('calWarn').hidden = !(on && v.lastWarn);
+
+  let noiseMsg = '';
+  if (on && v.noiseBusy) noiseMsg = t('noise.running');
+  else if (on && v.noise) {
+    const nz = v.noise;
+    noiseMsg = t('noise.result', {
+      p50: nz.p50 != null ? nz.p50.toFixed(0) : '--', trim: f1(nz.trim), rms: f1(nz.rms),
+      p98: nz.p98 != null ? nz.p98.toFixed(0) : '--',
+      zero: nz.n ? (100 * (nz.zero || 0) / nz.n).toFixed(1) : '--',
+    });
+  }
+  $('noiseInfo').textContent = noiseMsg;
+  $('noiseInfo').hidden = !noiseMsg;
+
+  // HV の監視
+  let hvMsg = '';
+  if (on) hvMsg = v.hvV != null
+    ? t('hvmon.current', { v: v.hvV.toFixed(2) }) + (v.hvMonMv != null ? ' · ' + t('hvmon.detail', { mon: f1(v.hvMonMv), k: v.hvK != null ? v.hvK.toFixed(3) : '?' }) : '')
+    : t('hvmon.fetching');
+  $('hvMonInfo').textContent = hvMsg;
+  $('hvMonWarn').hidden = !(on && v.hvV != null && (v.hvV < 27 || v.hvV > 31));
+
+  ['btnSetVth', 'btnGetVth', 'btnGetBase', 'btnGetHvMon', 'btnHvCal'].forEach(id => { $(id).disabled = !on; });
+  ['btnAutoVth', 'btnCalibrate', 'btnAutoBase'].forEach(id => { $(id).disabled = !on || busyAny; });
+  $('btnSetVth').disabled = !on || busyAny;
+  $('btnNoise').disabled = !on || v.noiseBusy;
 }
 
 function renderPwmInfo() {
@@ -440,6 +516,7 @@ function renderDeviceAll() {
   renderVibInfo();
   renderModeInfo();
   renderHv();
+  renderV21();
   renderBleNameInfo();
   renderDeviceControls();
 }
@@ -468,7 +545,8 @@ function updateStats() {
     $('statDeadtime').textContent = '--';
     $('statElapsed').textContent = '00:00:00';
     ['ds_elapsed', 'ds_rate', 'ds_rateStd', 'ds_devCounts', 'ds_liveTime', 'ds_deadtime', 'ds_adcMean', 'ds_adcMax',
-     'ds_temp', 'ds_tempStd', 'ds_tempRange', 'ds_hum', 'ds_humRange', 'ds_press', 'ds_pressRange', 'ds_digRate', 'ds_anaMean']
+     'ds_temp', 'ds_tempStd', 'ds_tempRange', 'ds_hum', 'ds_humRange', 'ds_press', 'ds_pressRange', 'ds_digRate', 'ds_anaMean',
+     'ds_flagLowBase', 'ds_flagPile', 'ds_flagSat']
       .forEach(id => { $(id).textContent = '--'; });
     return;
   }
@@ -521,6 +599,12 @@ function updateStats() {
 
   $('ds_digRate').textContent = s.digHits.map(h => ((h / n) * 100).toFixed(1) + '%').join(' / ');
   $('ds_anaMean').textContent = s.sumAna.map(a => (a / n).toFixed(0)).join(' / ');
+
+  // v2.1: Flags の内訳（FMT:3 のイベントのうち、その印が付いた割合）
+  const pct = k => s.nFmt3 ? `${(100 * k / s.nFmt3).toFixed(1)} % (${k})` : '--';
+  $('ds_flagLowBase').textContent = pct(s.flagLowBase);
+  $('ds_flagPile').textContent = pct(s.flagPile);
+  $('ds_flagSat').textContent = pct(s.flagSat);
 }
 
 function updateEnvCards() {
@@ -567,7 +651,7 @@ function updateTable() {
       <td>${fmt(ev.press_hpa, 1)}</td>
       <td>${ev.d1}</td><td>${ev.d2}</td><td>${ev.d3}</td>
       <td>${ev.a1}</td><td>${ev.a2}</td><td>${ev.a3}</td>
-      <td>${eventUtcString(ev).slice(11, -1) || '--'}</td>`;
+      <td>${modelProfile.fmt3 ? (ev.flags ?? '--') : (eventUtcString(ev).slice(11, -1) || '--')}</td>`;   // v2.1: Flags（GPS は無い）
   }
   lastTableLength = events.length;
   while (tbody.rows.length > maxRows) tbody.deleteRow(tbody.rows.length - 1);
@@ -839,7 +923,8 @@ function scopeStats() {
 // Scope left on by an earlier page while this one is not showing it.
 function renderScopeBadge() {
   const el = $('scopeBadge');
-  const on = scope.deviceOn && state.isConnected && !scope.active;
+  // v2.1 はオシロ中も計数が止まらないので、残っていても知らせることはない（core が OFF にする）
+  const on = scope.deviceOn && state.isConnected && !scope.active && modelProfile.scopePausesCount;
   el.hidden = !on;
   if (!on) return;
   const since = scope.deviceOnSinceMs ? formatTime(Date.now() - scope.deviceOnSinceMs) : '';
@@ -853,6 +938,9 @@ function renderScopeState() {
   if (!scope.active) { el.textContent = ''; return; }
   if (!state.isConnected) {
     el.innerHTML = `<span class="mode-text">${esc(t('scope.title'))} · ${esc(t('common.notConnected'))}</span>`;
+  } else if (scope.deviceOn && !modelProfile.scopePausesCount) {
+    // v2.1: the DMA keeps running, so counting goes on while the scope is open
+    el.innerHTML = `<span class="mode-text">${esc(t('scope.title'))} · ${esc(t('scope.countingGoesOn'))}</span>`;
   } else if (scope.deviceOn) {
     const since = scope.deviceOnSinceMs ? formatTime(Date.now() - scope.deviceOnSinceMs) : '';
     el.innerHTML = `<span class="stop-mark"></span>` +
@@ -1064,6 +1152,8 @@ Bus.on('conn', connected => {
     busy.testVib = false;
     busy.modeSwitch = null;
     busy.hv = null;
+    // v2.1: 途中で切れた較正・掃引・NOISE の「実行中」を戻す
+    Object.assign(state.v21, { vthCal: false, vthSweep: null, cal: null, noiseBusy: false });
   }
   renderView();
   renderStatus();
@@ -1101,6 +1191,10 @@ Bus.on('device', key => {
       break;
     case 'margin':
       $('autoMargin').value = state.autoMargin;
+      break;
+    case 'v21':
+      renderV21();
+      renderThreshInfo();
       break;
     case 'hv':
       // 切り替えた直後の応答なら、ゲインが動いたので自動校正を勧める
@@ -1386,6 +1480,62 @@ function bindControls() {
   $('btnHvAuto').addEventListener('click', () => $('btnAutoThresh').click());
   $('btnAutoThresh').addEventListener('click', () => { $('hvAfter').hidden = true; });
 
+  // --- v2.1: comparator threshold VTH (MCP4728 ch A), baseline / calibration (ch C), HV monitor.
+  // Every SET answers with the same line as its GET, which core turns into state.v21.
+  const numIn = (id, lo, hi) => {
+    const raw = $(id).value.trim();
+    const x = raw === '' ? NaN : Number(raw);
+    return Number.isFinite(x) && x >= lo && x <= hi ? x : NaN;
+  };
+  $('btnSetVth').addEventListener('click', () => {
+    const mv = numIn('vthMv', 0, 2047.5);
+    if (isNaN(mv)) { fieldMsg('vthMsg', t('alert.vthRange')); return; }
+    sendCommand(`SET_VTH:${(Math.round(mv * 2) / 2).toFixed(1)}`);
+  });
+  $('btnGetVth').addEventListener('click', () => sendCommand('GET_VTH'));
+  $('btnAutoVth').addEventListener('click', () => {
+    const target = numIn('vthTarget', 1, 100000), margin = numIn('vthMargin', 0, 200);
+    if (isNaN(target) || isNaN(margin) || !Number.isInteger(target)) { fieldMsg('vthAutoMsg', t('alert.vthAuto')); return; }
+    Object.assign(state.v21, { vthCal: true, vthSweep: null, vthResult: null });
+    v21Busy('vth', 25000);
+    renderV21();
+    sendCommand(target === 50 && margin === 4 ? 'AUTO_VTH' : `AUTO_VTH:${target},${margin}`);
+  });
+  $('btnCalibrate').addEventListener('click', async () => {
+    if (!state.isConnected) return;
+    const ok = await askConfirm({ title: t('cal.confirmTitle'), body: t('cal.confirmBody'), ok: t('cal.confirmOk') });
+    if (!ok || !state.isConnected) return;
+    Object.assign(state.v21, { cal: 'CALIBRATE', calMsg: null, vthResult: null, lastWarn: null });
+    v21Busy('cal', 45000);
+    renderV21();
+    sendCommand('CALIBRATE');
+  });
+  $('btnAutoBase').addEventListener('click', () => {
+    const lift = numIn('baseLift', 10, 300);
+    if (isNaN(lift) || !Number.isInteger(lift)) { fieldMsg('baseMsg', t('alert.baseLift')); return; }
+    Object.assign(state.v21, { cal: 'AUTO_BASE', calMsg: null, lastWarn: null });
+    v21Busy('cal', 15000);
+    renderV21();
+    // ch C が変わると VTH の基準（TP2）も動くので、続けて AUTO_VTH を勧める（ヒントに書いてある）
+    sendCommand(lift === 50 ? 'AUTO_BASE' : `AUTO_BASE:${lift}`);
+  });
+  $('btnGetBase').addEventListener('click', () => sendCommand('GET_BASE'));
+  $('btnNoise').addEventListener('click', () => {
+    const ms = parseInt($('noiseMs').value) || 2000;
+    state.v21.noiseBusy = true;
+    v21Busy('noise', ms + 5000);
+    renderV21();
+    sendCommand(`NOISE:${ms}`);
+  });
+  $('btnGetHvMon').addEventListener('click', () => sendCommand('GET_HV'));
+  $('btnHvCal').addEventListener('click', async () => {
+    const volts = numIn('hvCalV', 20, 40);
+    if (isNaN(volts)) { fieldMsg('hvCalMsg', t('alert.hvCal')); return; }
+    const ok = await askConfirm({ title: t('hvmon.calTitle'), body: t('hvmon.calBody', { v: volts.toFixed(2) }), ok: t('common.set') });
+    if (!ok || !state.isConnected) return;
+    sendCommand(`SET_HV_CAL:${volts.toFixed(2)}`);
+  });
+
   // --- feature switches: send the opposite of what the board reported
   qsa('.switch[data-feature]').forEach(sw => {
     sw.addEventListener('click', () => {
@@ -1514,7 +1664,9 @@ function bindControls() {
   });
   $('scopeSave').addEventListener('click', () => {
     if (!scope.raw.length) return;
-    const hdr = `#WF ver=1 mode=DMA board_rev=v2 source=index.html thr=${settings.threshSignal}`;
+    const hdr = modelProfile.fmt3
+      ? `#WF ver=1 mode=DMA board_rev=v2.1 source=index.html thr=${settings.threshSignal} thr_rel=baseline`
+      : `#WF ver=1 mode=DMA board_rev=v2 source=index.html thr=${settings.threshSignal}`;
     const blob = new Blob([hdr + '\n' + scope.raw.join('\n') + '\n'], { type: 'text/plain' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
@@ -1559,7 +1711,8 @@ function bindControls() {
   scopeCv.addEventListener('pointerdown', e => {
     if (e.button !== 0 || !thrNear(e.clientX, e.clientY, e.pointerType === 'touch')) return;
     const p = scopeView.plot, start = parseInt(settings.threshSignal);
-    scopeView.drag = { thr: start, start, yLo: p.yLo, yHi: p.yHi, dy: e.clientY - scopeCv.getBoundingClientRect().top - p.thrY };
+    const base = scopeThrBase();   // v2.1: the line is drawn this far up (threshold = height above the baseline)
+    scopeView.drag = { thr: start, start, base, yLo: p.yLo, yHi: p.yHi, dy: e.clientY - scopeCv.getBoundingClientRect().top - p.thrY };
     scopeCv.classList.add('thr-drag');
     try { scopeCv.setPointerCapture(e.pointerId); } catch (_) { /* the pointer is already gone */ }
     e.preventDefault();
@@ -1568,7 +1721,8 @@ function bindControls() {
   scopeCv.addEventListener('pointermove', e => {
     const d = scopeView.drag;
     if (!d) { thrHover(thrNear(e.clientX, e.clientY, e.pointerType === 'touch')); return; }
-    const v = scopeValueAtY(e.clientY - scopeCv.getBoundingClientRect().top - d.dy, d.yLo, d.yHi);
+    const a = scopeValueAtY(e.clientY - scopeCv.getBoundingClientRect().top - d.dy, d.yLo, d.yHi);
+    const v = Math.max(modelProfile.fmt3 ? 1 : 0, a - (d.base || 0));   // v2.1 accepts 1-4095
     if (v === d.thr) return;
     d.thr = v;
     thrApply(v);
@@ -1640,8 +1794,9 @@ document.addEventListener('DOMContentLoaded', () => {
   currentLang = detectLanguage();
   migrateOldModelName();
   const savedModel = lsGet(MODEL_KEY);
-  modelChosen = (savedModel === 'v2' || savedModel === 'okome') && !new URLSearchParams(location.search).has('choose');
-  setModelProfile(savedModel === 'okome' ? 'okome' : 'v2');
+  const pageModels = ['v2', 'okome', 'v21'];   // このページで扱う機種（v1 は v1.html）
+  modelChosen = pageModels.includes(savedModel) && !new URLSearchParams(location.search).has('choose');
+  setModelProfile(pageModels.includes(savedModel) ? savedModel : 'v2');
   renderModelChooser();
 
   // Inputs -> settings, and the Bluetooth name remembered from the last board (kept per model).

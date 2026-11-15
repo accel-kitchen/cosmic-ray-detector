@@ -17,12 +17,34 @@
 | K1 | v1 / v2 / v2.1 をケースの見た目で選ぶ | 最初の画面。画像は `assets/img/model-*.webp`（v1・v2 はケースの STL、v2.1 は LP の 3D データから描画） | デモ |
 | K2 | 選んだ機種を記憶（`localStorage.detectorModel`）。v2 は次回から接続画面、v1 は `v1.html` へ転送 | `index.html` の head と `ui.js` | デモ |
 | K3 | 機種を選び直す | 接続画面の見出しの横、v1 ページのロゴの下。`index.html?choose` でも開く | デモ |
-| K4 | v2.1 は「準備中」で選べない | 選ぶ画面。OKOME 追加後は、3 枚のカードの下に横長の 1 行で置く | デモ |
+| K4 | ~~v2.1 は「準備中」で選べない~~ → 2026-11-15 から選べる（K10〜K16） | 選ぶ画面。3 枚のカードの下に横長の 1 行で置く | デモ |
 | K5 | v1 のページ（旧 `v1/index.html`） | `v1.html`。旧パスは転送のみ | デモ（中身は旧ページのまま） |
 | K6 | OKOME（お米、MUON FOB）を選ぶカード。OHASHI と同じページ・同じ `core.js` を、機種プロファイル（`core.js` の `MODEL_PROFILES`）で切り替えて使う。`localStorage.detectorModel` = `okome`。カードの絵は `assets/img/okome-unit.svg`（ケース v4 の蓋の設計図をもとにした図。写真ではない）、紋章・ステッカーは `crest-okome.svg` / `sticker-okome.svg`（OWAN・OHASHI と同じ作り方: Lovart の生成画像をトレース。元データと手順は `cad/omochi/sticker/moon-logo/okome/`。地は臙脂 #6E1F35）。2026-11-14 に旧名 OMAME（お豆）から改名。旧名で保存された `detectorModel` = `omame` と `bleName_omame` は、開いたときに `okome` / `bleName_okome` へ引き継ぐ（`ui.js` の `migrateOldModelName`） | `index.html` の選ぶ画面、`ui.js` の `chooseModel` / `applyModel` / `migrateOldModelName` | デモ（日英）。選ぶ画面は 1366 / 700 / 375 px 幅で確認（700 px 前後では 2 列になり OKOME のカードが 1 枚だけ下の段に残る）。計測画面と詳細設定は約 1024 px のブラウザ枠 |
 | K7 | OKOME で隠すもの（基板に無い）: トリガーモード、コンパレータ PWM、SD・外部検出器・GPS のスイッチ、湿度・気圧・外部検出器・トリガーの表示、ファーム書き込みのリンク（nRF52840 用の書き込みはこのアプリに無い）。`body[data-model="okome"]` と `data-v2-only` / `data-okome-only` で出し分け | `console.css` の末尾近く、`index.html` | デモ |
 | K8 | OKOME の言い換え: 「OLED 画面」→「LED」、温度→「チップ温度」（nRF52840 のダイ温度。外気温ではない）、オシロの注記（ピークホールドではなく生のアンプ出力、6 µs・81 点）。`i18n.js` の「キー@okome」で、無いキーは OHASHI と同じ文言に戻る | `i18n.js` の `t()` / `glossary()` | デモ・比較（OHASHI の全 856 文言が旧版と一致） |
 | K9 | OKOME の HV 設定（`GET_HV` / `SET_HV:25.9｜27.1｜27.9`、応答は `### HV: 27.1 V (HV_TRIM Hi-Z)`）。切り替えたあと「自動校正」を勧める。OKOME の接続直後の問い合わせから `GET_GPS` を外し `GET_HV` を足す。Bluetooth は `namePrefix`（既定 `MuonFob`、実機の既定名は `MuonFob-XXXX`）で探し、最後に使った名前は OHASHI と別のキー（`bleName_okome`）に覚える。保存ファイルの先頭に `# Detector model: OKOME ...` と `# SiPM bias setting` の注釈行を足す（# 行のみ。データ行は変えていない） | 詳細設定 > トリガーとしきい値、`core.js` | デモ（実機のファームの応答文言に合わせた模擬）。USB / Bluetooth は実機 |
+
+## v2.1 基板（2026-11-15 追加）
+
+OHASHI・OKOME と同じページ・同じ `core.js` を、機種プロファイル `v21`（`MODEL_PROFILES.v21`、`localStorage.detectorModel` = `v21`）で使う。
+相手のファームは v2.1 プロジェクトの `arduino/COSMICRAY_DETECTOR_ESP32-S3-Nano-v2.1`（FW 2.1.0、ログ形式 FMT:3。プロトコルは同じフォルダの `description.md`）。
+プロファイルの旗: `fmt3`（v2.1 の応答と保存の列）、`scopeTrig: false`（撮り方・再アームが無い）、`scopePausesCount: false`（オシロ中も計数が続く）。
+
+確認の記号に **再生** を足す: 2026-11-15 に 1 枚目の実機から取った出力（初回起動の CALIBRATE、1650 イベント、全 GET の応答、WF 行 12 本）を、模擬の Web Serial のポートから流して確かめた。
+Web Serial そのもの（ポートの選択・開く・DTR/RTS）は通っていない。
+
+| ID | 機能 | 場所 | 確認 |
+|---|---|---|---|
+| K10 | v2.1 のカード（写真は `assets/img/model-v2-1.webp`、横長の 1 行、色 #4A5D23）。選ぶと見出しが「v2.1」。Bluetooth の既定名は `CosmicRay`（OHASHI と同じ）だが、覚える名前は別のキー（`bleName_v21`） | 選ぶ画面、`ui.js` の `applyModel` | デモ（1366 / 375 px）・再生 |
+| K11 | 接続直後の問い合わせ（`REFRESH_COMMANDS_V21`）: `GET_PWM`・`GET_GPS` を送らず、`GET_CFG`・`GET_BASE`・`GET_COIN_WIN` を送る。`#CFG` から FW・BOARD・VTH・OFS・TP2 の推定・ゲインの推定・HV を取る。A0 の静止値は `GET_BASE`（0.2 秒のトリム平均）から取り、`#CFG` の `BASE_mV` は使わない（ファームが計数中にイベントごとのトリガー直前の値で上書きするので、実機で GET_BASE 61.2 mV のとき 33.1 mV のようにばらつく）。接続・再起動のたびに v2.1 の値を消してから取り直す | `core.js` | 再生（送ったコマンドに v2 専用のものが無いこと） |
+| K12 | 行の解析は「形」で決める（選んだ機種ではなく）: 13 / 18 / 20 列のイベント行、`THRESH:<n> DUTY:<d>` と `THRESH:<n> VTH:<mV>`、`### Signal threshold: n (Duty d)` と `(VTH x mV)`、`VTH:` `OFS:` `BASE:` `HV:… MON:… K:…` `NOISE:` `#CFG` `VER:` `COIN_WIN:`、`### FMT:3 FW:… BOARD:…`、`### HV: … (HV_MON …)`、AUTO_VTH の掃引行、CALIBRATE / AUTO_BASE の経過、`### WARN:`。v2.1 のイベントには `base_adc` `peak_mv` `peakt_us` `flags` `dt1〜3` を足す（v2 / OKOME のイベントには足さない）。違う機種の基板につないだら知らせる（`notice.boardIsV21` / `notice.boardNotV21`） | `core.js` の `parseV21Reply` / `parseV21Info` / `noteBoardModel` | 再生（1650 件、THRESH 152、VTH 212.0、OFS 922.5、ゲイン 62.1、TP2 108.0、HV、NOISE、Flags） |
+| K13 | 詳細設定 > トリガーとしきい値: PWM の組を隠し（`data-hide-v21`）、「コンパレータのしきい値 VTH」（`SET_VTH` / `GET_VTH` / `AUTO_VTH:<目標>,<余裕>`、掃引の途中経過）、「ベースラインと較正」（`CALIBRATE` は確認ダイアログ付き、`AUTO_BASE:<持ち上げ>`、`GET_BASE`、`NOISE:<ms>` の結果、55 mV 未満の注意、`### WARN`）、「SiPM の電圧（HV）」（監視だけ。`GET_HV`、`SET_HV_CAL:<V>` は確認ダイアログ付き）を出す（`data-v21-only`）。GPS のスイッチも隠す | `index.html`、`ui.js` の `renderV21` | 表示は再生。操作（AUTO_VTH・CALIBRATE・NOISE）はデモ |
+| K14 | 保存の列（v2.1 だけ）: 先頭 14 列は v2 と同じ、GPS の 6 列の代わりに `Base[ADC] Peak[mV] PeakT[us] Flags Dt1[us] Dt2[us] Dt3[us]`（.csv は `Base_ADC` など）。先頭の注釈に `# Detector model: v2.1 (FW …)`・VTH・OFS・ゲイン・HV・列の説明を足す。データ表の最後の列は Flags、統計に Flags 1 / 2 / 16 の割合。v2.1 の基板も既定名は CosmicRay なので、ファイル名に `_v21` を付ける（`CosmicRay_v21_<日付>.dat`）。自動保存は同じ名前・同じ日のファイルに追記し、列の見出しは新しいファイルにしか書かないので、付けないと OHASHI の行と列の並びが違う行が混ざる | `core.js` の `buildFileHeader` / `eventV21Fields`、`ui.js` | 再生（21 列）。OHASHI / OKOME のヘッダーとデータ行が HEAD と 1 バイトも違わないことを比較 |
+| K15 | オシロ（v2.1）: `SET_SCOPE_RATE` → `SET_SCOPE:ON` だけを送る。撮り方と再アームの欄を隠す。計数は止まらないので「計数停止中」を出さない（見出しは「計数は続いています」）。しきい値の線は信号しきい値（ベースラインからの高さ）なので、最新の波形のベースラインの上に引き、ドラッグも同じ換算。.wfm の先頭は `board_rev=v2.1 … thr_rel=baseline` | `core.js` の `scopeEnter`、`charts.js` の `scopeThrBase`、`ui.js` | 再生（実機の WF 行 12 本、壊れた行 0、t_peak 48 µs）・デモ |
+| K16 | v2.1 のデモ（`demo.devs.v21`）: 20 列のイベント、`THRESH:n VTH:x`、AUTO_VTH の掃引、AUTO_BASE、CALIBRATE、NOISE、GET_HV / SET_HV_CAL、GET_CFG、整形パルスの波形（12 µs・161 点、オシロ中も計数を続ける）。値は 1 枚目の実機の初回起動に合わせた。`SET_SCOPE_TRIG` などは実機と同じく `Unknown command` | `core.js` の `demoCommandV21` / `demoMakeEventV21` / `demoEmitWaveformV21` | デモ |
+
+v2 用の書き込みページ（`flash.html`）には v2.1 のファームが無いので、v2.1 ではヘッダーの「書き込み」を隠している（v2 のファームを v2.1 基板に書くと動かない）。
+マニュアル（`manual.html`）に v2.1 の章はまだ無い。
 
 ## マニュアルと解析（2026-10-07 追加）
 
@@ -158,3 +180,4 @@
 15. **オシロスコープの再アームと連続撮影**（新しいファームを書き込んでから）: 受信ログの `### trigger above … , re-arm at or below …` が、画面の設定どおりか。しきい値 120 のまま（再アームは既定の「しきい値 − 5」= 115）で波形が出るか（以前は、A0 のベースライン約 86 がしきい値の半分 60 より上で、1 本も出なかった）。入力欄を 60 にすると（水準 60 がベースライン 86 のゆらぎの下限より下になり）出なくなり、5 に戻すと出るか。しきい値の線をドラッグすると、青緑の線が一緒に動き、離したあとも波形が出続けるか。「連続」に切り替えて、ベースラインの窓がレート上限の間隔で出続けるか。
 16. **V1 のオシロスコープ**（`v1.html` と、更新した V1 の ESP32-S3 版・Arduino Nano 版）: 受信ログの `### trigger above … , re-arm at or below … (threshold - 5).` が、画面の設定どおりか。トリガーのまま波形が出るか、「連続」でベースラインの窓が出続けるか。Arduino Nano 版は、連続のあいだも約 0.5 秒に 1 本が上限（9600 bps）。入力欄を、しきい値に近い値（例: しきい値 30 で 28）にすると、水準がベースラインより下になって出なくなるか。 しきい値の線をドラッグ（または ↑↓ キー）して離すと、受信ログに `SET_THRESH:信号,リセット` が 1 回出て、基板が `THRESH:` で返し、線が戻らずに確定するか（Nano 版は応答に最大 0.5 秒かかる）。リセットは「信号 − もとの差」になっているか（設定ドロワーの欄で確認）。再アームの線が一緒に動くか。
 17. **OKOME（MUON FOB、実機）**: ファーム `firmware/muon_fob` を書き込んだ基板で — 選ぶ画面で OKOME を選ぶ → USB 接続でヘッダが「OKOME · MUON FOB」、グラフが動く。受信ログに `Unknown command` が出ない（`GET_GPS` を送っていないこと）。Bluetooth は名前欄 `MuonFob` のまま（前方一致）で `MuonFob-XXXX` が見つかり、接続できるか。HV の 3 段を切り替えると受信ログに `### HV: … V` が返り、ボタンの選択が追従するか。HV を変えたあと「自動校正」でしきい値が落ち着くか。オシロは 6 µs・81 点で、パルスの形（ピークホールドではない生の出力）が出るか。LED・ブザー・振動のスイッチが効くか。保存ファイルの先頭に `# Detector model: OKOME` が入り、解析ページ（plotter）で読めるか。OHASHI を選び直したとき、Bluetooth 名が `CosmicRay` に戻るか。
+18. **v2.1（実機）**: FW 2.1.0 を書き込んだ v2.1 基板で — 選ぶ画面で v2.1 を選ぶ → USB 接続（Chrome / Edge、ポートを選ぶ）で見出しが「v2.1」、グラフが動く。受信ログに `Unknown command` が出ない。詳細設定の VTH・ベースライン・HV に値が入る。「ノイズを測る」で結果が出る。「自動で合わせる」（AUTO_VTH）・「まとめて較正」（CALIBRATE）は DAC の EEPROM を書き換えるので、遮光した状態で、試すときだけ。オシロを開いても総イベント数が増え続け、波形の頂点がトリガーの約 48 µs 後に来るか。しきい値の線がベースラインの上に出て、ドラッグすると `THRESH:` が返るか。自動保存の .dat が 21 列で、解析ページ（plotter）で読めるか。Bluetooth（名前 `CosmicRay`）でも同じか。

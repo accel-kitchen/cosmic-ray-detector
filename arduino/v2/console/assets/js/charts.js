@@ -295,6 +295,16 @@ const scopeView = {
 // Time axis until the first waveform arrives: SCOPE_PRE 32 and SCOPE_POST 128 points, 12 µs each
 const SCOPE_T0_DEFAULT = -384, SCOPE_T1_DEFAULT = 1536;
 
+// v2.1 の信号しきい値は「ベースラインからの高さ」なので、線は最新の波形のベースライン
+// （トリガー前の平均）の上に引く。v2 / OKOME のしきい値は ADC の値そのもの（0 を返す）。
+// つかんでいる間は、つかんだときのベースラインに固定する（波形が来るたびに線が動かないように）。
+function scopeThrBase() {
+  if (!modelProfile.fmt3) return 0;
+  if (scopeView.drag) return scopeView.drag.base || 0;
+  const tr = scope.traces[scope.traces.length - 1];
+  return tr ? Math.round(tr.base) : 0;
+}
+
 // ADC value under canvas row y for the range [lo, hi]; stays inside the plot and the ADC.
 function scopeValueAtY(y, lo, hi) {
   const p = scopeView.plot;
@@ -326,6 +336,7 @@ function drawScope(canvas) {
   // the value being dragged wins over the one in the threshold box
   const thr = scopeView.drag ? scopeView.drag.thr : parseInt(settings.threshSignal);
   if (isFinite(thr)) canvas.setAttribute('aria-valuenow', String(thr));
+  const thrA = isFinite(thr) ? thr + scopeThrBase() : thr;   // where the line sits on the ADC axis
 
   let yLo, yHi;
   if (scopeView.drag) {
@@ -347,9 +358,9 @@ function drawScope(canvas) {
       [yLo, yHi] = scopeView.range;
     }
     // the axis fits the threshold line as well: out of the plot it could not be grabbed
-    if (isFinite(thr) && (thr < yLo || thr > yHi)) {
+    if (isFinite(thrA) && (thrA < yLo || thrA > yHi)) {
       const tp = Math.max(4, (yHi - yLo) * 0.08);
-      yLo = Math.min(yLo, thr - tp); yHi = Math.max(yHi, thr + tp);
+      yLo = Math.min(yLo, thrA - tp); yHi = Math.max(yHi, thrA + tp);
     }
     scopeView.range = [yLo, yHi];
   } else {
@@ -373,8 +384,8 @@ function drawScope(canvas) {
 
   // signal threshold: drag it (ui.js). The grip and the hint show only when it can be dragged.
   let thrY = null;
-  if (isFinite(thr) && (scopeView.drag || (thr >= yLo && thr <= yHi))) {
-    const y = Math.min(padT + ph, Math.max(padT, yOf(thr)));
+  if (isFinite(thrA) && (scopeView.drag || (thrA >= yLo && thrA <= yHi))) {
+    const y = Math.min(padT + ph, Math.max(padT, yOf(thrA)));
     const live = !!scopeView.drag, hot = live || scopeView.hover;
     const grab = state.isConnected;
     thrY = grab ? y : null;
@@ -414,13 +425,14 @@ function drawScope(canvas) {
   }
   scopeView.plot = { padL, padT, pw, ph, yLo, yHi, thrY };
 
-  // Free-run has no trigger point and nothing to re-arm.
-  const free = settings.scopeTrig === 'FREE';
+  // Free-run has no trigger point and nothing to re-arm. (v2.1 has neither: every waveform
+  // comes from a comparator trigger.)
+  const free = modelProfile.scopeTrig && settings.scopeTrig === 'FREE';
 
   // re-arm level = threshold - offset. Always drawn in triggered mode; it is computed from the
   // threshold as it is now (also the value being dragged), so the two lines move together.
   const rearmOffset = parseInt(settings.scopeRearm);
-  const rearm = isFinite(thr) && rearmOffset >= 0 ? Math.max(0, thr - rearmOffset) : NaN;
+  const rearm = modelProfile.scopeTrig && isFinite(thr) && rearmOffset >= 0 ? Math.max(0, thr - rearmOffset) : NaN;
   if (!free && isFinite(rearm) && rearm >= yLo && rearm <= yHi) {
     const y = yOf(rearm);
     ctx.strokeStyle = 'rgba(46,139,160,0.85)';
