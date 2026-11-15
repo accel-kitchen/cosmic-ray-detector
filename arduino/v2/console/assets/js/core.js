@@ -380,6 +380,12 @@ async function recoverFromBootloader() {
   if (state.connectionType !== 'usb' || !state.port) return;
   usbBootloaderRecoveryDone = true;
   try {
+    // つないだときに DTR / RTS を両方上げている。そこから DTR だけを先に下げると（RTS は高いまま）、
+    // それ自体がダウンロードモードへのリセットになる（2026-11-15、v2.1 の実機で 3 回中 3 回）。
+    // 先に RTS → DTR の順に両方下げてから、RTS のパルスを送る。
+    await state.port.setSignals({ requestToSend: false });
+    await state.port.setSignals({ dataTerminalReady: false });
+    await new Promise(r => setTimeout(r, 100));
     await state.port.setSignals({ dataTerminalReady: false, requestToSend: true });
     await new Promise(r => setTimeout(r, 100));
     await state.port.setSignals({ dataTerminalReady: false, requestToSend: false });
@@ -654,6 +660,14 @@ async function bleReconnectLoop(device) {
 }
 
 // ========== Disconnect (common) ==========
+// RTS → DTR の順に下げる（disconnect の説明を参照）。両方とも下がっていても基板は普通に動く。
+async function usbLinesSafe() {
+  const port = state.port;
+  if (state.connectionType !== 'usb' || !port) return;
+  try { await port.setSignals({ requestToSend: false }); } catch (_) {}
+  try { await port.setSignals({ dataTerminalReady: false }); } catch (_) {}
+}
+
 async function disconnect() {
   // Stop a pending BLE reconnect first.
   if (state.reconnecting) {
@@ -675,6 +689,11 @@ async function disconnect() {
 
   if (state.connectionType === 'usb') {
     try {
+      // ESP32-S3 の USB-Serial-JTAG は DTR/RTS でチップをリセットする。つないだときに両方を上げているので、
+      // そのまま close() すると両方が一度に下がり、チップが ROM のダウンロードモードに入って黙ったまま
+      // 数えなくなる（2026-11-15、v2.1 の実機で 3 回中 3 回）。RTS → DTR の順に下げてから閉じれば、
+      // リセットは掛からず動き続ける（4 回中 4 回）。リセット回路の無い基板には何も起きない。
+      await usbLinesSafe();
       if (state.reader) {
         try { await state.reader.cancel(); } catch (_) {}
         state.reader = null;
@@ -802,26 +821,27 @@ let refreshGen = 0;
 //                保存ファイルの列も v2.1 の形（GPS の列の代わりに Base / Peak / PeakT / Flags / Dt1〜3）
 //   scopeTrig  : オシロの撮り方（SET_SCOPE_TRIG）と再アーム（SET_SCOPE_REARM）がある
 //   scopePausesCount : オシロを開いている間、計数が止まる（v2.1 は DMA が回り続けるので止まらない）
+//   esp32      : ESP32-S3 の USB-Serial-JTAG（DTR/RTS でリセットできる）。黙ったままの基板を通常起動へ戻す対処に使う
 const MODEL_PROFILES = {
   v2: {
     id: 'v2',
     bleDefault: 'CosmicRay', blePrefix: false, bleKey: 'bleName',
     refresh: REFRESH_COMMANDS,
-    hv: false, fmt3: false, scopeTrig: true, scopePausesCount: true,
+    hv: false, fmt3: false, scopeTrig: true, scopePausesCount: true, esp32: true,
   },
   okome: {
     id: 'okome',
     bleDefault: 'MuonFob', blePrefix: true, bleKey: 'bleName_okome',
     // OKOME には GPS が無い（GET_GPS は "Unknown command" になる）。GET_HV は OKOME だけ。
     refresh: REFRESH_COMMANDS.filter(c => c !== 'GET_GPS').concat('GET_HV'),
-    hv: true, fmt3: false, scopeTrig: true, scopePausesCount: true,
+    hv: true, fmt3: false, scopeTrig: true, scopePausesCount: true, esp32: false,
   },
   v21: {
     id: 'v21',
     // 実機の既定名は v2 と同じ CosmicRay。覚えておく名前は v2 と別のキーにする（混ざらないように）。
     bleDefault: 'CosmicRay', blePrefix: false, bleKey: 'bleName_v21',
     refresh: REFRESH_COMMANDS_V21,
-    hv: false, fmt3: true, scopeTrig: false, scopePausesCount: false,
+    hv: false, fmt3: true, scopeTrig: false, scopePausesCount: false, esp32: true,
   },
 };
 let modelProfile = MODEL_PROFILES.v2;
@@ -851,6 +871,24 @@ async function refreshDeviceState() {
   if (gen === refreshGen && state.isConnected && !state.conn.btAddr) {
     state.conn.btAddrTimedOut = true;
     Bus.emit('connDetail');
+  }
+  // 問い合わせに 1 行も返ってこない USB の ESP32-S3 は、ROM のダウンロードモードで止まっていることが多い。
+  // ブラウザがポートを閉じたときの DTR/RTS の動きでそこに入ることがあり（2026-11-15、v2.1 の実機で、
+  // 切断のあと Saved PC が ROM を指していた）、入ったときの ESP-ROM の表示は誰も聞いていないので、
+  // 上の「ESP-ROM: を見たら戻す」では気付けない。動いているファームなら必ず返事をするので、黙っていたら
+  // 通常起動へのリセットを 1 回だけ試す（計数は 0 から。設定は基板に保存されたまま）。
+  if (gen === refreshGen && state.isConnected && state.connectionType === 'usb' && modelProfile.esp32 &&
+      !(state.lastRxMs >= state.connectedAtMs) && !usbBootloaderRecoveryDone) {
+    showNotice('notice.silentReset', {});
+    const resetAtMs = Date.now();
+    recoverFromBootloader();
+    // それでも黙っていれば、ファームが USB に出していない（Arduino IDE の USB CDC On Boot が Disabled、
+    // 別のスケッチ、波形プローブなど）。リセットで直ったとは言わずに、そう知らせる。
+    setTimeout(() => {
+      if (state.isConnected && state.connectionType === 'usb' && !(state.lastRxMs >= resetAtMs)) {
+        showNotice('notice.stillSilent', {});
+      }
+    }, 6000);
   }
 }
 
@@ -1127,6 +1165,7 @@ function parseV21Info(line) {
 
 function processLine(line) {
   if (!line) return;
+  state.lastRxMs = Date.now();   // the board is talking (see refreshDeviceState)
 
   state.rawLines.push(line);
   if (state.rawLines.length > 100) state.rawLines.shift();
@@ -2728,12 +2767,21 @@ function scopeOnLine(line) {
   }
 
   const dtUs = periodNs / 1000;
+  // v2.1: ファームと同じ窓で読む（ベースラインは [-144, -24] µs の平均、ピークは [-12, +120] µs の最大）。
+  // 窓は 1.9 ms あり、ダークパルスの揺れが大きい基板では、窓全体の最大値は別の場所の山になりやすい
+  // （実機で t_peak が −372〜+1368 µs にばらついた）。v2 / OKOME は従来どおりトリガー前全部と窓全体。
+  let b0 = 0, b1 = npre, p0 = 0, p1 = ntot;
+  if (modelProfile.fmt3) {
+    const at = us => npre + Math.round(us / dtUs);
+    b0 = Math.max(0, at(-144)); b1 = Math.max(b0 + 1, Math.min(npre, at(-24) + 1));
+    p0 = Math.max(0, at(-12)); p1 = Math.min(ntot, at(120) + 1);
+  }
   let base = 0;
-  for (let i = 0; i < npre; i++) base += v[i];
-  base = npre > 0 ? base / npre : v[0];
+  for (let i = b0; i < b1; i++) base += v[i];
+  base = b1 > b0 ? base / (b1 - b0) : v[0];
 
   let peak = -Infinity, pi = 0;
-  for (let i = 0; i < ntot; i++) { const a = v[i] - base; if (a > peak) { peak = a; pi = i; } }
+  for (let i = p0; i < p1; i++) { const a = v[i] - base; if (a > peak) { peak = a; pi = i; } }
 
   scope.count++;
   scope.stamps.push(Date.now());
@@ -2824,6 +2872,9 @@ function scopeIdleTick() {
 // write gets the time the dialog is open (N-15).
 window.addEventListener('beforeunload', (e) => {
   if (scope.active && state.isConnected) sendCommand('SET_SCOPE:OFF');
+  // タブを閉じるとブラウザがポートを閉じ、DTR/RTS が一度に下がってダウンロードモードに入るので、
+  // 先に RTS → DTR の順に下げておく（間に合わないこともあるが、残っても基板は普通に動く）
+  usbLinesSafe();
   const as = state.autoSave;
   if (as.enabled && as.dirHandle && autoSavePendingCount() > 0) {
     flushAutoSave({ force: true }).catch(() => {});
@@ -2837,7 +2888,7 @@ window.addEventListener('beforeunload', (e) => {
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') flushAutoSave({ force: true }).catch(() => {});
 });
-window.addEventListener('pagehide', () => { flushAutoSave({ force: true }).catch(() => {}); });
+window.addEventListener('pagehide', () => { usbLinesSafe(); flushAutoSave({ force: true }).catch(() => {}); });
 
 // ========== Demo Mode (virtual detector) ==========
 // 実機が無くても UI の動きを一通り見せるための仮想検出器。

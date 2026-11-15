@@ -196,6 +196,8 @@ const I18N = {
     'err.security': 'ブラウザがアクセスを止めました（{msg}）。Bluetooth は https:// か localhost で開いたページでしか使えません。',
     'notice.boardChanged': '別の検出器につながりました（{prev} → {now}）。この画面の計数率・経過時間・件数には前の検出器の分も入っています。測り直すときは「データを消去して最初から」を押してください。',
     'notice.scopeIdle': 'オシロスコープが {min} 分間操作されなかったので、閉じて計数に戻しました。',
+    'notice.silentReset': '検出器から返事がないので、基板をリセットして起動し直しています（書き込み待ちのモードで止まっていたときの対処です）。計数は 0 からになりますが、設定は基板に残っています。',
+    'notice.stillSilent': 'リセットしても検出器から返事がありません。書き込んだファームが本番のファーム（v2.1 なら FW 2.1.x）か、Arduino IDE の「USB CDC On Boot」が Enabled になっていたかを確かめてください。',
     'notice.scopeIdle@v21': 'オシロスコープが {min} 分間操作されなかったので、閉じました。',
 
     // --- 計測画面 ---
@@ -713,6 +715,8 @@ const I18N = {
     'err.security': 'The browser blocked access ({msg}). Bluetooth needs a page opened over https:// or localhost.',
     'notice.boardChanged': 'A different detector is connected ({prev} -> {now}). The rate, elapsed time and counts on this page still include the previous one. Press "Clear data and start over" for a clean measurement.',
     'notice.scopeIdle': 'The oscilloscope was left alone for {min} minutes, so it was closed and counting resumed.',
+    'notice.silentReset': 'The detector did not answer, so the board is being reset and started again (it was probably stuck waiting for a firmware upload). Counting starts from 0; the settings stay on the board.',
+    'notice.stillSilent': 'The detector still does not answer after the reset. Check that the production firmware is on the board (FW 2.1.x for v2.1) and that "USB CDC On Boot" was Enabled in the Arduino IDE.',
     'notice.scopeIdle@v21': 'The oscilloscope was left alone for {min} minutes, so it was closed.',
 
     'stat.totalEvents': 'Total events',
