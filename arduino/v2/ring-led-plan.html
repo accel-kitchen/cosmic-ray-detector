@@ -1,0 +1,560 @@
+<title>リング版 OHASHI 機能計画</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+JP:wght@400;500;700&family=Shippori+Mincho:wght@600;700&display=swap">
+<style>
+/* 1 段組みの計画書。コンソールと同じ「紙とインク」の明るい配色に固定する（暗い配色は作らない）。
+   段階ごとに項目を並べ、各項目は「何・なぜ・計測への負担・確かめ方」と根拠の札を持つ。 */
+:root {
+  --paper:   #FAF6EB;
+  --paper-2: #F2EBD9;
+  --paper-3: #E8DFC8;
+  --field:   #FFFDF7;
+  --ink:     #2A2730;
+  --ink-2:   #4F4956;
+  --ink-3:   #6E6776;
+  --ink-4:   #A39CA8;
+  --rule:        rgba(42, 39, 48, .12);
+  --rule-strong: rgba(42, 39, 48, .24);
+  --signal:      #5CD6EA;
+  --signal-ink:  #1F6B7C;
+  --signal-pale: #DDF3F7;
+  --coral:      #C8654E;
+  --coral-2:    #A84A37;
+  --coral-pale: #FBE4D8;
+  --led-off:    #3D3843;
+  --pcb:        #1E1C22;
+  --f-ui:   "Noto Sans JP", "Yu Gothic UI", "Hiragino Sans", "Meiryo", system-ui, sans-serif;
+  --f-num:  "IBM Plex Mono", "Consolas", "Menlo", monospace;
+  --f-disp: "Shippori Mincho", "Yu Mincho", "Hiragino Mincho ProN", serif;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--f-ui);
+  font-size: 15px;
+  line-height: 1.75;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 0 64px;
+}
+.wrap { max-width: 880px; margin: 0 auto; }
+code, .mono { font-family: var(--f-num); font-size: .9em; }
+code { background: var(--paper-2); padding: 0 .3em; border-radius: 3px; overflow-wrap: anywhere; }
+a { color: var(--signal-ink); }
+:focus-visible { outline: 2px solid var(--signal-ink); outline-offset: 2px; }
+
+/* --- 見出し --- */
+.masthead { padding-block: 48px 28px; border-bottom: 1px solid var(--rule-strong); }
+.eyebrow {
+  font-family: var(--f-num); font-size: 12px; letter-spacing: .08em; color: var(--ink-3);
+  display: flex; flex-wrap: wrap; gap: 4px 14px;
+}
+h1 {
+  font-family: var(--f-disp); font-weight: 700; font-size: clamp(28px, 5vw, 40px);
+  line-height: 1.3; margin: 10px 0 14px; text-wrap: balance;
+}
+.lead { color: var(--ink-2); max-width: 44em; margin: 0; }
+h2 {
+  font-family: var(--f-disp); font-weight: 700; font-size: 24px; line-height: 1.4;
+  margin: 0 0 6px; text-wrap: balance;
+}
+.sec { padding-block: 40px 8px; }
+.sec > p, .sec > ul { max-width: 46em; }
+.sec-sub { color: var(--ink-3); margin: 0 0 18px; }
+
+/* --- いまの状態 --- */
+.facts { list-style: none; padding: 0; margin: 16px 0 0; display: grid; gap: 10px; }
+.facts li { display: grid; grid-template-columns: 5.2em 1fr; gap: 12px; align-items: baseline; }
+.facts li > span:last-child { min-width: 0; }
+.facts .ev { justify-self: start; }
+.hazard {
+  margin-top: 22px; padding: 16px 18px; background: var(--coral-pale);
+  border: 1px solid rgba(168, 74, 55, .35); border-radius: 6px;
+}
+.hazard b { color: var(--coral-2); }
+.hazard p { margin: 6px 0 0; }
+
+/* --- 根拠の札・大きさ・場所 --- */
+.ev, .size, .where {
+  display: inline-block; font-size: 12px; line-height: 1.6; padding: 0 7px;
+  border-radius: 3px; white-space: nowrap; letter-spacing: .02em;
+}
+.ev-code { background: var(--signal-pale); color: var(--signal-ink); }
+.ev-calc { background: var(--paper-3); color: var(--ink-2); }
+.ev-guess { border: 1px dashed var(--ink-3); color: var(--ink-3); padding: 0 6px; }
+.size { font-family: var(--f-num); background: var(--ink); color: var(--paper); font-weight: 500; }
+.where { border: 1px solid var(--rule-strong); color: var(--ink-2); }
+
+/* --- 計測への負担の棒 --- */
+.bars { margin: 18px 0 8px; display: grid; gap: 12px; max-width: 46em; }
+.bar { display: grid; grid-template-columns: minmax(0, 15em) minmax(0, 1fr) 4.2em; gap: 12px; align-items: center; }
+.bar .lbl { font-size: 14px; min-width: 0; }
+.bar .lbl small { display: block; color: var(--ink-3); font-size: 12px; line-height: 1.4; }
+.bar .track { height: 14px; background: var(--paper-2); border-radius: 2px; position: relative; }
+.bar .fill { position: absolute; inset: 0 auto 0 0; min-width: 3px; border-radius: 2px; background: var(--signal-ink); }
+.bar.ref .fill { background: var(--ink-4); }
+.bar.now .fill { background: var(--coral); }
+.bar .val { font-family: var(--f-num); font-variant-numeric: tabular-nums; text-align: right; font-size: 14px; }
+.note { font-size: 13px; color: var(--ink-3); max-width: 46em; }
+
+/* --- 進め方 --- */
+.road { list-style: none; padding: 0; margin: 18px 0 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; border-top: 2px solid var(--ink); }
+.road li { padding: 12px 14px 4px 0; min-width: 0; }
+.road .ph { font-family: var(--f-num); font-size: 12px; color: var(--ink-3); letter-spacing: .06em; }
+.road b { display: block; font-size: 15px; line-height: 1.5; margin: 2px 0 4px; }
+.road span { font-size: 13px; color: var(--ink-2); line-height: 1.6; display: block; }
+
+/* --- 項目 --- */
+.items { display: grid; gap: 0; margin-top: 10px; }
+.item { padding-block: 22px; border-top: 1px solid var(--rule); }
+.item:first-child { border-top: 1px solid var(--rule-strong); }
+.item-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px; }
+.item-head .id { font-family: var(--f-num); font-size: 13px; color: var(--ink-3); min-width: 3.2em; }
+.item-head h3 { margin: 0; font-size: 17px; line-height: 1.5; font-weight: 700; flex: 1 1 16em; min-width: 0; }
+.item-head .tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.item .what { margin: 8px 0 10px; max-width: 46em; }
+.item dl { display: grid; grid-template-columns: 7.2em minmax(0, 1fr); gap: 6px 14px; margin: 0; max-width: 46em; }
+.item dt { font-size: 13px; color: var(--ink-3); padding-top: 2px; }
+.item dd { margin: 0; min-width: 0; }
+
+/* --- 表示モードの図 --- */
+.modes { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px; margin: 20px 0 6px; }
+.modes figure { margin: 0; min-width: 0; }
+.modes svg { width: 100%; max-width: 160px; height: auto; display: block; margin: 0 auto; aspect-ratio: 1; }
+.modes figcaption { font-size: 13px; color: var(--ink-2); text-align: center; line-height: 1.5; margin-top: 6px; }
+.modes figcaption b { display: block; color: var(--ink); font-size: 14px; }
+
+/* --- やらないほうがよいもの・決めてほしいこと --- */
+.dont { list-style: none; padding: 0; margin: 14px 0 0; display: grid; gap: 12px; max-width: 46em; }
+.dont li { padding-left: 1.4em; position: relative; }
+.dont li::before { content: "×"; position: absolute; left: 0; color: var(--coral-2); font-weight: 700; }
+.dont b { display: block; }
+.ask { counter-reset: q; list-style: none; padding: 0; margin: 14px 0 0; display: grid; gap: 14px; max-width: 46em; }
+.ask li { counter-increment: q; display: grid; grid-template-columns: 2em minmax(0, 1fr); gap: 8px; }
+.ask li::before { content: counter(q); font-family: var(--f-num); font-weight: 500; color: var(--paper); background: var(--signal-ink); width: 1.6em; height: 1.6em; border-radius: 50%; display: grid; place-items: center; font-size: 13px; margin-top: 3px; }
+.ask b { display: block; }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 16px; font-size: 13px; color: var(--ink-2); }
+.legend span { display: inline-flex; gap: 6px; align-items: center; }
+footer { margin-top: 48px; padding-top: 16px; border-top: 1px solid var(--rule-strong); font-size: 13px; color: var(--ink-3); }
+footer ul { padding-left: 1.2em; margin: 6px 0 0; }
+
+@media (max-width: 720px) {
+  .road { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .modes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 520px) {
+  .item dl { grid-template-columns: minmax(0, 1fr); gap: 0 0; }
+  .item dt { padding-top: 8px; }
+  .bar { grid-template-columns: minmax(0, 1fr) 4em; }
+  .bar .track { grid-column: 1 / -1; grid-row: 2; }
+  .facts li { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+}
+</style>
+
+<div class="wrap">
+
+<header class="masthead">
+  <div class="eyebrow"><span>OHASHI（v2 基板）</span><span>WS2812 5050 × 16</span><span>GPIO21 / J4-4</span><span>2026-11-19</span></div>
+  <h1>リング版 OHASHI 機能計画</h1>
+  <p class="lead">本体ファームにリングを統合したスケッチ（<code>COSMICRAY_DETECTOR_ESP32-S3-Nano-v2-ringLED-full</code>）に、次に何を足すかの案。リングは見て楽しい反面、光らせるたびに計測を少し削る。そこで、まず計測を壊していないことを確かめ、次に操作できるようにし、最後に基板にあるものを光で見せる順に並べた。</p>
+  <div class="legend" aria-label="根拠の札">
+    <span><span class="ev ev-code">コード</span>コードを読んで確かめた</span>
+    <span><span class="ev ev-calc">計算</span>数字から計算した</span>
+    <span><span class="ev ev-guess">推測</span>未確認の見込み</span>
+    <span><span class="size">S</span>半日</span>
+    <span><span class="size">M</span>1〜2 日</span>
+    <span><span class="size">L</span>それ以上（実機確認を除く目安）</span>
+  </div>
+</header>
+
+<section class="sec" aria-labelledby="h-now">
+  <h2 id="h-now">いまの状態</h2>
+  <ul class="facts">
+    <li><span class="ev ev-code">コード</span><span>リング版はコンパイルが通った（ESP32S3 Dev Module・CDC On Boot）。書き込みと実機での動作は、こちらでは確かめていない。リング版を作るときに本体ファームは書き換えていない。</span></li>
+    <li><span class="ev ev-code">コード</span><span>本体ファームはそのあと（11-12 21:12）に更新され、イベント行が 18 列になった。リング版は更新前のコピーがもとで、13 列のまま（P0-1）。</span></li>
+    <li><span class="ev ev-code">コード</span><span>リングの書き出し時間はデッドタイムに足している。オシロ中はリングを消して書き出さない。</span></li>
+    <li><span class="ev ev-code">コード</span><span>GPIO21 は GPS の受信ピンと同じなので、リングと GPS は排他。切り替えは <code>SET_RING:ON/OFF</code> で保存して再起動。</span></li>
+    <li><span class="ev ev-code">コード</span><span>コンソールは <code>RING:</code> の行をどこでも拾っていない。イベント行の形でもないので、受信ログに残るだけで画面には出ない。</span></li>
+  </ul>
+  <div class="hazard" role="note">
+    <b>先に直したい点: GPIO21 の既定</b>
+    <p>本体ファームには「GPS の TXD とぶつかるので GPIO21 を出力にしてはいけない」という注意がある。ところがリング版は <code>ring_en</code> の既定が ON で、起動直後から GPIO21 を出力にする。GPS を配線済みで、GPS のスイッチが OFF のまま保存されている基板にリング版を書くと、GPS の出力と基板の出力がぶつかる。P0-2 で既定を安全側にする。</p>
+  </div>
+</section>
+
+<section class="sec" aria-labelledby="h-cost">
+  <h2 id="h-cost">軸にする制約: リングは計測を少し削る</h2>
+  <p class="sec-sub">計数率 3.5 cps（コンソールのデモの既定値。実測ではない）のときの、リングの書き出しで止まる時間の割合。</p>
+  <div class="bars" role="list">
+    <div class="bar now" role="listitem">
+      <span class="lbl">今の「ふわっ」表示<small>20 ms ごとに書き出し、余韻は約 2.1 秒</small></span>
+      <span class="track"><span class="fill" style="width:100%"></span></span>
+      <span class="val">2.5 %</span>
+    </div>
+    <div class="bar ref" role="listitem">
+      <span class="lbl">参考: OLED の書き換え<small>34 ms を 2 秒ごと（デモの定数）</small></span>
+      <span class="track"><span class="fill" style="width:68%"></span></span>
+      <span class="val">1.7 %</span>
+    </div>
+    <div class="bar" role="listitem">
+      <span class="lbl">待機中の周回点だけ<small>250 ms ごと</small></span>
+      <span class="track"><span class="fill" style="width:8%"></span></span>
+      <span class="val">0.2 %</span>
+    </div>
+    <div class="bar" role="listitem">
+      <span class="lbl">計測優先モード（P1-3）<small>イベントごとに 1 回だけ</small></span>
+      <span class="track"><span class="fill" style="width:7%"></span></span>
+      <span class="val">0.18 %</span>
+    </div>
+    <div class="bar" role="listitem">
+      <span class="lbl">メーター表示（P2-2）<small>1 秒ごと</small></span>
+      <span class="track"><span class="fill" style="width:2%"></span></span>
+      <span class="val">0.05 %</span>
+    </div>
+  </div>
+  <p class="note"><span class="ev ev-calc">計算</span> 書き出し 1 回を 0.5 ms とした（16 個 × 24 bit × 1.25 µs = 0.48 ms とラッチ）。余韻は立ち上がり 0.16 秒と、明るさ 1 から消える値 0.12 まで時定数 0.9 秒で減る約 1.9 秒の合計。3.5 cps ではイベントの間隔（平均 0.29 秒）が余韻より短いので、ほぼずっと光っている。OLED の値は <code>core.js</code> のデモの定数（34 ms・2 秒ごと）で、実機の測定値ではない。</p>
+  <p>ANALOG（起動時の既定）では、書き出し中に来た信号は捨て、その時間をデッドタイムに数えるので、コンソールの計数率は偏らない。失うのは統計の量だけ。DIGITAL / DUAL では、書き出し中のイベントも数えているのにその時間を引いているので、計数率が少し高く出る（P0-3 で直す）<span class="ev ev-code">コード</span>。<b>どちらでも数えられないのはノイズの方</b>で、WS2812 は点灯中ずっと内部で PWM しているため、書き出していない間も電源にさざ波が乗るかもしれない <span class="ev ev-guess">推測</span>。これを P0-4 で測る。</p>
+</section>
+
+<section class="sec" aria-labelledby="h-road">
+  <h2 id="h-road">進め方</h2>
+  <ol class="road">
+    <li><span class="ph">PHASE 0</span><b>安全を確かめる</b><span>本体に合わせ直す、GPIO21 の既定、数え方、ノイズ比較、配線テスト</span></li>
+    <li><span class="ph">PHASE 1</span><b>操作できるようにする</b><span>設定コマンド、コンソールの欄、計測優先モード</span></li>
+    <li><span class="ph">PHASE 2</span><b>基板の情報を光で見せる</b><span>同時計数、メーター、スペクトル、状態の色、画面上の輪</span></li>
+    <li><span class="ph">LATER</span><b>後回し</b><span>展示モード、複数台の同期、GPS との同時使用、v2.1</span></li>
+  </ol>
+  <p class="note">前の段階が済んでいないと、次の段階を作る意味が薄い順に並べた。Phase 0 で、リングがノイズを増やしていると分かった場合は、Phase 2 より先に電源の分け方を考える。</p>
+</section>
+
+<section class="sec" aria-labelledby="h-p0">
+  <h2 id="h-p0">Phase 0 · 計測を壊していないと確かめる</h2>
+  <p class="sec-sub">ほかの機能の前提。どれも小さい。</p>
+  <div class="items">
+    <article class="item">
+      <div class="item-head"><span class="id">P0-1</span><h3>リング版を今の本体ファームに合わせ直す</h3><span class="tags"><span class="where">ファーム</span><span class="size">M</span><span class="ev ev-code">コード</span></span></div>
+      <p class="what">今の本体ファームをもう一度コピーし、リングの部分（約 200 行。設定・状態・<code>ringTick()</code>・コマンド・GPS との排他）を載せ直す。リング単体版も、イベント行を本体と同じ列にそろえる。</p>
+      <dl>
+        <dt>なぜ</dt><dd>本体ファームは 11-12 21:12 に更新され、リング版を作ったときのコピー（同日 13 時台）より新しい。イベント行が 18 列（末尾に <code>PPS_UTC</code> などの GPS の 5 列）になり、DIGITAL / DUAL のイベント時刻をトリガの割り込みで取るようになった。リング版は 13 列のままで、この変更が入っていない。</dd>
+        <dt>計測への負担</dt><dd>なし。</dd>
+        <dt>確かめ方</dt><dd>本体との差分がリングの部分だけになる。コンソールが 18 列の行として読む。</dd>
+      </dl>
+    </article>
+    <article class="item">
+      <div class="item-head"><span class="id">P0-2</span><h3>GPIO21 の既定を安全側にする</h3><span class="tags"><span class="where">ファーム</span><span class="size">S</span><span class="ev ev-code">コード</span></span></div>
+      <p class="what">リング版の <code>ring_en</code> の既定を OFF にし、<code>SET_RING:ON</code> で有効にする。もう一つの案は、起動時に GPIO21 を入力のまま約 1.5 秒聞き、GPS の NMEA（<code>$G</code> で始まる行）が届いたらリングを有効にしない方式。</p>
+      <dl>
+        <dt>なぜ</dt><dd>本体ファームの注意（GPIO21 を出力にしない）に反して、今の既定は起動直後から出力にする。GPS を配線した基板で衝突する。</dd>
+        <dt>計測への負担</dt><dd>なし。聞き分け方式は起動が約 1.5 秒延びる。</dd>
+        <dt>確かめ方</dt><dd>GPS を配線した基板で起動し、GPS の波形が崩れないことをオシロで見る。リングだけの基板では有効にできる。</dd>
+      </dl>
+    </article>
+    <article class="item">
+      <div class="item-head"><span class="id">P0-3</span><h3>デッドタイムの数え方をトリガーモードで分ける</h3><span class="tags"><span class="where">ファーム</span><span class="size">S</span><span class="ev ev-code">コード</span></span></div>
+      <p class="what">DIGITAL / DUAL では、リングの書き出し時間をデッドタイムに足さない。ANALOG（起動時の既定）では今どおり足す。</p>
+      <dl>
+        <dt>なぜ</dt><dd>DIGITAL / DUAL では、書き出し中もトリガの割り込みはエッジを拾い、<code>ringShow()</code> はそのときピークホールドを放電せずに残す。つまり、そのイベントは数えているのに、書き出し時間は死んでいた時間として引いている。計数率が最大でリングの割合ぶん（3.5 cps で約 2.5 %）高く出る。リング単体版は常に DIGITAL なので、いつもこの状態。</dd>
+        <dt>計測への負担</dt><dd>なし（数え方の修正）。</dd>
+        <dt>確かめ方</dt><dd>同じ線源で、リング ON / OFF の計数率が統計誤差の範囲で一致する（DIGITAL と ANALOG の両方）。</dd>
+      </dl>
+    </article>
+    <article class="item">
+      <div class="item-head"><span class="id">P0-4</span><h3>リングのノイズ比較 <code>RING_NOISE_TEST</code></h3><span class="tags"><span class="where">ファーム</span><span class="where">コンソール</span><span class="size">M</span><span class="ev ev-guess">推測</span></span></div>
+      <p class="what">リング消灯・全点灯（固定、中くらいの明るさ）・アニメーションを数秒ずつ交互に繰り返す。各区間で、コンパレータの反応回数（AUTO_PWM と同じ数え方）と A0 のベースライン（AUTO_THRESH と同じ測り方）を記録し、<code>### RING_NOISE off=… lit=… anim=…</code> で返す。</p>
+      <dl>
+        <dt>なぜ</dt><dd>書き出し中の時間はデッドタイムで補えるが、点灯中の PWM によるノイズは補えない。この基板でどのくらい効くかは測っていない。</dd>
+        <dt>計測への負担</dt><dd>テスト中は数えない（コマンド扱いでデッドタイムに入る）。</dd>
+        <dt>確かめ方</dt><dd>3 つの区間の差が統計誤差（√N）の範囲に収まるか。収まらなければ、リング側の 5 V に LC を入れるなど電源を分ける案を先に検討する。</dd>
+      </dl>
+    </article>
+    <article class="item">
+      <div class="item-head"><span class="id">P0-5</span><h3>リングの不感時間を別に数える</h3><span class="tags"><span class="where">ファーム</span><span class="where">コンソール</span><span class="size">S</span><span class="ev ev-code">コード</span></span></div>
+      <p class="what">リングの書き出しに使った時間とコマ数を別に積算し、<code>GET_RING_STATS</code> に <code>RING_STATS:frames=… dead_us=…</code> で答える。コンソールの統計にリングの割合を出す。イベント行の列は変えない。</p>
+      <dl>
+        <dt>なぜ</dt><dd>今の <code>ringShow()</code> はほかのデッドタイムと合算しているので、リングがどれだけ削ったかが後から分からない。</dd>
+        <dt>計測への負担</dt><dd>なし。</dd>
+        <dt>確かめ方</dt><dd>アニメーション中に、<code>dead_us</code> がコマ数 × 約 0.5 ms のペースで増える。</dd>
+      </dl>
+    </article>
+    <article class="item">
+      <div class="item-head"><span class="id">P0-6</span><h3>配線テスト <code>RING_TEST</code></h3><span class="tags"><span class="where">ファーム</span><span class="size">S</span><span class="ev ev-code">コード</span></span></div>
+      <p class="what">1 個ずつ赤・緑・青の順に流し、最後に全部を暗い白にする。</p>
+      <dl>
+        <dt>なぜ</dt><dd>リングは基板に何も返さないので、つながっているかをファームは知れない。DIN の向き、個数、色の並び（GRB か RGB か）、はんだの不良を、測定の前に目で確かめられる。</dd>
+        <dt>計測への負担</dt><dd>数秒止まる（コマンドとしてデッドタイムに入る）。</dd>
+        <dt>確かめ方</dt><dd>16 個が順番どおり、指定した色で光る。</dd>
+      </dl>
+    </article>
+    <article class="item">
+      <div class="item-head"><span class="id">P0-7</span><h3>書き込みページにリング版を加える</h3><span class="tags"><span class="where">コンソール</span><span class="size">S</span><span class="ev ev-code">コード</span></span></div>
+      <p class="what"><code>flash.html</code> の選択肢に、リング版の bin（ESP32S3 Dev Module・CDC On Boot・4 MB の配置）と manifest を足す。</p>
+      <dl>
+        <dt>なぜ</dt><dd>今の <code>firmware/</code> には本体ファーム（v2）と v1 しかない。ブラウザから書ければ、Arduino IDE のボード設定に頼らずに済む（設定を間違えると起動しないおそれがある <span class="ev ev-guess">推測</span>）。</dd>
+        <dt>計測への負担</dt><dd>なし。</dd>
+        <dt>確かめ方</dt><dd>flash.html から書いて起動し、<code>GET_BTADDR</code> の値が書く前と同じ。</dd>
+      </dl>
+    </article>
+    <article class="item">
+      <div class="item-head"><span class="id">P0-8</span><h3>実機で確かめる項目を CHECKLIST に足す</h3><span class="tags"><span class="where">資料</span><span class="size">S</span><span class="ev ev-code">コード</span></span></div>
+      <p class="what">接続直後に設定が埋まる、イベントが入る、光っている間もレートが下がらない、オシロでリングが消える、<code>SET_RING</code> で再起動する、GPS を断る、切断のあとも動き続ける（CHECKLIST の K17）。</p>
+      <dl>
+        <dt>なぜ</dt><dd>リング版を実機で確かめた記録はまだ無い。確かめる手順を決めておくと、ほかの機能を足したときにも繰り返せる。</dd>
+        <dt>計測への負担</dt><dd>なし。</dd>
+        <dt>確かめ方</dt><dd>CHECKLIST の「実機で確認すること」に番号つきで並べ、結果を書き込む。</dd>
+      </dl>
+    </article>
+  </div>
+</section>
+
+<section class="sec" aria-labelledby="h-p1">
+  <h2 id="h-p1">Phase 1 · 操作できるようにする</h2>
+  <p class="sec-sub">今は明るさも余韻も定数で、変えるたびに書き直しが要る。</p>
+  <div class="items">
+    <article class="item">
+      <div class="item-head"><span class="id">P1-1</span><h3>リングの設定コマンド</h3><span class="tags"><span class="where">ファーム</span><span class="size">M</span><span class="ev ev-code">コード</span></span></div>
+      <p class="what"><code>SET_RING_BRIGHT:&lt;0–96&gt;</code>、<code>SET_RING_ATTACK:&lt;ms&gt;</code>、<code>SET_RING_FADE:&lt;ms&gt;</code>、<code>SET_RING_MODE:&lt;名前&gt;</code>、<code>GET_RING_CFG</code>（応答 <code>RING_CFG:bright=48 attack=160 fade=900 mode=glow</code>）。Preferences に保存し、明るさには上限を設ける。</p>
+      <dl>
+        <dt>なぜ</dt><dd>リング版の <code>RING_*</code> は <code>constexpr</code> の定数。見え方を詰めるたびに書き込み直しになる。</dd>
+        <dt>計測への負担</dt><dd>設定しだい。余韻を長くするとコマが増える。</dd>
+        <dt>確かめ方</dt><dd>値を変えて再起動しても残る。範囲外の値は丸めて、今の値を返す。</dd>
+      </dl>
+    </article>
+    <article class="item">
+      <div class="item-head"><span class="id">P1-2</span><h3>コンソールのリング欄</h3><span class="tags"><span class="where">コンソール</span><span class="size">M</span><span class="ev ev-code">コード</span></span></div>
+      <p class="what">詳細設定の「検出器の機能」に、次の操作を置く。
+        <br>・リングのスイッチ（再起動の確認ダイアログと、GPS と同時に使えない説明つき）
+        <br>・明るさと余韻の長さ
+        <br>・表示モード
+        <br>・配線テストのボタン
+        <br>接続直後に <code>GET_RING</code> を送り、<code>RING:</code> が返ってきた基板でだけ欄を出す。</p>
+      <dl>
+        <dt>なぜ</dt><dd>今のコンソールは <code>RING:</code> を拾わずに捨てている。本体ファームは知らないコマンドに何も返さないので、返事の有無でリング版かどうかを見分けられる。</dd>
+        <dt>計測への負担</dt><dd>なし。</dd>
+        <dt>確かめ方</dt><dd>本体ファームでは欄が出ず、リング版では出る。デモでも表示できる。</dd>
+      </dl>
+    </article>
+    <article class="item">
+      <div class="item-head"><span class="id">P1-3</span><h3>計測優先モード</h3><span class="tags"><span class="where">ファーム</span><span class="size">S</span><span class="ev ev-calc">計算</span></span></div>
+      <p class="what">余韻のアニメーションをやめ、イベントごとに 1 回だけ書き出して次のイベントまでそのまま点けておく。待機中の周回点も止める。</p>
+      <dl>
+        <dt>なぜ</dt><dd>書き出しがイベントあたり 1 回になり、3.5 cps で 0.18 %（今の約 14 分の 1）。長時間の測定ではこちらを既定にできる。</dd>
+        <dt>計測への負担</dt><dd>小。ただし点けっぱなしの PWM ノイズは残る（P0-4 の「全点灯」区間で分かる）。</dd>
+        <dt>確かめ方</dt><dd><code>RING_STATS</code> のコマ数が、イベント数とほぼ同じになる。</dd>
+      </dl>
+    </article>
+    <article class="item">
+      <div class="item-head"><span class="id">P1-4</span><h3>GPS を断ったことを画面で知らせる</h3><span class="tags"><span class="where">コンソール</span><span class="size">S</span><span class="ev ev-code">コード</span></span></div>
+      <p class="what">リング版が <code>SET_GPS:ON</code> を断ったとき、理由（GPIO21 を共有している）と手順（<code>SET_RING:OFF</code> で再起動してから GPS を ON）をメッセージ帯に出す。</p>
+      <dl>
+        <dt>なぜ</dt><dd>今は <code>GPS:OFF</code> が返ってスイッチが黙って戻るだけ。理由の <code>### GPS:</code> 行は受信ログにしか残らない。</dd>
+        <dt>計測への負担</dt><dd>なし。</dd>
+        <dt>確かめ方</dt><dd>リング版で GPS のスイッチを入れると、説明が出てスイッチが OFF に戻る。</dd>
+      </dl>
+    </article>
+  </div>
+</section>
+
+<section class="sec" aria-labelledby="h-p2">
+  <h2 id="h-p2">Phase 2 · 基板にあるものを光で見せる</h2>
+  <p class="sec-sub">表示モードの案。色は今と同じく波高（対数、青から赤）で、ブザーの音程と同じ対応を保つ。</p>
+  <div class="modes" id="modes" aria-label="表示モードの見本"></div>
+  <p class="note">見本の図。実機の光り方ではない。</p>
+  <div class="items">
+    <article class="item">
+      <div class="item-head"><span class="id">P2-1</span><h3>同時計数を特別な光にする</h3><span class="tags"><span class="where">ファーム</span><span class="size">S</span><span class="ev ev-code">コード</span></span></div>
+      <p class="what">EXT が ON で、ほかの検出器の COIN_OUT（dig1〜3）が同時に立ったイベントだけ、白く光らせる。同時だった台数で光り方を変える。</p>
+      <dl>
+        <dt>なぜ</dt><dd>重ねた検出器を同じミューオンが突き抜けたことが、その場で見える。<code>handleTriggerEvent()</code> はイベントごとに dig[] をもう読んでいるので、足すのは色の分岐だけ。</dd>
+        <dt>計測への負担</dt><dd>ふつうのイベントと同じ。</dd>
+        <dt>確かめ方</dt><dd>2 台を重ねて COIN をつなぎ、同時のときだけ白くなる。2 台をつないだ実機では未確認。</dd>
+      </dl>
+    </article>
+    <article class="item">
+      <div class="item-head"><span class="id">P2-2</span><h3>メーター表示</h3><span class="tags"><span class="where">ファーム</span><span class="size">M</span><span class="ev ev-calc">計算</span></span></div>
+      <p class="what">直近 10 秒の計数率を、点灯している個数で示す（対数目盛り）。コンソールのメーター タブと目盛りをそろえる。</p>
+      <dl>
+        <dt>なぜ</dt><dd>遠くからでも、今どのくらい来ているかが分かる。書き出しは 1 秒に 1 回で済む。</dd>
+        <dt>計測への負担</dt><dd>0.05 %（1 秒ごと）。</dd>
+        <dt>確かめ方</dt><dd>コンソールのメーターと点灯数が合う。メーター タブの目盛り（<code>meter.js</code>）はまだ読んでいない。</dd>
+      </dl>
+    </article>
+    <article class="item">
+      <div class="item-head"><span class="id">P2-3</span><h3>スペクトル表示</h3><span class="tags"><span class="where">ファーム</span><span class="size">M</span><span class="ev ev-calc">計算</span></span></div>
+      <p class="what">16 個を波高（対数）の 16 区間に見立て、各区間のイベント数を明るさで示す。数分かけてスペクトルの形が浮かび上がる。</p>
+      <dl>
+        <dt>なぜ</dt><dd>ヒストグラムを PC なしで見せられる。</dd>
+        <dt>計測への負担</dt><dd>0.05 %（1 秒ごと）。</dd>
+        <dt>確かめ方</dt><dd>コンソールのヒストグラムと山の位置が合う。</dd>
+      </dl>
+    </article>
+    <article class="item">
+      <div class="item-head"><span class="id">P2-4</span><h3>時間の流れ表示</h3><span class="tags"><span class="where">ファーム</span><span class="size">S〜M</span><span class="ev ev-guess">推測</span></span></div>
+      <p class="what">時計の針のように、1 周 16 秒で光る点が回る。イベントのたびにその位置へ点を残し、1 周かけて消す。</p>
+      <dl>
+        <dt>なぜ</dt><dd>宇宙線がランダムに来る（固まったり空いたりする）様子が目で分かる。授業向け。</dd>
+        <dt>計測への負担</dt><dd>イベントごとに 1 回と、1 秒ごとに 1 回。</dd>
+        <dt>確かめ方</dt><dd>見え方は試作して判断する。</dd>
+      </dl>
+    </article>
+    <article class="item">
+      <div class="item-head"><span class="id">P2-5</span><h3>状態を色で示す</h3><span class="tags"><span class="where">ファーム</span><span class="size">S</span><span class="ev ev-code">コード</span></span></div>
+      <p class="what">待機中の周回点の色で基板の状態を示す。
+        <br>・Bluetooth 接続中: 青
+        <br>・SD の書き込みに失敗: 赤
+        <br>・コンパレータがチャタリング（しきい値が低すぎ）: 橙
+        <br>・較正中: 青の進捗表示（単体版にある表示を移す）</p>
+      <dl>
+        <dt>なぜ</dt><dd>OLED を見なくても状態が分かる。記録の一時停止はブラウザ側だけの状態（<code>state.paused</code>）なので、基板には分からず対象外。</dd>
+        <dt>計測への負担</dt><dd>なし（周回点の書き出しと同じ）。</dd>
+        <dt>確かめ方</dt><dd>BLE でつなぐ、SD を抜く、PWM を下げる、のそれぞれで色が変わる。</dd>
+      </dl>
+    </article>
+    <article class="item">
+      <div class="item-head"><span class="id">P2-6</span><h3>コンソールの画面上の仮想リング</h3><span class="tags"><span class="where">コンソール</span><span class="size">M</span><span class="ev ev-guess">推測</span></span></div>
+      <p class="what">カウント画面に、リングと同じ規則で光る 16 個の輪を描く。イベントから計算するので、本体ファームでもデモでも動く。</p>
+      <dl>
+        <dt>なぜ</dt><dd>リングをつなぐ前に見え方を試せる。明るさや余韻の長さを、実機より先に画面で決められる。プロジェクターで大きく映せる。</dd>
+        <dt>計測への負担</dt><dd>なし（基板は何もしない）。</dd>
+        <dt>確かめ方</dt><dd>実機のリングと並べて、光るタイミングと色が合う。</dd>
+      </dl>
+    </article>
+  </div>
+</section>
+
+<section class="sec" aria-labelledby="h-later">
+  <h2 id="h-later">後回し · 推測を含む・大きいもの</h2>
+  <div class="items">
+    <article class="item">
+      <div class="item-head"><span class="id">L-1</span><h3>展示モード</h3><span class="tags"><span class="where">ファーム</span><span class="size">M</span><span class="ev ev-guess">推測</span></span></div>
+      <p class="what">PC なしで置いておく使い方。1 分ごとに、その 1 分の数を輪の目盛りで見せるなど。P2 の表示モードを時間で切り替える形が考えられる。</p>
+    </article>
+    <article class="item">
+      <div class="item-head"><span class="id">L-2</span><h3>複数台の同期</h3><span class="tags"><span class="where">ファーム</span><span class="size">L</span><span class="ev ev-guess">推測</span></span></div>
+      <p class="what">ESP-NOW で、近くの OHASHI 同士の光を知らせ合う。BLE と無線を共有し、遅れはミリ秒単位になる見込みなので、空気シャワーの判定には使えない。見せ方だけの機能になる。</p>
+    </article>
+    <article class="item">
+      <div class="item-head"><span class="id">L-3</span><h3>リングと GPS の同時使用</h3><span class="tags"><span class="where">基板</span><span class="size">L</span><span class="ev ev-code">コード</span></span></div>
+      <p class="what">別のピンが要る。本体ファームのコメントでは、空いていたのは A3 と A7 だけで、すでに PPS と振動に使っている。振動をあきらめて A7 に移すか、次の基板でリング用の端子を設けるかの判断になる。</p>
+    </article>
+    <article class="item">
+      <div class="item-head"><span class="id">L-4</span><h3>v2.1 基板への移植</h3><span class="tags"><span class="where">ファーム</span><span class="size">M</span><span class="ev ev-guess">推測</span></span></div>
+      <p class="what">v2.1 のファームは別のプロジェクトで、ログの形式（FMT:3）も違い、オシロ中も計数を続ける。リングを v2.1 にも載せるかはまだ決まっていない。</p>
+    </article>
+  </div>
+</section>
+
+<section class="sec" aria-labelledby="h-dont">
+  <h2 id="h-dont">やらないほうがよいもの</h2>
+  <ul class="dont">
+    <li><b>明るさを大きく上げる</b>48/255 の白で約 180 mA。255 にすると約 960 mA で、USB の 500 mA を超える。電流の変化はアンプのノイズにもなる。</li>
+    <li><b>イベント行にリングの情報を足す</b>イベント行（今の本体は 18 列）は、コンソール・解析ページ・サーバー送信・SD のログがそのまま読む。リングの情報は <code>RING_</code> で始まる別の行にする。</li>
+    <li><b>実行中に GPIO21 を GPS とリングで切り替える</b>同じピンを出力と UART 入力に切り替えると不安定になりやすい。保存して再起動する今のやり方を続ける。</li>
+    <li><b>オシロ中に光らせる</b>波形の取り込みにノイズが乗る。今どおり消す。</li>
+    <li><b>色に別の意味を足す</b>温度や気圧で色を変えると、「色は波高、ブザーの音程も波高」という対応がくずれる。状態の色（P2-5）は待機中の周回点だけに限る。</li>
+  </ul>
+</section>
+
+<section class="sec" aria-labelledby="h-ask">
+  <h2 id="h-ask">決めてほしいこと</h2>
+  <ol class="ask">
+    <li><span><b>リング版の既定</b>OFF にして <code>SET_RING:ON</code> で有効にするか、起動時に GPS を聞き分けて自動にするか（P0-2）。</span></li>
+    <li><span><b>リング版の主な使い道</b>展示（見た目を優先）か、測定との両立（計測優先モードを既定）か。Phase 2 の順番が変わる。</span></li>
+    <li><span><b>コンソールにリング欄を作るか</b>作る場合、<code>GET_RING</code> に答えた基板でだけ欄を出し、本体ファームの利用者には見せない方式でよいか（P1-2）。</span></li>
+    <li><span><b>リングを v2.1 や次の基板にも広げるか</b>v2.1 への移植（L-4）か、次の基板でリング用の端子を設けるか（L-3）。</span></li>
+  </ol>
+</section>
+
+<footer>
+  参照したファイル
+  <ul>
+    <li><code>arduino/v2/COSMICRAY_DETECTOR_ESP32-S3-Nano-v2-ringLED-full/</code>（リング版。コンパイルのみ）</li>
+    <li><code>arduino/v2/COSMICRAY_DETECTOR_ESP32-S3-Nano-v2/</code>（本体ファーム。GPIO21 と空きピンの注意、11-12 21:12 の版）</li>
+    <li><code>arduino/v2/console/assets/js/core.js</code>（行の解析、デモの定数）</li>
+    <li><code>arduino/v2/console/CHECKLIST.md</code>（既存の機能、K17 の DTR/RTS）</li>
+  </ul>
+</footer>
+
+</div>
+
+<script>
+// 表示モードの見本（16 個のリング）。値は説明用で、実機の光り方ではない。
+(function () {
+  var host = document.getElementById('modes');
+  if (!host) return;
+  var N = 16, NS = 'http://www.w3.org/2000/svg';
+  // 波高 x (0..1) → 色相。ファームと同じく 0 が青 (240°)、1 が赤 (0°)。
+  function hueOf(x) { return (1 - x) * 240; }
+  function led(h, b, white) {
+    if (b <= 0.02) return { fill: 'var(--led-off)', glow: 0 };
+    var l = white ? 70 + 25 * b : 30 + 30 * b;
+    var s = white ? 0 : 100;
+    return { fill: 'hsl(' + h.toFixed(0) + ' ' + s + '% ' + l.toFixed(0) + '%)', glow: b };
+  }
+  var modes = [
+    { name: 'ふわっ（今）', sub: '全体が波高の色で光る',
+      at: function (i) { return led(hueOf(0.3), 1); } },
+    { name: 'メーター', sub: '点灯数 = 計数率',
+      at: function (i) { return i < 11 ? led(190, 0.55 + 0.45 * i / 10) : led(0, 0); } },
+    { name: 'スペクトル', sub: '明るさ = 区間のイベント数',
+      at: function (i) {
+        var x = i / (N - 1);
+        var b = i < 3 ? 0.35 + 0.3 * i : Math.exp(-(i - 3) / 3.2);
+        return led(hueOf(x), b);
+      } },
+    { name: '時間の流れ', sub: '点が残り、1 周で消える',
+      at: function (i) {
+        if (i === 6) return led(0, 1, true);
+        var dots = { 5: [0.25, 0.9], 3: [0.55, 0.7], 2: [0.15, 0.6], 14: [0.4, 0.3], 12: [0.2, 0.18] };
+        return dots[i] ? led(hueOf(dots[i][0]), dots[i][1]) : led(0, 0);
+      } }
+  ];
+  modes.forEach(function (m, k) {
+    var fig = document.createElement('figure');
+    var svg = document.createElementNS(NS, 'svg');
+    svg.setAttribute('viewBox', '0 0 120 120');
+    svg.setAttribute('role', 'img');
+    svg.setAttribute('aria-label', m.name + 'の見本');
+    var defs = document.createElementNS(NS, 'defs');
+    var f = document.createElementNS(NS, 'filter');
+    f.setAttribute('id', 'glow' + k);
+    f.setAttribute('x', '-60%'); f.setAttribute('y', '-60%');
+    f.setAttribute('width', '220%'); f.setAttribute('height', '220%');
+    var blur = document.createElementNS(NS, 'feGaussianBlur');
+    blur.setAttribute('stdDeviation', '3.2');
+    f.appendChild(blur); defs.appendChild(f); svg.appendChild(defs);
+    var pcb = document.createElementNS(NS, 'circle');
+    pcb.setAttribute('cx', 60); pcb.setAttribute('cy', 60); pcb.setAttribute('r', 44);
+    pcb.style.fill = 'none'; pcb.style.stroke = 'var(--pcb)'; pcb.setAttribute('stroke-width', 20);
+    svg.appendChild(pcb);
+    for (var i = 0; i < N; i++) {
+      var a = -Math.PI / 2 + i * 2 * Math.PI / N;
+      var cx = 60 + 44 * Math.cos(a), cy = 60 + 44 * Math.sin(a);
+      var v = m.at(i);
+      if (v.glow > 0) {
+        var g = document.createElementNS(NS, 'circle');
+        g.setAttribute('cx', cx.toFixed(2)); g.setAttribute('cy', cy.toFixed(2));
+        g.setAttribute('r', (4 + 5 * v.glow).toFixed(2));
+        g.style.fill = v.fill; g.setAttribute('opacity', (0.35 + 0.5 * v.glow).toFixed(2));
+        g.setAttribute('filter', 'url(#glow' + k + ')');
+        svg.appendChild(g);
+      }
+      var r = document.createElementNS(NS, 'rect');
+      r.setAttribute('x', (cx - 4).toFixed(2)); r.setAttribute('y', (cy - 4).toFixed(2));
+      r.setAttribute('width', 8); r.setAttribute('height', 8); r.setAttribute('rx', 1.5);
+      r.style.fill = v.fill;
+      r.setAttribute('transform', 'rotate(' + (i * 360 / N).toFixed(1) + ' ' + cx.toFixed(2) + ' ' + cy.toFixed(2) + ')');
+      svg.appendChild(r);
+    }
+    var cap = document.createElement('figcaption');
+    var b = document.createElement('b'); b.textContent = m.name;
+    cap.appendChild(b); cap.appendChild(document.createTextNode(m.sub));
+    fig.appendChild(svg); fig.appendChild(cap);
+    host.appendChild(fig);
+  });
+})();
+</script>

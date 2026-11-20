@@ -1,0 +1,121 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 800" width="960" height="800" font-family="'Noto Sans JP','Yu Gothic',Meiryo,sans-serif">
+<rect width="960" height="800" fill="#FBF9F4"/>
+<text x="30" y="40" font-size="22" font-weight="700" fill="#1F2A33">GPS モジュール (GT-502MGG-N) の配線</text>
+<text x="30" y="64" font-size="13" fill="#5B6770">Arduino Nano ESP32 を上から見た図 (USB-C が上)。基板の表記 (3V3 / A3) と J4 の番号で探してください。</text>
+<rect x="360" y="90" width="240" height="500" rx="10" fill="#E4EEE6" stroke="#2F5D3A" stroke-width="2"/>
+<rect x="440" y="64" width="80" height="34" rx="6" fill="#C9CED2" stroke="#7A858C" stroke-width="1.5"/>
+<text x="480" y="86" font-size="12" text-anchor="middle" fill="#1F2A33">USB-C</text>
+<rect x="425" y="150" width="110" height="110" rx="6" fill="#2A3138"/>
+<text x="480" y="200" font-size="12" text-anchor="middle" fill="#DDE3E8">ESP32-S3</text>
+<text x="480" y="218" font-size="11" text-anchor="middle" fill="#9FB0BC">Nano ESP32</text>
+<circle cx="360" cy="128" r="5" fill="#C9CED2" stroke="#6B747A" stroke-width="1.5"/>
+<circle cx="600" cy="128" r="5" fill="#C9CED2" stroke="#6B747A" stroke-width="1.5"/>
+<text x="374" y="132" font-size="12" font-weight="400" fill="#1F2A33">D13</text>
+<text x="586" y="132" font-size="12" font-weight="400" text-anchor="end" fill="#1F2A33">D12</text>
+<circle cx="360" cy="158" r="7" fill="#FFD54F" stroke="#6B747A" stroke-width="1.5"/>
+<circle cx="600" cy="158" r="5" fill="#C9CED2" stroke="#6B747A" stroke-width="1.5"/>
+<text x="374" y="162" font-size="14" font-weight="700" fill="#1F2A33">3V3</text>
+<text x="586" y="162" font-size="12" font-weight="400" text-anchor="end" fill="#1F2A33">D11</text>
+<circle cx="360" cy="188" r="5" fill="#C9CED2" stroke="#6B747A" stroke-width="1.5"/>
+<circle cx="600" cy="188" r="7" fill="#FFD54F" stroke="#6B747A" stroke-width="1.5"/>
+<text x="374" y="192" font-size="12" font-weight="400" fill="#1F2A33">AREF</text>
+<text x="586" y="192" font-size="14" font-weight="700" text-anchor="end" fill="#1F2A33">D10</text>
+<circle cx="360" cy="218" r="5" fill="#C9CED2" stroke="#6B747A" stroke-width="1.5"/>
+<circle cx="600" cy="218" r="5" fill="#C9CED2" stroke="#6B747A" stroke-width="1.5"/>
+<text x="374" y="222" font-size="12" font-weight="400" fill="#1F2A33">A0</text>
+<text x="586" y="222" font-size="12" font-weight="400" text-anchor="end" fill="#1F2A33">D9</text>
+<circle cx="360" cy="248" r="5" fill="#C9CED2" stroke="#6B747A" stroke-width="1.5"/>
+<circle cx="600" cy="248" r="5" fill="#C9CED2" stroke="#6B747A" stroke-width="1.5"/>
+<text x="374" y="252" font-size="12" font-weight="400" fill="#1F2A33">A1</text>
+<text x="586" y="252" font-size="12" font-weight="400" text-anchor="end" fill="#1F2A33">D8</text>
+<circle cx="360" cy="278" r="5" fill="#C9CED2" stroke="#6B747A" stroke-width="1.5"/>
+<circle cx="600" cy="278" r="5" fill="#C9CED2" stroke="#6B747A" stroke-width="1.5"/>
+<text x="374" y="282" font-size="12" font-weight="400" fill="#1F2A33">A2</text>
+<text x="586" y="282" font-size="12" font-weight="400" text-anchor="end" fill="#1F2A33">D7</text>
+<circle cx="360" cy="308" r="7" fill="#FFD54F" stroke="#6B747A" stroke-width="1.5"/>
+<circle cx="600" cy="308" r="5" fill="#C9CED2" stroke="#6B747A" stroke-width="1.5"/>
+<text x="374" y="312" font-size="14" font-weight="700" fill="#1F2A33">A3</text>
+<text x="586" y="312" font-size="12" font-weight="400" text-anchor="end" fill="#1F2A33">D6</text>
+<circle cx="360" cy="338" r="5" fill="#C9CED2" stroke="#6B747A" stroke-width="1.5"/>
+<circle cx="600" cy="338" r="5" fill="#C9CED2" stroke="#6B747A" stroke-width="1.5"/>
+<text x="374" y="342" font-size="12" font-weight="400" fill="#1F2A33">A4</text>
+<text x="586" y="342" font-size="12" font-weight="400" text-anchor="end" fill="#1F2A33">D5</text>
+<circle cx="360" cy="368" r="5" fill="#C9CED2" stroke="#6B747A" stroke-width="1.5"/>
+<circle cx="600" cy="368" r="5" fill="#C9CED2" stroke="#6B747A" stroke-width="1.5"/>
+<text x="374" y="372" font-size="12" font-weight="400" fill="#1F2A33">A5</text>
+<text x="586" y="372" font-size="12" font-weight="400" text-anchor="end" fill="#1F2A33">D4</text>
+<circle cx="360" cy="398" r="5" fill="#C9CED2" stroke="#6B747A" stroke-width="1.5"/>
+<circle cx="600" cy="398" r="5" fill="#C9CED2" stroke="#6B747A" stroke-width="1.5"/>
+<text x="374" y="402" font-size="12" font-weight="400" fill="#1F2A33">A6</text>
+<text x="586" y="402" font-size="12" font-weight="400" text-anchor="end" fill="#1F2A33">D3</text>
+<circle cx="360" cy="428" r="5" fill="#C9CED2" stroke="#6B747A" stroke-width="1.5"/>
+<circle cx="600" cy="428" r="5" fill="#C9CED2" stroke="#6B747A" stroke-width="1.5"/>
+<text x="374" y="432" font-size="12" font-weight="400" fill="#1F2A33">A7</text>
+<text x="586" y="432" font-size="12" font-weight="400" text-anchor="end" fill="#1F2A33">D2</text>
+<circle cx="360" cy="458" r="5" fill="#C9CED2" stroke="#6B747A" stroke-width="1.5"/>
+<circle cx="600" cy="458" r="5" fill="#C9CED2" stroke="#6B747A" stroke-width="1.5"/>
+<text x="374" y="462" font-size="12" font-weight="400" fill="#1F2A33">5V</text>
+<text x="586" y="462" font-size="12" font-weight="400" text-anchor="end" fill="#1F2A33">GND</text>
+<circle cx="360" cy="488" r="5" fill="#C9CED2" stroke="#6B747A" stroke-width="1.5"/>
+<circle cx="600" cy="488" r="5" fill="#C9CED2" stroke="#6B747A" stroke-width="1.5"/>
+<text x="374" y="492" font-size="12" font-weight="400" fill="#1F2A33">RST</text>
+<text x="586" y="492" font-size="12" font-weight="400" text-anchor="end" fill="#1F2A33">RST</text>
+<circle cx="360" cy="518" r="5" fill="#C9CED2" stroke="#6B747A" stroke-width="1.5"/>
+<circle cx="600" cy="518" r="5" fill="#C9CED2" stroke="#6B747A" stroke-width="1.5"/>
+<text x="374" y="522" font-size="12" font-weight="400" fill="#1F2A33">GND</text>
+<text x="586" y="522" font-size="12" font-weight="400" text-anchor="end" fill="#1F2A33">RX0</text>
+<circle cx="360" cy="548" r="5" fill="#C9CED2" stroke="#6B747A" stroke-width="1.5"/>
+<circle cx="600" cy="548" r="5" fill="#C9CED2" stroke="#6B747A" stroke-width="1.5"/>
+<text x="374" y="552" font-size="12" font-weight="400" fill="#1F2A33">VIN</text>
+<text x="586" y="552" font-size="12" font-weight="400" text-anchor="end" fill="#1F2A33">TX1</text>
+<text x="616" y="186" font-size="12" fill="#5B6770">D10 は基板の中で</text>
+<text x="616" y="202" font-size="12" fill="#5B6770">J4-4 とつながっています</text>
+<rect x="30" y="200" width="170" height="240" rx="10" fill="#EEF1F3" stroke="#6B747A" stroke-width="2"/>
+<text x="115" y="224" font-size="14" font-weight="700" text-anchor="middle" fill="#1F2A33">GT-502MGG-N</text>
+<text x="115" y="242" font-size="11" text-anchor="middle" fill="#5B6770">5 線ケーブル (先端むき出し)</text>
+<text x="188" y="276" font-size="12" text-anchor="end" fill="#1F2A33">1  VCC</text>
+<circle cx="200" cy="272" r="4" fill="#C62828"/>
+<text x="188" y="312" font-size="12" text-anchor="end" fill="#1F2A33">5  PPS</text>
+<circle cx="200" cy="308" r="4" fill="#EF6C00"/>
+<text x="188" y="348" font-size="12" text-anchor="end" fill="#1F2A33">4  RXD</text>
+<circle cx="200" cy="344" r="4" fill="#9AA3A9"/>
+<text x="188" y="380" font-size="12" text-anchor="end" fill="#1F2A33">2  GND</text>
+<circle cx="200" cy="376" r="4" fill="#222222"/>
+<text x="188" y="412" font-size="12" text-anchor="end" fill="#1F2A33">3  TXD</text>
+<circle cx="200" cy="408" r="4" fill="#2E7D32"/>
+<path d="M200,272 L300,272 L300,158 L360,158" fill="none" stroke="#C62828" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M200,308 L360,308" fill="none" stroke="#EF6C00" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<rect x="780" y="180" width="155" height="224" rx="8" fill="#F3E9D2" stroke="#8A6D3B" stroke-width="2"/>
+<text x="857" y="200" font-size="14" font-weight="700" text-anchor="middle" fill="#1F2A33">J4 (JST XH 6 ピン)</text>
+<circle cx="780" cy="224" r="7" fill="#FFD54F" stroke="#6B747A" stroke-width="1.5"/>
+<text x="794" y="228" font-size="13" font-weight="700" fill="#1F2A33">1  GND</text>
+<text x="794" y="242" font-size="10" fill="#5B6770">GPS の GND</text>
+<circle cx="780" cy="254" r="5" fill="#C9CED2" stroke="#6B747A" stroke-width="1.5"/>
+<text x="794" y="258" font-size="12" font-weight="400" fill="#1F2A33">2  5V</text>
+<text x="794" y="272" font-size="10" fill="#5B6770">つながない</text>
+<circle cx="780" cy="284" r="5" fill="#C9CED2" stroke="#6B747A" stroke-width="1.5"/>
+<text x="794" y="288" font-size="12" font-weight="400" fill="#1F2A33">3  SCLK</text>
+<text x="794" y="302" font-size="10" fill="#5B6770">つながない (SD と共有)</text>
+<circle cx="780" cy="314" r="7" fill="#FFD54F" stroke="#6B747A" stroke-width="1.5"/>
+<text x="794" y="318" font-size="13" font-weight="700" fill="#1F2A33">4  CS1</text>
+<text x="794" y="332" font-size="10" fill="#5B6770">GPS の TXD</text>
+<circle cx="780" cy="344" r="5" fill="#C9CED2" stroke="#6B747A" stroke-width="1.5"/>
+<text x="794" y="348" font-size="12" font-weight="400" fill="#1F2A33">5  MOSI</text>
+<text x="794" y="362" font-size="10" fill="#5B6770">つながない (SD と共有)</text>
+<circle cx="780" cy="374" r="5" fill="#C9CED2" stroke="#6B747A" stroke-width="1.5"/>
+<text x="794" y="378" font-size="12" font-weight="400" fill="#1F2A33">6  MISO</text>
+<text x="794" y="392" font-size="10" fill="#5B6770">つながない (SD と共有)</text>
+<path d="M200,376 L250,376 L250,640 L735,640 L735,224 L780,224" fill="none" stroke="#222222" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M200,408 L225,408 L225,664 L710,664 L710,314 L780,314" fill="none" stroke="#2E7D32" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M200,344 L222,344" stroke="#9AA3A9" stroke-width="3" stroke-linecap="round"/>
+<path d="M228,338 l12,12 m0,-12 l-12,12" stroke="#9AA3A9" stroke-width="2.5" stroke-linecap="round"/>
+<text x="246" y="348" font-size="11" fill="#5B6770">未接続</text>
+<text x="348" y="144" font-size="12" font-weight="700" text-anchor="end" fill="#C62828">3.3 V 電源</text>
+<text x="348" y="296" font-size="12" font-weight="700" text-anchor="end" fill="#EF6C00">PPS (GPIO4)</text>
+<text x="857" y="422" font-size="11" text-anchor="middle" fill="#5B6770">TXD → J4-4 (CS1 / GPIO21)</text>
+<text x="30" y="474" font-size="12" fill="#5B6770">黒 = GND、緑 = TXD</text>
+<text x="30" y="715" font-size="12" fill="#5B6770">・電源は 3.3 V。J4-2 は 5 V なので使いません (5 V 給電時の TXD の電圧は、データシートに記載がありません)。</text>
+<text x="30" y="737" font-size="12" fill="#5B6770">・A3 は基板で未接続です。Nano の A3 ピンへ直接配線してください。3V3 も Nano のピンから取ります。</text>
+<text x="30" y="759" font-size="12" fill="#5B6770">・線の色とピン番号の対応は個体で確認してください。データシート 7 ページのピン番号は 1 VCC / 2 GND / 3 TXD / 4 RXD / 5 PPS です。</text>
+<text x="30" y="781" font-size="12" fill="#5B6770">・PPS の極性はデータシートに記載がないので、オシロで確認します (Low アクティブなら GPS_PPS_EDGE を FALLING に)。</text>
+</svg>
