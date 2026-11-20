@@ -47,6 +47,17 @@
 #endif
 
 // ==========================================
+//   ファームの版
+// ==========================================
+// GET_VER の応答 "VER:FW=.. BOARD=.. BUILD=.." と、起動時の "### Firmware: ..." 行で名乗る
+// （形は v2.1 のファームの VER: と同じ）。書き込みページの bin を作り直したら、
+// console/firmware/manifest-v2.json の "version" を FW_BUILD と同じ値にする。
+// コンソールはこの 2 つを比べて、基板のファームが古ければ知らせる。
+static constexpr const char* FW_VERSION = "2.0.0";
+static constexpr const char* FW_BOARD   = "v2";
+static constexpr const char* FW_BUILD   = "2026-11-20b";
+
+// ==========================================
 //   設定
 // ==========================================
 const byte OLED = 1;
@@ -214,6 +225,12 @@ char sdLogPath[16] = {0};
 uint64_t start_time_us = 0ULL;
 uint64_t total_deadtime_us = 0ULL;
 unsigned long count = 0UL;
+
+// PC から受け取った時刻 (SET_TIME)。GPS の無い基板でも、SD のログが何時の測定か分かるようにする。
+// 保存しない（再起動すると未設定に戻る）。コンソールは接続のたびに送る。
+static bool     pcTimeSet = false;
+static uint64_t pcTimeAnchorUs = 0;   // 受け取った瞬間の micros64() (start_time_us と同じ時計)
+static uint64_t pcTimeAnchorMs = 0;   // その瞬間の UTC (unix ミリ秒)
 unsigned long lastDisplayMs = 0;
 
 float temperatureC = NAN;
@@ -226,7 +243,7 @@ bool analogArmed = true;
 bool sdEnabled   = true;
 bool extEnabled  = true;
 bool oledEnabled = true;
-bool buzzerEnabled = true;
+bool buzzerEnabled = false;   // 初期値は OFF（音は鳴らさない）。SET_BUZZER:ON で鳴らす。保存した値があればそちらを使う
 bool vibEnabled = true;
 bool gpsHeaderPending = false;
 bool gpsEnabled = false;   // GPS モジュール (UART1 + 1PPS)。既定は OFF、Console のスイッチ / SET_GPS:ON で有効にする
@@ -318,6 +335,10 @@ static bool triggerIsrAttached = false;  // tracks whether the TRIGGER_IN ISR is
 //            utc_epoch_s はそのエッジの UTC (unix 秒)。
 //        ### GPS fix=<q> sats=<n> lat=<deg> lon=<deg> alt=<m>
 //      隣り合う 2 つの PPS の間を線形補間すれば、(1) より少し正確に UTC へ直せる。
+//  (3) GPS が時刻を持っていないときは、PC の時刻 (SET_TIME) で同じ並びの行を残す (SD・USB・BLE):
+//        ### TIME <t_us> <utc_epoch_s> src=PC
+//            t_us の瞬間の UTC がちょうど utc_epoch_s 秒 (次の秒の境目を選ぶので t_us は少し先になる)。
+//            SET_TIME を受けたとき・RESET のあと・SD を入れ直したときに出す。精度は USB で数十 ms 程度。
 // イベント時刻 (Time[us]) は、DIGITAL / DUAL ではトリガ ISR が最初のエッジで取った時刻、
 // ANALOG_ONLY ではしきい値超えを見つけた直後の時刻。COIN の待ち・追加の ADC・ブザー・
 // リセットパルスの分は含めない。ANALOG_ONLY はループで拾うので、OLED / SD / BLE で
@@ -413,6 +434,11 @@ void printVibStatus();
 void printVibMs();
 void printBleName();
 void printBtAddr();
+void printVersion();
+void printTime();
+void logPcTime();
+void sdList();
+void sdRead(const char* arg);
 void printAutoMargin();
 void applySdEnable();
 void applyOledEnable();
@@ -616,6 +642,11 @@ void printBootHeader() {
   dualPrintln("### Accel Kitchen");
   dualPrintln("### https://accel-kitchen.com/");
   dualPrintln("### info@accel-kitchen.com");
+  {
+    char verBuf[80];
+    snprintf(verBuf, sizeof(verBuf), "### Firmware: FW=%s BOARD=%s BUILD=%s", FW_VERSION, FW_BOARD, FW_BUILD);
+    dualPrintln(verBuf);
+  }
 
   if (sdReady) {
     char sdBuf[48];
@@ -721,6 +752,7 @@ void executeCommand(const char* cmd) {
     // そのままだと RESET 前の滞在まで足され、デッドタイムが経過時間を超える。
     if (scopeOn) scopeEnterUs = start_time_us;
     dualPrintln("RESET:OK");
+    logPcTime();           // Time[us] の起点が変わったので、新しい起点で PC の時刻を残し直す
   } else if (strcmp(cmd, "GET_AUTO_MARGIN") == 0) {
     printAutoMargin();
   } else if (strncmp(cmd, "SET_AUTO_MARGIN:", 16) == 0) {
@@ -894,6 +926,27 @@ void executeCommand(const char* cmd) {
     printBleName();
   } else if (strcmp(cmd, "GET_BTADDR") == 0) {
     printBtAddr();
+  } else if (strcmp(cmd, "GET_VER") == 0) {
+    printVersion();
+  } else if (strncmp(cmd, "SET_TIME:", 9) == 0) {
+    // SET_TIME:<UTC の unix ミリ秒>。コンソールが接続のたびに送る。受け取った瞬間を基準にする。
+    const uint64_t tRecv = micros64();
+    char* end = nullptr;
+    const unsigned long long ms = strtoull(cmd + 9, &end, 10);
+    // 2020-01-01 から 2100-01-01 の間だけ受け付ける（秒で送られた値・壊れた値を弾く）。
+    if (end != cmd + 9 && *end == '\0' && ms >= 1577836800000ULL && ms < 4102444800000ULL) {
+      pcTimeAnchorUs = tRecv;
+      pcTimeAnchorMs = (uint64_t)ms;
+      pcTimeSet = true;
+      logPcTime();
+    }
+    printTime();
+  } else if (strcmp(cmd, "GET_TIME") == 0) {
+    printTime();
+  } else if (strcmp(cmd, "SD_LIST") == 0) {
+    sdList();
+  } else if (strncmp(cmd, "SD_READ:", 8) == 0) {
+    sdRead(cmd + 8);
   } else if (strncmp(cmd, "SET_BLENAME:", 12) == 0) {
     const char* newName = cmd + 12;
     size_t len = strlen(newName);
@@ -938,13 +991,130 @@ void processSerialCommand() {
 }
 
 // BLE で届いたコマンドを loop() の文脈で実行する（MyRXCallbacks の説明を参照）。
+static bool cmdFromBle = false;   // 実行中のコマンドが BLE から来たか（SD_LIST / SD_READ は USB だけ）
 void processBleCommands() {
   if (!bleCmdQueue) return;
   char item[CMD_BUF_SIZE];
   while (xQueueReceive(bleCmdQueue, item, 0) == pdTRUE) {
+    cmdFromBle = true;
     if (item[0] == '\0') printCmdTooLong();
     else runCommand(item);
+    cmdFromBle = false;
   }
+}
+
+// ==========================================
+// SD のログを USB で吸い出す (SD_LIST / SD_READ)
+// ==========================================
+// ケースに入れたままでも、microSD のログを PC に取り込めるようにする。USB だけで使う
+// （BLE は 20 バイトごとに 3 ms 待つので約 6.7 kB/秒が上限。1 日分 10 MB 強に 30 分近くかかる）。
+// 出力は Serial にだけ書く（BLE にも SD のログにも書かない）。
+//   SD_LIST                 -> "SDFILE:<name> <bytes>" を 1 行ずつ、最後に "SDLIST:END <count> current=<書き込み中のファイル>"
+//   SD_READ:<name>,<offset> -> "SDDATA:<name> <offset> <len> <crc32> <data を 16 進で>"
+//                              len は最大 SD_CHUNK。0 ならファイルの終わり。crc32 は data の CRC-32（zlib と同じ）を 8 桁の 16 進で
+//   失敗は "SDERR:<理由>"
+// コンソールは 1 つ受け取ってから次を頼む。送っている間は検出ループが止まるので、その時間は
+// runCommand がデッドタイムに入れる（1 回 2 KB で数 ms）。書き込み中のログは、読む間だけ閉じて
+// 読んだあと追記モードで開き直す（同じファイルを読み書き両方で開くのを避ける）。
+static constexpr size_t SD_CHUNK = 2048;
+
+static uint32_t crc32Update(uint32_t crc, const uint8_t* p, size_t n) {
+  crc = ~crc;
+  while (n--) {
+    crc ^= *p++;
+    for (int k = 0; k < 8; k++) crc = (crc >> 1) ^ (0xEDB88320u & (0u - (crc & 1u)));
+  }
+  return ~crc;
+}
+
+// ルートの普通のファイル名だけを受け付ける（パスの指定はさせない）。
+static bool sdNameOk(const char* s) {
+  const size_t n = strlen(s);
+  if (n == 0 || n > 32 || s[0] == '.') return false;
+  for (size_t i = 0; i < n; i++) {
+    const char c = s[i];
+    if (!(isalnum((unsigned char)c) || c == '_' || c == '-' || c == '.')) return false;
+  }
+  return true;
+}
+
+// 長い行を途中で切らずに送るため、送る間だけ USB の送信待ちを許す（普段は 0。オシロ中は 50 ms）。
+static void usbTxWait(bool on) {
+#if ARDUINO_USB_CDC_ON_BOOT
+  Serial.setTxTimeoutMs(on ? 500 : (scopeOn ? 50 : 0));
+#else
+  (void)on;
+#endif
+}
+
+void sdList() {
+  if (cmdFromBle) { dualPrintln("SDERR:USB only"); return; }
+  if (!sdReady) { Serial.println("SDERR:no card (SD is OFF or not mounted)"); return; }
+  File root = SD.open("/");
+  if (!root || !root.isDirectory()) { Serial.println("SDERR:cannot open /"); return; }
+  usbTxWait(true);
+  unsigned n = 0;
+  char buf[96];
+  for (File f = root.openNextFile(); f; f = root.openNextFile()) {
+    if (!f.isDirectory()) {
+      const char* nm = f.name();
+      if (nm[0] == '/') nm++;
+      snprintf(buf, sizeof(buf), "SDFILE:%s %lu", nm, (unsigned long)f.size());
+      Serial.println(buf);
+      n++;
+    }
+    f.close();
+  }
+  root.close();
+  snprintf(buf, sizeof(buf), "SDLIST:END %u current=%s", n, sdLogPath[0] ? sdLogPath + 1 : "-");
+  Serial.println(buf);
+  usbTxWait(false);
+}
+
+void sdRead(const char* arg) {
+  if (cmdFromBle) { dualPrintln("SDERR:USB only"); return; }
+  if (!sdReady) { Serial.println("SDERR:no card (SD is OFF or not mounted)"); return; }
+  const char* comma = strrchr(arg, ',');
+  char name[40];
+  if (!comma || (size_t)(comma - arg) >= sizeof(name)) { Serial.println("SDERR:bad arguments"); return; }
+  memcpy(name, arg, comma - arg);
+  name[comma - arg] = '\0';
+  char* end = nullptr;
+  unsigned long off = strtoul(comma + 1, &end, 10);
+  if (!sdNameOk(name) || end == comma + 1 || *end != '\0') { Serial.println("SDERR:bad arguments"); return; }
+  char path[48];
+  snprintf(path, sizeof(path), "/%s", name);
+
+  const bool isLog = sdLogFile && strcmp(path, sdLogPath) == 0;
+  if (isLog) sdLogFile.close();
+  static uint8_t data[SD_CHUNK];
+  size_t n = 0;
+  bool opened = false;
+  File f = SD.open(path, FILE_READ);
+  if (f) {
+    opened = true;
+    const unsigned long size = (unsigned long)f.size();
+    if (off > size) off = size;
+    if (f.seek(off)) n = f.read(data, min((size_t)(size - off), SD_CHUNK));
+    f.close();
+  }
+  if (isLog) {
+    sdLogFile = SD.open(sdLogPath, FILE_APPEND);
+    if (!sdLogFile) { sdReady = false; Serial.println("SD: write failed"); }
+  }
+  if (!opened) { Serial.println("SDERR:cannot open file"); return; }
+
+  static char line[SD_CHUNK * 2 + 96];
+  static const char HEX_DIGITS[] = "0123456789abcdef";
+  int h = snprintf(line, 96, "SDDATA:%s %lu %u %08lx ", name, off, (unsigned)n, (unsigned long)crc32Update(0, data, n));
+  for (size_t i = 0; i < n; i++) {
+    line[h++] = HEX_DIGITS[data[i] >> 4];
+    line[h++] = HEX_DIGITS[data[i] & 15];
+  }
+  line[h] = '\0';
+  usbTxWait(true);
+  Serial.println(line);
+  usbTxWait(false);
 }
 
 // ==========================================
@@ -959,7 +1129,7 @@ void loadThresholds() {
   sdEnabled   = prefs.getUChar("sd_en",   1) != 0;
   extEnabled  = prefs.getUChar("ext_en",  1) != 0;
   oledEnabled = prefs.getUChar("oled_en", 1) != 0;
-  buzzerEnabled = prefs.getUChar("buzz_en", 1) != 0;
+  buzzerEnabled = prefs.getUChar("buzz_en", 0) != 0;   // 保存が無ければ OFF（2026-11-20b から）
   vibEnabled  = prefs.getUChar("vib_en",  1) != 0;
   gpsEnabled  = prefs.getUChar("gps_en",  0) != 0;
   pwmDuty = prefs.getInt("pwm_duty", PWM_DUTY_DEFAULT);
@@ -1094,6 +1264,7 @@ void applySdEnable() {
     sdReady = false;
   } else if (!sdReady) {
     initSdLogging();
+    if (sdReady) logPcTime();   // 新しいログファイルにも時刻の手がかりを残す
   }
 }
 
@@ -1450,6 +1621,56 @@ static void gpsLogLine(const char* str) {
   Serial.println(str);
   writeSdLine(str);
   if (!scopeOn) total_deadtime_us += micros64() - t0;
+}
+
+// ==========================================
+// 版と時刻 (GET_VER / SET_TIME / GET_TIME)
+// ==========================================
+void printVersion() {
+  char buf[64];
+  snprintf(buf, sizeof(buf), "VER:FW=%s BOARD=%s BUILD=%s", FW_VERSION, FW_BOARD, FW_BUILD);
+  dualPrintln(buf);
+}
+
+// GPS が今の時刻を持っていれば、その UTC (unix 秒) を返す。無ければ 0。
+// PPS が止まった・間隔が 1 秒から外れたときも 0 (gpsStampFor と同じ判定)。
+static uint32_t gpsUtcNow() {
+  uint32_t utc = 0, per = 0;
+  int32_t dt = -1;
+  gpsStampFor((uint64_t)esp_timer_get_time(), utc, dt, per);
+  if (utc == 0 || dt < 0) return 0;
+  return utc + (uint32_t)(dt / 1000000);
+}
+
+// 応答: "TIME:<utc_epoch_s> SRC:GPS|PC|NONE"。GPS が時刻を持っていれば GPS を優先する。
+void printTime() {
+  char buf[48];
+  const uint32_t g = gpsUtcNow();
+  if (g != 0) {
+    snprintf(buf, sizeof(buf), "TIME:%lu SRC:GPS", (unsigned long)g);
+  } else if (pcTimeSet) {
+    const uint64_t utcMs = pcTimeAnchorMs + (micros64() - pcTimeAnchorUs) / 1000ULL;
+    snprintf(buf, sizeof(buf), "TIME:%lu SRC:PC", (unsigned long)(utcMs / 1000ULL));
+  } else {
+    snprintf(buf, sizeof(buf), "TIME:0 SRC:NONE");
+  }
+  dualPrintln(buf);
+}
+
+// "### TIME <t_us> <utc_epoch_s> src=PC" を出す (SD・USB・BLE)。t_us は Event Time と同じ時計
+// (start_time_us 起点) で、その瞬間の UTC がちょうど utc_epoch_s 秒。GPS の PPS 行と同じ並び。
+// 次の秒の境目を選ぶので t_us は今より最大 1 秒先になる (RESET の直後でも負にならない)。
+// GPS が時刻を持っているときは PPS 行が同じ役目をするので出さない。
+void logPcTime() {
+  if (!pcTimeSet || gpsUtcNow() != 0) return;
+  const uint64_t now = micros64();
+  const uint64_t utcUsNow = pcTimeAnchorMs * 1000ULL + (now - pcTimeAnchorUs);
+  const uint64_t nextSec = utcUsNow / 1000000ULL + 1ULL;
+  const uint64_t tAt = now + (nextSec * 1000000ULL - utcUsNow);
+  char buf[80];
+  snprintf(buf, sizeof(buf), "### TIME %llu %lu src=PC",
+           (unsigned long long)(tAt - start_time_us), (unsigned long)nextSec);
+  dualPrintln(buf);
 }
 
 // 年月日時分秒 (UTC) -> unix 秒 (Howard Hinnant の days_from_civil)。

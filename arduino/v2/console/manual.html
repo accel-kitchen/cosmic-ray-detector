@@ -868,13 +868,16 @@ df = pd.read_csv(path, sep='\t', comment='#', header=None, names=cols)</code></p
 
     <h3>機能のオン / オフ</h3>
     <div class="cmd"><div class="syntax">SET_SD / SET_EXT / SET_OLED / SET_BUZZER / SET_VIB / SET_GPS :ON|OFF</div>
-      <p>microSD・外部検出器・OLED・ブザー・振動をオン / オフします（初期値はすべて ON。GPS だけは初期値 OFF）。GPS を ON にすると UART1 の NMEA 受信と 1PPS の計時を始め、Console の「検出器の機能」に測位の状態が出ます。ON の間、10 秒ごとの <code>### PPS &lt;Time[us]&gt; &lt;UTC unix 秒&gt;</code> と、位置の <code>### GPS fix=… lat=… lon=…</code> が SD と測定データ (.dat / .csv) に <code>#</code> 行として入ります（USB 接続のとき。BLE には流しません）。読むときは <code>GET_SD</code> などで、応答は <code>SD:ON</code>、<code>BUZZER:OFF</code> の形です。</p></div>
+      <p>microSD・外部検出器・OLED・ブザー・振動をオン / オフします（初期値は microSD・外部検出器・OLED・振動が ON、ブザーと GPS が OFF。ブザーの初期値 OFF は 2026-11-20b のファームから。それより前に保存した設定はそのまま残ります）。GPS を ON にすると UART1 の NMEA 受信と 1PPS の計時を始め、Console の「検出器の機能」に測位の状態が出ます。ON の間、10 秒ごとの <code>### PPS &lt;Time[us]&gt; &lt;UTC unix 秒&gt;</code> と、位置の <code>### GPS fix=… lat=… lon=…</code> が SD と測定データ (.dat / .csv) に <code>#</code> 行として入ります（USB 接続のとき。BLE には流しません）。読むときは <code>GET_SD</code> などで、応答は <code>SD:ON</code>、<code>BUZZER:OFF</code> の形です。</p></div>
 
     <h3>システム</h3>
     <div class="cmd"><div class="syntax">GET_BLENAME / SET_BLENAME:&lt;name&gt;</div>
       <p>Bluetooth の名前を読む / 変えます。応答は <code>BLENAME:&lt;name&gt;</code>。<strong>再起動すると反映</strong>されます。このアプリは 19 文字までに制限しています。</p></div>
     <div class="cmd"><div class="syntax">GET_BTADDR</div><p>基板の Bluetooth アドレスを <code>BTADDR:aa:bb:cc:dd:ee:ff</code> で返します。USB でつないでいても使えます。</p></div>
     <div class="cmd"><div class="syntax">RESET</div><p>イベント番号とデッドタイムを 0 に戻します。応答は <code>RESET:OK</code>。</p></div>
+    <div class="cmd"><div class="syntax">GET_VER</div><p>ファームの版を <code>VER:FW=2.0.0 BOARD=v2 BUILD=2026-11-20</code> で返します（2026-11-20 以降のファーム。古いファームは何も返しません）。記録のページは接続のたびに聞き、書き込みページの版より古ければ知らせます。</p></div>
+    <div class="cmd"><div class="syntax">SET_TIME:&lt;UTC の unix ミリ秒&gt; / GET_TIME</div><p>PC の時刻を基板に渡します（記録のページが接続のたびに送ります）。基板は <code>### TIME &lt;Time[us]&gt; &lt;UTC 秒&gt; src=PC</code> の行を microSD のログにも書くので、GPS が無くても何時の測定か後から分かります。応答は <code>TIME:&lt;UTC 秒&gt; SRC:PC</code>（GPS が時刻を持っていれば <code>SRC:GPS</code> で、TIME 行は出しません）。保存はされず、再起動すると消えます。</p></div>
+    <div class="cmd"><div class="syntax">SD_LIST / SD_READ:&lt;name&gt;,&lt;offset&gt;</div><p>microSD のファイルの一覧と中身を返します（USB でつないだときだけ）。記録のページの 詳細設定 &gt; 検出器の機能 &gt; 「microSD のログを取り込む」が使います。手で打つ必要はありません。</p></div>
 
     <h3>Bluetooth（Nordic UART Service）</h3>
     <div class="table-wrap"><table>

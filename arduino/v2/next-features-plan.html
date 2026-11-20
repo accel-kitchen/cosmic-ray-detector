@@ -1,0 +1,565 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>次の機能計画</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+JP:wght@400;500;700&family=Shippori+Mincho:wght@600;700&display=swap">
+<style>
+/* ring-led-plan.html と同じ 1 段組みの計画書。コンソールと同じ「紙とインク」の明るい配色に固定する（暗い配色は作らない）。
+   各項目は「何・なぜ・対象・計測への負担・確かめ方」と根拠の札を持つ。 */
+:root {
+  --paper:   #FAF6EB;
+  --paper-2: #F2EBD9;
+  --paper-3: #E8DFC8;
+  --field:   #FFFDF7;
+  --ink:     #2A2730;
+  --ink-2:   #4F4956;
+  --ink-3:   #6E6776;
+  --ink-4:   #A39CA8;
+  --rule:        rgba(42, 39, 48, .12);
+  --rule-strong: rgba(42, 39, 48, .24);
+  --signal:      #5CD6EA;
+  --signal-ink:  #1F6B7C;
+  --signal-pale: #DDF3F7;
+  --coral:      #C8654E;
+  --coral-2:    #A84A37;
+  --coral-pale: #FBE4D8;
+  --f-ui:   "Noto Sans JP", "Yu Gothic UI", "Hiragino Sans", "Meiryo", system-ui, sans-serif;
+  --f-num:  "IBM Plex Mono", "Consolas", "Menlo", monospace;
+  --f-disp: "Shippori Mincho", "Yu Mincho", "Hiragino Mincho ProN", serif;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--f-ui);
+  font-size: 15px;
+  line-height: 1.75;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 0 64px;
+}
+.wrap { max-width: 880px; margin: 0 auto; }
+code, .mono { font-family: var(--f-num); font-size: .9em; }
+code { background: var(--paper-2); padding: 0 .3em; border-radius: 3px; overflow-wrap: anywhere; }
+a { color: var(--signal-ink); }
+:focus-visible { outline: 2px solid var(--signal-ink); outline-offset: 2px; }
+
+/* --- 見出し --- */
+.masthead { padding-block: 48px 28px; border-bottom: 1px solid var(--rule-strong); }
+.eyebrow {
+  font-family: var(--f-num); font-size: 12px; letter-spacing: .08em; color: var(--ink-3);
+  display: flex; flex-wrap: wrap; gap: 4px 14px;
+}
+h1 {
+  font-family: var(--f-disp); font-weight: 700; font-size: clamp(28px, 5vw, 40px);
+  line-height: 1.3; margin: 10px 0 14px; text-wrap: balance;
+}
+.lead { color: var(--ink-2); max-width: 44em; margin: 0; }
+.lead + .lead { margin-top: 10px; }
+h2 {
+  font-family: var(--f-disp); font-weight: 700; font-size: 24px; line-height: 1.4;
+  margin: 0 0 6px; text-wrap: balance;
+}
+.sec { padding-block: 40px 8px; }
+.sec > p, .sec > ul { max-width: 46em; }
+.sec-sub { color: var(--ink-3); margin: 0 0 18px; }
+
+/* --- 最初の 5 つ --- */
+.top5 { list-style: none; counter-reset: t; padding: 0; margin: 18px 0 0; display: grid; gap: 0; border-top: 2px solid var(--ink); max-width: 46em; }
+.top5 li { counter-increment: t; display: grid; grid-template-columns: 2.4em minmax(0, 1fr); gap: 4px 12px; padding: 14px 0; border-bottom: 1px solid var(--rule); }
+.top5 li::before { content: counter(t); font-family: var(--f-disp); font-size: 26px; line-height: 1.2; color: var(--signal-ink); grid-row: span 2; }
+.top5 b { font-size: 16px; }
+.top5 b .id { font-family: var(--f-num); font-weight: 500; font-size: 13px; color: var(--ink-3); margin-right: 8px; }
+.top5 span { color: var(--ink-2); font-size: 14px; }
+
+/* --- いまの状態 --- */
+.facts { list-style: none; padding: 0; margin: 16px 0 0; display: grid; gap: 10px; }
+.facts li { display: grid; grid-template-columns: 5.2em 1fr; gap: 12px; align-items: baseline; }
+.facts li > span:last-child { min-width: 0; }
+.facts .ev { justify-self: start; }
+.hazard {
+  margin-top: 22px; padding: 16px 18px; background: var(--coral-pale);
+  border: 1px solid rgba(168, 74, 55, .35); border-radius: 6px;
+}
+.hazard b { color: var(--coral-2); }
+.hazard p { margin: 6px 0 0; }
+
+/* --- 根拠の札・大きさ・場所 --- */
+.ev, .size, .where {
+  display: inline-block; font-size: 12px; line-height: 1.6; padding: 0 7px;
+  border-radius: 3px; white-space: nowrap; letter-spacing: .02em;
+}
+.ev-code { background: var(--signal-pale); color: var(--signal-ink); }
+.ev-calc { background: var(--paper-3); color: var(--ink-2); }
+.ev-guess { border: 1px dashed var(--ink-3); color: var(--ink-3); padding: 0 6px; }
+.size { font-family: var(--f-num); background: var(--ink); color: var(--paper); font-weight: 500; }
+.where { border: 1px solid var(--rule-strong); color: var(--ink-2); }
+
+/* --- 制約の数字 --- */
+.limits { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; margin: 18px 0 8px; border-top: 2px solid var(--ink); }
+.limits > div { padding: 14px 16px 14px 0; border-bottom: 1px solid var(--rule); min-width: 0; }
+.limits .big { font-family: var(--f-num); font-size: 26px; font-weight: 500; line-height: 1.2; font-variant-numeric: tabular-nums; }
+.limits .big small { font-size: 14px; color: var(--ink-3); margin-left: 2px; }
+.limits .cap { display: block; font-weight: 700; font-size: 14px; margin-top: 4px; }
+.limits p { margin: 4px 0 0; font-size: 13px; color: var(--ink-2); line-height: 1.6; }
+.note { font-size: 13px; color: var(--ink-3); max-width: 46em; }
+
+/* --- 進め方 --- */
+.road { list-style: none; padding: 0; margin: 18px 0 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0; border-top: 2px solid var(--ink); }
+.road li { padding: 12px 14px 4px 0; min-width: 0; }
+.road .ph { font-family: var(--f-num); font-size: 12px; color: var(--ink-3); letter-spacing: .06em; }
+.road b { display: block; font-size: 15px; line-height: 1.5; margin: 2px 0 4px; }
+.road span { font-size: 13px; color: var(--ink-2); line-height: 1.6; display: block; }
+
+/* --- 項目 --- */
+.items { display: grid; gap: 0; margin-top: 10px; }
+.item { padding-block: 22px; border-top: 1px solid var(--rule); }
+.item:first-child { border-top: 1px solid var(--rule-strong); }
+.item-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px; }
+.item-head .id { font-family: var(--f-num); font-size: 13px; color: var(--ink-3); min-width: 3.2em; }
+.item-head h3 { margin: 0; font-size: 17px; line-height: 1.5; font-weight: 700; flex: 1 1 16em; min-width: 0; }
+.item-head .tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.item .what { margin: 8px 0 10px; max-width: 46em; }
+.item dl { display: grid; grid-template-columns: 7.2em minmax(0, 1fr); gap: 6px 14px; margin: 0; max-width: 46em; }
+.item dt { font-size: 13px; color: var(--ink-3); padding-top: 2px; }
+.item dd { margin: 0; min-width: 0; }
+.item.top { position: relative; }
+.item.top .id::after { content: "★"; color: var(--signal-ink); margin-left: 4px; }
+
+/* --- 図 --- */
+.fig { margin: 14px 0 12px; max-width: 46em; }
+.fig svg { width: 100%; height: auto; display: block; }
+.fig figcaption { font-size: 13px; color: var(--ink-3); margin-top: 4px; }
+.fig .axis { stroke: var(--ink-3); stroke-width: 1; fill: none; }
+.fig .curve { stroke: var(--ink); stroke-width: 2; fill: none; stroke-linejoin: round; }
+.fig .win-lo { fill: var(--paper-3); }
+.fig .win-mu { fill: var(--signal-pale); }
+.fig .edge { stroke: var(--signal-ink); stroke-width: 1.5; stroke-dasharray: 4 3; }
+.fig .thr { stroke: var(--coral); stroke-width: 1.5; }
+.fig text { font-family: var(--f-ui); font-size: 12px; fill: var(--ink-2); }
+.fig text.strong { fill: var(--signal-ink); font-weight: 700; }
+.fig text.coral { fill: var(--coral-2); }
+
+/* --- 以前の案の表 --- */
+.status { width: 100%; max-width: 46em; border-collapse: collapse; margin-top: 14px; font-size: 14px; }
+.status th, .status td { text-align: left; vertical-align: top; padding: 8px 10px 8px 0; border-bottom: 1px solid var(--rule); }
+.status th { font-size: 12px; color: var(--ink-3); font-weight: 500; border-bottom: 2px solid var(--ink); }
+.status td:first-child { font-family: var(--f-num); font-size: 13px; color: var(--ink-3); white-space: nowrap; }
+.st { display: inline-block; font-size: 12px; padding: 0 7px; border-radius: 3px; white-space: nowrap; }
+.st-done { background: var(--signal-pale); color: var(--signal-ink); }
+.st-open { background: var(--coral-pale); color: var(--coral-2); }
+.st-here { background: var(--ink); color: var(--paper); }
+.st-unk { border: 1px dashed var(--ink-3); color: var(--ink-3); }
+
+/* --- 後回し・やらない・決めてほしいこと --- */
+.later { list-style: none; padding: 0; margin: 14px 0 0; display: grid; gap: 14px; max-width: 46em; }
+.later li { padding-left: 1.4em; position: relative; }
+.later li::before { content: "…"; position: absolute; left: 0; color: var(--ink-3); font-weight: 700; }
+.later b { display: inline; }
+.later .tags { margin-left: 6px; display: inline-flex; flex-wrap: wrap; gap: 4px; vertical-align: 1px; }
+.later p { margin: 4px 0 0; color: var(--ink-2); }
+.dont { list-style: none; padding: 0; margin: 14px 0 0; display: grid; gap: 12px; max-width: 46em; }
+.dont li { padding-left: 1.4em; position: relative; }
+.dont li::before { content: "×"; position: absolute; left: 0; color: var(--coral-2); font-weight: 700; }
+.dont b { display: block; }
+.ask { counter-reset: q; list-style: none; padding: 0; margin: 14px 0 0; display: grid; gap: 14px; max-width: 46em; }
+.ask li { counter-increment: q; display: grid; grid-template-columns: 2em minmax(0, 1fr); gap: 8px; }
+.ask li::before { content: counter(q); font-family: var(--f-num); font-weight: 500; color: var(--paper); background: var(--signal-ink); width: 1.6em; height: 1.6em; border-radius: 50%; display: grid; place-items: center; font-size: 13px; margin-top: 3px; }
+.ask b { display: block; }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 16px; font-size: 13px; color: var(--ink-2); }
+.legend span { display: inline-flex; gap: 6px; align-items: center; }
+footer { margin-top: 48px; padding-top: 16px; border-top: 1px solid var(--rule-strong); font-size: 13px; color: var(--ink-3); }
+footer ul { padding-left: 1.2em; margin: 6px 0 0; }
+@media (max-width: 760px) {
+  .road { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .limits { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 520px) {
+  .item dl { grid-template-columns: minmax(0, 1fr); gap: 0 0; }
+  .item dt { padding-top: 8px; }
+  .facts li { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+  .limits { grid-template-columns: minmax(0, 1fr); }
+  .status td:first-child { white-space: normal; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="masthead">
+  <div class="eyebrow"><span>OHASHI（v2 基板）</span><span>共通コンソール・解析ページ</span><span>v2.1・OKOME にも届くものは明記</span><span>2026-11-20</span></div>
+  <h1>次の機能計画</h1>
+  <p class="lead">リング LED（<a href="ring-led-plan.html">ring-led-plan.html</a>）とサーバー連携（<a href="../server-plan.html">server-plan.html</a>）以外に、何を足すとよいかの案。ファーム・コンソール・解析ページ・ケースの小物までを対象にした。</p>
+  <p class="lead">並べ方の考え方は一つ。<b>もう記録しているのに使っていないデータが多い</b>ので、まずそれを読み解く機能から作る。ファームを書き換えずに済み、すでに売った基板にもそのまま届く。次に実験を区切る仕組み、売ったあとの問い合わせに備える仕組み、見せる仕組みの順にした。</p>
+  <div class="legend" aria-label="根拠の札">
+    <span><span class="ev ev-code">コード</span>コードを読んで確かめた</span>
+    <span><span class="ev ev-calc">計算</span>数字から計算した（文献の目安を使ったときは、その値を本文に書いた）</span>
+    <span><span class="ev ev-guess">推測</span>未確認の見込み</span>
+    <span><span class="size">S</span>半日</span>
+    <span><span class="size">M</span>1〜2 日</span>
+    <span><span class="size">L</span>それ以上（実機確認を除く目安）</span>
+  </div>
+</header>
+
+<section class="sec" aria-labelledby="h-top">
+  <h2 id="h-top">最初に作りたい 5 つ</h2>
+  <p class="sec-sub">効き目に対して小さいもの。下の各項目に ★ を付けた。</p>
+  <ol class="top5">
+    <li><b><span class="id">A-1</span>波高の窓ごとの計数率</b><span>しきい値近くの計数の大半はミューオンではない見込み。窓で分けて「ミューオンの率」と言えるようにする。A-2・B-3 の前提。</span></li>
+    <li><b><span class="id">B-1</span>区間の印（実験ノート）</b><span>角度や遮蔽を変える実験を、時刻のメモと手作業の切り分けなしで解析できるようにする。</span></li>
+    <li><b><span class="id">C-1</span>ファームの版を問い合わせる <code>GET_VER</code></b><span>V2 のファームは版を返さない。売った基板の問い合わせ・診断・更新のお知らせは、まずここから。</span></li>
+    <li><b><span class="id">C-3</span>PC の時刻を基板に渡す <code>SET_TIME</code></b><span>GPS の無い基板の SD ログに時刻が付く。ファームとコンソールは小さい変更で、解析ページに時刻の軸を足すところまでで M。</span></li>
+    <li><b><span class="id">A-2</span>気圧係数を出す</b><span>毎イベント記録している気圧と温度から、物理の結果が一つ出る。2 週間の記録で見える計算。</span></li>
+  </ol>
+</section>
+
+<section class="sec" aria-labelledby="h-done">
+  <h2 id="h-done">実装の状況（2026-11-20）</h2>
+  <p class="sec-sub">この計画を書いたあと、次の 9 項目を作った。どれもデモ・合成データとコンパイルで確かめただけで、実機では確かめていない（確かめる手順は <code>console/CHECKLIST.md</code> の N1〜N10 と 19〜23）。</p>
+  <ul class="facts">
+    <li><span class="ev ev-code">コード</span><span><b>C-1</b> <code>GET_VER</code>・起動時の <code>### Firmware:</code> 行・版の表示と更新の知らせ（ファーム FW 2.0.0 / BUILD 2026-11-20、書き込みページの bin と manifest も更新）。<b>C-3</b> <code>SET_TIME</code> / <code>GET_TIME</code> と <code>### TIME</code> 行、解析ページの「測定の日時」。<b>C-4</b> <code>SD_LIST</code> / <code>SD_READ</code> と取り込みの画面（USB だけ）。</span></li>
+    <li><span class="ev ev-code">コード</span><span><b>A-4</b> 同時計数の率と偶然の目安。<b>B-2</b> 測定時間の予約。<b>D-1</b> このパソコンで音を鳴らす。<b>C-2</b> 診断レポートと設定の控え。</span></li>
+    <li><span class="ev ev-calc">計算</span><span><b>A-2</b> 解析ページの「気圧・温度」タブ（合成データで β = −0.18 %/hPa に対し −0.206 ± 0.063 %/hPa）。<b>A-3</b>「到着間隔」タブ（傾きからの率が本当の率と一致、ノイズの連発を検出）。</span></li>
+    <li><span class="ev ev-guess">推測</span><span>まだ: A-1（波高の窓。A-2 のタブでは ADC の範囲を手で絞れる）、A-5、B-1（<code># MARK</code> の行の形だけは予約の機能で使い始めた）、B-3、B-4、D-2、天頂角の案内の修正。</span></li>
+  </ul>
+</section>
+
+<section class="sec" aria-labelledby="h-now">
+  <h2 id="h-now">いまの状態</h2>
+  <ul class="facts">
+    <li><span class="ev ev-code">コード</span><span>コンソール（<code>index.html</code> と <code>core.js</code>）は OHASHI・v2.1・OKOME を 1 つのコードで扱う。OWAN の <code>v1.html</code> は別のコード（4,143 行）なので、コンソールに足した機能は OWAN には届かない。</span></li>
+    <li><span class="ev ev-code">コード</span><span>V2 のファームは毎イベント、気圧・温度・湿度、外部検出器 1〜3、GPS の 5 列を出す（18 列）。解析ページ（ヒストグラム・天頂角・エネルギー校正・比較の 4 タブ）が読むのはイベント番号・時間・ADC・デッドタイムだけで、気圧・温度・外部検出器・GPS の列は使っていない。</span></li>
+    <li><span class="ev ev-code">コード</span><span>デモは気圧の効果を −0.2 %/hPa で入れ（<code>DEMO_BARO_COEFF</code>）、PC から音も鳴らす（<code>demoBeep</code>）。どちらも実機のデータには使っていない。</span></li>
+    <li><span class="ev ev-code">コード</span><span>同時計数は、統計の「外部検出器 1 / 2 / 3 の反応率」を % で出すだけ。率・誤差・偶然の目安は出ていない。</span></li>
+    <li><span class="ev ev-code">コード</span><span>V2 のファームには版を返すコマンドが無い。GPS が無いと SD のログに時刻が付かない（イベント行は起動からの µs だけ）。コンソールには測定時間の予約も、画面の消灯を止める処理も無い。</span></li>
+  </ul>
+  <div class="hazard" role="note">
+    <b>先に直したい点: 天頂角の案内</b>
+    <p>解析ページの天頂角タブは「検出器を傾けて測ったレートを入れてください」、マニュアルの天頂角の節は「検出器を傾けて、真上（0°）から 15° ずつ向きを変えて」「地上のミューオンでは n ≈ 2」と案内している <span class="ev ev-code">コード</span>。ところが平らなシンチレーター 1 枚は上下どちらの面からも入るので、縦に立てても率は水平のときの約半分までしか下がらない（cos²θ の流れで、薄い板の積分が水平 π/2・垂直 π/4）<span class="ev ev-calc">計算</span>。cos<sup>n</sup>θ をあてると n が小さく出る。2 台を重ねた同時計数で測る案内に改める（B-3）。</p>
+  </div>
+</section>
+
+<section class="sec" aria-labelledby="h-limits">
+  <h2 id="h-limits">軸にする制約: 基板に余白が少ない</h2>
+  <p class="sec-sub">機能を選ぶときの前提。ここに当たるものは後ろに回した。</p>
+  <div class="limits">
+    <div><span class="big">0<small>本</small></span><span class="cap">空きピン</span><p>A3 は GPS の PPS、A7 は振動、GPIO21 は GPS かリング <span class="ev ev-code">コード</span>。新しい部品は I²C（BME280 と同じ線）か次の基板。</p></div>
+    <div><span class="big">58<small>%</small></span><span class="cap">アプリ領域の使用</span><p>763,728 / 1,310,720 バイト、空きは約 534 KB <span class="ev ev-calc">計算</span>。Wi-Fi は入るか分からない（L-1）。</p></div>
+    <div><span class="big">47<small>文字</small></span><span class="cap">コマンドの長さ</span><p>実行時間はデッドタイムに入る <span class="ev ev-code">コード</span>。定期的に問い合わせる機能は、そのぶん計測を削る。</p></div>
+    <div><span class="big">6.7<small>kB/秒</small></span><span class="cap">BLE の上限</span><p>20 バイトごとに 3 ms 待つ <span class="ev ev-calc">計算</span>。大きな転送は USB だけにする。</p></div>
+    <div><span class="big">4<small>か所</small></span><span class="cap">イベント行を読む場所</span><p>コンソール・解析ページ・サーバー送信・SD のログ。新しい情報は <code>#</code> の行にする（GPS の <code>### PPS</code> 行が前例）。</p></div>
+    <div><span class="big">4<small>機種</small></span><span class="cap">コンソールが扱う機種</span><p>OHASHI・v2.1・OKOME は同じ <code>core.js</code>、OWAN は別のコード（<code>v1.html</code>）。V2 には HV のコマンドが無い。各項目に、届く機種を書いた。</p></div>
+  </div>
+</section>
+
+<section class="sec" aria-labelledby="h-road">
+  <h2 id="h-road">進め方</h2>
+  <ol class="road">
+    <li><span class="ph">PHASE 1</span><b>記録済みの列を読み解く</b><span>波高の窓、気圧係数、到着間隔、同時計数、keV</span></li>
+    <li><span class="ph">PHASE 2</span><b>実験を区切って記録する</b><span>区間の印、時間の予約、天頂角、レポート</span></li>
+    <li><span class="ph">PHASE 3</span><b>売ったあとに困らない</b><span>版、診断、時刻、SD の吸い出し</span></li>
+    <li><span class="ph">PHASE 4</span><b>見せる</b><span>PC の音、展示モード</span></li>
+    <li><span class="ph">LATER</span><b>後回し</b><span>Wi-Fi、iPhone、複数台、温度補正</span></li>
+  </ol>
+  <p class="note">Phase 1・2 はコンソールと解析ページだけで作れる。Phase 3 はファームの書き換えが要るので、Phase 1・2 と並行して進められる。Phase 4 は B-2（予約）と D-1（音）があると作りやすい。</p>
+</section>
+
+<section class="sec" aria-labelledby="h-p1">
+  <h2 id="h-p1">Phase 1 · 記録済みの列を読み解く</h2>
+  <p class="sec-sub">ファームの書き換えも、基板への書き込み直しも要らない。</p>
+  <div class="items">
+
+    <article class="item top">
+      <div class="item-head"><span class="id">A-1</span><h3>波高の窓ごとの計数率</h3><span class="tags"><span class="where">コンソール</span><span class="where">解析</span><span class="size">M</span><span class="ev ev-calc">計算</span></span></div>
+      <p class="what">ヒストグラムに境界を 2 本置き（ドラッグ）、「低い窓」と「ミューオンの窓」それぞれの計数率 ± 統計誤差を出す。カウント画面の大きな数字の下と、解析ページの率の推移の両方に出す。境界はブラウザに覚え、保存ファイルは変えない（あとから解析ページで引き直せる）。</p>
+      <figure class="fig">
+        <svg viewBox="0 0 560 200" role="img" aria-label="波高の分布の見本。左に急に落ちるガンマ線とノイズの部分、右に小さなミューオンの山があり、それぞれを窓で囲んでいる">
+          <rect class="win-lo" x="70" y="10" width="225" height="162"/>
+          <rect class="win-mu" x="295" y="10" width="245" height="162"/>
+          <line class="thr" x1="70" y1="6" x2="70" y2="172"/>
+          <line class="edge" x1="295" y1="6" x2="295" y2="172"/>
+          <path class="curve" d="M70,16.0 L80,41.1 L90,62.0 L100,79.5 L110,94.1 L120,106.3 L130,116.4 L140,125.0 L150,132.1 L160,138.0 L170,143.0 L180,147.1 L190,150.6 L200,153.6 L210,156.0 L220,158.0 L230,159.8 L240,161.2 L250,162.3 L260,163.1 L270,163.6 L280,163.7 L290,163.3 L300,162.2 L310,160.4 L320,157.7 L330,154.2 L340,150.1 L350,145.7 L360,141.4 L370,137.9 L380,135.6 L390,134.9 L400,135.9 L410,138.5 L420,142.3 L430,146.9 L440,151.7 L450,156.2 L460,160.1 L470,163.3 L480,165.6 L490,167.3 L500,168.4 L510,169.1 L520,169.6 L530,169.9 L540,170.0"/>
+          <line class="axis" x1="60" y1="172" x2="548" y2="172"/>
+          <text x="78" y="28" class="coral">しきい値</text>
+          <text x="150" y="60">低い窓</text>
+          <text x="150" y="76">ガンマ線・ノイズ</text>
+          <text x="345" y="60" class="strong">ミューオンの窓</text>
+          <text x="345" y="76">約 2 MeV の山</text>
+          <text x="470" y="192">波高（ADC）→</text>
+        </svg>
+        <figcaption>見本の図。実測のスペクトルではない。山の位置と高さは検出器と温度で変わる。</figcaption>
+      </figure>
+      <dl>
+        <dt>なぜ</dt><dd>シンチレーターは 50 × 50 × 10 mm（<code>cad/</code> の README）。海面のミューオンを約 1 個/cm²/分（文献の目安。取り方で 0.7 倍ほどの幅がある）とすると、25 cm² で約 0.3〜0.4 回/秒 <span class="ev ev-calc">計算</span>。2026-07 の波形プローブでの実測は 1.57〜1.66 回/秒（idea.html。しきい値などはそのときの設定）なので、数えているものの 4 分の 3 ほどはミューオン以外になる。10 mm のプラスチックを抜けるミューオンは約 2 MeV を落とすので、スペクトルの高い側に山を作る <span class="ev ev-calc">計算</span>。窓で分ければ「ミューオンの率」として話せる。気圧の効果（A-2）や天頂角（B-3）は、全体の率で見るとガンマ線で薄まる。</dd>
+        <dt>対象</dt><dd>OHASHI・v2.1・OKOME（同じ <code>core.js</code>）と、解析ページで読めるすべてのファイル。</dd>
+        <dt>計測への負担</dt><dd>なし（画面の計算だけ）。</dd>
+        <dt>確かめ方</dt><dd>デモで、2 つの窓の率の和が全体の率と一致する。<code>sample_thorium_test.dat</code> を解析ページで読み、境界を動かすと率が連続に変わる。実機では、ミューオンの窓の率が 0.3〜0.4 回/秒の桁に入るか。</dd>
+      </dl>
+    </article>
+
+    <article class="item top">
+      <div class="item-head"><span class="id">A-2</span><h3>環境との相関（気圧係数・温度と波高）</h3><span class="tags"><span class="where">解析</span><span class="size">M</span><span class="ev ev-calc">計算</span></span></div>
+      <p class="what">解析ページに「環境」タブを足す。① 1〜6 時間ごとの率（ミューオンの窓）と平均気圧の散布図に直線をあて、気圧係数 β [%/hPa] と誤差を出す。② 気圧で補正した率の推移。③ ミューオンの山の位置（ADC）と温度の関係。温度も同じ回帰に入れ、気圧と温度の効きを分ける。</p>
+      <dl>
+        <dt>なぜ</dt><dd>気圧と温度は毎イベント保存している（<code>Press_hPa</code> / <code>Temp_C</code>）<span class="ev ev-code">コード</span>のに、読む側が無い。統計は足りる: ミューオンが 0.3〜0.4 回/秒なら 6 時間で約 6,500〜9,000 個、1 区間の誤差は約 1.0〜1.2 %。2 週間（56 区間）で気圧の散らばりを 8 hPa <span class="ev ev-guess">推測</span> とすると、β の誤差は約 0.02 %/hPa。デモに入れてある −0.2 %/hPa（文献の相場）なら 10σ 前後で見える <span class="ev ev-calc">計算</span>。</dd>
+        <dt>温度</dt><dd>SiPM は onsemi MicroFC-60035（部品表）。降伏電圧は温度で動き、データシートの値は約 21.5 mV/°C <span class="ev ev-guess">推測</span>（記憶の値。データシートで確かめる）。V2 は HV を変えられないので、部屋の温度が変わると山の位置がずれ、しきい値付近の数え漏れも変わる。それが気圧の効果に混ざらないよう、③ で先に大きさを見る。</dd>
+        <dt>対象</dt><dd>OHASHI・v2.1 の保存ファイル。OKOME は気圧が無く、温度はチップ温度なので ③ だけ。</dd>
+        <dt>計測への負担</dt><dd>なし。</dd>
+        <dt>確かめ方</dt><dd>デモの気圧を時間で動かして作ったファイルから、入れた係数（−0.2 %/hPa）が誤差内で戻る。温度を一定にしたデモでは ③ の傾きが 0 に近い。</dd>
+      </dl>
+    </article>
+
+    <article class="item">
+      <div class="item-head"><span class="id">A-3</span><h3>到着間隔の分布</h3><span class="tags"><span class="where">解析</span><span class="size">S</span><span class="ev ev-code">コード</span></span></div>
+      <p class="what">続くイベントの時間差 Δt のヒストグラム（縦軸は対数）に指数分布をあてる。傾きから真の率、Δt の小さい側の欠けからデッドタイム、小さい側の盛り上がりからノイズの連発が読める。1 秒ごとの個数の「分散 ÷ 平均」（ポアソンなら 1）も並べる。</p>
+      <dl>
+        <dt>なぜ</dt><dd><code>Time_us</code> と <code>Deadtime_us</code> はもう保存している。解析ページは区間（カウンターの巻き戻り）も分けている（<code>parseDataFile</code> の <code>segs</code>）ので、区間をまたぐ差は捨てればよい。宇宙線が「ランダムに来る」ことを授業で見せられる。振動モーターや OLED の書き換えがノイズを呼んでいれば、ここに先に出る <span class="ev ev-guess">推測</span>。</dd>
+        <dt>対象</dt><dd>解析ページで読めるすべてのファイル（v1 の ms のファイルも読み込み時に µs に直している）。</dd>
+        <dt>計測への負担</dt><dd>なし。</dd>
+        <dt>確かめ方</dt><dd>デモのファイルで、傾きから出した率と「件数 ÷ ライブタイム」が誤差内で合う。Δt の欠けが、idea.html の実測（1 イベント約 100〜110 µs）と同じ桁になる。</dd>
+      </dl>
+    </article>
+
+    <article class="item">
+      <div class="item-head"><span class="id">A-4</span><h3>同時計数の率と、偶然に重なる分の目安</h3><span class="tags"><span class="where">コンソール</span><span class="size">S</span><span class="ev ev-code">コード</span></span></div>
+      <p class="what">外部検出器が ON のとき、Dig1〜3 のどれかが 1 だったイベントを「同時」として、その率 ± 誤差と推移をカウント画面に出す。偶然に重なった分の目安（2τ·R₁·R₂）も並べる。</p>
+      <dl>
+        <dt>なぜ</dt><dd>ファームは自分のトリガーで COIN_OUT を 100 µs 立て、50 µs 待ってから相手の COIN を読む（<code>COIN_OUT_PULSE_US</code> / <code>COIN_SYNC_DELAY_US</code>）<span class="ev ev-code">コード</span>。重なりの窓はおよそ ±50 µs になる（<code>loop()</code> が遅れると延びる）。2 台とも実測の 1.6 回/秒なら、偶然の同時は 1 時間に約 0.9 回 <span class="ev ev-calc">計算</span>。重ねた 2 台を抜けるミューオンはこれより桁で多いはずなので <span class="ev ev-guess">推測</span>、本物の同時かどうかを画面で判断できる。</dd>
+        <dt>対象</dt><dd>OHASHI。v2.1 は <code>COIN_WIN</code> と Dt 列があるので、窓はそこから取る。</dd>
+        <dt>計測への負担</dt><dd>なし。</dd>
+        <dt>確かめ方</dt><dd>2 台を COIN のケーブルでつなぎ、重ねたときと横に離したときで同時の率が大きく変わる。離したときは目安の値に近い。</dd>
+      </dl>
+    </article>
+
+    <article class="item">
+      <div class="item-head"><span class="id">A-5</span><h3>ライブのヒストグラムを keV で見る</h3><span class="tags"><span class="where">コンソール</span><span class="size">S</span><span class="ev ev-code">コード</span></span></div>
+      <p class="what">idea.html の C-4 の持ち越し。解析ページで作ったエネルギー校正（1 次・2 次）をコンソールが読み、ヒストグラムの横軸を ADC / keV で切り替える。A-1 の窓の境界も keV で出す。校正した日と検出器の名前を横に出し、違う名前の基板では注意を出す。</p>
+      <dl>
+        <dt>なぜ</dt><dd>校正の保存先は元の plotter と同じキー（<code>crd_energy_cal_v1</code>）で、同じオリジンで開けば読める <span class="ev ev-code">コード</span>。解析ページの校正は、ガウスでの山の中心・FWHM・山の自動検出・2 次の式まで済んでいる。</dd>
+        <dt>対象</dt><dd>同じ <code>core.js</code> の全機種。</dd>
+        <dt>計測への負担</dt><dd>なし。</dd>
+        <dt>確かめ方</dt><dd>解析ページで校正を保存し、コンソールを読み込み直すと keV に切り替えられる。校正が無いときは切り替えが出ない。</dd>
+      </dl>
+    </article>
+  </div>
+</section>
+
+<section class="sec" aria-labelledby="h-p2">
+  <h2 id="h-p2">Phase 2 · 実験を区切って記録する</h2>
+  <p class="sec-sub">授業や自由研究で「条件を変えて比べる」ための仕組み。</p>
+  <div class="items">
+
+    <article class="item top">
+      <div class="item-head"><span class="id">B-1</span><h3>区間の印（実験ノート）</h3><span class="tags"><span class="where">コンソール</span><span class="where">解析</span><span class="size">M</span><span class="ev ev-code">コード</span></span></div>
+      <p class="what">カウント画面に「印をつける」ボタンとラベル欄（「0°」「30°」「鉛あり」など。使ったラベルは候補に出す）。押すと保存ファイルに <code># MARK utc=&lt;UTC&gt; label=&lt;ラベル&gt;</code> の行が入る（ラベルの空白とカンマは <code>_</code> にする）。解析ページは印で区切り、区間ごとのライブタイム・件数・率 ± 誤差（全体とミューオンの窓）を表にして、CSV で書き出せる。</p>
+      <dl>
+        <dt>なぜ</dt><dd>角度・遮蔽・場所を変える実験は、いまは時刻をメモして手で切り分けるしかない。解析ページはもう、カウンターの巻き戻りで区間を分けている（<code>parseDataFile</code>）ので、その区切りに印を足す形で作れる。<code>#</code> の行は GPS の行と同じく到着順で保存され、コメントとして読み飛ばせる（pandas の <code>comment='#'</code>）。イベント行は変えない。</dd>
+        <dt>落とし穴</dt><dd>今の解析ページは <code>#</code> の行をすべて列の見出しの候補として調べ、空白・カンマで区切った語に <code>time</code> と <code>adc</code> で始まるものがあれば、それを列の並びとして採用する（<code>columnsFromHeader</code>）<span class="ev ev-code">コード</span>。「Time 10min ADC test」のようなラベルをそのまま書くと、以降の列を読み違える。<code>key=値</code> の 1 語にまとめればどの語も <code>time</code> / <code>adc</code> で始まらないので、今の解析ページでも安全。新しい解析ページは <code># MARK</code> を見出しの判定から外す。</dd>
+        <dt>対象</dt><dd>同じ <code>core.js</code> の全機種。</dd>
+        <dt>計測への負担</dt><dd>なし。</dd>
+        <dt>確かめ方</dt><dd>デモで 3 回印をつけ、解析ページで 4 区間に分かれ、件数の合計が全体と一致する。「Time 10min ADC test」というラベルの印が入ったファイルを、今の解析ページで読んでも結果が変わらない。</dd>
+      </dl>
+    </article>
+
+    <article class="item">
+      <div class="item-head"><span class="id">B-2</span><h3>測定時間の予約</h3><span class="tags"><span class="where">コンソール</span><span class="size">S</span><span class="ev ev-code">コード</span></span></div>
+      <p class="what">「10 分測ったら止める」「1000 件で止める」。残りを数え、終わったら記録を一時停止して音で知らせる。始めと終わりに B-1 の印を自動で入れる。ライブタイムで止めるか、経過時間で止めるかを選べる。</p>
+      <dl>
+        <dt>なぜ</dt><dd>授業では時間をそろえないと班どうしで比べられない。記録の一時停止はもうある（CHECKLIST の C5）ので、それを時間で呼ぶだけで済む。</dd>
+        <dt>対象</dt><dd>同じ <code>core.js</code> の全機種。</dd>
+        <dt>計測への負担</dt><dd>なし。</dd>
+        <dt>確かめ方</dt><dd>デモで 1 分を予約し、60 秒で一時停止になる。止めたあとも基板は数え続けていて、再開すると続きから記録する。</dd>
+      </dl>
+    </article>
+
+    <article class="item">
+      <div class="item-head"><span class="id">B-3</span><h3>天頂角は 2 台を重ねて測る（傾ける台つき）</h3><span class="tags"><span class="where">解析</span><span class="where">CAD</span><span class="size">M</span><span class="ev ev-calc">計算</span></span></div>
+      <p class="what">① 天頂角タブの案内を「2 台を重ねて、同時計数の率を入れる」に改め、1 台のときは注意を出す。② B-1 の印に角度が書いてあれば、区間表から R(θ) を自動で入れる。③ 2 台のケースを決まった間隔で重ね、0〜90° を 15° 刻みで傾けられる台を <code>cad/</code> に作る（<code>build_ring_base.py</code> と同じスクリプトの作り方）。</p>
+      <dl>
+        <dt>なぜ</dt><dd>今の案内は 1 台を傾ける前提（<code>zen.dataSub</code>）。平らな板 1 枚では、縦に立てても率は水平の約半分にしかならない <span class="ev ev-calc">計算</span>。実物は 10 mm の厚みの側面（4 面で 2,000 mm²、上面は 2,500 mm²）も効くので、さらに下がりにくい。2 台の同時計数なら、向きを絞った望遠鏡になる。</dd>
+        <dt>間隔</dt><dd>結果は 2 枚の間隔 d でほぼ決まる。真上のミューオン強度を約 70 /m²/s/sr（文献の目安）とし、率 ≈ 強度 × A² / d²（A = 25 cm²、d が辺より十分大きいときの近似）で見積もった <span class="ev ev-calc">計算</span>。
+          <br>・d = 10 cm: 0° で約 160 回/時、角度の幅は ±27° ほど。60° で約 40 回/時（1 時間で誤差 16 %）、75° で約 11 回/時で、偶然の約 0.9 回/時（A-4）が 1 割近くになるので差し引く。
+          <br>・d = 20 cm: 幅は ±14° ほどに絞れるが、率は 4 分の 1（0° で約 40 回/時）。
+          <br>幅がある分だけ角度がならされ、n は 2 より小さく出る見込み <span class="ev ev-guess">推測</span>。90° でも、幅の内側の斜めの粒子が少し残る。解析ページのフィットに幅を入れるか、間隔を広げて時間をかけるかを選ぶ。</dd>
+        <dt>対象</dt><dd>同時計数のある OHASHI（A-4）。台はケースの形で決まる（四角いケースか丸いケースか）。</dd>
+        <dt>計測への負担</dt><dd>なし。</dd>
+        <dt>確かめ方</dt><dd>台で 0° と 90° を測り、90° の同時の率が 0° の 1 割を下回る。0〜90° の点で cos<sup>n</sup>θ をあて、幅を入れたフィットで n が 2 前後に出るか。</dd>
+      </dl>
+    </article>
+
+    <article class="item">
+      <div class="item-head"><span class="id">B-4</span><h3>1 枚の測定レポート</h3><span class="tags"><span class="where">コンソール</span><span class="where">解析</span><span class="size">M</span><span class="ev ev-guess">推測</span></span></div>
+      <p class="what">機種・名前・ファームの版・しきい値・モード・メモ、測定時間、件数、率 ± 誤差、ヒストグラム、率の推移、環境の平均、B-1 の区間表を、A4 1 枚の印刷用ページにまとめる。</p>
+      <dl>
+        <dt>なぜ</dt><dd>授業の記録や、購入した人からの「ちゃんと動いているか」の相談に、画面写真より使いやすい見込み。材料はコンソールがもう持っている（統計 18 項目）。</dd>
+        <dt>対象</dt><dd>同じ <code>core.js</code> の全機種と、解析ページ。</dd>
+        <dt>計測への負担</dt><dd>なし。</dd>
+        <dt>確かめ方</dt><dd>Chrome の印刷で A4 1 枚に収まる。日英どちらでも崩れない。</dd>
+      </dl>
+    </article>
+  </div>
+</section>
+
+<section class="sec" aria-labelledby="h-p3">
+  <h2 id="h-p3">Phase 3 · 売ったあとに困らない</h2>
+  <p class="sec-sub">ファームの書き換えが要るもの。すでに売った基板は、書き込みページ（<code>flash.html</code>）で書き直してもらうことになる。</p>
+  <div class="items">
+
+    <article class="item top">
+      <div class="item-head"><span class="id">C-1</span><h3>ファームの版を問い合わせる <code>GET_VER</code></h3><span class="tags"><span class="where">ファーム</span><span class="where">コンソール</span><span class="size">S</span><span class="ev ev-code">コード</span></span></div>
+      <p class="what">V2 のファームに <code>GET_VER</code> を足し、<code>VER:FW=2.0.x BOARD=v2 BUILD=2026-11-12b</code> のように返す（v2.1 の <code>VER:</code> と同じ形）。起動時の <code>###</code> の見出しにも版を出す。コンソールは接続直後に聞いて詳細設定 &gt; 接続に出し、書き込みページの manifest の版と比べて、新しい版があれば知らせる。idea.html の A-6（設定の一括ダンプ）も、v2.1 の <code>#CFG</code> と同じ形でここで済ませる。</p>
+      <dl>
+        <dt>なぜ</dt><dd>V2 のコマンドの一覧に版を返すものが無い。manifest には <code>"version": "2026-11-12b"</code> がある。コンソールの <code>VER:</code> の読み取りは v2.1 用の場所（<code>parseV21Reply</code>）にあるので、共通の場所へ移す。<code>noteBoardModel</code> は BOARD が v2.1 以外なら「v2.1 ではない」と扱うので、<code>BOARD=v2</code> で取り違えは起きない。</dd>
+        <dt>対象</dt><dd>OHASHI のファーム。古いファームは答えないので「版不明（2026-11 以前）」と出す。</dd>
+        <dt>計測への負担</dt><dd>接続時に 1 回だけ。</dd>
+        <dt>確かめ方</dt><dd>新旧のファームで、表示が「2.0.x」と「版不明」に分かれる。v2.1 の表示が今と変わらない。</dd>
+      </dl>
+    </article>
+
+    <article class="item">
+      <div class="item-head"><span class="id">C-2</span><h3>診断レポートと設定の控え</h3><span class="tags"><span class="where">コンソール</span><span class="size">M</span><span class="ev ev-code">コード</span></span></div>
+      <p class="what">詳細設定 &gt; ヘルプに「診断レポートを作る」。機種・ファームの版（C-1）・ブラウザと OS・USB か BLE か・すべての <code>GET_*</code> の値・センサーの有無（気圧が <code>nan</code> か）・SD と GPS の状態・直近の率・受信ログの最後の 200 行・画面に出た警告を、テキストで保存してメールに添付できるようにする。<b>GPS の緯度経度と Bluetooth のアドレスは既定で伏せる。</b>同じ画面に「設定を書き出す / 読み込む」（JSON。読み込むときは、送る <code>SET_*</code> を一覧で見せてから送る）。</p>
+      <dl>
+        <dt>なぜ</dt><dd>問い合わせの最初の往復（版は？ 設定は？ 何が出た？）を 1 回で済ませる。値は接続直後の問い合わせ（<code>REFRESH_COMMANDS</code>）でもう全部集めている。</dd>
+        <dt>対象</dt><dd>同じ <code>core.js</code> の全機種。</dd>
+        <dt>計測への負担</dt><dd>なし（集めた値を書き出すだけ）。</dd>
+        <dt>確かめ方</dt><dd>デモでレポートを作り、緯度経度とアドレスが伏せてある。書き出した設定を読み込むと、同じ値が <code>THRESH:</code> などの応答で返ってくる。</dd>
+      </dl>
+    </article>
+
+    <article class="item top">
+      <div class="item-head"><span class="id">C-3</span><h3>PC の時刻を基板に渡す <code>SET_TIME</code></h3><span class="tags"><span class="where">ファーム</span><span class="where">コンソール</span><span class="where">解析</span><span class="size">M</span><span class="ev ev-code">コード</span></span></div>
+      <p class="what">コンソールは接続直後に <code>SET_TIME:&lt;UNIX 秒&gt;</code>（19 文字）を送る。ファームはそのときの <code>t_us</code> と組で覚え、<code>### TIME &lt;t_us&gt; &lt;utc_epoch_s&gt; src=PC</code> を Serial と SD に書く。GPS の <code>### PPS &lt;t_us&gt; &lt;utc_epoch_s&gt;</code> と同じ並びにする。GPS が時刻を持っているときは GPS を優先する。</p>
+      <dl>
+        <dt>なぜ</dt><dd>SD のログのイベント行は起動からの µs しか持たない。GPS の無い基板では、SD のログが何時の測定か後から分からない。ただし読む側は新しく要る。<code>core.js</code> の PPS の正規表現は <code>### TIME … src=PC</code> に合わないので、TIME 行の読み取りを足す。解析ページは PPS も UTC もまだ読んでいない（<code>plotter.js</code> に該当なし）ので、時刻の軸は解析ページの仕事になる。ファームとコンソールは S、解析ページを入れて M。精度は USB で数十 ms 程度の見込み <span class="ev ev-guess">推測</span>。分・時間の単位の解析（A-2）には十分で、同時計数には使えない。</dd>
+        <dt>対象</dt><dd>OHASHI のファーム。</dd>
+        <dt>計測への負担</dt><dd>接続時に 1 回だけ。</dd>
+        <dt>確かめ方</dt><dd>GPS なしの基板で SD のログに TIME 行が入る。そのログを解析ページで読むと、率の推移の横軸が日時になる（解析ページに時刻の軸を足したあと）。GPS が時刻を持つ基板では TIME 行を出さない。</dd>
+      </dl>
+    </article>
+
+    <article class="item">
+      <div class="item-head"><span class="id">C-4</span><h3>SD のログを USB で吸い出す</h3><span class="tags"><span class="where">ファーム</span><span class="where">コンソール</span><span class="size">M</span><span class="ev ev-calc">計算</span></span></div>
+      <p class="what"><code>SD_LIST</code>（名前と大きさ）と <code>SD_READ:&lt;名前&gt;,&lt;位置&gt;</code>（決まった大きさの塊を、塊ごとのチェックサムつきで返す）。コンソールに「SD のログを取り込む」画面を作り、選んだファイルを PC に保存する。読んでいる間は計数を止め、その時間はデッドタイムに入れる。USB 接続のときだけ使える。</p>
+      <dl>
+        <dt>なぜ</dt><dd>ケースに入れたままだと SD を抜きにくい形がある（丸いケースは底板を外して基板ごと出す）<span class="ev ev-guess">推測</span>。イベント行は約 70〜85 バイトで、実測の 1.6 回/秒なら 1 日で約 14 万行・10〜12 MB。BLE は最大でも約 6.7 kB/秒なので 1 日分に 25〜30 分かかり、その間は数えられない <span class="ev ev-calc">計算</span>。USB だけに絞る。</dd>
+        <dt>対象</dt><dd>OHASHI のファーム（microSD のある機種）。</dd>
+        <dt>計測への負担</dt><dd>吸い出しの間は止まる（コマンドとしてデッドタイムに入る）。</dd>
+        <dt>確かめ方</dt><dd>取り込んだファイルが、SD から直接コピーしたものとバイト単位で一致する。BLE 接続ではボタンが無効になり、理由が出る。</dd>
+      </dl>
+    </article>
+  </div>
+</section>
+
+<section class="sec" aria-labelledby="h-p4">
+  <h2 id="h-p4">Phase 4 · 見せる</h2>
+  <p class="sec-sub">展示と授業の前。リングの計画（Phase 2 の表示モード）とは独立に作れる。</p>
+  <div class="items">
+
+    <article class="item">
+      <div class="item-head"><span class="id">D-1</span><h3>PC のスピーカーで鳴らす</h3><span class="tags"><span class="where">コンソール</span><span class="size">S</span><span class="ev ev-code">コード</span></span></div>
+      <p class="what">実機のイベントでも、デモと同じ Web Audio の音を PC から鳴らす。音程の対応は基板の <code>BEEP:&lt;min&gt;,&lt;max&gt;,&lt;ms&gt;</code> の値を使い、基板のブザーと同じにする。30 回/秒を超えたら間引く。</p>
+      <dl>
+        <dt>なぜ</dt><dd>音を作る処理（<code>demoBeep</code>）はあるが、デモのときしか呼ばれていない。基板のブザーは教室の後ろまで届きにくい見込み <span class="ev ev-guess">推測</span>。プロジェクターのスピーカーで鳴らせる。</dd>
+        <dt>対象</dt><dd>同じ <code>core.js</code> の全機種。</dd>
+        <dt>計測への負担</dt><dd>なし（基板は何もしない）。</dd>
+        <dt>確かめ方</dt><dd>実機で、基板のブザーと PC の音がほぼ同時に、同じ高さの順で鳴る。</dd>
+      </dl>
+    </article>
+
+    <article class="item">
+      <div class="item-head"><span class="id">D-2</span><h3>展示モード</h3><span class="tags"><span class="where">コンソール</span><span class="size">M</span><span class="ev ev-code">コード</span></span></div>
+      <p class="what">全画面で、総数・率・最新イベントの光・メーターだけを大きく出す。設定の引き出しを隠し、Screen Wake Lock で画面を消さない。BLE が切れたら今ある自動再接続でつなぎ直し、戻ったことを画面の隅に出す。1 日ごとに数え直すかを選べる。</p>
+      <dl>
+        <dt>なぜ</dt><dd>展示では「ノート PC の画面が消える」「設定を触られる」が起きる。コンソールに画面の消灯を止める処理は無い。メーター タブ（<code>meter.js</code>）を土台にできる。</dd>
+        <dt>対象</dt><dd>同じ <code>core.js</code> の全機種。</dd>
+        <dt>計測への負担</dt><dd>なし。</dd>
+        <dt>確かめ方</dt><dd>1 分で画面が消える設定の PC でも、展示モードの間は消えない。Esc で通常の画面に戻る。</dd>
+      </dl>
+    </article>
+  </div>
+</section>
+
+<section class="sec" aria-labelledby="h-later">
+  <h2 id="h-later">後回し · 推測を含む・大きいもの</h2>
+  <ul class="later">
+    <li><b>L-1 Wi-Fi で PC なしにサーバーへ送る</b><span class="tags"><span class="where">ファーム</span><span class="size">L</span><span class="ev ev-guess">推測</span></span>
+      <p>server-plan.html の取り込み API（S-12）とつなぐ。アプリ領域の空きは約 534 KB。Wi-Fi と TLS が収まるかは、コンパイルしてみるまで分からない。足りなければ 16 MB のフラッシュに合わせて区画を変えるが、書き込みページの bin と manifest も変わる。</p></li>
+    <li><b>L-2 iPhone・iPad で使う</b><span class="tags"><span class="where">資料</span><span class="where">コンソール</span><span class="ev ev-guess">推測</span></span>
+      <p>iOS の Safari には Web Bluetooth も Web Serial も無いので、今のコンソールは iPhone で使えない見込み（この環境では確かめていない）。近い手は対応ブラウザの案内（資料、S）。遠い手は、基板を Wi-Fi のアクセスポイントにしてページを配る方式で、L-1 と同じ容量の問題がある。</p></li>
+    <li><b>L-3 1 つの画面で複数台</b><span class="tags"><span class="where">コンソール</span><span class="size">L</span><span class="ev ev-guess">推測</span></span>
+      <p>Web Bluetooth で 2〜3 台を同時につなぎ、率を並べる。班ごとの比較に使える。<code>core.js</code> の状態は 1 台を前提に作られているので、作り直しが大きい。</p></li>
+    <li><b>L-4 温度でゲインを補う</b><span class="tags"><span class="where">ファーム</span><span class="where">解析</span><span class="size">M</span><span class="ev ev-guess">推測</span></span>
+      <p>A-2 の ③ で温度の効きの大きさが分かってから。V2 は HV を変えられないので、補うのはしきい値か解析側になる。</p></li>
+    <li><b>L-5 離れた場所どうしの同時計数</b><span class="tags"><span class="where">解析</span><span class="size">M</span><span class="ev ev-guess">推測</span></span>
+      <p>GPS の PPS で時刻は µs の桁でそろうが、25 cm² の検出器では、離れた場所で同じ空気シャワーを捉えることはまれな見込み。期待を上げすぎない。</p></li>
+  </ul>
+</section>
+
+<section class="sec" aria-labelledby="h-dont">
+  <h2 id="h-dont">やらないほうがよいもの</h2>
+  <ul class="dont">
+    <li><b>線量（µSv/h）を表示する</b>線量計としての校正をしていない。プラスチックのシンチレーターのガンマ線の検出効率も測っていない。売る製品が数字を出すと、線量計として使われるおそれがある。</li>
+    <li><b>ミューオンの寿命を測る</b>寿命は 2.2 µs、デッドタイムは実測で 1 イベント約 100〜110 µs（idea.html）。A0 はピークホールドの出力なので、すぐ後に続く 2 つ目のパルスは見えない。</li>
+    <li><b>波形の形でミューオンとガンマ線を分ける</b>A0 はピークホールドの出力で、アンプの生の波形ではない（ファームのオシロの注記）。分けるなら波高の窓（A-1）で。</li>
+    <li><b>測定の途中でしきい値を定期的に自動校正し直す</b>区間ごとに数え方が変わり、率の推移や気圧係数に段差ができる。校正し直すなら B-1 の印を入れて区切る。見張りはベースラインを <code>#</code> の行に残すだけにする。</li>
+    <li><b>イベント行に列を足す</b>コンソール・解析ページ・サーバー送信・SD のログの 4 か所が読む。印・時刻・版などの新しい情報は <code>#</code> の行にする。</li>
+  </ul>
+</section>
+
+<section class="sec" aria-labelledby="h-old">
+  <h2 id="h-old">以前の案（idea.html、2026-07-22）の今</h2>
+  <p class="sec-sub">コードを読んで分かった範囲。波形プローブの B 系は、関係するコマンドが見当たらないものだけ「未」にした。</p>
+  <table class="status">
+    <thead><tr><th>案</th><th>内容</th><th>今</th></tr></thead>
+    <tbody>
+      <tr><td>A-1</td><td>AUTO_PWM の移植</td><td><span class="st st-done">済</span> ファームに <code>AUTO_PWM</code></td></tr>
+      <tr><td>A-2</td><td>PWM の *2 換算の見直し</td><td><span class="st st-done">済</span> 換算をやめ、duty は独立（<code>applyThresholdPwm</code>）</td></tr>
+      <tr><td>A-3</td><td>デッドタイムの削減</td><td><span class="st st-open">未</span> <code>COIN_SYNC_DELAY_US</code> は 50 µs のまま</td></tr>
+      <tr><td>A-4 / C-3</td><td>OLED の向きをコマンドで変える</td><td><span class="st st-open">未</span> <code>setRotation(2)</code> の固定</td></tr>
+      <tr><td>A-5</td><td>音階への丸め・間引き</td><td><span class="st st-open">未</span> 半音・間引きの処理なし</td></tr>
+      <tr><td>A-6</td><td>設定の一括ダンプ</td><td><span class="st st-here">C-1 へ</span> v2.1 には <code>#CFG</code> がある</td></tr>
+      <tr><td>A-7</td><td>ドループの逆補正</td><td><span class="st st-open">未</span></td></tr>
+      <tr><td>B-1</td><td>波形プローブの ADC ドリフト補正</td><td><span class="st st-unk">未確認</span> コマンドではないので検索では分からない</td></tr>
+      <tr><td>B-2 / B-3</td><td>波形プローブの整定・計数のコマンド</td><td><span class="st st-open">未</span> <code>MEASURE_SETTLE</code> / <code>COUNT_RATE</code> なし</td></tr>
+      <tr><td>B-4</td><td>AUTO_PWM の二分探索</td><td><span class="st st-unk">未確認</span></td></tr>
+      <tr><td>C-1 / C-2</td><td>ビープの欄・PWM の欄</td><td><span class="st st-done">済</span> CHECKLIST の D3・D4・D7</td></tr>
+      <tr><td>C-4</td><td>ライブの keV 軸</td><td><span class="st st-here">A-5 へ</span></td></tr>
+      <tr><td>D-1</td><td>エネルギー校正の強化</td><td><span class="st st-done">済</span> ガウス・FWHM・山の自動検出・2 次の式</td></tr>
+      <tr><td>D-2</td><td>wave_plotter との役割整理</td><td><span class="st st-unk">未確認</span> オシロはコンソールに入った</td></tr>
+      <tr><td>E-1</td><td>マニュアルとファームの食い違い</td><td><span class="st st-done">済</span> <code>manual.html</code> に書き直し</td></tr>
+      <tr><td>E-2</td><td>実測の知見を技術ノートに</td><td><span class="st st-open">未</span> manual.html に「ドループ」「整定」の語が無い</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="sec" aria-labelledby="h-ask">
+  <h2 id="h-ask">決めてほしいこと</h2>
+  <ol class="ask">
+    <li><span><b>いちばんの使い道</b>授業（Phase 2 を先に）、展示（Phase 4 を先に）、長期の観測（A-2・C-3・C-4 を先に）のどれを優先するか。</span></li>
+    <li><span><b>天頂角の案内</b>解析ページとマニュアルの「1 台を傾ける」案内を、注意を足すだけにするか、2 台の同時計数に書き換えるか（B-3）。傾ける台は四角いケースと丸いケースのどちらに合わせ、間隔は 10 cm（率が高い）と 20 cm（角度が絞れる）のどちらにするか。</span></li>
+    <li><span><b>V2 のファームを更新して配るか</b>C-1・C-3・C-4 はファームの書き換えが要る。売った基板は書き込みページで書き直してもらう。</span></li>
+    <li><span><b>OWAN（v1.html）にも広げるか</b>v1.html は <code>core.js</code> を使わない別のコードなので、Phase 1・2 の機能は届かない。広げるなら作業が倍近くになる。</span></li>
+    <li><span><b>線量の表示を頼まれたときの答え</b>「やらない」で決めてよいか。</span></li>
+  </ol>
+</section>
+
+<footer>
+  参照したファイル
+  <ul>
+    <li><code>arduino/v2/COSMICRAY_DETECTOR_ESP32-S3-Nano-v2/</code>（ファーム。コマンドの一覧、COIN のタイミング、空きピンの注意、SD の書き込み、ビルドの区画と bin の大きさ）</li>
+    <li><code>arduino/v2/console/assets/js/</code> の <code>core.js</code>・<code>ui.js</code>・<code>plotter.js</code>・<code>i18n.js</code>（行の解析、デモの定数、統計、区間の分け方、校正、天頂角の案内）</li>
+    <li><code>arduino/v2/console/CHECKLIST.md</code>、<code>arduino/v2/console/firmware/manifest-v2.json</code></li>
+    <li><code>arduino/idea.html</code>（以前の案と実測値）、<code>arduino/server-plan.html</code>、<code>arduino/v2/ring-led-plan.html</code></li>
+    <li><code>cad/cosmic-ray-detector-v2-compact-README.md</code>（シンチレーターの大きさ）、<code>cosmic-ray-detector-assemble.csv</code>（SiPM の型番）</li>
+    <li><code>arduino/description.md</code> は 13 列の頃の記述が残るので、数字はファームと <code>core.js</code> を正とした。</li>
+  </ul>
+</footer>
+</div>
+</body>
+</html>

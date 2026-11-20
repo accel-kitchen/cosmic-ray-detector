@@ -704,6 +704,12 @@ body[data-view="scope"] #btnCloseScope { display: inline-flex; }
 .switches { list-style: none; display: flex; flex-direction: column; }
 .switches li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--rule); font-size: 14px; }
 .switches li > span { display: inline-flex; align-items: center; }
+/* microSD のファイル一覧（C-4） */
+.sd-files { list-style: none; font-size: 13px; }
+.sd-files li { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--rule); }
+.sd-files .sd-name { font-family: var(--f-num); min-width: 0; overflow-wrap: anywhere; }
+.sd-files .sd-size { color: var(--ink-3); margin-left: 6px; }
+.sd-files .sd-cur { color: var(--signal-ink); margin-left: 6px; }
 .conn-detail { list-style: none; font-size: 13px; color: var(--ink-2); }
 .conn-detail li { padding: 2px 0; }
 .conn-detail li:first-child { font-weight: 700; color: var(--ink); }

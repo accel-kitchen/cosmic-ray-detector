@@ -60,6 +60,8 @@
     <button type="button" role="tab" data-tab="tab2" aria-selected="false" data-i18n="tab.zenith">天頂角分布</button>
     <button type="button" role="tab" data-tab="tab3" aria-selected="false" data-i18n="tab.cal">エネルギー校正</button>
     <button type="button" role="tab" data-tab="tab4" aria-selected="false" data-i18n="tab.compare">比較</button>
+    <button type="button" role="tab" data-tab="tab5" aria-selected="false" data-i18n="tab.env">気圧・温度</button>
+    <button type="button" role="tab" data-tab="tab6" aria-selected="false" data-i18n="tab.iv">到着間隔</button>
   </div>
 
   <!-- ===== Tab 1: ADC histogram ===== -->
@@ -95,6 +97,7 @@
           <label class="check"><input type="checkbox" id="useKeV" disabled><span data-i18n="hist.useKeV">横軸を keV に（校正を使う）</span></label>
         </div>
       </div>
+      <p class="hint" id="clockHint" hidden></p>
     </div>
 
     <dl class="readouts-sm" id="statsRow" hidden>
@@ -303,6 +306,110 @@
     </div>
 
     <div class="grid-2 cmp-grid" id="cmpGrid"></div>
+  </section>
+
+  <!-- ===== Tab 5: Pressure / temperature vs count rate ===== -->
+  <section id="tab5" class="tab-content" role="tabpanel" hidden>
+    <div class="panel">
+      <div class="panel-head">
+        <h2 class="panel-title" data-i18n="env.title">気圧・温度と計数率</h2>
+        <span class="panel-sub" data-i18n="env.sub"></span>
+      </div>
+      <div class="controls">
+        <label class="filepick">
+          <span data-i18n="hist.file">測定データ</span>
+          <input type="file" id="envFileInput" accept=".dat,.csv,.txt">
+          <span class="btn btn-primary btn-sm"><svg class="i"><use href="#i-file"/></svg><span data-i18n="common.choose">ファイルを選ぶ</span></span>
+          <span class="file-name" id="envFileName" data-i18n="common.useHistFile">未選択（ADC ヒストグラムのタブのファイルを使う）</span>
+        </label>
+        <span class="sep"></span>
+        <label class="field"><span data-i18n="env.bin">区切りの長さ</span>
+          <select id="envBin">
+            <option value="600" data-i18n="env.bin10m">10 分</option>
+            <option value="1800" data-i18n="env.bin30m">30 分</option>
+            <option value="3600" data-i18n="env.bin1h" selected>1 時間</option>
+            <option value="10800" data-i18n="env.bin3h">3 時間</option>
+            <option value="21600" data-i18n="env.bin6h">6 時間</option>
+          </select>
+        </label>
+        <label class="field"><span><span data-i18n="hist.adcMin">ADC 下限</span> <span class="dim" data-i18n="common.optional">任意</span></span><input type="number" class="num-input" id="envAdcMin" data-i18n-placeholder="common.auto" placeholder="自動"></label>
+        <label class="field"><span><span data-i18n="hist.adcMax">ADC 上限</span> <span class="dim" data-i18n="common.optional">任意</span></span><input type="number" class="num-input" id="envAdcMax" data-i18n-placeholder="common.auto" placeholder="自動"></label>
+        <div class="checks">
+          <label class="check"><input type="checkbox" id="envUseTemp" checked><span data-i18n="env.useTemp">温度も一緒にあてる</span></label>
+        </div>
+      </div>
+      <p class="hint" data-i18n="env.adcHint"></p>
+      <p class="field-msg" id="envMsg" hidden></p>
+    </div>
+
+    <dl class="readouts-sm readouts-long" id="envStats" hidden>
+      <div><dt data-i18n="env.beta">気圧係数 β</dt><dd id="envBeta">-</dd></div>
+      <div><dt data-i18n="env.gamma">温度係数</dt><dd id="envGamma">-</dd></div>
+      <div><dt data-i18n="env.adcTemp">ADC 中央値の温度変化</dt><dd id="envAdcTemp">-</dd></div>
+      <div><dt data-i18n="env.nBins">区切りの数</dt><dd id="envNBins">-</dd></div>
+      <div><dt data-i18n="env.chi2">χ² / 自由度</dt><dd id="envChi2">-</dd></div>
+      <div><dt data-i18n="env.pRange">気圧の範囲</dt><dd id="envPRange">-</dd></div>
+    </dl>
+
+    <div class="grid-2">
+      <div class="panel">
+        <div class="panel-head"><h2 class="panel-title" data-i18n="env.plotPress">計数率と気圧</h2><span class="panel-sub" id="envPressSub"></span></div>
+        <div class="plot"><div id="envPressDiv"></div><p class="plot-empty" id="envPressEmpty" data-i18n="env.empty">測定データのファイルを選ぶと、ここに出ます</p></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h2 class="panel-title" data-i18n="env.plotTemp">ADC の中央値と温度</h2><span class="panel-sub" data-i18n="env.plotTempSub"></span></div>
+        <div class="plot"><div id="envTempDiv"></div><p class="plot-empty" id="envTempEmpty" data-i18n="env.empty">測定データのファイルを選ぶと、ここに出ます</p></div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><h2 class="panel-title" data-i18n="env.plotTime">計数率の推移</h2><span class="panel-sub" data-i18n="common.zoomHint"></span></div>
+      <div class="plot"><div id="envTimeDiv"></div><p class="plot-empty" id="envTimeEmpty" data-i18n="env.empty">測定データのファイルを選ぶと、ここに出ます</p></div>
+    </div>
+  </section>
+
+  <!-- ===== Tab 6: Intervals between events ===== -->
+  <section id="tab6" class="tab-content" role="tabpanel" hidden>
+    <div class="panel">
+      <div class="panel-head">
+        <h2 class="panel-title" data-i18n="iv.title">到着間隔の分布</h2>
+        <span class="panel-sub" data-i18n="iv.sub"></span>
+      </div>
+      <div class="controls">
+        <label class="filepick">
+          <span data-i18n="hist.file">測定データ</span>
+          <input type="file" id="ivFileInput" accept=".dat,.csv,.txt">
+          <span class="btn btn-primary btn-sm"><svg class="i"><use href="#i-file"/></svg><span data-i18n="common.choose">ファイルを選ぶ</span></span>
+          <span class="file-name" id="ivFileName" data-i18n="common.useHistFile">未選択（ADC ヒストグラムのタブのファイルを使う）</span>
+        </label>
+        <span class="sep"></span>
+        <label class="field"><span><span data-i18n="iv.xmax">横軸の上限 [ms]</span> <span class="dim" data-i18n="common.optional">任意</span></span><input type="number" class="num-input" id="ivXmax" min="1" step="any" data-i18n-placeholder="common.auto" placeholder="自動"></label>
+        <label class="field"><span data-i18n="iv.windowLabel">数える区切り [s]</span><input type="number" class="num-input" id="ivWindow" value="10" min="0.1" step="any"></label>
+        <div class="checks">
+          <label class="check"><input type="checkbox" id="ivLogY" checked><span data-i18n="common.logY">縦軸を対数に</span></label>
+        </div>
+      </div>
+      <p class="field-msg" id="ivMsg" hidden></p>
+    </div>
+
+    <dl class="readouts-sm readouts-long" id="ivStats" hidden>
+      <div><dt data-i18n="iv.rateFit">傾きからの率</dt><dd id="ivRateFit">-</dd></div>
+      <div><dt data-i18n="iv.rateCount">件数 ÷ ライブタイム</dt><dd id="ivRateCount">-</dd></div>
+      <div><dt data-i18n="iv.minDt">いちばん短い Δt</dt><dd id="ivMinDt">-</dd></div>
+      <div><dt id="ivShortLabel">5 ms 以内に続いた</dt><dd id="ivShort">-</dd></div>
+      <div><dt id="ivDispLabel">分散 ÷ 平均</dt><dd id="ivDisp">-</dd></div>
+    </dl>
+
+    <div class="grid-2">
+      <div class="panel">
+        <div class="panel-head"><h2 class="panel-title" data-i18n="iv.plotDt">Δt の分布</h2><span class="panel-sub" data-i18n="iv.plotDtSub"></span></div>
+        <div class="plot"><div id="ivDtDiv"></div><p class="plot-empty" id="ivDtEmpty" data-i18n="env.empty">測定データのファイルを選ぶと、ここに出ます</p></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h2 class="panel-title" id="ivCountTitle">区切りごとの件数</h2><span class="panel-sub" data-i18n="iv.plotCountSub"></span></div>
+        <div class="plot"><div id="ivCountDiv"></div><p class="plot-empty" id="ivCountEmpty" data-i18n="env.empty">測定データのファイルを選ぶと、ここに出ます</p></div>
+      </div>
+    </div>
+    <p class="hint" data-i18n="iv.note"></p>
   </section>
 </main>
 

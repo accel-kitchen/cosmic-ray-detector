@@ -121,6 +121,7 @@ function newStats() {
     nPress: 0, sumPress: 0, minPress: Infinity, maxPress: -Infinity,
     sumAdc: 0, maxAdc: 0,
     digHits: [0, 0, 0],
+    coincAny: 0,         // 外部検出器 1〜3 のどれかが同時だったイベントの数（同時計数）
     sumAna:  [0, 0, 0],
     // v2.1（FMT:3）のイベントだけ: Flags の内訳（1 = 前後と重なり、2 = ADC 飽和、16 = ベースライン 55 mV 未満）
     nFmt3: 0, flagPile: 0, flagSat: 0, flagLowBase: 0,
@@ -150,6 +151,19 @@ function newV21State() {
   };
 }
 
+// 接続先の識別情報（state.conn）。接続を切ったときとデモを始めたときにも作り直す。
+function newConnState() {
+  return {
+    usbVendorId: null, usbProductId: null, bleId: null, bleName: null, btAddr: null, btAddrTimedOut: false,
+    board: null,
+    // ファームの版（GET_VER の "VER:FW=.. BOARD=.. BUILD=.."）。
+    // fwState: null（聞いていない）| 'fetching' | 'known' | 'none'（答えない古いファーム）
+    fw: null, fwBuild: null, fwState: null, fwLatest: null, fwChecked: false,
+    // 基板の時計（SET_TIME / GET_TIME の応答 "TIME:<utc s> SRC:GPS|PC|NONE"）{ src, utc, atMs } | null
+    clock: null,
+  };
+}
+
 function newRateState() {
   return {
     seg: null,       // { id, base: {count,timeUs,deadUs}, last: {count,timeUs,deadUs} }
@@ -175,7 +189,7 @@ const state = {
   //   Web Serial は VID/PID しか公開しない（COM 番号は仕様上取得できない）。
   //   Web Bluetooth の device.id はオリジン固有の不透明 ID で MAC ではない。
   //   btAddr は GET_BTADDR の応答（= 基板の BLE アドレス）。USB 接続でも取れる。
-  conn: { usbVendorId: null, usbProductId: null, bleId: null, bleName: null, btAddr: null, btAddrTimedOut: false },
+  conn: newConnState(),
   // BLE auto-reconnect (R-10). bleUserDisconnect tells onBLEDisconnected that
   // the drop was requested, so it must not start retrying.
   bleTxChar: null,
@@ -759,6 +773,8 @@ function sendCommand(cmd) {
 
 async function sendCommandNow(cmd) {
   if (!state.isConnected) return;
+  // 送る直前に中身を決めたいコマンド（SET_TIME の時刻）は関数で渡す。待ち行列で待った分ずれないように。
+  if (typeof cmd === 'function') cmd = cmd();
 
   if (state.connectionType === 'demo') {
     demoCommand(cmd);
@@ -822,12 +838,15 @@ let refreshGen = 0;
 //   scopeTrig  : オシロの撮り方（SET_SCOPE_TRIG）と再アーム（SET_SCOPE_REARM）がある
 //   scopePausesCount : オシロを開いている間、計数が止まる（v2.1 は DMA が回り続けるので止まらない）
 //   esp32      : ESP32-S3 の USB-Serial-JTAG（DTR/RTS でリセットできる）。黙ったままの基板を通常起動へ戻す対処に使う
+//   ver        : GET_VER で版を聞き、SET_TIME で PC の時刻を渡す（2026-11-20 以降の v2 のファーム）。
+//                古い v2 のファームは知らないコマンドに何も返さないので、送っても害はない。
+//                OKOME と v2.1 のファームは "Unknown command" を返すので送らない
 const MODEL_PROFILES = {
   v2: {
     id: 'v2',
     bleDefault: 'CosmicRay', blePrefix: false, bleKey: 'bleName',
-    refresh: REFRESH_COMMANDS,
-    hv: false, fmt3: false, scopeTrig: true, scopePausesCount: true, esp32: true,
+    refresh: REFRESH_COMMANDS.concat('GET_VER'),
+    hv: false, fmt3: false, scopeTrig: true, scopePausesCount: true, esp32: true, ver: true,
   },
   okome: {
     id: 'okome',
@@ -860,6 +879,11 @@ async function refreshDeviceState() {
   if (modelProfile.hv) state.hv = null;   // GET_HV の応答が来るまで「取得中」
   // v2.1: 前の基板（や再起動前）の値・NOISE の結果・警告を持ち越さない。応答が来るまで「取得中」
   if (modelProfile.fmt3) { state.v21 = newV21State(); Bus.emit('device', 'v21'); }
+  // 版と時計も聞き直す（再起動で PC の時刻は消える）。
+  const c = state.conn;
+  c.fw = null; c.fwBuild = null; c.fwState = modelProfile.ver ? 'fetching' : null; c.fwChecked = false;
+  c.clock = null;
+  Bus.emit('connDetail');
   // Give a board that is still booting a moment before the first GET.
   await sleep(800);
   for (const cmd of modelProfile.refresh) {
@@ -867,11 +891,22 @@ async function refreshDeviceState() {
     await sendCommand(cmd);
     await sleep(CMD_GAP_MS);
   }
+  // PC の時刻を渡す（UTC の unix ミリ秒）。GPS の無い基板でも、SD のログに "### TIME" の行が入り、
+  // 何時の測定か後から分かる。値は送る直前に決める（待ち行列で待った分ずれないように）。
+  if (modelProfile.ver && gen === refreshGen && state.isConnected) {
+    await sendCommand(() => 'SET_TIME:' + Date.now());
+  }
   await sleep(1500);
   if (gen === refreshGen && state.isConnected && !state.conn.btAddr) {
     state.conn.btAddrTimedOut = true;
     Bus.emit('connDetail');
   }
+  // GET_VER に答えないのは 2026-11-20 より前のファーム（基板が何か返しているときだけそう判断する）。
+  if (gen === refreshGen && state.isConnected && c.fwState === 'fetching' && state.lastRxMs >= state.connectedAtMs) {
+    c.fwState = 'none';
+    Bus.emit('connDetail');
+  }
+  if (gen === refreshGen && state.isConnected) checkFirmwareUpdate();
   // 問い合わせに 1 行も返ってこない USB の ESP32-S3 は、ROM のダウンロードモードで止まっていることが多い。
   // ブラウザがポートを閉じたときの DTR/RTS の動きでそこに入ることがあり（2026-11-15、v2.1 の実機で、
   // 切断のあと Saved PC が ROM を指していた）、入ったときの ESP-ROM の表示は誰も聞いていないので、
@@ -979,6 +1014,11 @@ function recordGpsLine(line, isPps, utc) {
   }
   if (state.paused) return;
   if (isPps) r.pps++; else r.pos++;
+  recordInfoLine(line);
+}
+
+// '#' の行を、届いた順のままイベントの間に保存する（GPS の PPS / 位置の行と、PC の時刻の TIME 行）。
+function recordInfoLine(line) {
   const rec = { kind: 'gps', pc_timestamp: Date.now(), line: line.replace(/^#+/, '###'), demo: state.connectionType === 'demo' };
   state.gpsLog.push(rec);
   if (state.gpsLog.length > GPS_LOG_MAX) state.gpsLog.splice(0, state.gpsLog.length - GPS_LOG_MAX);
@@ -987,6 +1027,68 @@ function recordGpsLine(line, isPps, utc) {
     if (fmt === 'dat' || fmt === 'both') state.autoSave.queues.dat.push(rec);
     if (fmt === 'csv' || fmt === 'both') state.autoSave.queues.csv.push(rec);
   }
+}
+
+// v2 のファーム（2026-11-20 以降）の情報行。拾ったら true。
+//   "### TIME <t_us> <utc_epoch_s> src=PC" : Time[us] の t_us の瞬間の UTC がちょうど utc_epoch_s 秒（PC の時刻から）。
+//                                            GPS の "### PPS <t_us> <utc_epoch_s>" と同じ並びなので、同じく保存に入れる
+//   "### Firmware: FW=2.0.0 BOARD=v2 BUILD=2026-11-20" : 起動時の版の名乗り（GET_VER の応答と同じ中身）
+function parseTimeInfo(line) {
+  const tm = line.match(/^#+\s*TIME\s+(\d+)\s+(\d+)(?:\s+src=(\w+))?\s*$/i);
+  if (tm) {
+    if (!state.paused) recordInfoLine(line);
+    return true;
+  }
+  const fw = line.match(/^#+\s*Firmware:\s*(.*)$/i);
+  if (fw) {
+    noteFirmware(kvPairs(fw[1], '='));
+    return true;
+  }
+  return false;
+}
+
+// 基板が名乗った版を覚える（VER: の応答と、起動時の "### Firmware:" 行）。
+function noteFirmware(kv) {
+  const c = state.conn;
+  if (kv.FW) c.fw = kv.FW;
+  if (kv.BUILD) c.fwBuild = kv.BUILD;
+  if (kv.FW || kv.BUILD) c.fwState = 'known';
+  // v2.1 の画面と保存ファイルの先頭（"Detector model: v2.1 (FW …)"）が使う値。以前から VER: で入れていた
+  if (kv.FW) state.v21.fw = kv.FW;
+  if (kv.BOARD) { state.v21.board = kv.BOARD; noteBoardModel(kv.BOARD); }
+  Bus.emit('device', 'v21');
+  Bus.emit('connDetail');
+  checkFirmwareUpdate();
+}
+
+// 書き込みページ（flash.html）の manifest の "version" と、基板が名乗った BUILD を比べ、
+// 基板のほうが古ければ 1 接続に 1 回だけ知らせる。manifest は 1 ページで 1 回だけ読む。
+// file:// で開いたときなど読めなければ（fetch が失敗する）何も言わない。デモと v2 以外の機種は対象外。
+let fwManifestPromise = null;
+function latestFirmwareBuild() {
+  if (!fwManifestPromise) {
+    fwManifestPromise = fetch('firmware/manifest-v2.json', { cache: 'no-cache' })
+      .then(r => (r.ok ? r.json() : null))
+      .then(j => (j && typeof j.version === 'string' ? j.version : null))
+      .catch(() => null);
+  }
+  return fwManifestPromise;
+}
+
+async function checkFirmwareUpdate() {
+  const c = state.conn;
+  if (!modelProfile.ver || state.connectionType === 'demo' || c.fwChecked) return;
+  if (c.fwState !== 'known' && c.fwState !== 'none') return;
+  if (c.fwState === 'known' && c.board && c.board !== 'v2') return;   // 別の機種のファーム
+  c.fwChecked = true;
+  const latest = await latestFirmwareBuild();
+  if (!latest || !state.isConnected) return;
+  c.fwLatest = latest;
+  Bus.emit('connDetail');
+  // 先に出ている知らせ（別の基板につながった、など）は上書きしない
+  if (pageNoticeMsg) return;
+  if (c.fwState === 'none') showNotice('notice.fwNoVersion', { latest });
+  else if (c.fwBuild && c.fwBuild < latest) showNotice('notice.fwUpdate', { have: c.fwBuild, latest });
 }
 
 // ========== v2.1 (FW 2.1.x, FMT:3) ==========
@@ -1081,13 +1183,7 @@ function parseV21Reply(line) {
     Bus.emit('device', 'v21');
     return true;
   }
-  if (line.startsWith('VER:')) {
-    const kv = kvPairs(line.slice(4), '=');
-    if (kv.FW) v.fw = kv.FW;
-    if (kv.BOARD) { v.board = kv.BOARD; noteBoardModel(kv.BOARD); }
-    Bus.emit('device', 'v21');
-    return true;
-  }
+  // VER: は v2 のファームも返すので processLine の共通の処理（noteFirmware）で拾う。
   if ((m = line.match(/^COIN_WIN:\s*(\d+)\s*$/))) {
     v.coinWin = parseInt(m[1]);
     Bus.emit('device', 'v21');
@@ -1167,6 +1263,10 @@ function processLine(line) {
   if (!line) return;
   state.lastRxMs = Date.now();   // the board is talking (see refreshDeviceState)
 
+  // SD のログの吸い出し（SDFILE: / SDLIST: / SDDATA: / SDERR:）。SDDATA の行は数 KB あるので、
+  // 受信ログには頭だけを残す（sdTransferLine の中で）。"SD:ON" や "SD: init OK" はここを素通りする。
+  if (line.charCodeAt(0) === 83 /* S */ && sdTransferLine(line)) return;
+
   state.rawLines.push(line);
   if (state.rawLines.length > 100) state.rawLines.shift();
   uiDirty = true;
@@ -1220,7 +1320,22 @@ function processLine(line) {
     return;
   }
 
-  // v2.1 (FW 2.1.x) の応答: VTH: / OFS: / BASE: / HV: / NOISE: / #CFG / VER: / DAC: / COIN_WIN: / EXT_ANA: / STAT:
+  // ファームの版: "VER:FW=2.0.0 BOARD=v2 BUILD=2026-11-20"（v2 の GET_VER。v2.1 も同じ形で FW / BOARD を返す）
+  if (line.startsWith('VER:')) {
+    noteFirmware(kvPairs(line.slice(4), '='));
+    return;
+  }
+  // 基板の時計: "TIME:<utc_epoch_s> SRC:GPS|PC|NONE"（v2 の SET_TIME / GET_TIME）
+  if (line.startsWith('TIME:')) {
+    const m = line.match(/^TIME:\s*(\d+)\s+SRC:\s*(\w+)/i);
+    if (m) {
+      state.conn.clock = { src: m[2].toUpperCase(), utc: parseInt(m[1]), atMs: Date.now() };
+      Bus.emit('connDetail');
+    }
+    return;
+  }
+
+  // v2.1 (FW 2.1.x) の応答: VTH: / OFS: / BASE: / HV: / NOISE: / #CFG / DAC: / COIN_WIN: / EXT_ANA: / STAT:
   // v2 / OKOME のファームはこの形の行を出さない。#CFG は '#' で始まるので、下の情報行より前で拾う。
   if (parseV21Reply(line)) return;
 
@@ -1330,6 +1445,7 @@ function processLine(line) {
   // Boot header / informational lines
   if (line.startsWith('###') || line.startsWith('#')) {
     if (parseGpsLine(line)) return;
+    if (parseTimeInfo(line)) return;
     // OKOME だけ: "### HV: 27.1 V (HV_TRIM Hi-Z)" (起動時 / GET_HV / SET_HV の応答)。
     // "### HV changed: ..." や "### HV ..." の説明行は数字が続かないので拾わない。
     const hv = line.match(/^#+\s*HV:\s*(\d+(?:\.\d+)?)\s*V\b/i);
@@ -1521,6 +1637,7 @@ function processLine(line) {
     if (dig[i] === 1) s.digHits[i]++;
     if (!isNaN(ana[i])) s.sumAna[i] += ana[i];
   }
+  if (dig[0] === 1 || dig[1] === 1 || dig[2] === 1) s.coincAny++;
 
   // Update histogram bin
   const binWidth = settings.binWidth;
@@ -1533,6 +1650,9 @@ function processLine(line) {
   }
   hist.hitMs[bin] = performance.now();
   Bus.emit('hit', bin);
+
+  pcBeep(adc);      // D-1: このパソコンでも鳴らす（スイッチが入っているときだけ）
+  timerOnEvent();   // B-2: 予約した測定時間に届いたら記録を止める
 
   statsDirty = true;
 }
@@ -1615,6 +1735,440 @@ function rateSummary() {
     rate:    liveSec > 0 ? counts / liveSec : 0,
     rateStd: liveSec > 0 ? Math.sqrt(counts) / liveSec : 0,
   };
+}
+
+// ========== Coincidences (外部検出器との同時計数) ==========
+// 「同時」= 外部検出器 1〜3 のどれかが、自分のトリガと同時に反応したイベント（イベント行の Dig1〜3）。
+// 率は「全体の計数率 × 同時だった割合」で出す。全体の率は基板のカウンタから求めているので、
+// ブラウザが受け取りそこねた行があっても割合で合わせられる。誤差は同時の件数の √N から。
+// 偶然に重なる分の目安は 2τ·R₁·R₂。相手の率はこの画面には来ないので、相手も同じ率（R₂ = R₁）とし、
+// 反応したことのある入力の数だけ足す。2τ（窓の全幅）は、v2 のファームでは COIN_OUT を 100 µs 立て、
+// 自分のトリガの 50 µs 後に相手の COIN を読むので約 100 µs（±50 µs。loop() が遅れると少し延びる）。
+// v2.1 のファームは「±COIN_WIN 以内」なので 2 × COIN_WIN。
+const COINC_WINDOW_V2_US = 100;
+
+function coincSummary() {
+  const s = state.stats;
+  const r = rateSummary();
+  if (s.n === 0 || !(r.rate > 0)) return null;
+  const k = s.coincAny;
+  const windowUs = modelProfile.fmt3 ? 2 * (state.v21.coinWin || 100) : COINC_WINDOW_V2_US;
+  const inputs = s.digHits.filter(h => h > 0).length || 1;
+  return {
+    count: k,
+    rate: r.rate * k / s.n,
+    rateStd: r.rate * Math.sqrt(k) / s.n,
+    accidental: inputs * windowUs * 1e-6 * r.rate * r.rate,
+    windowUs, inputs,
+  };
+}
+
+// ========== Sound from this PC (D-1) ==========
+// 検出器のブザーと同じ音を PC から鳴らす（教室の後ろまで届くように、プロジェクターのスピーカーなどで）。
+// 音程の対応はファームと同じ対数: f = fmin·(fmax/fmin)^x, x = (ln adc − ln thr)/(ln 4095 − ln thr)。
+// fmin / fmax / 長さとしきい値は、基板が答えた値（BEEP: / THRESH:）を使う。間隔が 33 ms より詰まったら
+// 鳴らさない（30 回/秒を超えたら間引く）。基板のブザーのスイッチとは別に入れ切りできる。
+// AudioContext はユーザーの操作の中でしか始められないので、スイッチを入れたときに作る（pcSoundEnable）。
+const PC_BEEP_MIN_GAP_MS = 33;
+const pcSound = { on: false, ctx: null, lastMs: -Infinity };
+try { pcSound.on = localStorage.getItem('pcSound') === '1'; } catch (_) {}
+
+function pcSoundEnable(on) {
+  pcSound.on = !!on;
+  try { localStorage.setItem('pcSound', pcSound.on ? '1' : '0'); } catch (_) {}
+  if (pcSound.on) {
+    try {
+      if (!pcSound.ctx) pcSound.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      if (pcSound.ctx.state === 'suspended') pcSound.ctx.resume();
+    } catch (_) {}
+  }
+  Bus.emit('pcSound');
+}
+
+// ページを開き直すとスイッチは ON のまま戻るが、AudioContext はユーザーの操作があるまで動かせない。
+// 画面のどこかを押した・キーを押したときに作り直す（ui.js が呼ぶ）。
+function pcSoundWake() {
+  if (!pcSound.on) return;
+  try {
+    if (!pcSound.ctx) pcSound.ctx = new (window.AudioContext || window.webkitAudioContext)();
+    if (pcSound.ctx.state === 'suspended') pcSound.ctx.resume();
+  } catch (_) {}
+}
+
+function pcBeep(adc, force) {
+  if (!force && !pcSound.on) return;
+  const now = performance.now();
+  if (!force && now - pcSound.lastMs < PC_BEEP_MIN_GAP_MS) return;
+  pcSound.lastMs = now;
+  const d = state.connectionType === 'demo' && demo.dev ? demo.dev : {};
+  const thr = Math.max(1, state.threshold ?? d.threshold ?? 100);
+  const fmin = state.beepMin ?? d.beepMin ?? 500;
+  const fmax = state.beepMax ?? d.beepMax ?? 4000;
+  const ms = state.beepMs ?? d.beepMs ?? 25;
+  playTone(fmin, fmax, ms, adc, thr);
+}
+
+function playTone(fmin, fmax, ms, adc, thr) {
+  try {
+    if (!pcSound.ctx) pcSound.ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const ac = pcSound.ctx;
+    if (ac.state === 'suspended') ac.resume();
+    let x = 0;
+    if (adc > thr && ADC_MAX > thr) x = Math.min(1, Math.max(0, (Math.log(adc) - Math.log(thr)) / (Math.log(ADC_MAX) - Math.log(thr))));
+    const f = fmin * Math.pow(fmax / fmin, x);
+    const dur = Math.max(0.005, ms / 1000);
+    const t0 = ac.currentTime;
+    const osc = ac.createOscillator(), g = ac.createGain();
+    osc.type = 'square';                       // 圧電ブザーの音色に寄せる
+    osc.frequency.value = f;
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(0.07, t0 + 0.002);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    osc.connect(g).connect(ac.destination);
+    osc.start(t0);
+    osc.stop(t0 + dur + 0.02);
+  } catch (_) {}
+}
+
+// ========== Diagnostic report and settings backup (C-2) ==========
+// 購入した人から相談を受けたとき、最初の往復（版は？ 設定は？ 何が出た？）を 1 回で済ませるための
+// テキスト。値は接続直後の問い合わせでもう集めてあるので、ここでは書き出すだけで基板には何も送らない。
+// GPS の位置・Bluetooth のアドレス・ページの場所（ファイルのパスにユーザー名が入ることがある）は、
+// includePrivate が false なら伏せる。
+function maskPrivate(line) {
+  return line
+    .replace(/BTADDR:\s*\S+/gi, 'BTADDR:(hidden)')
+    .replace(/\b(lat|lon|alt)=[-\d.]+/gi, '$1=(hidden)')
+    .replace(/^(\d+(?:\s+\S+){15})\s+\S+\s+\S+$/, '$1 (hidden) (hidden)');   // 18 列のイベント行の Lat / Lon
+}
+
+function buildDiagnosticReport(includePrivate) {
+  const L = [];
+  const v = x => (x == null || (typeof x === 'number' && isNaN(x)) ? '-' : String(x));
+  const onOff = x => (x == null ? '-' : x ? 'ON' : 'OFF');
+  const c = state.conn;
+  const now = new Date();
+  L.push('CosmicRay Recorder - diagnostic report');
+  L.push(`Created: ${now.toISOString()} (local ${formatLocalTimestamp(now.getTime()).slice(0, 19)})`);
+  L.push(`Page: ${location.protocol === 'file:' ? 'local file' : location.origin}${includePrivate ? ' ' + location.pathname : ''}`);
+  L.push(`Browser: ${navigator.userAgent}`);
+  L.push(`Web Serial: ${'serial' in navigator ? 'yes' : 'no'} / Web Bluetooth: ${'bluetooth' in navigator ? 'yes' : 'no'} / language: ${typeof currentLang === 'string' ? currentLang : '-'}`);
+  L.push('');
+  L.push('[Detector]');
+  L.push(`Model chosen: ${modelProfile.id}`);
+  L.push(`Connection: ${state.isConnected ? state.connectionType : 'not connected'}${state.reconnecting ? ' (reconnecting)' : ''}${state.paused ? ' (recording paused)' : ''}`);
+  if (state.isConnected) L.push(`Connected for: ${formatTime(Date.now() - state.connectedAtMs)}`);
+  L.push(`Name: ${v(state.bleName || c.bleName)}`);
+  L.push(`Board address: ${c.btAddr ? (includePrivate ? c.btAddr : '(hidden)') : '-'}`);
+  if (c.usbVendorId != null) L.push(`USB VID:PID: ${c.usbVendorId.toString(16).padStart(4, '0')}:${(c.usbProductId || 0).toString(16).padStart(4, '0')}`);
+  L.push(`Firmware: ${c.fw || (modelProfile.fmt3 ? state.v21.fw : null) || (c.fwState === 'none' ? 'does not report a version (before 2026-11-20)' : '-')}` +
+         (c.fwBuild ? ` build ${c.fwBuild}` : '') + (c.board ? ` board ${c.board}` : '') + (c.fwLatest ? ` / latest on the flash page ${c.fwLatest}` : ''));
+  L.push(`Board clock: ${c.clock ? c.clock.src + (c.clock.utc ? ' ' + new Date(c.clock.utc * 1000).toISOString() : '') : '-'}`);
+  L.push('');
+  L.push('[Board settings, as last reported]');
+  L.push(`Threshold: ${v(state.threshold)}  auto margin: ${v(state.autoMargin)}  PWM duty: ${v(state.pwmDuty)}  trigger mode: ${v(state.mode)}`);
+  L.push(`SD: ${onOff(state.sdEnabled)}  EXT: ${onOff(state.extEnabled)}  OLED: ${onOff(state.oledEnabled)}  buzzer: ${onOff(state.buzzerEnabled)}  vibration: ${onOff(state.vibEnabled)}  GPS: ${onOff(state.gpsEnabled)}`);
+  L.push(`Beep: ${v(state.beepMin)}-${v(state.beepMax)} Hz, ${v(state.beepMs)} ms  vibration: ${v(state.vibMin)}-${v(state.vibMax)} ms`);
+  if (modelProfile.hv) L.push(`HV setting: ${v(state.hv)} V`);
+  if (modelProfile.fmt3) {
+    const w = state.v21;
+    L.push(`v2.1: VTH ${v(w.vth)} mV  OFS ${v(w.ofs)} mV  A0 baseline ${v(w.baseMv)} mV  gain ${v(w.gain)}  HV ${v(w.hvV)} V  COIN_WIN ${v(w.coinWin)} us`);
+    if (w.noise) L.push(`v2.1 NOISE: ${JSON.stringify(w.noise)}`);
+    if (w.lastWarn) L.push(`v2.1 last warning: ${w.lastWarn}`);
+  }
+  if (state.gps) {
+    const g = state.gps;
+    L.push(`GPS: valid ${v(g.valid)} fix ${v(g.fix)} sats ${v(g.sats)} pps_age_ms ${v(g.ppsAgeMs)} lines_ok ${v(g.linesOk)} lines_bad ${v(g.linesBad)}` +
+           (includePrivate ? ` lat ${v(g.lat)} lon ${v(g.lon)}` : ''));
+  }
+  L.push('');
+  L.push('[Measurement on this page]');
+  const s = state.stats, r = rateSummary();
+  L.push(`Events: ${s.n}  rate: ${r.rate.toFixed(4)} +- ${r.rateStd.toFixed(4)} cps  elapsed: ${(r.elapsedUs / 1e6).toFixed(1)} s  live: ${(r.liveUs / 1e6).toFixed(1)} s  dead: ${(r.deadUs / 1e6).toFixed(3)} s`);
+  if (s.n) {
+    L.push(`ADC mean ${(s.sumAdc / s.n).toFixed(1)} max ${s.maxAdc}` +
+           (s.nTemp ? `  temp ${(s.sumTemp / s.nTemp).toFixed(2)} C` : '') +
+           (s.nHum ? `  hum ${(s.sumHum / s.nHum).toFixed(1)} %` : '') +
+           (s.nPress ? `  press ${(s.sumPress / s.nPress).toFixed(1)} hPa` : ''));
+    L.push(`External hits: ${s.digHits.join(' / ')}  coincident events: ${s.coincAny}`);
+  }
+  L.push(`Auto-save: ${state.autoSave.enabled ? 'on' : 'off'}  upload: ${state.upload && state.upload.enabled ? 'on' : 'off'}  demo data on page: ${state.events.some(e => e.demo) ? 'yes' : 'no'}`);
+  if (pageNoticeMsg) L.push(`Notice on screen: ${pageNoticeMsg.key}`);
+  if (connErrorMsg) L.push(`Error on screen: ${connErrorMsg.key}`);
+  L.push('');
+  L.push(`[Last ${state.rawLines.length} lines received]`);
+  for (const line of state.rawLines) L.push(includePrivate ? line : maskPrivate(line));
+  return L.join('\n') + '\n';
+}
+
+function exportDiagnosticReport(includePrivate) {
+  const name = (state.bleName || state.conn.bleName || modelProfile.bleDefault).replace(/[^A-Za-z0-9_\-]/g, '_');
+  downloadFile(`${name}_diagnostic_${formatDateForFile(new Date())}.txt`, buildDiagnosticReport(includePrivate));
+}
+
+// 設定の控え。基板の Preferences に保存される値だけを書き出す（トリガーモードは起動時に ANALOG に戻るので
+// 入れない。Bluetooth の名前は書き込むと基板が再起動するので、控えには入れるが読み込みでは送らない）。
+function buildSettingsBackup() {
+  const out = {
+    kind: 'cosmicray-settings', version: 1, model: modelProfile.id,
+    created: new Date().toISOString(),
+    device: state.bleName || null,
+    firmware: state.conn.fw || (modelProfile.fmt3 ? state.v21.fw : null) || null,
+    settings: {
+      threshold: state.threshold, autoMargin: state.autoMargin,
+      pwmDuty: modelProfile.id === 'v2' ? state.pwmDuty : null,
+      sd: state.sdEnabled, ext: state.extEnabled, oled: state.oledEnabled, buzzer: state.buzzerEnabled, vib: state.vibEnabled,
+      gps: modelProfile.id === 'v2' ? state.gpsEnabled : null,
+      beep: state.beepMin != null ? [state.beepMin, state.beepMax, state.beepMs] : null,
+      vibMs: state.vibMin != null ? [state.vibMin, state.vibMax] : null,
+    },
+  };
+  return JSON.stringify(out, null, 2) + '\n';
+}
+
+function exportSettingsBackup() {
+  const name = (state.bleName || modelProfile.bleDefault).replace(/[^A-Za-z0-9_\-]/g, '_');
+  downloadFile(`${name}_settings_${formatDateForFile(new Date())}.json`, buildSettingsBackup());
+}
+
+// 控えの JSON から、送るコマンドの一覧を作る。読めない・別のものなら例外。値は範囲を確かめてから使う。
+function settingsRestoreCommands(text) {
+  const j = JSON.parse(text);
+  if (!j || j.kind !== 'cosmicray-settings' || !j.settings) throw new Error('not a settings backup');
+  const s = j.settings, cmds = [];
+  const int = (x, lo, hi) => Number.isInteger(x) && x >= lo && x <= hi;
+  if (int(s.threshold, 0, ADC_MAX)) cmds.push(`SET_THRESH:${s.threshold}`);
+  if (int(s.autoMargin, 0, ADC_MAX)) cmds.push(`SET_AUTO_MARGIN:${s.autoMargin}`);
+  if (modelProfile.id === 'v2' && int(s.pwmDuty, 0, 255)) cmds.push(`SET_PWM:${s.pwmDuty}`);
+  for (const [k, name] of [['sd', 'SD'], ['ext', 'EXT'], ['oled', 'OLED'], ['buzzer', 'BUZZER'], ['vib', 'VIB']]) {
+    if (typeof s[k] === 'boolean') cmds.push(`SET_${name}:${s[k] ? 'ON' : 'OFF'}`);
+  }
+  if (modelProfile.id === 'v2' && typeof s.gps === 'boolean') cmds.push(`SET_GPS:${s.gps ? 'ON' : 'OFF'}`);
+  if (Array.isArray(s.beep) && int(s.beep[0], 50, 20000) && int(s.beep[1], 51, 20000) && s.beep[1] > s.beep[0] && int(s.beep[2], 1, 500)) {
+    cmds.push(`SET_BEEP:${s.beep[0]},${s.beep[1]},${s.beep[2]}`);
+  }
+  if (Array.isArray(s.vibMs) && int(s.vibMs[0], 1, 500) && int(s.vibMs[1], 2, 500) && s.vibMs[1] > s.vibMs[0]) {
+    cmds.push(`SET_VIB_MS:${s.vibMs[0]},${s.vibMs[1]}`);
+  }
+  return { cmds, from: j };
+}
+
+async function sendRestoreCommands(cmds) {
+  for (const cmd of cmds) {
+    if (!state.isConnected) return;
+    await sendCommand(cmd);
+    await sleep(CMD_GAP_MS);
+  }
+}
+
+// ========== SD logs over USB (C-4) ==========
+// v2 のファーム（2026-11-20 以降）の SD_LIST / SD_READ で、microSD のログを PC に取り込む。USB だけ
+// （ファームが BLE からの要求を断る。BLE は約 6.7 kB/秒が上限で、その間は数えられないため）。
+// 1 回 2 KB を 16 進で受け取り、CRC-32 を確かめ、合わなければ 3 回まで頼み直す。
+const SD_TIMEOUT_MS = 4000;
+const sdx = { busy: false, files: null, current: null, error: null, progress: null, wait: null };
+
+const CRC32_TABLE = (() => {
+  const tb = new Uint32Array(256);
+  for (let n = 0; n < 256; n++) {
+    let c = n;
+    for (let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+    tb[n] = c >>> 0;
+  }
+  return tb;
+})();
+function crc32(bytes) {
+  let c = 0xFFFFFFFF;
+  for (let i = 0; i < bytes.length; i++) c = CRC32_TABLE[(c ^ bytes[i]) & 0xFF] ^ (c >>> 8);
+  return (c ^ 0xFFFFFFFF) >>> 0;
+}
+
+function sdRawLog(line) {
+  state.rawLines.push(line);
+  if (state.rawLines.length > 100) state.rawLines.shift();
+  uiDirty = true;
+}
+
+function sdFinish(err, value) {
+  const w = sdx.wait;
+  if (!w) return;
+  sdx.wait = null;
+  clearTimeout(w.timer);
+  if (err) w.reject(err); else w.resolve(value);
+}
+
+// 拾ったら true（SD の吸い出しの行）
+function sdTransferLine(line) {
+  if (line.startsWith('SDFILE:')) {
+    const m = /^SDFILE:(\S+)\s+(\d+)/.exec(line);
+    if (m && sdx.wait && sdx.wait.kind === 'list') sdx.wait.files.push({ name: m[1], size: parseInt(m[2]) });
+    sdRawLog(line);
+    return true;
+  }
+  if (line.startsWith('SDLIST:')) {
+    const cur = /current=(\S+)/.exec(line);
+    sdRawLog(line);
+    if (sdx.wait && sdx.wait.kind === 'list') sdFinish(null, { files: sdx.wait.files, current: cur && cur[1] !== '-' ? cur[1] : null });
+    return true;
+  }
+  if (line.startsWith('SDERR:')) {
+    sdRawLog(line);
+    sdFinish(new Error(line.slice(6).trim()));
+    return true;
+  }
+  if (line.startsWith('SDDATA:')) {
+    const m = /^SDDATA:(\S+) (\d+) (\d+) ([0-9a-f]{8}) ?([0-9a-f]*)$/.exec(line);
+    sdRawLog(line.length > 80 ? line.slice(0, 60) + `… (${line.length} chars)` : line);
+    const w = sdx.wait;
+    if (!w || w.kind !== 'data') return true;
+    if (!m || m[1] !== w.name || parseInt(m[2]) !== w.offset) { sdFinish(new Error('unexpected reply')); return true; }
+    const len = parseInt(m[3]), hex = m[5];
+    if (hex.length !== len * 2) { sdFinish(new Error('cut line')); return true; }
+    const bytes = new Uint8Array(len);
+    for (let i = 0; i < len; i++) bytes[i] = parseInt(hex.substr(i * 2, 2), 16);
+    if (crc32(bytes) !== parseInt(m[4], 16)) { sdFinish(new Error('CRC mismatch')); return true; }
+    sdFinish(null, bytes);
+    return true;
+  }
+  return false;
+}
+
+function sdRequest(kind, cmd, extra) {
+  return new Promise((resolve, reject) => {
+    if (sdx.wait) { reject(new Error('busy')); return; }
+    const w = Object.assign({ kind, resolve, reject, files: [] }, extra);
+    w.timer = setTimeout(() => { if (sdx.wait === w) sdFinish(new Error('timeout')); }, SD_TIMEOUT_MS);
+    sdx.wait = w;
+    sendCommand(cmd);
+  });
+}
+
+// USB（とデモ）だけで使える。BLE は断る。v2 のファームだけ（v2.1 / OKOME には無い）。
+function sdTransferAvailable() {
+  return state.isConnected && modelProfile.ver && (state.connectionType === 'usb' || state.connectionType === 'demo');
+}
+
+async function sdListFiles() {
+  if (!sdTransferAvailable() || sdx.busy) return;
+  sdx.busy = true; sdx.error = null; sdx.progress = null;
+  Bus.emit('sd');
+  try {
+    const r = await sdRequest('list', 'SD_LIST');
+    sdx.files = r.files.sort((a, b) => a.name.localeCompare(b.name));
+    sdx.current = r.current;
+  } catch (e) {
+    sdx.files = null;
+    sdx.error = e.message === 'timeout' && state.conn.fwState === 'none' ? 'old firmware' : e.message;
+  } finally {
+    sdx.busy = false;
+    Bus.emit('sd');
+  }
+}
+
+async function sdDownloadFile(name, size) {
+  if (!sdTransferAvailable() || sdx.busy) return;
+  sdx.busy = true; sdx.error = null;
+  sdx.progress = { name, done: 0, size, startMs: Date.now() };
+  Bus.emit('sd');
+  const parts = [];
+  try {
+    let off = 0;
+    while (off < size) {
+      let bytes = null, lastErr = null;
+      for (let attempt = 0; attempt < 3 && bytes == null; attempt++) {
+        if (!state.isConnected) throw new Error('disconnected');
+        try { bytes = await sdRequest('data', `SD_READ:${name},${off}`, { name, offset: off }); } catch (e) { lastErr = e; if (/USB only|no card|cannot open|bad arguments/.test(e.message)) break; }
+      }
+      if (bytes == null) throw lastErr || new Error('failed');
+      if (bytes.length === 0) break;   // ファイルが短くなっていた
+      parts.push(bytes);
+      off += bytes.length;
+      sdx.progress.done = off;
+      Bus.emit('sd');
+    }
+    const base = getFileBase();
+    downloadBlob(`${base}_SD_${name}`, new Blob(parts, { type: 'text/plain' }));
+    sdx.progress.finishedMs = Date.now();
+  } catch (e) {
+    sdx.error = e.message;
+    sdx.progress = null;
+  } finally {
+    sdx.busy = false;
+    Bus.emit('sd');
+  }
+}
+
+// ========== Measurement timer (測定時間の予約, B-2) ==========
+// 「10 分測ったら止める」「1000 件で止める」。基準は予約したあとの最初のイベント（基板のカウンタの差で数える。
+// 計数率と同じ物差し）。目標に届いたら、その場で記録を一時停止して音と知らせで伝える（基板は数え続ける）。
+// 始めと終わりに "### MARK utc=<UTC> label=<..>" の行を保存ファイルに残す（解析ページはこの行を列の見出しと
+// みなさない）。mode: 'elapsed'（経過時間 [s]）| 'live'（ライブタイム [s]）| 'counts'（件数）
+const measTimer = { active: false, mode: 'elapsed', target: 0, base: null, done: null };
+
+function timerValueOf(r, mode) {
+  return mode === 'counts' ? r.counts : (mode === 'live' ? r.liveUs : r.elapsedUs) / 1e6;
+}
+
+function timerMark(label) {
+  recordInfoLine(`### MARK utc=${new Date().toISOString()} label=${label}`);
+}
+
+function timerLabel() {
+  const m = measTimer;
+  return m.mode === 'counts' ? `${m.target}events` : `${Math.round(m.target)}s_${m.mode}`;
+}
+
+function timerStart(mode, target) {
+  if (!state.isConnected || !(target > 0)) return;
+  measTimer.active = true;
+  measTimer.mode = mode;
+  measTimer.target = target;
+  measTimer.base = null;   // 次のイベントで決める
+  measTimer.done = null;
+  if (state.paused) setLoggingPaused(false);
+  timerMark('timer_start_' + timerLabel());
+  Bus.emit('timer');
+}
+
+function timerCancel() {
+  if (!measTimer.active) return;
+  measTimer.active = false;
+  timerMark('timer_cancel');
+  Bus.emit('timer');
+}
+
+// 残りと進み具合。予約していなければ null。
+function timerStatus() {
+  const m = measTimer;
+  if (!m.active) return null;
+  const done = m.base == null ? 0 : timerValueOf(rateSummary(), m.mode) - m.base;
+  return { mode: m.mode, target: m.target, done, remaining: Math.max(0, m.target - done) };
+}
+
+// 記録したイベントごとに呼ぶ（processLine）
+function timerOnEvent() {
+  const m = measTimer;
+  if (!m.active) return;
+  const v = timerValueOf(rateSummary(), m.mode);
+  if (m.base == null) { m.base = v; return; }
+  if (v - m.base >= m.target) {
+    m.active = false;
+    m.done = { mode: m.mode, target: m.target, value: v - m.base, atMs: Date.now() };
+    timerMark('timer_end_' + timerLabel());
+    setLoggingPaused(true);
+    // 「このパソコンで音を鳴らす」が ON のときだけ 3 音で知らせる（音は初期値 OFF。知らせの帯はいつも出す）
+    if (pcSound.on) [0, 160, 320].forEach((ms, i) => setTimeout(() => playTone(880, 1760, 120, [300, 1200, 4095][i], 100), ms));
+    showNotice('notice.timerDone', { what: timerTargetText(m.done.mode, m.done.target) });
+    Bus.emit('timer');
+  }
+}
+
+// "10 分（経過時間）" など。画面の言語で。
+function timerTargetText(mode, target) {
+  if (mode === 'counts') return t('timer.nEvents', { n: target.toLocaleString() });
+  const min = target / 60;
+  const amount = Number.isInteger(min) ? t('timer.nMin', { n: min }) : t('timer.nSec', { n: target });
+  return amount + t(mode === 'live' ? 'timer.ofLive' : 'timer.ofElapsed');
 }
 
 
@@ -1725,6 +2279,9 @@ function buildFileHeader(format, isDemo) {
   }
   if (state.bleName)           lines.push(`# Device: ${state.bleName}`);
   if (state.conn.btAddr)       lines.push(`# Board address: ${state.conn.btAddr}`);
+  if (!v21 && state.conn.fwState === 'known' && state.conn.fw) {
+    lines.push(`# Firmware: FW=${state.conn.fw}` + (state.conn.fwBuild ? ` BUILD=${state.conn.fwBuild}` : ''));
+  }
   if (state.mode)              lines.push(`# Trigger mode: ${state.mode}`);
   if (state.threshold != null) lines.push(`# Signal threshold: ${state.threshold} / 4095` + (v21 ? ' (above the baseline)' : ''));
   if (state.pwmDuty != null && modelProfile.id !== 'okome' && !v21) lines.push(`# Comparator PWM duty: ${state.pwmDuty} / 255`);   // OKOME にコンパレータは無い。v2.1 は VTH
@@ -1734,6 +2291,9 @@ function buildFileHeader(format, isDemo) {
       lines.push(`# GPS position: lat ${g.lat.toFixed(6)} lon ${g.lon.toFixed(6)}` + (g.alt != null ? ` alt ${g.alt.toFixed(1)} m` : '') + (g.sats != null ? ` (${g.sats} satellites)` : ''));
     }
     lines.push('# GPS: "### PPS <Time[us]> <UTC unix seconds>" lines mark the 1PPS edges on the same clock as Time[us]; "### GPS fix=.." lines give the position.');
+  }
+  if (state.conn.clock && state.conn.clock.src === 'PC') {
+    lines.push('# TIME: "### TIME <Time[us]> <UTC unix seconds> src=PC" lines tie Time[us] to the PC clock sent at connect (SET_TIME, about +-0.1 s). GPS PPS lines take precedence.');
   }
   lines.push('# PC_Timestamp: UTC (trailing Z). Time / Deadtime: board counters in microseconds since boot or RESET.');
   lines.push('# Column 2 (PC_Timestamp) is added by this page, so later columns sit one to the right of the firmware / SD log.');
@@ -2515,7 +3075,11 @@ function applyConnectionState(connected) {
     state.vibMax = null;
     // A pending reconnect is the same board: keep its identity for the header.
     if (!retrying) {
-      state.conn = { usbVendorId: null, usbProductId: null, bleId: null, bleName: null, btAddr: null, btAddrTimedOut: false };
+      state.conn = newConnState();
+      if (measTimer.active) { measTimer.active = false; Bus.emit('timer'); }   // 切断したら予約も終わり
+      sdFinish(new Error('disconnected'));
+      sdx.files = null; sdx.progress = null; sdx.error = null;
+      Bus.emit('sd');
     }
   }
   Bus.emit('conn', !!connected);
@@ -2917,7 +3481,6 @@ const DEMO_DISPLAY_INTERVAL_MS = 2000;
 const DEMO_BARO_COEFF      = 0.002;   // 気圧効果 = -0.2 %/hPa (ミューオンの実測相場)
 const DEMO_RATE_MIN = 0.2, DEMO_RATE_MAX = 60;   // スライダ両端 [cps]
 const DEMO_SOURCE_GAIN = 6;           // 線源シナリオのレート倍率
-const DEMO_BEEP_MIN_GAP_MS = 60;      // 音が団子にならない程度に間引く
 // 保存ファイルの先頭に入れる注意書き。あとから本物の測定と取り違えないように。
 const DEMO_FILE_NOTE = '# *** DEMO MODE: synthetic data generated in the browser - NOT a measurement ***\n';
 
@@ -2937,13 +3500,12 @@ const demo = {
   nextBurstMs: 0,
   lastDisplayMs: 0,
   lastInfoMs: 0,
-  lastBeepMs: 0,
   phase: Math.random() * Math.PI * 2,
   env: { temp: 23.6, hum: 47.0, press: 1013.4, tempGoal: 25.6 },
   // 仮想デバイスの設定値 (ファームの Preferences 相当)。
   dev: {
     threshold: 120, duty: 34, mode: 'DIGITAL', autoMargin: 50,
-    sd: false, ext: true, oled: true, buzzer: true, vib: false, gps: false,
+    sd: false, ext: true, oled: true, buzzer: false, vib: false, gps: false,   // ブザーはファームと同じく初期値 OFF
     beepMin: 500, beepMax: 4000, beepMs: 25,
     vibMin: 20, vibMax: 120,
     bleName: 'CosmicRay',
@@ -3176,8 +3738,7 @@ function demoMakeEvent(tMs) {
     dig[0], dig[1], dig[2], ana[0], ana[1], ana[2],
     ...gpsTail,
   ].join(' '));
-
-  if (demo.sound && d.buzzer) demoBeep(adc, tMs);
+  // 音は processLine の pcBeep が鳴らす（実機と同じ道すじ。PC の音のスイッチで入れ切り）
 }
 
 // v2.1 のイベント行（20 列、ファームの FMT:3 と同じ並び）。オシロが ON なら、計数を続けたまま
@@ -3199,7 +3760,6 @@ function demoMakeEventV21(tMs, tUs, adc, dig, ana) {
     dig[0], dig[1], dig[2], ana[0], ana[1], ana[2],
     base, (adc * 0.905).toFixed(1), peakT, flags, dt[0], dt[1], dt[2],
   ].join(' '));
-  if (demo.sound && d.buzzer) demoBeep(adc, tMs);
   const s = demo.scope;
   if (s.on && tMs - (s.lastWfMs || 0) >= 1000 / Math.max(1, s.rate)) {
     s.lastWfMs = tMs;
@@ -3301,34 +3861,9 @@ function demoScopeCanArm() {
 // --- ブザー (Web Audio) -----------------------------------------------------
 
 function demoBeep(adc, tMs, force) {
-  if (!force && tMs - demo.lastBeepMs < DEMO_BEEP_MIN_GAP_MS) return;
-  demo.lastBeepMs = tMs;
+  // BEEP_TEST の音（デモの仮想基板の音域で）。イベントの音は pcBeep。
   const d = demo.dev;
-  try {
-    if (!demo.audio) demo.audio = new (window.AudioContext || window.webkitAudioContext)();
-    const ac = demo.audio;
-    if (ac.state === 'suspended') ac.resume();
-    // ファームと同じ対数マッピング: f = fmin * (fmax/fmin)^x,
-    // x = (ln adc - ln thr) / (ln ADC_MAX - ln thr)
-    const thr = Math.max(1, d.threshold);
-    let x = 0;
-    if (adc > thr && ADC_MAX > thr) {
-      x = (Math.log(adc) - Math.log(thr)) / (Math.log(ADC_MAX) - Math.log(thr));
-      x = Math.min(1, Math.max(0, x));
-    }
-    const f = d.beepMin * Math.pow(d.beepMax / d.beepMin, x);
-    const dur = Math.max(0.005, d.beepMs / 1000);
-    const t0 = ac.currentTime;
-    const osc = ac.createOscillator(), g = ac.createGain();
-    osc.type = 'square';                       // 圧電ブザーの音色に寄せる
-    osc.frequency.value = f;
-    g.gain.setValueAtTime(0.0001, t0);
-    g.gain.exponentialRampToValueAtTime(0.07, t0 + 0.002);
-    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-    osc.connect(g).connect(ac.destination);
-    osc.start(t0);
-    osc.stop(t0 + dur + 0.02);
-  } catch (_) {}
+  playTone(d.beepMin, d.beepMax, d.beepMs, adc, Math.max(1, d.threshold));
 }
 
 // --- 本体のループ -----------------------------------------------------------
@@ -3452,6 +3987,7 @@ function demoCommand(cmd) {
   } else if (cmd === 'RESET') {
     demoResetCounters(performance.now());
     say('RESET:OK');
+    demoLogPcTime(say, 40);   // 起点が変わったので、ファームと同じく TIME 行を出し直す
   } else if (cmd.startsWith('SET_MODE:')) {
     const m = cmd.slice(9).toUpperCase();
     if (VALID_MODES.includes(m)) d.mode = m;
@@ -3473,6 +4009,7 @@ function demoCommand(cmd) {
         if (!demo.on) return;
         const now = performance.now();
         demo.scope.on = false;
+        demo.pcTime = null;              // 再起動で PC の時刻は消える
         demoResetCounters(now);
         demo.nextEventMs = now + 1000;   // 起動処理の間は計数しない
         demoBootBanner();
@@ -3480,6 +4017,31 @@ function demoCommand(cmd) {
     } else {
       say('### BLE name invalid (1-24 printable ASCII chars).');
     }
+  } else if (cmd === 'GET_VER') {
+    say('VER:FW=' + DEMO_FW.fw + ' BOARD=v2 BUILD=' + DEMO_FW.build);
+  } else if (cmd.startsWith('SET_TIME:')) {
+    // ファームと同じく、2020〜2100 年の UTC ミリ秒だけ受け付けて、その瞬間を基準に覚える
+    const ms = /^\d+$/.test(cmd.slice(9)) ? Number(cmd.slice(9)) : NaN;
+    if (ms >= 1577836800000 && ms < 4102444800000) {
+      demo.pcTime = { perfMs: performance.now(), utcMs: ms };
+      demoLogPcTime(say);
+    }
+    demoSayTime(say);
+  } else if (cmd === 'GET_TIME') {
+    demoSayTime(say);
+  } else if (cmd === 'SD_LIST') {
+    demoSdFiles();
+    for (const [name, bytes] of Object.entries(demo.sdFiles)) say('SDFILE:' + name + ' ' + bytes.length);
+    say('SDLIST:END ' + Object.keys(demo.sdFiles).length + ' current=LOG0002.TXT', 40);
+  } else if (cmd.startsWith('SD_READ:')) {
+    const m = /^SD_READ:([A-Za-z0-9_.\-]{1,32}),(\d+)$/.exec(cmd);
+    const bytes = m && demo.sdFiles && demo.sdFiles[m[1]];
+    if (!bytes) { say('SDERR:cannot open file'); return; }
+    const off = Math.min(parseInt(m[2]), bytes.length);
+    const chunk = bytes.subarray(off, Math.min(bytes.length, off + 2048));
+    let hex = '';
+    for (const b of chunk) hex += (b < 16 ? '0' : '') + b.toString(16);
+    say(`SDDATA:${m[1]} ${off} ${chunk.length} ${crc32(chunk).toString(16).padStart(8, '0')} ${hex}`, 15);
   } else if (cmd === 'GET_BTADDR') {
     say('BTADDR:DE:A0:C0:DE:00:01');   // 実在しない見るからにデモ用のアドレス
   } else if (cmd.startsWith('SET_BEEP:')) {
@@ -3491,7 +4053,7 @@ function demoCommand(cmd) {
   } else if (cmd === 'GET_BEEP') {
     say('BEEP:' + d.beepMin + ',' + d.beepMax + ',' + d.beepMs);
   } else if (cmd === 'BEEP_TEST') {
-    if (demo.sound) {
+    if (pcSound.on) {
       // ファームは min -> max を 5 段で鳴らす。ここでも同じ幅を聞かせる。
       for (let i = 0; i < 5; i++) {
         const a = Math.round(d.threshold * Math.pow(ADC_MAX / d.threshold, i / 4));
@@ -3795,6 +4357,53 @@ function demoUtcBase() {
   return demo.utcBase;
 }
 
+// デモの v2 基板が名乗る版。ファーム（FW_VERSION / FW_BUILD）と同じ値にしておく。
+const DEMO_FW = { fw: '2.0.0', build: '2026-11-20b' };
+
+// デモの microSD の中身（SD_LIST / SD_READ 用）。LOG0001 は前の測定の合成ログ、LOG0002 は今の測定で
+// このページが受け取ったイベントをファームの書式で並べたもの。一覧を読んだ時点の中身で固定する。
+function demoSdFiles() {
+  const head = [
+    '### Accel Kitchen', '### Firmware: FW=' + DEMO_FW.fw + ' BOARD=v2 BUILD=' + DEMO_FW.build,
+    '### DEMO BOARD - synthetic data, no hardware attached',
+    '### Event Time[us] ADC[0-4095] Deadtime[us] Temp[C] Hum[%] Press[hPa] Dig1 Dig2 Dig3 Ana1 Ana2 Ana3 PPS_UTC[s] PPS_dt[us] PPS_period[us] Lat[deg] Lon[deg]',
+  ];
+  const old = head.slice();
+  let tUs = 0, dead = 0, seed = 12345;
+  const rnd = () => ((seed = (seed * 1103515245 + 12345) >>> 0) + 0.5) / 4294967296;
+  for (let n = 1; n <= 1500; n++) {
+    tUs += Math.round(-Math.log(rnd()) * 300000);
+    dead += 100;
+    old.push(`${n} ${tUs} ${Math.round(150 + -Math.log(rnd()) * 400) % 4096} ${dead} 23.9 46.0 1012.8 0 0 0 0 0 0 0 -1 0 nan nan`);
+  }
+  const cur = head.slice();
+  for (const g of state.gpsLog) if (/TIME|MARK/.test(g.line)) cur.push(g.line);
+  for (const e of state.events) {
+    if (!e.demo) continue;
+    const f = v => (isNaN(v) ? 'nan' : v.toFixed(1));
+    cur.push(`${e.count} ${e.timestamp_us} ${e.adc} ${e.deadtime_us} ${f(e.temp_c)} ${f(e.hum_pct)} ${f(e.press_hpa)} ${e.d1} ${e.d2} ${e.d3} ${e.a1} ${e.a2} ${e.a3} 0 -1 0 nan nan`);
+  }
+  const enc = new TextEncoder();
+  demo.sdFiles = { 'LOG0001.TXT': enc.encode(old.join('\r\n') + '\r\n'), 'LOG0002.TXT': enc.encode(cur.join('\r\n') + '\r\n') };
+}
+
+// ファームの printTime と同じ応答。GPS が ON のデモは GPS の時刻を優先する。
+function demoSayTime(say) {
+  if (demo.dev.gps) say('TIME:' + Math.floor(Date.now() / 1000) + ' SRC:GPS');
+  else if (demo.pcTime) say('TIME:' + Math.floor((demo.pcTime.utcMs + performance.now() - demo.pcTime.perfMs) / 1000) + ' SRC:PC');
+  else say('TIME:0 SRC:NONE');
+}
+
+// ファームの logPcTime と同じ "### TIME <t_us> <utc_epoch_s> src=PC"。次の秒の境目の瞬間を、デモの Time[us] で表す。
+function demoLogPcTime(say, ms) {
+  if (!demo.pcTime || demo.dev.gps) return;
+  const now = performance.now();
+  const utcMsNow = demo.pcTime.utcMs + (now - demo.pcTime.perfMs);
+  const nextSec = Math.floor(utcMsNow / 1000) + 1;
+  const atMs = now + (nextSec * 1000 - utcMsNow);
+  say('### TIME ' + Math.round((atMs - demo.startMs) * 1000) + ' ' + nextSec + ' src=PC', ms);
+}
+
 function demoGpsStatus(say) {
   say('### GPS status: nmea=ok valid=1 fix=1 sats=9 lat=35.681236 lon=139.767125 alt=12.3 utc=' + Math.floor(Date.now() / 1000), 60);
   say('### GPS status: pps_count=' + 600 + ' pps_age_ms=412 pps_period_us=1000003 sync=12 lines_ok=480 lines_bad=0', 90);
@@ -3894,6 +4503,7 @@ function demoBootBanner() {
     '### Accel Kitchen',
     '### https://accel-kitchen.com/',
     '### info@accel-kitchen.com',
+    '### Firmware: FW=' + DEMO_FW.fw + ' BOARD=v2 BUILD=' + DEMO_FW.build,
     '### DEMO BOARD - synthetic data, no hardware attached',
     '### Signal threshold: ' + d.threshold + ' (Duty ' + d.duty + ')',
     '### Event Time[us] ADC[0-4095] Deadtime[us] Temp[C] Hum[%] Press[hPa] Dig1 Dig2 Dig3 Ana1 Ana2 Ana3',
@@ -3928,8 +4538,9 @@ function connectDemo() {
   state.connectionType = 'demo';
   state.isConnected = true;
   state.sessionStart = new Date();
-  state.conn = { usbVendorId: null, usbProductId: null, bleId: null,
-                 bleName: demo.dev.bleName, btAddr: null, btAddrTimedOut: false };
+  state.conn = newConnState();
+  state.conn.bleName = demo.dev.bleName;
+  demo.pcTime = null;   // 新しい仮想基板は PC の時刻を知らない（実機も再起動で消える）
 
   demoBootBanner();
   demo.timer = setInterval(demoTick, DEMO_TICK_MS);
@@ -3966,6 +4577,7 @@ function clearAllData() {
   state.rawLines = [];
   state.stats = newStats();
   state.rate = newRateState();
+  measTimer.base = null;   // 予約中なら、消去のあとの最初のイベントから数え直す
   clearNotice();   // e.g. the "different board" notice asked for exactly this
   lastTableLength = 0;
   uiDirty = false;

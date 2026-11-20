@@ -149,6 +149,75 @@ const I18N = {
     'cal.readError': '校正ファイルを読み込めませんでした: {msg}',
     'cal.saveHint': '校正はこのブラウザに自動で保存されます。「ADC ヒストグラム」のタブで横軸を keV にすると、ほかの測定データにも使えます。',
     'cal.placeholderLine': 'ライン',
+    'tab.env': '気圧・温度',
+    'tab.iv': '到着間隔',
+    'common.useHistFile': '未選択（「ADC ヒストグラム」のタブのファイルを使う）',
+    'clock.range': '測定の日時: {from} 〜 {to}（{src}）',
+    'clock.window': '開始〜終了の欄: {from} 〜 {to}',
+    'clock.src.gps': 'GPS の PPS 行から',
+    'clock.src.pc': '基板に渡した PC の時刻（TIME 行）から',
+    'clock.src.recv': 'PC が受け取った時刻から',
+    'env.title': '気圧・温度と計数率',
+    'env.sub': '時間を区切り、区切りごとの計数率と平均の気圧・温度を比べます。誤差は計数の統計誤差（√N）だけです。',
+    'env.bin': '区切りの長さ',
+    'env.bin10m': '10 分',
+    'env.bin30m': '30 分',
+    'env.bin1h': '1 時間',
+    'env.bin3h': '3 時間',
+    'env.bin6h': '6 時間',
+    'env.useTemp': '温度も一緒にあてる',
+    'env.adcHint': 'ADC の範囲をミューオンの山（ヒストグラムの右側のなだらかな山）のあたりに絞ると、気圧の影響を受けにくいガンマ線が混ざらず、気圧の効果が見えやすくなります。空欄なら全部のイベントを数えます。気圧の効果は 1 hPa あたり −0.1〜−0.2 % 程度（文献の目安）なので、数日〜2 週間の記録が要ります。',
+    'env.beta': '気圧係数 β',
+    'env.gamma': '温度係数',
+    'env.adcTemp': 'ADC 中央値の温度変化',
+    'env.nBins': '区切りの数',
+    'env.nBinsVal': '{n}（{len}ごと）',
+    'env.chi2': 'χ² / 自由度',
+    'env.pRange': '気圧の範囲',
+    'env.plotPress': '計数率と気圧',
+    'env.plotPressSubT': '温度の分は割り戻して描いています',
+    'env.plotTemp': 'ADC の中央値と温度',
+    'env.plotTempSub': 'SiPM の増幅率は温度で変わります。傾きがあれば、しきい値の近くの数え方も温度で変わります',
+    'env.plotTime': '計数率の推移',
+    'env.empty': '測定データのファイルを選ぶと、ここに出ます',
+    'env.noPress': 'このファイルには気圧の値がありません（BME280 の無い基板や OKOME では記録されません）。温度だけを見ます。',
+    'env.fewBins': '使える区切りが {n} つしかありません（3 つ以上必要）。区切りを短くするか、長く測ったファイルを選んでください。',
+    'env.xPress': '気圧 [hPa]',
+    'env.yRate': '計数率 [回/秒]',
+    'env.yRateT': '計数率（温度の分を補正）[回/秒]',
+    'env.xTemp': '温度 [°C]',
+    'env.yAdc': 'ADC の中央値（範囲の中）',
+    'env.xClock': '日時',
+    'env.xHours': '先頭からの時間 [h]',
+    'env.trMeasured': '測定',
+    'env.trCorr': '気圧・温度で補正',
+    'env.trFit': 'あてはめ β = {b} %/hPa',
+    'env.trLine': '直線',
+    'iv.title': '到着間隔の分布',
+    'iv.sub': '続くイベントの時間差 Δt の分布です。宇宙線がばらばらに来るなら、指数分布（縦軸を対数にすると直線）になります。',
+    'iv.xmax': '横軸の上限 [ms]',
+    'iv.windowLabel': '数える区切り [s]',
+    'iv.rateFit': '傾きからの率',
+    'iv.rateCount': '件数 ÷ ライブタイム',
+    'iv.minDt': 'いちばん短い Δt',
+    'iv.deadPer': '1 件あたりのデッドタイム {us} µs（中央値）',
+    'iv.short': '{ms} ms 以内に続いた',
+    'iv.shortVal': '{obs} 件（ばらばらなら約 {exp} 件）',
+    'iv.disp': '分散 ÷ 平均（{s} 秒ごとの件数）',
+    'iv.windows': '{k} 区切り',
+    'iv.plotDt': 'Δt の分布',
+    'iv.plotDtSub': '横軸の上限を数 ms にすると、左端に 1 件ごとのデッドタイムの空白が見えます',
+    'iv.plotCounts': '{s} 秒ごとの件数',
+    'iv.plotCountSub': 'ばらばらに来るならポアソン分布になり、分散 ÷ 平均 ≈ 1',
+    'iv.xDt': 'Δt [ms]',
+    'iv.yCount': 'イベント数',
+    'iv.xN': '{s} 秒間の件数',
+    'iv.yWin': '区切りの数',
+    'iv.trData': '測定',
+    'iv.trExp': '指数分布（傾きからの率）',
+    'iv.trPois': 'ポアソン分布（平均 {m}）',
+    'iv.few': '間隔が 20 個未満なので分布を描けません。',
+    'iv.note': '傾きからの率は、Δt からその間のデッドタイムを引いた間隔のうち 2 ms 以上のものから出しています（最尤推定）。ノイズの連発があると「件数 ÷ ライブタイム」のほうが大きくなり、「5 ms 以内に続いた」件数が目安より多くなります。分散 ÷ 平均の ± はポアソンのときの目安です。',
     'footer.company': '加速キッチン合同会社',
   },
   en: {
@@ -287,6 +356,75 @@ const I18N = {
     'cal.readError': 'Could not read the calibration file: {msg}',
     'cal.saveHint': 'The calibration is saved in this browser automatically. Turn on the keV axis in the “ADC histogram” tab to use it with other measurements.',
     'cal.placeholderLine': 'line',
+    'tab.env': 'Pressure & temp.',
+    'tab.iv': 'Intervals',
+    'common.useHistFile': 'none (uses the file of the ADC histogram tab)',
+    'clock.range': 'Measured {from} – {to} ({src})',
+    'clock.window': 'start–end fields: {from} – {to}',
+    'clock.src.gps': 'from GPS PPS lines',
+    'clock.src.pc': 'from the PC time sent to the board (TIME lines)',
+    'clock.src.recv': 'from the time the PC received each event',
+    'env.title': 'Pressure, temperature and count rate',
+    'env.sub': 'The run is cut into equal time bins; each bin\'s count rate is compared with its mean pressure and temperature. Errors are counting statistics (√N) only.',
+    'env.bin': 'Bin length',
+    'env.bin10m': '10 min',
+    'env.bin30m': '30 min',
+    'env.bin1h': '1 hour',
+    'env.bin3h': '3 hours',
+    'env.bin6h': '6 hours',
+    'env.useTemp': 'Fit temperature too',
+    'env.adcHint': 'Limit the ADC range to the muon bump (the broad bump on the right of the histogram) so that gamma rays, which barely depend on pressure, do not dilute the effect. Leave empty to count every event. The pressure effect is about −0.1 to −0.2 % per hPa (literature), so several days to two weeks of data are needed.',
+    'env.beta': 'Pressure coefficient β',
+    'env.gamma': 'Temperature coefficient',
+    'env.adcTemp': 'ADC median vs temperature',
+    'env.nBins': 'Bins',
+    'env.nBinsVal': '{n} (every {len})',
+    'env.chi2': 'χ² / dof',
+    'env.pRange': 'Pressure range',
+    'env.plotPress': 'Count rate vs pressure',
+    'env.plotPressSubT': 'the temperature part is divided out',
+    'env.plotTemp': 'ADC median vs temperature',
+    'env.plotTempSub': 'The SiPM gain changes with temperature; a slope here also changes how events near the threshold are counted',
+    'env.plotTime': 'Count rate over time',
+    'env.empty': 'Choose a measurement file to see this',
+    'env.noPress': 'This file has no pressure values (boards without a BME280, and OKOME, do not record it). Only temperature is shown.',
+    'env.fewBins': 'Only {n} usable bin(s) (3 or more needed). Use shorter bins or a longer measurement.',
+    'env.xPress': 'Pressure [hPa]',
+    'env.yRate': 'Count rate [/s]',
+    'env.yRateT': 'Count rate, temperature-corrected [/s]',
+    'env.xTemp': 'Temperature [°C]',
+    'env.yAdc': 'ADC median (within the range)',
+    'env.xClock': 'Date and time',
+    'env.xHours': 'Hours from the start',
+    'env.trMeasured': 'Measured',
+    'env.trCorr': 'Corrected for pressure and temperature',
+    'env.trFit': 'Fit β = {b} %/hPa',
+    'env.trLine': 'Line',
+    'iv.title': 'Intervals between events',
+    'iv.sub': 'Distribution of the time Δt between consecutive events. If particles arrive at random it is exponential (a straight line on a log axis).',
+    'iv.xmax': 'Axis max [ms]',
+    'iv.windowLabel': 'Counting window [s]',
+    'iv.rateFit': 'Rate from the slope',
+    'iv.rateCount': 'Events ÷ live time',
+    'iv.minDt': 'Shortest Δt',
+    'iv.deadPer': 'dead time per event {us} µs (median)',
+    'iv.short': 'Followed within {ms} ms',
+    'iv.shortVal': '{obs} (about {exp} if random)',
+    'iv.disp': 'Variance ÷ mean (counts per {s} s)',
+    'iv.windows': '{k} windows',
+    'iv.plotDt': 'Δt distribution',
+    'iv.plotDtSub': 'set the axis max to a few ms to see the empty strip on the left: the dead time of each event',
+    'iv.plotCounts': 'Counts per {s} s',
+    'iv.plotCountSub': 'random arrivals give a Poisson distribution, variance ÷ mean ≈ 1',
+    'iv.xDt': 'Δt [ms]',
+    'iv.yCount': 'Events',
+    'iv.xN': 'Counts in {s} s',
+    'iv.yWin': 'Windows',
+    'iv.trData': 'Measured',
+    'iv.trExp': 'Exponential (rate from the slope)',
+    'iv.trPois': 'Poisson (mean {m})',
+    'iv.few': 'Fewer than 20 intervals, so there is nothing to plot.',
+    'iv.note': 'The rate from the slope is a maximum-likelihood fit to the intervals with their dead time removed, using those of 2 ms or more. Bursts of noise make "events ÷ live time" larger and the "within 5 ms" count higher than expected. The ± on variance ÷ mean is the Poisson expectation.',
     'footer.company': 'Accel Kitchen LLC',
   },
 };
@@ -331,6 +469,8 @@ function applyLanguage() {
   recomputeFit();
   renderCompareText();
   renderCompare();
+  if (currentTab() === 'tab5') renderEnv();
+  if (currentTab() === 'tab6') renderIv();
 }
 
 const $ = id => document.getElementById(id);
@@ -385,6 +525,9 @@ function switchTab(id) {
     else if (id === 'tab2') { resizePlot('linearDiv'); resizePlot('logDiv'); }
     else if (id === 'tab3') { resizePlot('calHistDiv'); resizePlot('calFitDiv'); }
     else if (id === 'tab4') CMP_KEYS.forEach(k => resizePlot('cmpHist' + k));
+    // 気圧・温度と到着間隔は、見えているときに描く（Plotly は隠れた枠の大きさを測れないため）
+    else if (id === 'tab5') renderEnv();
+    else if (id === 'tab6') renderIv();
   }, 0);
 }
 
@@ -395,7 +538,7 @@ function switchTab(id) {
 //   v1 page .dat:                   # Event PC_Timestamp Time[ms] ADC[0-1023] SiPM[mV] Deadtime[ms] ...
 // Times end up in microseconds. Without a column row the v2 .dat layout is assumed
 // (Time col 2, ADC col 3, Deadtime col 4, µs), as the original plotter did.
-const DEFAULT_COLS = { time: 2, adc: 3, dead: 4, event: 0, scale: 1, v1: false };
+const DEFAULT_COLS = { time: 2, adc: 3, dead: 4, event: 0, temp: 5, press: 7, pc: 1, scale: 1, v1: false };
 
 // Rows whose ADC value is outside the converter's range are damaged (a line cut short, two lines
 // glued together) or were read from the wrong column. They are left out and counted, so one such
@@ -412,7 +555,59 @@ function columnsFromHeader(line) {
   const time = find(/^time/), adc = find(/^adc/), dead = find(/^dead/), event = find(/^event/);
   if (time < 0 || adc < 0) return null;
   const ms = /ms/.test(names[time]);
-  return { time, adc, dead, event, scale: ms ? 1000 : 1, v1: ms };
+  const temp = find(/^temp/), press = find(/^press/), pc = find(/^pc_timestamp/);
+  return { time, adc, dead, event, temp, press, pc, scale: ms ? 1000 : 1, v1: ms };
+}
+
+// PC_Timestamp（記録のページが足す列）を UTC のミリ秒に。.csv は ISO 形式（2026-11-20T05:01:02.345Z）、
+// .dat はファイル名に使える形（2026-11-20-05-01-02.345Z）。どちらでもなければ NaN。
+function parsePcTimestamp(s) {
+  const m = /^(\d{4})-(\d\d)-(\d\d)[T-](\d\d)[:-](\d\d)[:-](\d\d(?:\.\d+)?)Z?$/.exec(s || '');
+  if (!m) return NaN;
+  const sec = parseFloat(m[6]);
+  return Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], Math.floor(sec), Math.round((sec % 1) * 1000));
+}
+
+// 基板の時計（Time[us]）と UTC を結ぶ行。GPS の "### PPS <t_us> <utc_s>" と、PC の時刻の
+// "### TIME <t_us> <utc_s> src=PC"（v2 のファーム 2026-11-20 以降）。どちらも「t_us の瞬間の UTC がちょうど utc_s 秒」。
+const CLOCK_LINE = /^#+\s*(PPS|TIME)\s+(\d+)\s+(\d+)/i;
+
+// イベントごとの UTC [ms]。同じ測定（run）の中の時刻の行を基準にする（GPS の行があれば GPS を優先）。
+// 時刻の行が無い run は、記録のページが付けた PC_Timestamp（PC が受け取った時刻）を使う。
+// 時刻の行がどの run のものかは、行の次のイベントで決める。RESET の直後の TIME 行は新しい run の
+// 最初のイベントより前に来るが、次のイベントより 2 秒以上先の時刻を指す行は 1 つ前の run のものとみなす。
+function wallClock(times, segs, anchors, pcs) {
+  const n = times.length;
+  const walls = new Float64Array(n).fill(NaN);
+  const src = { gps: 0, pc: 0, recv: 0 };
+  const bySeg = new Map();
+  for (const a of anchors) {
+    let s;
+    if (a.k < n && !(a.tUs > times[a.k] + 2e6)) s = segs[a.k];
+    else if (a.k > 0) s = segs[a.k - 1];
+    else continue;
+    if (!bySeg.has(s)) bySeg.set(s, []);
+    bySeg.get(s).push(a);
+  }
+  for (const [s, list] of bySeg) {
+    const gps = list.filter(a => a.gps);
+    bySeg.set(s, (gps.length ? gps : list).sort((x, y) => x.tUs - y.tUs));
+  }
+  let cur = -1, list = null, j = 0;
+  for (let i = 0; i < n; i++) {
+    if (segs[i] !== cur) { cur = segs[i]; list = bySeg.get(cur) || null; j = 0; }
+    const tt = times[i];
+    if (list && !isNaN(tt)) {
+      while (j + 1 < list.length && list[j + 1].tUs <= tt) j++;
+      const a = list[j];
+      walls[i] = a.utc * 1000 + (tt - a.tUs) / 1000;
+      if (a.gps) src.gps++; else src.pc++;
+    } else if (pcs && !isNaN(pcs[i])) {
+      walls[i] = pcs[i];
+      src.recv++;
+    }
+  }
+  return { walls, src };
 }
 
 // A file can hold several measurements one after another: the recorder appends to one file
@@ -428,6 +623,10 @@ function parseDataFile(text) {
   const deads = [];   // per-event cumulative deadtime [µs] (NaN when unparseable)
   const segs = [];    // per-event run number (0, 1, ...)
   const cums = [];    // per-event time since the first event, runs laid end to end [µs] (NaN without a time)
+  const temps = [];   // per-event temperature [°C] (NaN without a sensor / column)
+  const press = [];   // per-event pressure [hPa]
+  const pcs = [];     // per-event PC_Timestamp as UTC ms (NaN without the column)
+  const anchors = []; // clock lines: { k: index of the next event, tUs, utc, gps }
   let cols = DEFAULT_COLS;
   let seg = 0, prevT = NaN, prevD = NaN, prevN = NaN;
   let segStartT = NaN, segMaxT = NaN, cumBefore = 0;   // cumBefore = span of the finished runs
@@ -436,6 +635,10 @@ function parseDataFile(text) {
   for (const line of lines) {
     if (!line) continue;
     if (line.charAt(0) === '#' || /^[A-Za-z]/.test(line.trim())) {
+      const ck = CLOCK_LINE.exec(line);
+      if (ck) { anchors.push({ k: adc.length, tUs: Number(ck[2]), utc: Number(ck[3]), gps: ck[1].toUpperCase() === 'PPS' }); continue; }
+      // 区間の印などの注釈行は列の見出しとして読まない（語が time / adc で始まると列を取り違えるため）
+      if (/^#+\s*MARK\b/i.test(line)) continue;
       const c = columnsFromHeader(line);   // column-name row (or CSV header without #)
       if (c) cols = c;
       continue;
@@ -466,6 +669,9 @@ function parseDataFile(text) {
     deads.push(d);
     segs.push(seg);
     cums.push(isNaN(t) || isNaN(segStartT) ? NaN : cumBefore + (t - segStartT));
+    temps.push(cols.temp >= 0 && cols.temp < f.length ? parseFloat(f[cols.temp]) : NaN);
+    press.push(cols.press >= 0 && cols.press < f.length ? parseFloat(f[cols.press]) : NaN);
+    pcs.push(cols.pc >= 0 && cols.pc < f.length ? parsePcTimestamp(f[cols.pc]) : NaN);
     if (!isNaN(t)) prevT = t;
     if (!isNaN(d)) prevD = d;
     if (!isNaN(n)) prevN = n;
@@ -475,7 +681,43 @@ function parseDataFile(text) {
   const t0 = firstT === undefined ? 0 : firstT;      // first event time [µs]
   const duration = cumBefore / 1e6;                  // sum of the runs' spans [s]
   const liveTime = computeLiveTime(times, deads, segs);
-  return { adc, times, deads, segs, cums, t0, duration, liveTime, sessions: sawEvent ? seg + 1 : 0, skipped, v1: cols.v1 };
+  const clock = wallClock(times, segs, anchors, pcs.some(x => !isNaN(x)) ? pcs : null);
+  return { adc, times, deads, segs, cums, temps, press, walls: clock.walls, clockSrc: clock.src,
+           t0, duration, liveTime, sessions: sawEvent ? seg + 1 : 0, skipped, v1: cols.v1 };
+}
+
+// 測定の最初と最後の日時（UTC ms）。時刻が分かるイベントが無ければ null。
+function wallRange(data) {
+  const w = data && data.walls;
+  if (!w) return null;
+  let a = NaN, b = NaN;
+  for (let i = 0; i < w.length; i++) if (!isNaN(w[i])) { a = w[i]; break; }
+  for (let i = w.length - 1; i >= 0; i--) if (!isNaN(w[i])) { b = w[i]; break; }
+  return isNaN(a) ? null : { from: a, to: b };
+}
+
+// 先頭からの秒（runs を詰めて並べた時間。開始 / 終了 [s] の欄と同じ）→ その瞬間の UTC [ms]。分からなければ NaN。
+function relToWall(data, sec) {
+  const c = data.cums, w = data.walls;
+  if (!w || !c.length) return NaN;
+  let lo = 0, hi = c.length - 1;
+  const target = sec * 1e6;
+  while (lo < hi) { const mid = (lo + hi) >> 1; if (c[mid] < target) lo = mid + 1; else hi = mid; }
+  for (let i = lo; i < c.length; i++) if (!isNaN(w[i]) && !isNaN(c[i])) return w[i] - (c[i] - target) / 1000;
+  return NaN;
+}
+
+// ローカルの日時 "2026-11-20 14:03:21"（秒まで）
+function fmtLocal(ms, withDate = true) {
+  const d = new Date(ms);
+  const p = v => String(v).padStart(2, '0');
+  const hms = `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+  return withDate ? `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${hms}` : hms;
+}
+
+// 時刻の出どころの説明（多い順に）
+function clockSourceText(src) {
+  return ['gps', 'pc', 'recv'].filter(k => src[k] > 0).sort((x, y) => src[y] - src[x]).map(k => t('clock.src.' + k)).join(' / ');
 }
 
 // Live time [µs] = elapsed span - accumulated deadtime over the given events.
@@ -509,7 +751,7 @@ function readFile(input, onText) {
 }
 
 // File names shown under the pickers (kept as state so a language switch can redraw them).
-const fileLabels = { fileName: null, bgFileName: null, calFileName: null, cmpName0: null, cmpName1: null, cmpName2: null, cmpName3: null, cmpName4: null, cmpName5: null };
+const fileLabels = { fileName: null, bgFileName: null, calFileName: null, cmpName0: null, cmpName1: null, cmpName2: null, cmpName3: null, cmpName4: null, cmpName5: null, envFileName: null, ivFileName: null };
 function setFileLabel(id, name, data) {
   fileLabels[id] = { name, n: data.adc.length, v1: data.v1, sessions: data.sessions, skipped: data.skipped };
   renderFileNames();
@@ -571,6 +813,19 @@ function updateTimeHints() {
   const dur = signal.duration || 0;
   $('timeTo').placeholder = dur > 0 ? dur.toFixed(1) : t('common.end');
   $('durationHint').textContent = dur > 0 ? t('hist.duration', { s: dur.toFixed(1) }) : '';
+  // 測定の日時（TIME / PPS の行か PC_Timestamp から）と、開始 / 終了 [s] の欄が指す時刻
+  const el = $('clockHint');
+  const r = wallRange(signal);
+  el.hidden = !r;
+  if (!r) return;
+  let s = t('clock.range', { from: fmtLocal(r.from), to: fmtLocal(r.to, new Date(r.from).toDateString() !== new Date(r.to).toDateString()),
+                             src: clockSourceText(signal.clockSrc) });
+  const { from, to } = getTimeWindow();
+  if (from > 0 || to !== Infinity) {
+    const a = relToWall(signal, Math.max(0, from)), b = relToWall(signal, to === Infinity ? dur : to);
+    if (!isNaN(a) && !isNaN(b)) s += ' · ' + t('clock.window', { from: fmtLocal(a, false), to: fmtLocal(b, false) });
+  }
+  el.textContent = s;
 }
 
 function computeStats(vals) {
@@ -1725,6 +1980,350 @@ function initCalTab() {
   recomputeFit();                 // equation/plot + useKeV enabled state
 }
 
+// ========== Shared helpers for the environment / interval tabs ==========
+let envData = null;   // the file chosen on the 気圧・温度 tab (null = use the histogram tab's file)
+let ivData = null;    // the file chosen on the 到着間隔 tab
+const dataFor = own => (own && own.adc.length ? own : signal);
+
+function median(arr) {
+  if (!arr.length) return NaN;
+  const s = Float64Array.from(arr).sort();
+  const m = s.length >> 1;
+  return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+}
+const meanOf = arr => arr.reduce((a, b) => a + b, 0) / arr.length;
+
+// Small dense matrix inverse (Gauss-Jordan). null when singular.
+function invertMatrix(M) {
+  const p = M.length;
+  const A = M.map((row, i) => [...row, ...Array.from({ length: p }, (_, j) => (i === j ? 1 : 0))]);
+  for (let c = 0; c < p; c++) {
+    let piv = c;
+    for (let r = c + 1; r < p; r++) if (Math.abs(A[r][c]) > Math.abs(A[piv][c])) piv = r;
+    if (!(Math.abs(A[piv][c]) > 1e-300)) return null;
+    [A[c], A[piv]] = [A[piv], A[c]];
+    const d = A[c][c];
+    for (let k = 0; k < 2 * p; k++) A[c][k] /= d;
+    for (let r = 0; r < p; r++) {
+      if (r === c) continue;
+      const f = A[r][c];
+      if (f) for (let k = 0; k < 2 * p; k++) A[r][k] -= f * A[c][k];
+    }
+  }
+  return A.map(row => row.slice(p));
+}
+
+// Weighted least squares y = X·b with weights w = 1/σ². cov = (XᵀWX)⁻¹ (the σ are taken as known).
+function weightedLsq(X, y, w) {
+  const p = X[0].length, n = y.length;
+  if (n <= p) return null;
+  const A = Array.from({ length: p }, () => new Array(p).fill(0));
+  const v = new Array(p).fill(0);
+  for (let i = 0; i < n; i++) {
+    for (let a = 0; a < p; a++) {
+      v[a] += w[i] * X[i][a] * y[i];
+      for (let c = 0; c < p; c++) A[a][c] += w[i] * X[i][a] * X[i][c];
+    }
+  }
+  const cov = invertMatrix(A);
+  if (!cov) return null;
+  const b = cov.map(row => row.reduce((s, x, c) => s + x * v[c], 0));
+  let chi2 = 0;
+  for (let i = 0; i < n; i++) {
+    const r = y[i] - X[i].reduce((s, x, a) => s + x * b[a], 0);
+    chi2 += w[i] * r * r;
+  }
+  return { b, cov, chi2, dof: n - p };
+}
+
+const fmtPm = (v, e, d) => `${v.toFixed(d)} ± ${e.toFixed(d)}`;
+
+// ========== Pressure / temperature vs count rate (A-2) ==========
+// 測定を同じ長さの区切りに分け（run ごとに、その run の最初のイベントから）、区切りごとに
+// 「ADC の範囲に入ったイベントの数 ÷ ライブタイム」と、平均の気圧・温度を出す。
+// ln(率) = a + β·(P − P̄) [+ γ·(T − T̄)] を、件数を重みにしてあてる（ln(率) の分散 ≈ 1 / 件数）。
+// ライブタイムは区切りの中の最初と最後のイベントの間から、その間のデッドタイムを引いたもの
+// （数えるのは間の n − 1 回ぶんなので、件数に (n − 1) / n を掛けてそろえる）。
+function envBins(d, L, lo, hi) {
+  const map = new Map(), order = [], segStart = new Map();
+  for (let i = 0; i < d.adc.length; i++) {
+    const tt = d.times[i];
+    if (isNaN(tt)) continue;
+    const s = d.segs[i];
+    if (!segStart.has(s)) segStart.set(s, tt);
+    const key = s + ':' + Math.floor((tt - segStart.get(s)) / (L * 1e6));
+    let b = map.get(key);
+    if (!b) {
+      b = { n: 0, k: 0, t0: tt, t1: tt, d0: d.deads[i], d1: d.deads[i], sP: 0, nP: 0, sT: 0, nT: 0, adcs: [], sW: 0, nW: 0, cum0: d.cums[i], cum1: d.cums[i] };
+      map.set(key, b); order.push(b);
+    }
+    b.n++; b.t1 = tt; b.d1 = d.deads[i]; b.cum1 = d.cums[i];
+    const a = d.adc[i];
+    if (a >= lo && a <= hi) { b.k++; b.adcs.push(a); }
+    const p = d.press[i];
+    if (p >= 300 && p <= 1100) { b.sP += p; b.nP++; }
+    const T = d.temps[i];
+    if (T >= -40 && T <= 125) { b.sT += T; b.nT++; }
+    const w = d.walls ? d.walls[i] : NaN;
+    if (!isNaN(w)) { b.sW += w; b.nW++; }
+  }
+  const out = [];
+  for (const b of order) {
+    const dead = (!isNaN(b.d0) && !isNaN(b.d1) && b.d1 >= b.d0) ? b.d1 - b.d0 : 0;
+    const live = (b.t1 - b.t0 - dead) / 1e6;
+    if (b.n < 2 || !(live >= 0.25 * L) || b.k < 5) continue;   // 端の短い区切りと、数の少ない区切りは捨てる
+    const rate = b.k * (b.n - 1) / b.n / live;
+    out.push({
+      rate, err: rate / Math.sqrt(b.k), k: b.k, live,
+      P: b.nP ? b.sP / b.nP : NaN, T: b.nT ? b.sT / b.nT : NaN,
+      med: median(b.adcs), wall: b.nW ? b.sW / b.nW : NaN, hours: (b.cum0 + b.cum1) / 2 / 3.6e9,
+    });
+  }
+  return out;
+}
+
+function envMessage(key, params) {
+  const el = $('envMsg');
+  el.hidden = !key;
+  el.textContent = key ? t(key, params) : '';
+}
+
+function renderEnv() {
+  const d = dataFor(envData);
+  const ids = ['envPressDiv', 'envTempDiv', 'envTimeDiv'];
+  const clear = () => { ids.forEach(id => Plotly.purge(id)); ['envPressEmpty', 'envTempEmpty', 'envTimeEmpty'].forEach(id => plotEmpty(id, true)); $('envStats').hidden = true; };
+  if (!d.adc.length) { envMessage(null); clear(); return; }
+  const L = parseInt($('envBin').value) || 3600;
+  const loV = parseFloat($('envAdcMin').value), hiV = parseFloat($('envAdcMax').value);
+  const bins = envBins(d, L, isNaN(loV) ? -Infinity : loV, isNaN(hiV) ? Infinity : hiV);
+  const hasP = bins.filter(b => !isNaN(b.P)).length >= 3;
+  const hasT = bins.filter(b => !isNaN(b.T)).length >= 3;
+  if (bins.length < 3) { envMessage('env.fewBins', { n: bins.length }); clear(); return; }
+  envMessage(hasP ? null : 'env.noPress');
+
+  // --- fit ln(rate) = a + β·ΔP [+ γ·ΔT]
+  const useT = $('envUseTemp').checked && hasT;
+  const fb = bins.filter(b => (!hasP || !isNaN(b.P)) && (!useT || !isNaN(b.T)));
+  const Pm = hasP ? meanOf(fb.map(b => b.P)) : 0;
+  const Tm = hasT ? meanOf(bins.filter(b => !isNaN(b.T)).map(b => b.T)) : 0;
+  let fit = null;
+  if (hasP || useT) {
+    const X = fb.map(b => [1].concat(hasP ? [b.P - Pm] : [], useT ? [b.T - Tm] : []));
+    fit = weightedLsq(X, fb.map(b => Math.log(b.rate)), fb.map(b => b.k));
+  }
+  const beta = fit && hasP ? fit.b[1] : 0, sBeta = fit && hasP ? Math.sqrt(fit.cov[1][1]) : NaN;
+  const gi = hasP ? 2 : 1;
+  const gamma = fit && useT ? fit.b[gi] : 0, sGamma = fit && useT ? Math.sqrt(fit.cov[gi][gi]) : NaN;
+  const corrT = b => (useT && !isNaN(b.T) ? Math.exp(-gamma * (b.T - Tm)) : 1);
+  const corrP = b => (hasP && !isNaN(b.P) ? Math.exp(-beta * (b.P - Pm)) : 1);
+
+  $('envStats').hidden = false;
+  $('envBeta').textContent = fit && hasP ? `${fmtPm(beta * 100, sBeta * 100, 3)} %/hPa` : '-';
+  $('envGamma').textContent = fit && useT ? `${fmtPm(gamma * 100, sGamma * 100, 3)} %/°C` : '-';
+  $('envNBins').textContent = t('env.nBinsVal', { n: fb.length, len: $('envBin').selectedOptions[0].textContent });
+  $('envChi2').textContent = fit && fit.dof > 0 ? (fit.chi2 / fit.dof).toFixed(2) : '-';
+  const Ps = bins.filter(b => !isNaN(b.P)).map(b => b.P);
+  $('envPRange').textContent = Ps.length ? `${Math.min(...Ps).toFixed(1)} – ${Math.max(...Ps).toFixed(1)} hPa` : '-';
+  $('envPressSub').textContent = useT ? t('env.plotPressSubT') : '';
+
+  // --- rate vs pressure (temperature part divided out)
+  plotEmpty('envPressEmpty', !hasP);
+  if (hasP) {
+    const pb = fb.filter(b => !isNaN(b.P));
+    const xs = pb.map(b => b.P);
+    const ys = pb.map(b => b.rate * corrT(b));
+    const es = pb.map(b => b.err * corrT(b));
+    const lo = Math.min(...xs), hi = Math.max(...xs);
+    const traces = [{ type: 'scatter', mode: 'markers', name: t('env.trMeasured'), x: xs, y: ys,
+      error_y: { type: 'data', array: es, color: C.ink4, thickness: 1, width: 0 }, marker: { color: C.ink, size: 6 },
+      hovertemplate: '%{x:.1f} hPa<br>%{y:.4f} /s<extra></extra>' }];
+    if (fit) {
+      const lx = [lo, hi];
+      traces.push({ type: 'scatter', mode: 'lines', name: t('env.trFit', { b: (beta * 100).toFixed(3) }), x: lx,
+        y: lx.map(P => Math.exp(fit.b[0] + beta * (P - Pm))), line: { color: C.coral, width: 2 } });
+    }
+    Plotly.react('envPressDiv', traces, themed({ margin: { l: 64, r: 16, t: 36, b: 50 },
+      xaxis: { title: { text: t('env.xPress') } }, yaxis: { title: { text: useT ? t('env.yRateT') : t('env.yRate') } } }), PLOT_CONFIG);
+  } else Plotly.purge('envPressDiv');
+
+  // --- ADC median vs temperature (gain drift of the SiPM shows up here)
+  const tb = bins.filter(b => !isNaN(b.T) && !isNaN(b.med));
+  plotEmpty('envTempEmpty', tb.length < 3);
+  if (tb.length >= 3) {
+    const xs = tb.map(b => b.T), ys = tb.map(b => b.med);
+    const lf = weightedLsq(xs.map(x => [1, x]), ys, ys.map(() => 1));
+    let slope = NaN, sSlope = NaN;
+    if (lf) {
+      slope = lf.b[1];
+      const s2 = lf.dof > 0 ? lf.chi2 / lf.dof : 0;   // 重みが 1 なので、残差から誤差を見積もる
+      sSlope = Math.sqrt(lf.cov[1][1] * s2);
+    }
+    const mMed = meanOf(ys);
+    $('envAdcTemp').textContent = lf ? `${fmtPm(slope, sSlope, 2)} ADC/°C (${(slope / mMed * 100).toFixed(2)} %/°C)` : '-';
+    const traces = [{ type: 'scatter', mode: 'markers', name: t('env.trMeasured'), x: xs, y: ys, marker: { color: C.ink, size: 6 },
+      hovertemplate: '%{x:.1f} °C<br>ADC %{y:.0f}<extra></extra>' }];
+    if (lf) {
+      const lx = [Math.min(...xs), Math.max(...xs)];
+      traces.push({ type: 'scatter', mode: 'lines', name: t('env.trLine'), x: lx, y: lx.map(x => lf.b[0] + slope * x), line: { color: C.coral, width: 2 } });
+    }
+    Plotly.react('envTempDiv', traces, themed({ margin: { l: 64, r: 16, t: 36, b: 50 },
+      xaxis: { title: { text: t('env.xTemp') } }, yaxis: { title: { text: t('env.yAdc') } } }), PLOT_CONFIG);
+  } else { $('envAdcTemp').textContent = '-'; Plotly.purge('envTempDiv'); }
+
+  // --- rate over time, as measured and corrected
+  plotEmpty('envTimeEmpty', false);
+  const byClock = bins.every(b => !isNaN(b.wall));
+  const xs = bins.map(b => (byClock ? fmtLocal(b.wall) : b.hours));
+  const traces = [{ type: 'scatter', mode: 'markers', name: t('env.trMeasured'), x: xs, y: bins.map(b => b.rate),
+    error_y: { type: 'data', array: bins.map(b => b.err), color: C.ink4, thickness: 1, width: 0 }, marker: { color: C.ink, size: 5 },
+    customdata: bins.map(b => [isNaN(b.P) ? '-' : b.P.toFixed(1), isNaN(b.T) ? '-' : b.T.toFixed(1)]),
+    hovertemplate: '%{y:.4f} /s<br>%{customdata[0]} hPa · %{customdata[1]} °C<extra></extra>' }];
+  if (fit) {
+    traces.push({ type: 'scatter', mode: 'lines+markers', name: t('env.trCorr'), x: xs, y: bins.map(b => b.rate * corrP(b) * corrT(b)),
+      line: { color: C.signal2, width: 1.5 }, marker: { color: C.signal2, size: 4 } });
+  }
+  Plotly.react('envTimeDiv', traces, themed({ margin: { l: 64, r: 16, t: 36, b: 50 },
+    xaxis: Object.assign({ title: { text: byClock ? t('env.xClock') : t('env.xHours') } }, byClock ? { type: 'date' } : {}),
+    yaxis: { title: { text: t('env.yRate') } } }), PLOT_CONFIG);
+}
+
+// ========== Intervals between events (A-3) ==========
+// Δt = 続くイベントの Time[us] の差（同じ run の中だけ）。ばらばらに来るなら Δt は指数分布。
+// 率は「デッドタイムを引いた間隔」（Δt − Δデッドタイム）の最尤推定で出す。デッドタイムを引けば、
+// 数えていた時間の中での待ち時間なので、指数分布の傾きがそのまま本当の率になる。2 ms より短い
+// 間隔は使わない（ノイズの連発やアフターパルスで率が引っぱられないように）。
+const IV_CUT_US = 2000;
+const IV_SHORT_MS = 5;
+
+function ivMessage(key, params) {
+  const el = $('ivMsg');
+  el.hidden = !key;
+  el.textContent = key ? t(key, params) : '';
+}
+
+function logFactorial(n) { let s = 0; for (let i = 2; i <= n; i++) s += Math.log(i); return s; }
+
+function renderIv() {
+  const d = dataFor(ivData);
+  const W = Math.max(0.1, parseFloat($('ivWindow').value) || 10);
+  $('ivShortLabel').textContent = t('iv.short', { ms: IV_SHORT_MS });
+  $('ivDispLabel').textContent = t('iv.disp', { s: W });
+  $('ivCountTitle').textContent = t('iv.plotCounts', { s: W });
+  const clear = () => { Plotly.purge('ivDtDiv'); Plotly.purge('ivCountDiv'); plotEmpty('ivDtEmpty', true); plotEmpty('ivCountEmpty', true); $('ivStats').hidden = true; };
+  if (!d.adc.length) { ivMessage(null); clear(); return; }
+
+  const dts = [], lives = [], deadPer = [];
+  for (let i = 1; i < d.adc.length; i++) {
+    if (d.segs[i] !== d.segs[i - 1]) continue;
+    const a = d.times[i - 1], b = d.times[i];
+    if (isNaN(a) || isNaN(b) || b < a) continue;
+    const dt = b - a;
+    const dd = d.deads[i] - d.deads[i - 1];
+    const okDead = !isNaN(dd) && dd >= 0 && dd <= dt;
+    dts.push(dt);
+    lives.push(okDead ? dt - dd : dt);
+    if (okDead) deadPer.push(dd);
+  }
+  if (dts.length < 20) { ivMessage('iv.few'); clear(); return; }
+  ivMessage(null);
+
+  let m = 0, sum = 0, sumLive = 0;
+  for (const l of lives) { sumLive += l; if (l >= IV_CUT_US) { m++; sum += l - IV_CUT_US; } }
+  const R = m > 0 && sum > 0 ? m / (sum / 1e6) : NaN;       // [/s]
+  const sR = R / Math.sqrt(m);
+  const Rc = dts.length / (sumLive / 1e6);
+  const sRc = Rc / Math.sqrt(dts.length);
+  const tau = deadPer.length ? median(deadPer) : 0;          // typical dead time per event [µs]
+  let minDt = Infinity, nShort = 0;
+  for (const dt of dts) { if (dt < minDt) minDt = dt; if (dt < IV_SHORT_MS * 1000) nShort++; }
+  const expShort = dts.length * (1 - Math.exp(-R * Math.max(0, IV_SHORT_MS * 1000 - tau) / 1e6));
+
+  // dispersion: events per W seconds (runs laid end to end), full windows only
+  const K = Math.floor((d.duration || 0) / W);
+  let disp = null;
+  if (K >= 5) {
+    const cnt = new Array(K).fill(0);
+    for (let i = 0; i < d.cums.length; i++) {
+      const c = d.cums[i];
+      if (isNaN(c)) continue;
+      const j = Math.floor(c / 1e6 / W);
+      if (j < K) cnt[j]++;
+    }
+    const mean = meanOf(cnt);
+    const v = cnt.reduce((s, x) => s + (x - mean) ** 2, 0) / (K - 1);
+    disp = { cnt, mean, D: mean > 0 ? v / mean : NaN, sD: Math.sqrt(2 / (K - 1)), K };
+  }
+
+  $('ivStats').hidden = false;
+  $('ivRateFit').textContent = isNaN(R) ? '-' : `${fmtPm(R, sR, 4)} /s`;
+  $('ivRateCount').textContent = `${fmtPm(Rc, sRc, 4)} /s`;
+  $('ivMinDt').textContent = `${(minDt / 1000).toFixed(3)} ms` + (deadPer.length ? ' · ' + t('iv.deadPer', { us: Math.round(tau) }) : '');
+  $('ivShort').textContent = t('iv.shortVal', { obs: nShort.toLocaleString(), exp: isNaN(expShort) ? '-' : Math.round(expShort).toLocaleString() });
+  $('ivDisp').textContent = disp ? `${fmtPm(disp.D, disp.sD, 3)} (${t('iv.windows', { k: disp.K })})` : '-';
+
+  // --- Δt histogram with the exponential expected from R
+  plotEmpty('ivDtEmpty', false);
+  const xmaxIn = parseFloat($('ivXmax').value);
+  let maxDt = 0;
+  for (const dt of dts) if (dt > maxDt) maxDt = dt;
+  const xmax = xmaxIn > 0 ? xmaxIn : (R > 0 ? 5000 / R : maxDt / 1000);   // [ms]
+  const nb = 60, w = xmax / nb;
+  const counts = new Array(nb).fill(0);
+  for (const dt of dts) { const j = Math.floor(dt / 1000 / w); if (j >= 0 && j < nb) counts[j]++; }
+  const centers = counts.map((_, j) => (j + 0.5) * w);
+  const tauMs = tau / 1000;
+  const expected = counts.map((_, j) => {
+    const a = Math.max(j * w, tauMs), b = (j + 1) * w;
+    return b <= tauMs || isNaN(R) ? 0 : dts.length * (Math.exp(-R * (a - tauMs) / 1000) - Math.exp(-R * (b - tauMs) / 1000));
+  });
+  const logY = $('ivLogY').checked;
+  Plotly.react('ivDtDiv', [
+    { type: 'bar', name: t('iv.trData'), x: centers, y: counts, width: w, marker: { color: C.bar, line: { color: C.barLine, width: 0.5 } },
+      hovertemplate: '%{x:.1f} ms<br>%{y}<extra></extra>' },
+    { type: 'scatter', mode: 'lines', name: t('iv.trExp'), x: centers, y: expected, line: { color: C.coral, width: 2 } },
+  ], themed({ margin: { l: 64, r: 16, t: 36, b: 50 }, bargap: 0,
+    xaxis: { title: { text: t('iv.xDt') } }, yaxis: { title: { text: t('iv.yCount') }, type: logY ? 'log' : 'linear' } }), PLOT_CONFIG);
+
+  // --- counts per window vs Poisson
+  plotEmpty('ivCountEmpty', !disp);
+  if (disp) {
+    let maxN = 0;
+    for (const c of disp.cnt) if (c > maxN) maxN = c;   // 区切りは 10 万を超えうるので展開しない
+    const freq = new Array(maxN + 1).fill(0);
+    for (const c of disp.cnt) freq[c]++;
+    const xs = freq.map((_, x) => x);
+    const pois = xs.map(x => disp.K * Math.exp(x * Math.log(Math.max(disp.mean, 1e-12)) - disp.mean - logFactorial(x)));
+    Plotly.react('ivCountDiv', [
+      { type: 'bar', name: t('iv.trData'), x: xs, y: freq, marker: { color: C.bar, line: { color: C.barLine, width: 0.5 } } },
+      { type: 'scatter', mode: 'lines+markers', name: t('iv.trPois', { m: disp.mean.toFixed(2) }), x: xs, y: pois,
+        line: { color: C.coral, width: 2 }, marker: { color: C.coral, size: 4 } },
+    ], themed({ margin: { l: 64, r: 16, t: 36, b: 50 }, bargap: 0.05,
+      xaxis: { title: { text: t('iv.xN', { s: W }) } }, yaxis: { title: { text: t('iv.yWin') } } }), PLOT_CONFIG);
+  } else Plotly.purge('ivCountDiv');
+}
+
+function currentTab() {
+  const el = document.querySelector('.tabs [role="tab"][aria-selected="true"]');
+  return el ? el.dataset.tab : 'tab1';
+}
+
+function initEnvIvTabs() {
+  $('envFileInput').addEventListener('change', e => readFile(e.target, (name, text) => {
+    envData = parseDataFile(text);
+    setFileLabel('envFileName', name, envData);
+    renderEnv();
+  }));
+  $('ivFileInput').addEventListener('change', e => readFile(e.target, (name, text) => {
+    ivData = parseDataFile(text);
+    setFileLabel('ivFileName', name, ivData);
+    renderIv();
+  }));
+  ['envBin', 'envUseTemp'].forEach(id => $(id).addEventListener('change', renderEnv));
+  ['envAdcMin', 'envAdcMax'].forEach(id => $(id).addEventListener('input', renderEnv));
+  ['ivXmax', 'ivWindow'].forEach(id => $(id).addEventListener('input', renderIv));
+  $('ivLogY').addEventListener('change', renderIv);
+}
+
 // ========== Start ==========
 function initHistTab() {
   $('fileInput').addEventListener('change', e => readFile(e.target, (name, text) => {
@@ -1743,6 +2342,7 @@ function initHistTab() {
     renderAll();
   }));
   ['binWidth', 'adcMin', 'adcMax', 'timeFrom', 'timeTo', 'bgScale'].forEach(id => $(id).addEventListener('input', renderAll));
+  ['timeFrom', 'timeTo'].forEach(id => $(id).addEventListener('input', updateTimeHints));
   ['subtractBg', 'logY', 'showSigLine', 'showBgLine'].forEach(id => $(id).addEventListener('change', renderAll));
 }
 
@@ -1767,15 +2367,17 @@ document.addEventListener('DOMContentLoaded', () => {
   // Plotly's own "responsive" only follows the window; panels also change width with the layout.
   if (typeof ResizeObserver !== 'undefined') {
     const ro = new ResizeObserver(entries => { for (const en of entries) resizePlot(en.target.id); });
-    ['histDiv', 'linearDiv', 'logDiv', 'calHistDiv', 'calFitDiv', ...CMP_KEYS.map(k => 'cmpHist' + k)].forEach(id => ro.observe($(id)));
+    ['histDiv', 'linearDiv', 'logDiv', 'calHistDiv', 'calFitDiv', ...CMP_KEYS.map(k => 'cmpHist' + k),
+     'envPressDiv', 'envTempDiv', 'envTimeDiv', 'ivDtDiv', 'ivCountDiv'].forEach(id => ro.observe($(id)));
   }
 
   initHistTab();
   initZenithTable();
   initCalTab();
+  initEnvIvTabs();
   applyLanguage();
 
   let tab = 'tab1';
   try { tab = localStorage.getItem('plotterTab') || 'tab1'; } catch (_) {}
-  switchTab(['tab1', 'tab2', 'tab3', 'tab4'].includes(tab) ? tab : 'tab1');
+  switchTab(['tab1', 'tab2', 'tab3', 'tab4', 'tab5', 'tab6'].includes(tab) ? tab : 'tab1');
 });

@@ -323,6 +323,7 @@
           <div class="aux-item" data-v2-only><dt data-i18n="env.hum">湿度</dt><dd><span class="num" id="envHum">--</span> %</dd></div>
           <div class="aux-item" data-v2-only><dt data-i18n="env.press">気圧</dt><dd><span class="num" id="envPress">--</span> hPa</dd></div>
           <div class="aux-item aux-ext" data-v2-only><dt><span data-i18n="ext.title">外部検出器</span><button type="button" class="term" data-term="external"></button></dt><dd id="extGrid"></dd></div>
+          <div class="aux-item" id="coincAux" data-v2-only hidden><dt><span data-i18n="coinc.aux">同時</span><button type="button" class="term" data-term="coinc"></button></dt><dd><span class="num" id="coincRate">--</span> <span class="num">± <span id="coincErr">--</span></span> <span data-i18n="unit.cps">回/秒</span></dd></div>
           <div class="aux-item"><dt><span data-i18n="stat.avgAdc">平均 ADC</span><button type="button" class="term" data-term="adc"></button></dt><dd class="num" id="statAdc">--</dd></div>
           <div class="aux-item"><dt><span data-i18n="stat.totalDeadtime">デッドタイム</span><button type="button" class="term" data-term="deadtime"></button></dt><dd><span class="num" id="statDeadtime">--</span> s</dd></div>
           <div class="aux-item" id="gpsAux" hidden><dt><span data-i18n="gps.aux">GPS</span></dt><dd id="gpsAuxVal">--</dd></div>
@@ -388,6 +389,8 @@
             <div data-v2-only><dt data-i18n="stats.pressRange">最高 / 最低気圧</dt><dd id="ds_pressRange">--</dd></div>
             <div data-v2-only><dt data-i18n="stats.digRate">外部検出器の反応率</dt><dd id="ds_digRate">--</dd></div>
             <div data-v2-only><dt data-i18n="stats.anaMean">外部検出器のアナログ平均</dt><dd id="ds_anaMean">--</dd></div>
+            <div data-v2-only><dt><span data-i18n="stats.coinc">同時計数率</span><button type="button" class="term" data-term="coinc"></button></dt><dd id="ds_coinc">--</dd></div>
+            <div data-v2-only><dt data-i18n="stats.coincAcc">偶然に重なる分の目安</dt><dd id="ds_coincAcc">--</dd></div>
             <!-- v2.1 だけ: イベント行の Flags の内訳 -->
             <div data-v21-only><dt><span data-i18n="stats.flagLowBase">ベースライン 55 mV 未満</span><button type="button" class="term" data-term="flags"></button></dt><dd id="ds_flagLowBase">--</dd></div>
             <div data-v21-only><dt data-i18n="stats.flagPile">前後のパルスと重なり</dt><dd id="ds_flagPile">--</dd></div>
@@ -499,6 +502,33 @@
         <label class="check"><input type="checkbox" id="demoSound"><span id="demoSoundLabel" data-i18n="demo.sound">ブザー音を鳴らす</span></label>
       </div>
       <p class="hint num-hint" id="demoInfo"></p>
+    </section>
+
+    <section class="rail-sec">
+      <h2 class="rail-title" data-i18n="meas.title">測定</h2>
+
+      <div class="block" id="timerBlock">
+        <h3 class="block-title" data-i18n="timer.title">測定時間の予約</h3>
+        <div class="frow">
+          <select id="timerMode" aria-label="mode">
+            <option value="elapsed" data-i18n="timer.modeElapsed">経過時間（分）</option>
+            <option value="live" data-i18n="timer.modeLive">ライブタイム（分）</option>
+            <option value="counts" data-i18n="timer.modeCounts">件数</option>
+          </select>
+          <input type="number" class="num-input" id="timerAmount" value="10" min="0.1" step="any" aria-label="amount">
+        </div>
+        <div class="row">
+          <button type="button" class="btn btn-line btn-sm" id="btnTimerStart"><svg class="i"><use href="#i-play"/></svg><span data-i18n="timer.start">予約して始める</span></button>
+          <button type="button" class="btn btn-line btn-sm" id="btnTimerCancel" hidden><svg class="i"><use href="#i-close"/></svg><span data-i18n="timer.cancel">予約をやめる</span></button>
+        </div>
+        <p class="state num-hint" id="timerStatus" hidden></p>
+        <p class="hint" data-i18n="timer.hint"></p>
+      </div>
+
+      <div class="block">
+        <label class="check"><input type="checkbox" id="pcSound"><span data-i18n="pcsound.label">このパソコンで音を鳴らす</span></label>
+        <p class="hint" data-i18n="pcsound.hint"></p>
+      </div>
     </section>
 
     <section class="rail-sec">
@@ -713,6 +743,15 @@
           <p class="hint" id="gpsInfo" style="white-space:pre-line"></p>
           <button type="button" class="btn btn-line btn-sm" id="btnGpsToUpload" hidden data-i18n="gps.useForUpload">この位置を送信設定の緯度・経度に入れる</button>
         </div>
+        <div class="group" id="sdGroup" data-v2-only data-hide-v21>
+          <div class="group-head"><h3 data-i18n="sdx.title">microSD のログを取り込む（USB）</h3></div>
+          <p class="hint" data-i18n="sdx.hint"></p>
+          <div class="row">
+            <button type="button" class="btn btn-line btn-sm" id="btnSdList" disabled><svg class="i"><use href="#i-refresh"/></svg><span data-i18n="sdx.list">ファイルの一覧を読む</span></button>
+          </div>
+          <p class="state" id="sdState" hidden></p>
+          <ul class="sd-files" id="sdFiles"></ul>
+        </div>
       </div>
     </details>
 
@@ -848,6 +887,19 @@
           <a class="btn btn-line btn-sm" href="manual.html" target="_blank" rel="noopener"><svg class="i"><use href="#i-book"/></svg><span data-i18n="nav.manualOpen">マニュアルを開く</span></a>
           <a class="btn btn-line btn-sm" href="plotter.html" target="_blank" rel="noopener"><svg class="i"><use href="#i-chart"/></svg><span data-i18n="nav.plotterOpen">保存したデータを解析する</span></a>
         </p>
+        <div class="group">
+          <div class="group-head"><h3 data-i18n="diag.title">診断レポートと設定の控え</h3></div>
+          <p class="hint" data-i18n="diag.hint"></p>
+          <div class="row">
+            <button type="button" class="btn btn-line btn-sm" id="btnDiagReport"><svg class="i"><use href="#i-download"/></svg><span data-i18n="diag.report">診断レポートを保存</span></button>
+          </div>
+          <label class="check"><input type="checkbox" id="diagPrivate"><span data-i18n="diag.private">位置（GPS）と Bluetooth アドレスも入れる</span></label>
+          <div class="row">
+            <button type="button" class="btn btn-line btn-sm" id="btnSettingsExport"><svg class="i"><use href="#i-download"/></svg><span data-i18n="diag.export">設定を書き出す</span></button>
+            <label class="btn btn-line btn-sm" id="lblSettingsImport"><svg class="i"><use href="#i-folder"/></svg><span data-i18n="diag.import">設定を読み込む</span><input type="file" id="settingsImport" accept=".json,application/json" hidden></label>
+          </div>
+          <p class="field-msg" id="diagMsg" hidden></p>
+        </div>
         <ul class="notes">
           <li data-i18n="notes.chrome"></li>
           <li data-i18n="notes.usb"></li>

@@ -239,7 +239,7 @@ function connDetailLines() {
              : (c.btAddrTimedOut ? t('conn.addrUnknown') : t('conn.addrFetching'));
   const lines = [];
   if (state.connectionType === 'demo') {
-    return [t('demo.detail'), `${t('conn.deviceName')}: ${demo.dev.bleName}`, t('demo.detailNote')];
+    return [t('demo.detail'), `${t('conn.deviceName')}: ${demo.dev.bleName}`, ...fwClockLines(), t('demo.detailNote')];
   }
   if (state.connectionType === 'ble') {
     lines.push(t('conn.detailBle'));
@@ -255,7 +255,29 @@ function connDetailLines() {
     lines.push(`${t('conn.comPort')}: ${t('conn.comUnavailable')}`);
     lines.push(`${t('conn.boardAddr')}: ${addr}`);
   }
-  return lines;
+  return lines.concat(fwClockLines());
+}
+
+// ファームの版と基板の時計（v2 の GET_VER / SET_TIME。v2.1 は #CFG の FW だけ）。
+function fwClockLines() {
+  const c = state.conn;
+  const out = [];
+  const fw = c.fw || (modelProfile.fmt3 ? state.v21.fw : null);   // v2.1 は #CFG の FW
+  if (fw) {
+    let s = `${t('conn.firmware')}: ${fw}` + (c.fwBuild ? ` (${c.fwBuild})` : '');
+    if (c.fwLatest && c.fwBuild && c.fwBuild < c.fwLatest) s += ' — ' + t('conn.fwNewer', { latest: c.fwLatest });
+    out.push(s);
+  } else if (c.fwState === 'fetching') {
+    out.push(`${t('conn.firmware')}: ${t('conn.addrFetching')}`);
+  } else if (c.fwState === 'none') {
+    out.push(`${t('conn.firmware')}: ${t('conn.fwOld')}`);
+  }
+  const k = c.clock;
+  if (k) {
+    const src = k.src === 'GPS' ? t('conn.clockGps') : k.src === 'PC' ? t('conn.clockPc') : t('conn.clockNone');
+    out.push(`${t('conn.clock')}: ${src}` + (k.src !== 'NONE' && k.utc > 0 ? ` (${formatLocalTimestamp(k.utc * 1000).slice(0, -4)})` : ''));
+  }
+  return out;
 }
 
 function renderConnDetail() {
@@ -546,8 +568,9 @@ function updateStats() {
     $('statElapsed').textContent = '00:00:00';
     ['ds_elapsed', 'ds_rate', 'ds_rateStd', 'ds_devCounts', 'ds_liveTime', 'ds_deadtime', 'ds_adcMean', 'ds_adcMax',
      'ds_temp', 'ds_tempStd', 'ds_tempRange', 'ds_hum', 'ds_humRange', 'ds_press', 'ds_pressRange', 'ds_digRate', 'ds_anaMean',
-     'ds_flagLowBase', 'ds_flagPile', 'ds_flagSat']
+     'ds_coinc', 'ds_coincAcc', 'ds_flagLowBase', 'ds_flagPile', 'ds_flagSat']
       .forEach(id => { $(id).textContent = '--'; });
+    renderCoinc(null);
     return;
   }
 
@@ -599,12 +622,30 @@ function updateStats() {
 
   $('ds_digRate').textContent = s.digHits.map(h => ((h / n) * 100).toFixed(1) + '%').join(' / ');
   $('ds_anaMean').textContent = s.sumAna.map(a => (a / n).toFixed(0)).join(' / ');
+  renderCoinc(coincSummary());
 
   // v2.1: Flags の内訳（FMT:3 のイベントのうち、その印が付いた割合）
   const pct = k => s.nFmt3 ? `${(100 * k / s.nFmt3).toFixed(1)} % (${k})` : '--';
   $('ds_flagLowBase').textContent = pct(s.flagLowBase);
   $('ds_flagPile').textContent = pct(s.flagPile);
   $('ds_flagSat').textContent = pct(s.flagSat);
+}
+
+// 同時計数（外部検出器 1〜3 のどれかと同時だったイベント）の率と、偶然に重なる分の目安。
+// 計測画面の下の行には、外部検出器が ON のとき（または同時が 1 件でもあったとき）だけ出す。
+function renderCoinc(c) {
+  const perHour = v => (v * 3600 < 10 ? (v * 3600).toFixed(1) : Math.round(v * 3600).toString());
+  const show = !!c && (state.extEnabled === true || c.count > 0);
+  $('coincAux').hidden = !show;
+  if (!c) return;
+  const digits = c.rate >= 0.1 ? 3 : 4;
+  $('coincRate').textContent = c.rate.toFixed(digits);
+  $('coincErr').textContent = c.rateStd.toFixed(digits);
+  const accTitle = t('coinc.accTitle', { acc: perHour(c.accidental), w: c.windowUs, k: c.inputs });
+  $('coincAux').title = t('coinc.auxTitle', { n: c.count, h: perHour(c.rate) }) + '\n' + accTitle;
+  $('ds_coinc').textContent = `${c.rate.toFixed(4)} ± ${c.rateStd.toFixed(4)} cps (${t('coinc.perHour', { h: perHour(c.rate) })}, ${c.count})`;
+  $('ds_coincAcc').textContent = `${c.accidental.toPrecision(2)} cps (${t('coinc.perHour', { h: perHour(c.accidental) })})`;
+  $('ds_coincAcc').title = accTitle;
 }
 
 function updateEnvCards() {
@@ -692,6 +733,7 @@ function updateStatsBatch() {
   if (!statsDirty) return;
   statsDirty = false;
   updateStats();
+  if (measTimer.active) renderTimer();
 }
 
 // ========== Graphs ==========
@@ -1113,6 +1155,94 @@ function applyLanguage() {
   renderEverything();
 }
 
+// ========== Timed measurement (B-2) and PC sound (D-1) ==========
+function fmtLeft(sec) {
+  sec = Math.max(0, Math.ceil(sec));
+  const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
+  const p = v => String(v).padStart(2, '0');
+  return h ? `${h}:${p(m)}:${p(s)}` : `${p(m)}:${p(s)}`;
+}
+
+function renderTimer() {
+  const st = timerStatus();
+  const el = $('timerStatus');
+  $('btnTimerStart').hidden = !!st;
+  $('btnTimerCancel').hidden = !st;
+  $('btnTimerStart').disabled = !state.isConnected;
+  $('timerMode').disabled = $('timerAmount').disabled = !!st;
+  $('timerAmount').step = $('timerMode').value === 'counts' ? '1' : 'any';
+  if (st) {
+    const what = timerTargetText(st.mode, st.target);
+    el.hidden = false;
+    if (measTimer.base == null) el.textContent = t('timer.waiting', { what });
+    else el.textContent = t('timer.left', { what, left: st.mode === 'counts'
+      ? t('timer.nEvents', { n: Math.ceil(st.remaining).toLocaleString() }) : fmtLeft(st.remaining) });
+  } else if (measTimer.done) {
+    el.hidden = false;
+    el.textContent = t('timer.finished', { time: formatLocalTimestamp(measTimer.done.atMs).slice(11, 19),
+                                           what: timerTargetText(measTimer.done.mode, measTimer.done.target) });
+  } else {
+    el.hidden = true;
+  }
+}
+
+// ========== SD logs over USB (C-4) ==========
+function fmtBytes(n) {
+  return n >= 1048576 ? (n / 1048576).toFixed(1) + ' MB' : n >= 1024 ? (n / 1024).toFixed(1) + ' KB' : n + ' B';
+}
+
+function renderSd() {
+  const avail = sdTransferAvailable();
+  $('btnSdList').disabled = !avail || sdx.busy;
+  const st = $('sdState');
+  let msg = '';
+  if (state.isConnected && state.connectionType === 'ble') msg = t('sdx.usbOnly');
+  else if (sdx.error) msg = t('sdx.error', { msg: sdx.error === 'old firmware' ? t('sdx.oldFw') : sdx.error });
+  else if (sdx.progress && !sdx.progress.finishedMs) {
+    const p = sdx.progress;
+    const sec = (Date.now() - p.startMs) / 1000;
+    msg = t('sdx.progress', { name: p.name, done: fmtBytes(p.done), size: fmtBytes(p.size),
+                              pct: p.size ? Math.floor(100 * p.done / p.size) : 100, rate: sec > 0 ? fmtBytes(p.done / sec) : '-' });
+  } else if (sdx.progress && sdx.progress.finishedMs) {
+    msg = t('sdx.saved', { name: sdx.progress.name, sec: ((sdx.progress.finishedMs - sdx.progress.startMs) / 1000).toFixed(1) });
+  } else if (sdx.busy) msg = t('sdx.listing');
+  else if (sdx.files && !sdx.files.length) msg = t('sdx.empty');
+  st.hidden = !msg;
+  st.textContent = msg;
+  const ul = $('sdFiles');
+  ul.textContent = '';
+  if (!sdx.files || !avail) return;
+  for (const f of sdx.files) {
+    const li = document.createElement('li');
+    const left = document.createElement('span');
+    left.className = 'sd-name';
+    left.textContent = f.name;
+    const size = document.createElement('span');
+    size.className = 'sd-size';
+    size.textContent = fmtBytes(f.size);
+    left.appendChild(size);
+    if (f.name === sdx.current) {
+      const cur = document.createElement('span');
+      cur.className = 'sd-cur';
+      cur.textContent = t('sdx.current');
+      left.appendChild(cur);
+    }
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'btn btn-line btn-sm';
+    btn.textContent = t('sdx.save');
+    btn.disabled = sdx.busy || f.size === 0;
+    btn.addEventListener('click', () => sdDownloadFile(f.name, f.size));
+    li.append(left, btn);
+    ul.appendChild(li);
+  }
+}
+
+function renderPcSound() {
+  $('pcSound').checked = pcSound.on;
+  $('demoSound').checked = pcSound.on;
+}
+
 function renderEverything() {
   renderView();
   renderStatus();
@@ -1127,6 +1257,9 @@ function renderEverything() {
   updateAutoSaveUI();
   updateUploadUI();
   updateStats();
+  renderTimer();
+  renderPcSound();
+  renderSd();
   updateEnvCards();
   updateExtGrid();
   updateRawDisplay();
@@ -1145,6 +1278,9 @@ Bus.on('alert', a => { uiAlert = a; renderMessages(); });
 // "Clear the demo data first" has done its job once the data is cleared.
 Bus.on('cleared', () => { if (uiAlert && /^demo\.mixed/.test(uiAlert.key)) { uiAlert = null; renderMessages(); } });
 Bus.on('paused', () => { renderTopActions(); renderStatus(); });
+Bus.on('timer', renderTimer);
+Bus.on('sd', renderSd);
+Bus.on('pcSound', renderPcSound);
 
 Bus.on('conn', connected => {
   if (!connected) {
@@ -1164,6 +1300,8 @@ Bus.on('conn', connected => {
   renderScopeControls();
   renderDemoUI();
   updateUploadUI();
+  renderTimer();
+  renderSd();
 });
 
 Bus.on('device', key => {
@@ -1408,16 +1546,54 @@ function bindControls() {
     $('demoRateLabel').textContent = t('demo.rate', { r: demoFmtRate(demo.rate) });
   });
   $('btnDemoBurst').addEventListener('click', demoInjectBurst);
-  $('demoSound').addEventListener('change', () => {
-    demo.sound = $('demoSound').checked;
-    // An AudioContext can only be started from a user action, so create it here.
-    if (demo.sound) {
-      try {
-        if (!demo.audio) demo.audio = new (window.AudioContext || window.webkitAudioContext)();
-        if (demo.audio.state === 'suspended') demo.audio.resume();
-      } catch (_) {}
-    }
+  // デモの「ブザー音を鳴らす」と保存の欄の「このパソコンで音を鳴らす」は同じスイッチ（pcSound）。
+  // AudioContext はユーザーの操作の中でしか始められないので、ここ（change）で作る。
+  $('demoSound').addEventListener('change', () => pcSoundEnable($('demoSound').checked));
+  $('pcSound').addEventListener('change', () => pcSoundEnable($('pcSound').checked));
+  // 開き直したあと ON のままのスイッチは、最初の操作で音を出せるようにする（ブラウザの決まり）
+  document.addEventListener('pointerdown', pcSoundWake, true);
+  document.addEventListener('keydown', pcSoundWake, true);
+  $('btnTimerStart').addEventListener('click', () => {
+    const mode = $('timerMode').value;
+    const v = parseFloat($('timerAmount').value);
+    if (!(v > 0)) return;
+    timerStart(mode, mode === 'counts' ? Math.max(1, Math.round(v)) : v * 60);
   });
+  $('btnTimerCancel').addEventListener('click', timerCancel);
+
+  // --- 診断レポートと設定の控え (C-2)
+  const diagMsg = (key, params) => { const el = $('diagMsg'); el.hidden = !key; el.textContent = key ? t(key, params) : ''; };
+  $('btnDiagReport').addEventListener('click', () => { exportDiagnosticReport($('diagPrivate').checked); diagMsg(null); });
+  $('btnSettingsExport').addEventListener('click', () => {
+    if (state.threshold == null) { diagMsg('diag.noSettings'); return; }
+    exportSettingsBackup();
+    diagMsg(null);
+  });
+  $('settingsImport').addEventListener('change', e => {
+    const file = e.target.files[0];
+    e.target.value = '';
+    if (!file) return;
+    if (!state.isConnected) { diagMsg('diag.needConn'); return; }
+    const reader = new FileReader();
+    reader.onload = async ev => {
+      let plan;
+      try { plan = settingsRestoreCommands(String(ev.target.result)); } catch (_) { diagMsg('diag.badFile'); return; }
+      if (!plan.cmds.length) { diagMsg('diag.nothing'); return; }
+      const from = plan.from;
+      const ok = await askConfirm({
+        title: t('diag.confirmTitle'),
+        body: t('diag.confirmBody', { file: file.name, device: from.device || '-', model: from.model || '-', created: (from.created || '-').slice(0, 19).replace('T', ' ') }) +
+              '\n\n' + plan.cmds.join('\n'),
+        ok: t('diag.confirmOk'),
+      });
+      if (!ok) return;
+      await sendRestoreCommands(plan.cmds);
+      diagMsg('diag.sent', { n: plan.cmds.length });
+    };
+    reader.readAsText(file);
+  });
+  $('timerMode').addEventListener('change', renderTimer);
+  $('btnSdList').addEventListener('click', sdListFiles);
 
   // --- thresholds and trigger
   $('threshSignal').addEventListener('input', () => { settings.threshSignal = $('threshSignal').value; });

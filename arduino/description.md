@@ -70,6 +70,7 @@ BME280: OK                       (無いときは "BME280: not found")   ← USB
 ### Accel Kitchen
 ### https://accel-kitchen.com/
 ### info@accel-kitchen.com
+### Firmware: FW=2.0.0 BOARD=v2 BUILD=2026-11-20         ← 2026-11-20 以降のファーム（GET_VER と同じ中身）
 ### SD log file: /LOG0001.TXT                            ← SD が使えないときは出ない
 ### Signal threshold: 94 (Duty 96)
 MODE:ANALOG                                              ← `###` が付かない
@@ -144,6 +145,11 @@ VIB:ON
 | BLE 名 | `BLENAME:<name>` | `GET_BLENAME` `SET_BLENAME` |
 | BLE アドレス | `BTADDR:<aa:bb:cc:dd:ee:ff>` | `GET_BTADDR`（USB でも返る）|
 | リセット | `RESET:OK` | `RESET` |
+| ファームの版 | `VER:FW=<版> BOARD=v2 BUILD=<日付>` | `GET_VER`（2026-11-20 以降。古いファームは何も返さない）|
+| 基板の時計 | `TIME:<utc_epoch_s> SRC:GPS\|PC\|NONE` | `SET_TIME` `GET_TIME` |
+| microSD の一覧 | `SDFILE:<name> <bytes>` … `SDLIST:END <count> current=<name>` | `SD_LIST`（USB だけ）|
+| microSD の中身 | `SDDATA:<name> <offset> <len> <crc32> <hex>` | `SD_READ`（USB だけ）|
+| microSD のエラー | `SDERR:<理由>` | `SD_LIST` `SD_READ` |
 
 `VIBMS:` は `VIB:` で前方一致しないので取り違えない。`PWM:` を処理し忘れると、
 13 列のイベント行の判定で黙って捨てられるので注意。
@@ -247,7 +253,7 @@ A0（ピークホールド）はスケールが違い、換算するとしきい
 | `GET_SD` / `SET_SD:ON\|OFF` | microSD へのログ | `SD:..` |
 | `GET_EXT` / `SET_EXT:ON\|OFF` | 外部検出器（Dig/Ana 読み取りと COIN_OUT）| `EXT:..` |
 | `GET_OLED` / `SET_OLED:ON\|OFF` | OLED 表示 | `OLED:..` |
-| `GET_BUZZER` / `SET_BUZZER:ON\|OFF` | ブザー | `BUZZER:..` |
+| `GET_BUZZER` / `SET_BUZZER:ON\|OFF` | ブザー。保存した値が無ければ OFF（2026-11-20b から。それまでは ON）| `BUZZER:..` |
 | `GET_VIB` / `SET_VIB:ON\|OFF` | 振動モーター | `VIB:..` |
 | `GET_BEEP` / `SET_BEEP:<min>,<max>[,<ms>]` | 波高→音程の対数マッピング（50 ≤ min < max ≤ 20000 Hz、1–500 ms）| `BEEP:<min>,<max>,<ms>` |
 | `BEEP_TEST` | 最低・中間・最高の 3 音を鳴らす | `BEEP:...` |
@@ -294,13 +300,37 @@ A0（ピークホールド）はスケールが違い、換算するとしきい
 `v2/index.html` は名前を **19 文字まで** に制限している。古いファーム（コマンド 31 文字）でも
 `SET_BLENAME:`（12 文字）+ 19 文字なら切り詰められないため。名前は `BLENAME:` が返ってから保存する。
 
+### 3.6 版・時刻・microSD（2026-11-20 以降のファーム、FW 2.0.0）
+
+古いファームは知らないコマンドに何も返さないので、コンソールは送っても害がない（OKOME と v2.1 のファームは
+`Unknown command` を返すので、コンソールは v2 を選んだときだけ送る）。
+
+| コマンド | 説明 | 応答 |
+|---|---|---|
+| `GET_VER` | ファームの版。形は v2.1 の `VER:` と同じ（`FW=` `BOARD=` に `BUILD=` を足した）。`BUILD` は書き込みページの `console/firmware/manifest-v2.json` の `version` と同じ値にする（コンソールが比べて、古ければ知らせる）| `VER:FW=2.0.0 BOARD=v2 BUILD=2026-11-20b` |
+| `SET_TIME:<UTC の unix ミリ秒>` | PC の時刻を渡す（22 文字）。2020-01-01〜2100-01-01 の値だけ受け付ける。保存しない（再起動で消える）。GPS が時刻を持っていれば GPS を優先し、TIME 行は出さない | `### TIME …` → `TIME:<s> SRC:PC`（GPS のときは `SRC:GPS`）|
+| `GET_TIME` | 今の時刻と出どころ | `TIME:<utc_epoch_s> SRC:GPS\|PC\|NONE` |
+| `SD_LIST` | microSD のルートのファイル一覧。**USB だけ**（BLE から来たら `SDERR:USB only` を BLE に返す）。出力は Serial にだけ書く（BLE にも SD のログにも書かない）| `SDFILE:LOG0001.TXT 104348` を 1 行ずつ → `SDLIST:END <count> current=<書き込み中のファイル名 or ->` |
+| `SD_READ:<name>,<offset>` | `offset` バイト目から最大 2048 バイト。`name` はルートの普通のファイル名（英数字と `_` `-` `.`、32 文字まで）。書き込み中のログは、読む間だけ閉じて読んだあと追記モードで開き直す | `SDDATA:<name> <offset> <len> <crc32 を 8 桁の 16 進> <データを 16 進>`。`len` が 0 ならファイルの終わり |
+
+- **`### TIME <t_us> <utc_epoch_s> src=PC`**: `t_us`（Event Time と同じ時計）の瞬間の UTC がちょうど `utc_epoch_s` 秒。
+  GPS の `### PPS <t_us> <utc_epoch_s>` と同じ並び。次の秒の境目を選ぶので `t_us` は今より最大 1 秒先になる。
+  `SET_TIME` を受けたとき・`RESET` のあと（新しい起点で）・`SET_SD:ON` で新しいログファイルを開いたときに出す（SD・USB・BLE）。
+  精度は USB で数十 ms 程度（未測定）。
+- **SD の吸い出しの手順**（コンソールの 詳細設定 > 検出器の機能）: `SD_LIST` → ファイルごとに `SD_READ:<name>,0`、
+  `SD_READ:<name>,2048` … と、1 つ受け取ってから次を頼む。CRC-32（zlib と同じ多項式）が合わなければ同じ位置を頼み直す（3 回まで）。
+  `SD_READ` の間は検出ループが止まるので、その時間はコマンドの実行時間としてデッドタイムに入る（1 回 2 KB で数 ms）。
+  送る間だけ USB の送信待ちを 500 ms にする（普段は 0、オシロ中は 50 ms）。
+
 ---
 
 ## 4. `v2/index.html` 側の取り決め
 
 - **接続直後と `Booting` 受信時の問い合わせ**: `GET_BLENAME` `GET_THRESH` `GET_PWM` `GET_MODE` `GET_SCOPE`
-  `GET_SD` `GET_EXT` `GET_OLED` `GET_BUZZER` `GET_VIB` `GET_AUTO_MARGIN` `GET_BEEP` `GET_VIB_MS` `GET_BTADDR` を、
-  800 ms 待ってから 1 件ずつ（80 ms 間隔）送る。すべてのコマンドは 1 本の待ち行列を通り、前の送信の完了を待つ。
+  `GET_SD` `GET_EXT` `GET_OLED` `GET_BUZZER` `GET_VIB` `GET_GPS` `GET_AUTO_MARGIN` `GET_BEEP` `GET_VIB_MS` `GET_BTADDR` `GET_VER` を、
+  800 ms 待ってから 1 件ずつ（80 ms 間隔）送り、最後に `SET_TIME:<送る瞬間の Date.now()>` を送る。
+  すべてのコマンドは 1 本の待ち行列を通り、前の送信の完了を待つ。`GET_VER` に答えなければ「版を答えない古いファーム」とみなす。
+  （この節の古い記述は `v2/index.html` のもの。今のコンソールは `v2/console/` で、行の解析は `assets/js/core.js`。）
 - **計数率**: 2.2 節の式。経過時間・デッドタイムの表示も同じ区間の合計で、**「データを消去」からの累計**
   （総イベント数・ヒストグラムと同じ範囲）。切断・再接続をまたいで続く。
   別の基板（`BTADDR:` が前と違う）につながったときにデータが残っていれば、画面上部で消去を勧める。
