@@ -37,10 +37,10 @@
     "lid": {
       "watertight": true,
       "single_solid": true,
-      "volume_mm3": 24228.6,
+      "volume_mm3": 20265.4,
       "bounds_mm": [
         [
-          19.48,
+          19.4,
           -124.1,
           35.6
         ],
@@ -60,7 +60,7 @@
   "old_free_interior_intrusion_mm3": {
     "base": 0.0,
     "plate": -0.0,
-    "lid": -0.0
+    "lid": 0.0
   },
   "old_free_interior_mm3": 312802.4,
   "corner_to_wall_gap_mm": 0.53,
@@ -113,9 +113,12 @@
   "plate_screw_paths_clear": true,
   "extra_obstruction_area_in_old_rectangle_mm2": 0.0,
   "assembled_ring_base": {
-    "cable_slot_clear_through_lid_and_ring_base": true,
-    "cable_slides_out_sideways_through_slit": true,
+    "seat_fits_without_overlap": true,
+    "ring_passes_down_through_ring_base_lid_and_tube_with_seat_out": true,
+    "ring_probe_diameter_mm": 45.5,
+    "cable_slot_clear_through_seat_ring_base_and_lid": true,
     "m3_paths_clear": true,
+    "web_lid_m3_hole_to_bore_mm": 4.3,
     "mirrored_pattern_blocked_mm3": 113.7
   },
   "geometry_mm": {
@@ -130,11 +133,11 @@
     ]
   },
   "ring_base": {
-    "base_diameter": 80.0,
+    "base_diameter": 72.0,
     "boss_diameter": 70.0,
     "boss_height": 8.0,
     "screws": "3x M3x8 from inside the lid",
-    "on_circle_radius_mm": 34.0,
+    "on_circle_radius_mm": 31.0,
     "angles_deg": [
       90.0,
       210.0,
@@ -142,13 +145,18 @@
     ],
     "lid_hole_mm": 3.4,
     "base_pilot_mm": 2.6,
-    "cable_slot_mm": [
+    "bore_through_lid_and_ring_base_mm": 50.0,
+    "seat": {
+      "diameter": 55.6,
+      "thickness": 4.0,
+      "file": "ring-base/ring-base-seat.stl"
+    },
+    "cable_slot_in_seat_mm": [
       16.0,
       7.0
     ],
     "cable_slot_centre_radius_mm": 19.5,
-    "cable_slot_angle_deg": 180.0,
-    "open_slit_width_mm": 6.0
+    "seat_open_slit_width_mm": 6.0
   },
   "serviceability": {
     "plate_screws": "M2x8 x4, from underneath, into tube bosses",
@@ -170,9 +178,11 @@
         95.0
       ]
     ],
-    "board_exit": "downward through the open bottom with the plate; lid, ring base and ring cable stay connected",
+    "ring_exit": "lift ring + seat out, ring drops through the lid bore into the tube; lid stays screwed on",
+    "board_exit": "downward through the open bottom with the plate, the ring following on its cable",
     "ring_cable_end": "soldered to the board (no connector)",
-    "min_ring_cable_length_mm": 200
+    "min_ring_cable_length_mm": 150,
+    "comfortable_ring_cable_length_mm": 200
   },
   "notes": [
     "Detector model not available in this repo: interference with individual parts was not re-run.",

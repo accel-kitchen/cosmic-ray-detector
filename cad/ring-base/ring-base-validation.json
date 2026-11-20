@@ -1,27 +1,41 @@
 {
   "watertight": true,
   "winding_consistent": true,
-  "volume_mm3": 75487.6,
+  "volume_mm3": 66452.7,
   "bounds_mm": [
     [
-      -39.88,
-      -40.0,
+      -35.87,
+      -36.0,
       0.0
     ],
     [
-      40.0,
-      40.0,
+      36.0,
+      36.0,
       18.0
     ]
   ],
   "components": 1,
-  "base_diameter_mm": 80.0,
+  "base_diameter_mm": 72.0,
   "overall_height_mm": 18.0,
   "boss_diameter_mm": 70.0,
   "ring_pocket_diameter_mm": 45.1,
   "ring_pocket_depth_mm": 1.6,
   "centre_post_diameter_mm": 31.1,
   "boss_wall_around_pocket_mm": 12.45,
+  "base_ledge_around_boss_mm": 1.0,
+  "m3_pilots": {
+    "circle_radius": 31.0,
+    "angles_deg": [
+      90.0,
+      210.0,
+      330.0
+    ],
+    "wall_to_bottom_edge_mm": 2.2
+  },
+  "feet": {
+    "circle_radius": 27.0,
+    "wall_to_bottom_edge_mm": 2.4
+  },
   "slot": {
     "centre_radius": 19.5,
     "length": 16.0,
@@ -35,5 +49,39 @@
     "id": 31.7,
     "pcb": 1.6
   },
-  "section_z0.5_loops": 5
+  "section_z0.5_loops": 5,
+  "lidmount": {
+    "watertight_single_solid": true,
+    "volume_mm3": 33241.5,
+    "bore_diameter_mm": 50.0,
+    "bore_clearance_to_ring_per_side_mm": 2.75,
+    "counterbore_diameter_mm": 56.0,
+    "counterbore_depth_mm": 4.0,
+    "seat_ledge_mm": 3.0,
+    "lift_notches": {
+      "diameter": 10.0,
+      "angles_deg": [
+        0.0,
+        180.0
+      ],
+      "below_seat_mm": 1.5
+    },
+    "wall_bore_to_m3_pilot_mm": 4.7,
+    "wall_counterbore_to_boss_rim_mm": 7.0,
+    "ring_passes_through_with_seat_out": true,
+    "seat_sits_on_ledge_without_overlap": true,
+    "cable_slot_clear_through_seat": true,
+    "cable_slides_into_seat_slit": true
+  },
+  "seat": {
+    "watertight_single_solid": true,
+    "volume_mm3": 7995.9,
+    "diameter_mm": 55.6,
+    "thickness_mm": 4.0,
+    "radial_fit_mm": 0.2,
+    "ring_pocket_diameter_mm": 45.1,
+    "ring_pocket_depth_mm": 1.6,
+    "floor_under_ring_mm": 2.4,
+    "open_slit_width_mm": 6.0
+  }
 }
