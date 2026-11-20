@@ -5,6 +5,8 @@ from mathutils import Vector
 
 data_path=Path(sys.argv[sys.argv.index('--')+1])
 data=json.loads(data_path.read_text())
+wanted=data['views']
+data=data['items']
 bpy.ops.wm.read_factory_settings(use_empty=True)
 scene=bpy.context.scene
 scene.render.engine='BLENDER_WORKBENCH'
@@ -42,8 +44,12 @@ cam_data.clip_end=10
 views=[('exploded',(.20,-.21,.16),(.076,-.067,.018),.180,.022,False),
        ('front',(.21,-.19,.14),(.076,-.067,.004),.170,0.,False),
        ('ports',(-.07,-.22,.13),(.076,-.067,.004),.170,0.,False),
-       ('fit',(.18,-.20,.25),(.076,-.067,.004),.175,0.,True)]
+       ('fit',(.18,-.20,.25),(.076,-.067,.004),.175,0.,True),
+       ('side',(-.124,-.128,.05),(.076,-.0675,0.),.13,0.,False),      # -X wall: USB, J4 plug + microSD window
+       ('under',(.076,-.0775,-.20),(.076,-.0675,-.02),.11,0.,False)]  # straight up at the floor: trimmer hole
 for name,pos,target,scale,lift,hide in views:
+    if name not in wanted:
+        continue
     objects['lid'].location.z=lift
     objects['lid'].hide_render=hide
     cam.location=pos

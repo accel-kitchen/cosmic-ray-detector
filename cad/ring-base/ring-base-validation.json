@@ -1,0 +1,39 @@
+{
+  "watertight": true,
+  "winding_consistent": true,
+  "volume_mm3": 75487.6,
+  "bounds_mm": [
+    [
+      -39.88,
+      -40.0,
+      0.0
+    ],
+    [
+      40.0,
+      40.0,
+      18.0
+    ]
+  ],
+  "components": 1,
+  "base_diameter_mm": 80.0,
+  "overall_height_mm": 18.0,
+  "boss_diameter_mm": 70.0,
+  "ring_pocket_diameter_mm": 45.1,
+  "ring_pocket_depth_mm": 1.6,
+  "centre_post_diameter_mm": 31.1,
+  "boss_wall_around_pocket_mm": 12.45,
+  "slot": {
+    "centre_radius": 19.5,
+    "length": 16.0,
+    "width": 7.0,
+    "angle_deg": 180.0,
+    "wall_to_centre_post_mm": 0.45,
+    "wall_to_pocket_rim_mm": 12.0
+  },
+  "assumed_ring": {
+    "od": 44.5,
+    "id": 31.7,
+    "pcb": 1.6
+  },
+  "section_z0.5_loops": 5
+}

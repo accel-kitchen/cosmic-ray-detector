@@ -1,0 +1,182 @@
+{
+  "parts": {
+    "base": {
+      "watertight": true,
+      "single_solid": true,
+      "volume_mm3": 48488.5,
+      "bounds_mm": [
+        [
+          19.4,
+          -124.1,
+          -17.0
+        ],
+        [
+          132.6,
+          -10.9,
+          38.6
+        ]
+      ]
+    },
+    "plate": {
+      "watertight": true,
+      "single_solid": true,
+      "volume_mm3": 32505.3,
+      "bounds_mm": [
+        [
+          19.4,
+          -124.1,
+          -20.4
+        ],
+        [
+          132.6,
+          -10.9,
+          -17.0
+        ]
+      ]
+    },
+    "lid": {
+      "watertight": true,
+      "single_solid": true,
+      "volume_mm3": 24228.6,
+      "bounds_mm": [
+        [
+          19.48,
+          -124.1,
+          35.6
+        ],
+        [
+          132.6,
+          -10.9,
+          41.0
+        ]
+      ]
+    }
+  },
+  "overlaps_mm3": {
+    "base-lid": 0.0,
+    "base-plate": -0.0,
+    "plate-lid": 0.0
+  },
+  "old_free_interior_intrusion_mm3": {
+    "base": 0.0,
+    "plate": -0.0,
+    "lid": -0.0
+  },
+  "old_free_interior_mm3": 312802.4,
+  "corner_to_wall_gap_mm": 0.53,
+  "openings_clear": {
+    "oled_window": true,
+    "reset": true,
+    "led_hole": true,
+    "usb": true,
+    "audio_jacks": true,
+    "j4_plug_lane": true,
+    "sd_card_lane": true,
+    "j4_plug_lane_raised": true,
+    "sd_card_lane_raised": true,
+    "trimmer_screwdriver_lane": true
+  },
+  "new_openings": {
+    "j4_plug_window_y_z_mm": [
+      [
+        62.6,
+        83.0
+      ],
+      [
+        -10.0,
+        6.5
+      ]
+    ],
+    "sd_window_y_z_mm": [
+      [
+        80.0,
+        96.5
+      ],
+      [
+        -4.6,
+        6.5
+      ]
+    ],
+    "web_to_usb_opening_mm": 3.0,
+    "trimmer_hole_diameter_mm": 6.0,
+    "trimmer_hole_axis_kicad_xy": [
+      62.0,
+      69.54
+    ],
+    "web_trimmer_hole_to_spacer_screw_hole_mm": 2.06,
+    "reach_depth_mm": {
+      "j4_mouth_to_inner_wall": 19.1,
+      "sd_mouth_to_inner_wall": 14.2,
+      "trimmer_face_to_plate_top_mm": 12.1
+    }
+  },
+  "plate_screw_paths_clear": true,
+  "extra_obstruction_area_in_old_rectangle_mm2": 0.0,
+  "assembled_ring_base": {
+    "cable_slot_clear_through_lid_and_ring_base": true,
+    "cable_slides_out_sideways_through_slit": true,
+    "m3_paths_clear": true,
+    "mirrored_pattern_blocked_mm3": 113.7
+  },
+  "geometry_mm": {
+    "inner_radius": 54.2,
+    "outer_diameter": 113.2,
+    "wall": 2.4,
+    "case_height_without_lid": 59.0,
+    "total_height_with_ring_base": 79.4,
+    "axis_kicad_xy": [
+      76.0,
+      67.5
+    ]
+  },
+  "ring_base": {
+    "base_diameter": 80.0,
+    "boss_diameter": 70.0,
+    "boss_height": 8.0,
+    "screws": "3x M3x8 from inside the lid",
+    "on_circle_radius_mm": 34.0,
+    "angles_deg": [
+      90.0,
+      210.0,
+      330.0
+    ],
+    "lid_hole_mm": 3.4,
+    "base_pilot_mm": 2.6,
+    "cable_slot_mm": [
+      16.0,
+      7.0
+    ],
+    "cable_slot_centre_radius_mm": 19.5,
+    "cable_slot_angle_deg": 180.0,
+    "open_slit_width_mm": 6.0
+  },
+  "serviceability": {
+    "plate_screws": "M2x8 x4, from underneath, into tube bosses",
+    "plate_screw_positions_kicad_xy": [
+      [
+        56.0,
+        18.42
+      ],
+      [
+        96.0,
+        18.42
+      ],
+      [
+        30.69,
+        95.0
+      ],
+      [
+        121.31,
+        95.0
+      ]
+    ],
+    "board_exit": "downward through the open bottom with the plate; lid, ring base and ring cable stay connected",
+    "ring_cable_end": "soldered to the board (no connector)",
+    "min_ring_cable_length_mm": 200
+  },
+  "notes": [
+    "Detector model not available in this repo: interference with individual parts was not re-run.",
+    "Inside the case nothing changed from the compact case; only the outer wall is round and the floor is a separate plate.",
+    "Ring size is assumed (see build_ring_base.py). No physical test print yet."
+  ]
+}

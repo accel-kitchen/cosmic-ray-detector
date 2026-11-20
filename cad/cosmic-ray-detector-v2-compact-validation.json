@@ -3,8 +3,8 @@
     "base": {
       "watertight": true,
       "single_connected_solid": true,
-      "triangles": 3612,
-      "volume_mm3": 61665.65,
+      "triangles": 4224,
+      "volume_mm3": 60404.78,
       "bounds_design_mm": [
         [
           33.0,
@@ -49,23 +49,23 @@
     "lightpipe": {
       "watertight": true,
       "single_connected_solid": true,
-      "triangles": 2408,
-      "volume_mm3": 487.45,
+      "triangles": 2304,
+      "volume_mm3": 533.66,
       "bounds_design_mm": [
         [
           100.25,
-          -55.05,
-          -1.455
+          -55.8,
+          4.045
         ],
         [
           119.8,
-          -46.95,
+          -46.7,
           13.4
         ]
       ],
       "print_extents_mm": [
         9.355,
-        8.1,
+        9.1,
         19.55
       ]
     }
@@ -73,80 +73,16 @@
   "intersections": [],
   "source_checks": {
     "lid_and_base_overlap_mm3": -0.0,
-    "checked_closed_components": 354,
-    "total_components": 1666
+    "checked_closed_components": 0,
+    "total_components": 0
   },
-  "unchecked_open_components": [
-    "BZ1",
-    "D1",
-    "D2",
-    "GND1",
-    "J3",
-    "J5",
-    "J6",
-    "J7",
-    "J8",
-    "OLED1",
-    "PCB_MAIN",
-    "PCB_SIPM",
-    "R10",
-    "RESET1",
-    "SiPM1",
-    "TP1",
-    "TP2",
-    "TP3",
-    "TP4",
-    "TP5",
-    "U3_SOCK",
-    "U4"
-  ],
-  "convex_envelope_checks": [
-    "C1",
-    "C10",
-    "C11",
-    "C12",
-    "C15",
-    "C18",
-    "C2",
-    "C3",
-    "C4",
-    "C5",
-    "C6",
-    "C7",
-    "C8",
-    "C9",
-    "GND1",
-    "J3",
-    "J5",
-    "J6",
-    "J7",
-    "L1",
-    "L2",
-    "OLED1",
-    "PCB_SIPM",
-    "R10",
-    "R17",
-    "R24",
-    "R26",
-    "R27",
-    "R4",
-    "R6",
-    "R7",
-    "RESET1",
-    "TP1",
-    "TP2",
-    "TP3",
-    "TP4",
-    "TP5",
-    "U1",
-    "U3_SOCK",
-    "U4"
-  ],
+  "unchecked_open_components": [],
+  "convex_envelope_checks": [],
   "front_openings_mm": {
     "reset": {
       "centre_design_yz_mm": [
         42.0,
-        8.595
+        8.594999999999999
       ],
       "diameter_mm": 7.5,
       "independent_through_hole": true
@@ -154,16 +90,12 @@
     "led": {
       "centre_design_yz_mm": [
         51.25,
-        8.595
+        8.594999999999999
       ],
       "diameter_mm": 7.5,
       "independent_through_hole": true
     },
     "minimum_web_mm": 1.75,
-    "reset_stem_axis_design_yz_mm": [
-      42.0,
-      5.595
-    ],
     "lightpipe_inlet_design_xy_mm": [
       101.0,
       -50.43
@@ -171,7 +103,63 @@
     "lightpipe_inlet_diameter_mm": 1.5,
     "lightpipe_to_led_gap_mm": 0.5
   },
-  "detector_pack_sha256": "4c1da21747eeed532131a1dc3a66604384dba2160849f8d4611d2ba57e194261",
+  "j4_sd_trimmer_openings": {
+    "j4_plug_lane": "clear",
+    "sd_card_lane": "clear",
+    "j4_plug_lane_raised": "clear",
+    "sd_card_lane_raised": "clear",
+    "trimmer_screwdriver_lane": "clear",
+    "removed_volume_mm3": 1260.9,
+    "only_removes_material": true,
+    "lid_posts_intact": true,
+    "j4_window_y_z_mm": [
+      [
+        62.6,
+        83.0
+      ],
+      [
+        -10.0,
+        6.5
+      ]
+    ],
+    "sd_window_y_z_mm": [
+      [
+        80.0,
+        96.5
+      ],
+      [
+        -4.6,
+        6.5
+      ]
+    ],
+    "lanes_checked_at_pcb_height_and_raised_mm": 3.0,
+    "web_to_usb_opening_mm": 3.0,
+    "sd_window_to_lid_post_mm": 1.3,
+    "trimmer_hole_diameter_mm": 6.0,
+    "trimmer_hole_axis_kicad_xy": [
+      62.0,
+      69.54
+    ],
+    "web_trimmer_hole_to_spacer_screw_hole_mm": 2.06,
+    "reach_depth_mm": {
+      "connector_mouth_to_inner_wall": 5.6,
+      "connector_mouth_to_outer_wall": 8.0,
+      "trimmer_face_to_floor_top": 12.1,
+      "trimmer_face_to_case_bottom": 15.5
+    }
+  },
+  "detector_pack_sha256": null,
+  "detector_model": {
+    "available": false,
+    "path": "lp/assets/model/detector-pack.js",
+    "part_by_part_check": "not re-run",
+    "last_full_check": {
+      "pack_sha256": "4c1da21747eeed532131a1dc3a66604384dba2160849f8d4611d2ba57e194261",
+      "checked_closed_components": 354,
+      "intersections": 0
+    },
+    "why_it_still_holds": "The only change since that check is the J4/microSD window and the trimmer hole, and j4_sd_trimmer_openings shows they only remove material from the base. Lid and light pipe are unchanged."
+  },
   "overall_mm": [
     86.0,
     75.0,
@@ -189,12 +177,12 @@
     "height": 20.0,
     "horizontal_margin_from_outer_jack_centres": 8.5,
     "vertical_margin_from_jack_axes": 10.0,
-    "includes_microsd_access": true,
-    "note": "opening moved up 6 mm; interference re-check against the detector pack not run"
+    "includes_microsd_access": false
   },
   "notes": [
     "Nano ESP32 geometry in the source pack is a simplified model.",
-    "The scintillator model excludes wrapping; 14.845 mm clearance to lid underside.",
+    "The scintillator model excludes wrapping; 14.845 mm clearance to lid underside (last run with the model).",
+    "J4 and microSD connector heights are estimates (not from a datasheet or a fitted unit).",
     "Physical prototype fit and optical lightpipe transmission remain untested."
   ]
 }
