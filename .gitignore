@@ -6,6 +6,10 @@ _autosave-*
 *-rescue.dcm
 *.kicad_sch-bak
 *.sch-bak
+fp-info-cache
+
+# Arduino IDE build output (Sketch > Export Compiled Binary)
+arduino/**/build/
 
 # Claude Code local config
 .claude/
