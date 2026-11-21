@@ -1,7 +1,11 @@
 # CosmicRay Console デスクトップ版（arduino/v2/desktop）を Windows と Mac で作る。
 # Mac 版は Mac の上でしか作れないので、GitHub の macOS ランナーを使う。
 # 動かし方: Actions タブの "desktop-build" → Run workflow、または desktop-v* のタグを push する。
-# できたファイルは、その実行の Artifacts からダウンロードする（署名なし）。
+# できたファイルは、その実行の Artifacts に置く（署名なし）。
+# desktop-v<版> のタグのときは、さらに GitHub の Release を作ってファイルを載せる。
+# ファイル名には版を入れていないので、コンソールの desktop.html は
+#   https://github.com/accel-kitchen/cosmic-ray-detector/releases/latest/download/<ファイル名>
+# で、いつも最新版を指せる。タグの版と package.json の version が違うと止まる。
 name: desktop-build
 
 on:
@@ -39,6 +43,14 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: arduino/v2/desktop/package-lock.json
+      - name: Tag and package.json versions agree
+        if: startsWith(github.ref, 'refs/tags/desktop-v')
+        shell: bash
+        run: |
+          want="${GITHUB_REF_NAME#desktop-v}"
+          have="$(node -p "require('./package.json').version")"
+          echo "tag $want / package.json $have"
+          test "$want" = "$have"
       - run: npm ci
       - run: npm test
       - run: npm run ${{ matrix.script }}
@@ -59,3 +71,42 @@ jobs:
           name: cosmicray-console-${{ matrix.os }}
           path: ${{ matrix.files }}
           if-no-files-found: error
+
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/desktop-v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v5
+        with:
+          path: out
+          merge-multiple: true
+      - name: Create the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ver="${GITHUB_REF_NAME#desktop-v}"
+          ls -la out
+          cat > notes.md <<NOTES
+          CosmicRay Console デスクトップ版 ${ver}（全機種対応。窓を閉じてもトレイで記録を続ける常駐アプリ）
+
+          | ファイル | 対象 |
+          |---|---|
+          | CosmicRayConsole-Setup.exe | Windows 10 / 11（64 ビット）インストール版 |
+          | CosmicRayConsole-Portable.exe | Windows 10 / 11（64 ビット）ポータブル版（インストール不要） |
+          | CosmicRayConsole-mac-arm64.dmg | Mac（Apple シリコン: M1 以降） |
+          | CosmicRayConsole-mac-x64.dmg | Mac（Intel） |
+
+          正式なコード署名はしていません。初めて開くときの手順は、コンソールの「アプリ」のページ（desktop.html）にあります。
+          NOTES
+          files=(
+            out/CosmicRayConsole-Setup.exe
+            out/CosmicRayConsole-Portable.exe
+            out/CosmicRayConsole-mac-arm64.dmg
+            out/CosmicRayConsole-mac-x64.dmg
+            out/CosmicRayConsole-mac-arm64.zip
+            out/CosmicRayConsole-mac-x64.zip
+          )
+          gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --title "CosmicRay Console ${ver}" --notes-file notes.md --latest "${files[@]}"

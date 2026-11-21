@@ -125,6 +125,8 @@ const I18N = {
     'nav.manualOpen': 'マニュアルを開く',
     'nav.flash': '書き込み',
     'nav.flashTitle': 'ファームウェアを書き込む（別のタブで開きます）',
+    'nav.desktop': 'アプリ',
+    'nav.desktopTitle': 'アプリ版（Windows・Mac）をダウンロードする。長時間の記録向け（別のタブで開きます）',
 
     // --- 最初の画面 ---
     'connect.eyebrow': '宇宙線検出器 v2 のデータ記録アプリ',
@@ -706,6 +708,8 @@ const I18N = {
     'nav.manualOpen': 'Open the manual',
     'nav.flash': 'Flash',
     'nav.flashTitle': 'Flash the firmware (opens in a new tab)',
+    'nav.desktop': 'App',
+    'nav.desktopTitle': 'Download the desktop app (Windows, Mac) for long recordings (opens in a new tab)',
 
     'connect.eyebrow': 'Data recorder for the v2 cosmic-ray detector',
     'connect.eyebrow@okome': 'Data recorder for the OKOME (MUON FOB) cosmic-ray detector',

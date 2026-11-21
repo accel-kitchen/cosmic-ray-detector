@@ -19,9 +19,9 @@ ESP32-S3 は DTR と RTS が一度に下がるとリセットされる（また�
 
 | 版 | ファイル | 向いている人 |
 |---|---|---|
-| Windows インストール版 | `CosmicRayConsole-Setup-<版>.exe` | 自分の PC で毎日使う。ログイン時の起動が使える |
-| Windows ポータブル版 | `CosmicRayConsole-Portable-<版>.exe` | インストールできない PC（学校など）、USB メモリで持ち歩く。設定は exe の隣の `CosmicRayConsole-data`、保存は `CosmicRay` に置き、PC には残さない。起動のたびに展開するので立ち上がりが数秒遅い。ログイン時の起動は使えない |
-| Mac 版 | `CosmicRayConsole-<版>-mac-arm64.dmg`（Apple シリコン）/ `-x64.dmg`（Intel） | Mac。Windows の上では作れないので GitHub Actions で作る（下記） |
+| Windows インストール版 | `CosmicRayConsole-Setup.exe` | 自分の PC で毎日使う。ログイン時の起動が使える |
+| Windows ポータブル版 | `CosmicRayConsole-Portable.exe` | インストールできない PC（学校など）、USB メモリで持ち歩く。設定は exe の隣の `CosmicRayConsole-data`、保存は `CosmicRay` に置き、PC には残さない。起動のたびに展開するので立ち上がりが数秒遅い。ログイン時の起動は使えない |
+| Mac 版 | `CosmicRayConsole-mac-arm64.dmg`（Apple シリコン）/ `CosmicRayConsole-mac-x64.dmg`（Intel） | Mac。Windows の上では作れないので GitHub Actions で作る（下記） |
 
 どれも正式な署名はしていません（Mac 版は、起動できるようにアドホック署名だけしています）。Windows は SmartScreen の「詳細情報 → 実行」、Mac は「システム設定 → プライバシーとセキュリティ → このまま開く」が要ります。
 Mac で「壊れているため開けません」と出たときは、ターミナルで `xattr -cr "/Applications/CosmicRay Console.app"` を実行すると開けます。
@@ -59,7 +59,15 @@ npm start
 - `npm run dist:mac` … Mac の上でだけ動く。dmg と zip（arm64 / x64）を作る
 - F12 で開発者ツール
 
-**Mac 版を作るには**、リポジトリを GitHub に push してから、Actions タブの **desktop-build** を「Run workflow」で動かします（`.github/workflows/desktop-build.yml`。`desktop-v*` のタグを push しても動きます）。Windows 版と Mac 版の両方を作り、その実行の Artifacts に置きます。
+**配布（リリース）のしかた**
+
+1. `package.json` の `version` を上げる（例 1.0.4）。`npm install --package-lock-only` で lock も合わせる。
+2. コミットして push し、`desktop-v1.0.4` のタグを push する（`git tag -a desktop-v1.0.4 -m ...` → `git push jedipuppy desktop-v1.0.4`）。
+3. GitHub Actions の **desktop-build** が Windows 版と Mac 版を作り、GitHub の Release を作ってファイルを載せる（タグの版と `package.json` が違うと止まる）。
+
+ファイル名には版を入れていないので、コンソールの「アプリ」のページ（`console/desktop.html`）は
+`https://github.com/accel-kitchen/cosmic-ray-detector/releases/latest/download/<ファイル名>` で、いつも最新版を指します。
+ページは版・日付・大きさを GitHub の API から読みます（読めなくてもダウンロードはできる）。
 
 試験用のオプション（`npm start -- --demo` のように渡す）:
 

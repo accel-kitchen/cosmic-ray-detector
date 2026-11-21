@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>アプリ版 — CosmicRay Recorder</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+JP:wght@400;500;700&family=Shippori+Mincho:wght@600;700&display=swap">
+  <link rel="stylesheet" href="assets/css/console.css">
+  <link rel="stylesheet" href="assets/css/pages.css">
+  <style>
+    .dl-card { margin: 8px 0 26px; padding: 22px 24px; border: 1px solid var(--rule); border-radius: 6px; background: var(--field); }
+    .dl-card h2 { margin-top: 0; font-size: 17px; }
+    .dl-card.is-mine { border-color: var(--ink); box-shadow: 0 0 0 1px var(--ink) inset; }
+    .dl-mine { display: none; margin-left: 8px; font-size: 12px; font-weight: 500; color: var(--ink-3); }
+    .dl-card.is-mine .dl-mine { display: inline; }
+    .dl-row { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; margin: 14px 0 4px; }
+    .dl-row .btn { white-space: normal; text-align: left; }
+    .dl-meta { margin: 6px 0 0; font-size: 12.5px; color: var(--ink-3); }
+    .dl-meta code { font-size: 12px; }
+    .dl-sub { margin: 18px 0 0; font-size: 14px; }
+    .dl-sub + p { margin-top: 4px; }
+  </style>
+</head>
+<body>
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+  <symbol id="i-rec" viewBox="0 0 24 24"><path d="M2.5 12.5h3.3l2.2-6.5 3.5 12 3-9.5 1.8 4h5.2"/></symbol>
+  <symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 20V4M4 20h16"/><path d="M7.5 20v-5M11 20V9M14.5 20v-7M18 20v-3"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24"><path d="M12 6.5C10 5 7.5 4.5 4 4.5v13c3.5 0 6 .5 8 2 2-1.5 4.5-2 8-2v-13c-3.5 0-6 .5-8 2z"/><path d="M12 6.5v13"/></symbol>
+  <symbol id="i-chip" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="1.5"/><path d="M9.5 3v3M14.5 3v3M9.5 18v3M14.5 18v3M3 9.5h3M3 14.5h3M18 9.5h3M18 14.5h3"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5"/><path d="M4.5 16.5v3h15v-3"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.5M12 7.8v.2"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 4 21 19.5H3z"/><path d="M12 10v4.5M12 17v.2"/></symbol>
+</svg>
+
+<header class="topbar" id="topbar">
+  <div class="topbar-row">
+    <a class="brand" href="index.html"><span class="brand-name">CosmicRay Recorder</span></a>
+    <nav class="pagenav" aria-label="ページ">
+      <a href="index.html"><svg class="i"><use href="#i-rec"/></svg>記録</a>
+      <a href="plotter.html"><svg class="i"><use href="#i-chart"/></svg>解析</a>
+      <a href="flash.html"><svg class="i"><use href="#i-chip"/></svg>書き込み</a>
+      <a href="desktop.html" aria-current="page"><svg class="i"><use href="#i-download"/></svg>アプリ</a>
+      <a href="manual.html"><svg class="i"><use href="#i-book"/></svg>マニュアル</a>
+    </nav>
+  </div>
+</header>
+
+<main class="tool" style="max-width: 820px;">
+  <div class="tool-head">
+    <div>
+      <p class="eyebrow">CosmicRay Recorder</p>
+      <h1>アプリ版をダウンロードする</h1>
+    </div>
+  </div>
+  <p class="lead">何時間・何日も続けて記録したい人のための、パソコンに入れて使う版です。画面と使い方はこのページ（ブラウザ版）とまったく同じで、すべての検出器（OWAN v1、OHASHI v2、v2.1、OKOME）に使えます。</p>
+
+  <div class="note" id="inApp" hidden><svg class="i"><use href="#i-info"/></svg><div>
+    <b>いま開いているのは、アプリ版です。</b>
+    <p>新しい版が出たときは、ここから入れ直してください。<span id="inAppVer"></span></p>
+  </div></div>
+
+  <h2 id="why"><span class="no">違い</span>ブラウザ版との違い</h2>
+  <ul>
+    <li><b>ウィンドウを閉じても記録を続けます。</b>画面の右下（Mac は上）のアイコンに残り、止めるときはそのアイコンから「終了」を選びます。</li>
+    <li><b>記録中はパソコンをスリープさせません。</b>ほかのアプリを使っていても、裏で記録が間引かれません。</li>
+    <li><b>起動したら、前回の検出器に自動でつなぎます。</b>USB を差し直したときも、つなぎ直します。</li>
+    <li><b>起動するとすぐ自動保存が始まります。</b>保存先は「書類」の中の <code>CosmicRay</code> フォルダです（変えられます）。</li>
+    <li>パソコンにログインしたら自動で起動するようにもできます（Windows のインストール版と Mac 版）。</li>
+  </ul>
+  <p class="dl-meta">少し記録するだけなら、今までどおりブラウザ版で十分です。インストールの要らないブラウザ版は、これからも同じように使えます。</p>
+
+  <section class="dl-card" id="cardWin" data-os="win">
+    <h2>Windows<span class="dl-mine">お使いのパソコン</span></h2>
+    <p style="margin-top:0">Windows 10 / 11（64 ビット）。</p>
+    <h3 class="dl-sub">インストール版（ふつうはこちら）</h3>
+    <p>自分のパソコンで毎日使う人に。スタートメニューから起動でき、ログインしたときに自動で起動させることもできます。</p>
+    <div class="dl-row">
+      <a class="btn btn-primary" data-asset="CosmicRayConsole-Setup.exe"><svg class="i"><use href="#i-download"/></svg>Windows 版（インストール版）をダウンロード</a>
+    </div>
+    <p class="dl-meta"><code>CosmicRayConsole-Setup.exe</code> <span data-size="CosmicRayConsole-Setup.exe"></span></p>
+    <h3 class="dl-sub">ポータブル版（インストール不要）</h3>
+    <p>インストールできないパソコン（学校のパソコンなど）や、USB メモリに入れて持ち歩きたい人に。ダウンロードした exe をダブルクリックするだけで動きます。設定と記録したデータは、exe と同じフォルダの <code>CosmicRayConsole-data</code> と <code>CosmicRay</code> に置き、パソコンには残しません。起動に数秒かかります。</p>
+    <div class="dl-row">
+      <a class="btn btn-line" data-asset="CosmicRayConsole-Portable.exe"><svg class="i"><use href="#i-download"/></svg>Windows 版（ポータブル版）をダウンロード</a>
+    </div>
+    <p class="dl-meta"><code>CosmicRayConsole-Portable.exe</code> <span data-size="CosmicRayConsole-Portable.exe"></span></p>
+  </section>
+
+  <section class="dl-card" id="cardMac" data-os="mac">
+    <h2>Mac<span class="dl-mine">お使いのパソコン</span></h2>
+    <p style="margin-top:0">お使いの Mac のチップに合わせて選びます。アップルメニュー →「この Mac について」の「チップ」が <b>Apple M1・M2・M3・M4…</b> なら Apple シリコン版、<b>Intel</b> なら Intel 版です。</p>
+    <div class="dl-row">
+      <a class="btn btn-primary" data-asset="CosmicRayConsole-mac-arm64.dmg"><svg class="i"><use href="#i-download"/></svg>Mac 版（Apple シリコン）をダウンロード</a>
+      <a class="btn btn-line" data-asset="CosmicRayConsole-mac-x64.dmg"><svg class="i"><use href="#i-download"/></svg>Mac 版（Intel）をダウンロード</a>
+    </div>
+    <p class="dl-meta"><code>CosmicRayConsole-mac-arm64.dmg</code> <span data-size="CosmicRayConsole-mac-arm64.dmg"></span> ・ <code>CosmicRayConsole-mac-x64.dmg</code> <span data-size="CosmicRayConsole-mac-x64.dmg"></span></p>
+    <p>ダウンロードした dmg を開き、<b>CosmicRay Console</b> を「アプリケーション」フォルダへドラッグします。</p>
+  </section>
+
+  <p class="dl-meta" id="relInfo">最新版：<span id="relVer">確認しています…</span> ・ <a id="relLink" href="https://github.com/accel-kitchen/cosmic-ray-detector/releases/latest" rel="noopener" target="_blank">これまでの版の一覧（GitHub）</a></p>
+
+  <h2 id="first"><span class="no">はじめて</span>はじめて開くとき</h2>
+  <p>このアプリは、Microsoft や Apple の有料の署名（発行元の証明）を受けていません。そのため、はじめて開くときだけ、パソコンが確認の画面を出します。中身は、このページと同じコンソールです。</p>
+
+  <h3 class="dl-sub">Windows</h3>
+  <ol class="steps-list">
+    <li>「Windows によって PC が保護されました」と出たら、<span class="ui">詳細情報</span>を押します。</li>
+    <li><span class="ui">実行</span>を押します。2 回目からは出ません。</li>
+    <li>ブラウザがダウンロードを止めたときは、ダウンロードの一覧で <span class="ui">保存</span>（または <span class="ui">保持する</span>）を選びます。</li>
+  </ol>
+
+  <h3 class="dl-sub">Mac</h3>
+  <ol class="steps-list">
+    <li>「アプリケーション」フォルダの <b>CosmicRay Console</b> をダブルクリックします。「開けません」と出たら、<span class="ui">完了</span>（または <span class="ui">OK</span>）で閉じます。</li>
+    <li>「システム設定」→「プライバシーとセキュリティ」を開き、下のほうの「CosmicRay Console はブロックされました」の横の <span class="ui">このまま開く</span>を押します。</li>
+    <li>もう一度開いて、<span class="ui">開く</span>を押します。2 回目からは出ません。</li>
+    <li>「壊れているため開けません」と出るときは、「ターミナル」で次の 1 行を実行してから開き直します。<br><code>xattr -cr "/Applications/CosmicRay Console.app"</code></li>
+  </ol>
+
+  <h2 id="use"><span class="no">使い方</span>アプリ版の使い方</h2>
+  <ul>
+    <li><b>つなぐ</b>：はじめてのときは、ブラウザ版と同じく「USB で接続」（または Bluetooth）を押して、検出器を選びます。次からは、起動しただけで同じ検出器につながります。</li>
+    <li><b>止める・終わる</b>：ウィンドウの × は「隠す」だけです。記録をやめるときは、画面の右下（Mac は上のメニューバー）の紋章のアイコンを押して<span class="ui">終了</span>を選びます。検出器との接続を切ってから終わるので、検出器はそのまま数え続けます。</li>
+    <li><b>設定</b>：同じアイコンのメニューで、保存先、自動でつなぐか、スリープさせないか、ログイン時に起動するかを切り替えられます。</li>
+    <li><b>ファームウェアを書き込むとき</b>：アプリは検出器をつかんだままにしています。<a href="flash.html">書き込み</a>や Arduino IDE を使う前に、アプリで「切断」するか、終了してください。</li>
+    <li><b>ノートパソコン</b>：ふたを閉じるとスリープしてしまいます。長く記録するときは、ふたを開けたままにするか、電源の設定で「ふたを閉じたときの動作」を変えてください。</li>
+  </ul>
+
+  <p class="dl-meta">アプリ版は、ブラウザ版とは別に設定（機種の選択など）を持ちます。作り方とソースは <a href="https://github.com/accel-kitchen/cosmic-ray-detector/tree/master/arduino/v2/desktop" rel="noopener" target="_blank">GitHub</a> にあります。</p>
+</main>
+
+<footer class="foot">
+  <span>CosmicRay Recorder</span>
+  <span>アプリは <a href="https://www.electronjs.org/" rel="noopener" target="_blank">Electron</a> で作っています</span>
+</footer>
+
+<script>
+  // ダウンロードのリンクは、GitHub の「最新版」を指す固定の URL。版が上がっても書き換えなくてよい。
+  // 版・日付・ファイルの大きさは GitHub の API から読む（読めなくてもダウンロードはできる）。
+  const REPO = 'accel-kitchen/cosmic-ray-detector';
+  const LATEST = 'https://github.com/' + REPO + '/releases/latest/download/';
+  for (const a of document.querySelectorAll('[data-asset]')) {
+    a.href = LATEST + a.dataset.asset;
+    a.setAttribute('rel', 'noopener');
+  }
+
+  // お使いのパソコンの欄に印を付けて、先頭に出す
+  (async () => {
+    let os = null;
+    try {
+      const p = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || navigator.userAgent;
+      if (/win/i.test(p)) os = 'win';
+      else if (/mac/i.test(p)) os = 'mac';
+    } catch (_) {}
+    const card = os && document.querySelector('.dl-card[data-os="' + os + '"]');
+    if (card) {
+      card.classList.add('is-mine');
+      const first = document.querySelector('.dl-card');
+      if (first !== card) first.parentNode.insertBefore(card, first);
+    }
+    // Apple シリコンか Intel かは、分かるときだけ（Chrome・Edge は教えてくれる。Safari は教えない）
+    if (os === 'mac' && navigator.userAgentData && navigator.userAgentData.getHighEntropyValues) {
+      try {
+        const v = await navigator.userAgentData.getHighEntropyValues(['architecture']);
+        const arm = v.architecture === 'arm';
+        const x86 = v.architecture === 'x86';
+        if (arm || x86) {
+          const want = arm ? 'CosmicRayConsole-mac-arm64.dmg' : 'CosmicRayConsole-mac-x64.dmg';
+          for (const a of document.querySelectorAll('#cardMac [data-asset]')) {
+            a.className = 'btn ' + (a.dataset.asset === want ? 'btn-primary' : 'btn-line');
+          }
+        }
+      } catch (_) {}
+    }
+  })();
+
+  // アプリ版の中で開いたとき
+  if (window.cosmicDesktop || /CosmicRayConsole|Electron/i.test(navigator.userAgent)) {
+    document.getElementById('inApp').hidden = false;
+  }
+
+  (async () => {
+    const verEl = document.getElementById('relVer');
+    try {
+      const r = await fetch('https://api.github.com/repos/' + REPO + '/releases/latest', { headers: { Accept: 'application/vnd.github+json' } });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      const rel = await r.json();
+      const ver = String(rel.tag_name || '').replace(/^desktop-v/, '');
+      const date = rel.published_at ? new Date(rel.published_at).toLocaleDateString('ja-JP') : '';
+      verEl.textContent = (ver ? ver : rel.name || '') + (date ? '（' + date + '）' : '');
+      const sizes = {};
+      for (const a of rel.assets || []) sizes[a.name] = a.size;
+      for (const s of document.querySelectorAll('[data-size]')) {
+        const n = sizes[s.dataset.size];
+        s.textContent = n ? '・ ' + Math.round(n / 1048576) + ' MB' : '';
+      }
+    } catch (e) {
+      verEl.textContent = '確認できませんでした（ダウンロードはできます）';
+    }
+  })();
+</script>
+</body>
+</html>
