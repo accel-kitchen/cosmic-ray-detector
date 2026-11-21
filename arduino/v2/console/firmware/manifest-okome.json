@@ -1,0 +1,6 @@
+{
+  "name": "CosmicRay Recorder OKOME (MUON FOB, XIAO nRF52840) firmware",
+  "version": "0.1",
+  "file": "cosmicray-okome.uf2",
+  "note": "UF2: not for ESP Web Tools. Double-tap RESET, then copy the file onto the XIAO-BOOT drive."
+}

@@ -67,6 +67,8 @@ function loadBleNameForModel() {
 function applyModel(skipRender) {
   document.body.dataset.model = modelProfile.id;
   $('brandVer').textContent = { okome: 'OKOME · MUON FOB', v21: 'v2.1' }[modelProfile.id] || 'OHASHI · v2';
+  // 書き込みのページは機種ごとのタブ（#v2 / #v21 / #okome）で開く
+  $('linkFlash').href = 'flash.html#' + modelProfile.id;
   loadBleNameForModel();
   if (!skipRender) applyLanguage();   // 文言を引き直し、画面全体を描き直す
 }

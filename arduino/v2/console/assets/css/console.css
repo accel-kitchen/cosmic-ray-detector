@@ -342,7 +342,7 @@ body[data-model="okome"] table.events th:nth-child(n+7),
 body[data-model="okome"] table.events td:nth-child(n+7) { display: none; }
 
 /* v2.1（body[data-model="v21"]）: v2 の画面をほぼそのまま使う（data-v2-only は「OKOME 以外」の意味なので出る）。
-   基板に無いもの（PWM・GPS・オシロの撮り方と再アーム・v2 用の書き込みのリンク）は data-hide-v21 で隠し、
+   基板に無いもの（PWM・GPS・オシロの撮り方と再アーム）は data-hide-v21 で隠し、
    v2.1 だけのもの（VTH・較正・HV の監視・Flags の統計）を data-v21-only で出す */
 [data-v21-only] { display: none !important; }
 body[data-model="v21"] [data-v21-only] { display: flex !important; }

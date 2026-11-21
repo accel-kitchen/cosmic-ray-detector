@@ -54,7 +54,7 @@ const I18N = {
     'hv.changed': 'ゲインが変わりました。数秒待ってから、「自動校正」でしきい値を合わせ直してください。',
     'hv.autoNow': '自動校正する',
     'hv.err': 'HV は 25.9 / 27.1 / 27.9 V から選びます。',
-    'flash.okome': 'OKOME（nRF52840）のファームの書き込みは、このアプリでは行いません。',
+    'flash.okome': 'OKOME（nRF52840）のファームは、書き込みのページで UF2 ファイルを受け取り、XIAO-BOOT ドライブにコピーして書き込みます。',
     // --- v2.1（キー末尾の @v21 は、v2.1 を選んだときだけ元のキーの代わりに使う）
     'app.title@v21': 'CosmicRay Recorder · v2.1',
     'connect.eyebrow@v21': '宇宙線検出器 v2.1 のデータ記録アプリ',
@@ -635,7 +635,7 @@ const I18N = {
     'hv.changed': 'The gain has moved. Wait a few seconds, then run "Auto-calibrate" to set the threshold again.',
     'hv.autoNow': 'Auto-calibrate now',
     'hv.err': 'HV must be one of 25.9 / 27.1 / 27.9 V.',
-    'flash.okome': 'This app does not flash the OKOME (nRF52840) firmware.',
+    'flash.okome': 'The OKOME (nRF52840) firmware is flashed by copying a UF2 file onto the XIAO-BOOT drive; get the file from the flash page.',
     // --- v2.1 (a key ending in @v21 replaces the plain key only when v2.1 is the chosen model)
     'app.title@v21': 'CosmicRay Recorder · v2.1',
     'connect.eyebrow@v21': 'Data recorder for the v2.1 cosmic-ray detector',

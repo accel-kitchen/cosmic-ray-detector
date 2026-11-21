@@ -55,11 +55,14 @@
 
   <div class="tabs" role="tablist" aria-label="検出器の機種">
     <button type="button" role="tab" id="tabV2" data-model="v2" aria-selected="true" aria-controls="cardV2">OHASHI（お箸）v2</button>
+    <button type="button" role="tab" id="tabV21" data-model="v21" aria-selected="false" aria-controls="cardV21">v2.1</button>
+    <button type="button" role="tab" id="tabOkome" data-model="okome" aria-selected="false" aria-controls="cardOkome">OKOME（お米）キーホルダー</button>
     <button type="button" role="tab" id="tabV1" data-model="v1" aria-selected="false" aria-controls="cardV1">OWAN（お椀）v1</button>
   </div>
 
   <section class="flash-card" id="cardV2" role="tabpanel" aria-labelledby="tabV2" data-model="v2">
     <h2>v2 基板（ESP32-S3）</h2>
+    <p style="margin-top:0"><b>v2.1 の基板には使えません。</b>基板に「v2.1」と印刷されている場合は、上の <b>v2.1</b> のタブを選んでください。</p>
     <esp-web-install-button manifest="firmware/manifest-v2.json">
       <button slot="activate" class="btn btn-primary" type="button">
         <svg class="i"><use href="#i-chip"/></svg>v2 の書き込みを始める
@@ -74,6 +77,55 @@
     <p class="flash-meta">
       ファームウェア：<code>cosmicray-v2.bin</code> ・ 版 <code data-fw="v2-version">…</code> ・ <code data-fw="v2-size">…</code>
     </p>
+  </section>
+
+  <section class="flash-card" id="cardV21" role="tabpanel" aria-labelledby="tabV21" data-model="v21" hidden>
+    <h2>v2.1 基板（ESP32-S3）</h2>
+    <p style="margin-top:0">基板が <b>v2.1</b> の検出器（FW 2.1.x）に書き込みます。記録のページで機種に「v2.1」を選んだ検出器が、これにあたります。</p>
+    <div class="note note-warn" style="margin-bottom:16px"><svg class="i"><use href="#i-alert"/></svg><div>
+      <b>v2 の基板には使えません。</b>
+      <p>v2 と v2.1 は、トリガーやしきい値に使うピンが違います。v2 のファームを v2.1 の基板に、v2.1 のファームを v2 の基板に書き込まないでください。</p>
+    </div></div>
+    <esp-web-install-button manifest="firmware/manifest-v21.json">
+      <button slot="activate" class="btn btn-primary" type="button">
+        <svg class="i"><use href="#i-chip"/></svg>v2.1 の書き込みを始める
+      </button>
+      <span slot="unsupported" class="note note-warn" style="display:block">
+        このブラウザは USB 接続の書き込みに対応していません。<b>Google Chrome</b> か <b>Microsoft Edge</b> をパソコンで開いてください（スマートフォン、Firefox、Safari は使えません）。
+      </span>
+      <span slot="not-allowed" class="note note-warn" style="display:block">
+        https:// で開いたページでないと書き込みできません。配布されている URL から開いてください。
+      </span>
+    </esp-web-install-button>
+    <p class="flash-meta">
+      ファームウェア：<code>cosmicray-v21.bin</code> ・ 版 <code data-fw="v21-version">…</code> ・ <code data-fw="v21-size">…</code>
+    </p>
+    <p class="flash-meta">下の「書き込みのしかた」の手順は、v2 と同じです。書き込めたかどうかは、記録のページで起動のメッセージ <code>Booting v2.1...</code> が見えるかで確かめます。</p>
+  </section>
+
+  <section class="flash-card" id="cardOkome" role="tabpanel" aria-labelledby="tabOkome" data-model="okome" hidden>
+    <h2>OKOME（お米）— キーホルダーの検出器（MUON FOB）</h2>
+    <p style="margin-top:0">マイコンは <b>XIAO nRF52840</b> です。ESP32 の基板と書き込みの方法が違い、<b>ボタンを押しても、このページから直接は書き込めません</b>。代わりに、ファームウェアのファイルを受け取って、検出器が出す USB メモリのような「ドライブ」にコピーします（専用のソフトは要りません）。</p>
+    <p>
+      <a class="btn btn-primary" href="firmware/cosmicray-okome.uf2" download="cosmicray-okome.uf2">
+        <svg class="i"><use href="#i-chip"/></svg>OKOME のファームウェアをダウンロード
+      </a>
+    </p>
+    <p class="flash-meta">
+      ファームウェア：<code>cosmicray-okome.uf2</code> ・ 版 <code data-fw="okome-version">…</code> ・ <code data-fw="okome-size">…</code>
+    </p>
+    <ol class="steps-list">
+      <li>上のボタンで <code>cosmicray-okome.uf2</code> をダウンロードしておきます。</li>
+      <li>OKOME を USB ケーブルでパソコンにつなぎます。</li>
+      <li>基板の <b>RESET</b> ボタンを、<b>2 回続けて素早く</b>（ダブルクリックのように）押します。基板の LED がゆっくり明るくなったり暗くなったりを繰り返して、<b>XIAO-BOOT</b> というドライブがパソコンに現れれば、書き込みモードです。</li>
+      <li>ダウンロードした <code>cosmicray-okome.uf2</code> を、そのドライブにコピー（ドラッグ）します。</li>
+      <li>コピーが終わると、ドライブが自動的に消え、OKOME が新しいファームウェアで再起動します。「ファイルが正しくコピーされていません」のような警告が出ることがありますが、これは正常です。</li>
+      <li><a href="index.html">記録のページ</a>で機種に OKOME を選んで、つなぎます。起動のメッセージ <code>Booting MuonFob v0.1...</code> が見えれば成功です。</li>
+    </ol>
+    <div class="note note-warn"><svg class="i"><use href="#i-alert"/></svg><div>
+      <b>XIAO-BOOT のドライブが出ないとき</b>
+      <p>RESET の 2 回押しの間隔が空きすぎている（または短すぎる）ことが多いです。間をおいて、もう一度試してください。それでも出ないときは、USB ケーブルが「充電専用」でないかも確かめてください。</p>
+    </div></div>
   </section>
 
   <section class="flash-card" id="cardV1" role="tabpanel" aria-labelledby="tabV1" data-model="v1" hidden>
@@ -99,10 +151,10 @@
     </p>
   </section>
 
-  <h2 id="steps"><span class="no">手順</span>書き込みのしかた</h2>
+  <h2 id="steps"><span class="no">手順</span>書き込みのしかた（ESP32 の基板: v2、v2.1、v1）</h2>
   <ol class="steps-list">
     <li>書き込む検出器を USB ケーブルでパソコンにつなぎます。<b>ほかの ESP32 の基板は、USB を抜いておいてください。</b></li>
-    <li>上で機種（OHASHI v2 か OWAN v1）を選び、<span class="ui">書き込みを始める</span>を押します。</li>
+    <li>上で機種（OHASHI v2、v2.1、OWAN v1）を選び、<span class="ui">書き込みを始める</span>を押します。</li>
     <li>ポートの一覧が出るので、検出器を選んで<span class="ui">接続</span>を押します。一覧に 2 つ以上出ていたら、別の基板がつながっています。いったんやめて、抜いてからやり直してください。</li>
     <li><span class="ui">インストール</span>を押し、「完了」と出るまで待ちます（1 分ほど）。途中で USB を抜かないでください。</li>
     <li>書き込みが終わったら、<a href="index.html">記録のページ</a>を開いて検出器につなぎます。</li>
@@ -119,7 +171,7 @@
     <li><b>ポートが一覧に出ない</b>：USB ケーブルが「充電専用」のことがあります。別のケーブルで試してください。</li>
     <li><b>「接続できません」と出る</b>：<a href="index.html">記録のページ</a>や Arduino IDE のシリアルモニタなど、同じ検出器を開いているものを閉じてから、もう一度試してください。</li>
     <li><b>それでも書き込めない</b>：<code>BOOT</code> を押しながら <code>RESET</code> を一瞬押して、書き込みモードにしてからやり直します。</li>
-    <li><b>書き込み後に何も表示されない</b>：USB をいったん抜いて挿し直してください。記録のページで起動のメッセージ（v2 は <code>Booting v2...</code>）が見えれば成功です。</li>
+    <li><b>書き込み後に何も表示されない</b>：USB をいったん抜いて挿し直してください。記録のページで起動のメッセージ（v2 は <code>Booting v2...</code>、v2.1 は <code>Booting v2.1...</code>）が見えれば成功です。OKOME の手順は、上の OKOME のタブにあります。</li>
   </ul>
 
   <p class="flash-meta">自分でスケッチを直したい人は、<a href="manual.html#a-firmware">マニュアル 付録 D</a> の手順で Arduino IDE から書き込みます。</p>
@@ -131,7 +183,7 @@
 </footer>
 
 <script>
-  // 機種の切り替え（#v1 / #v2 で直接開ける）
+  // 機種の切り替え（#v1 / #v2 / #v21 / #okome で直接開ける）
   function showModel(model, pushHash) {
     for (const t of document.querySelectorAll('.tabs [role=tab]')) {
       t.setAttribute('aria-selected', String(t.dataset.model === model));
@@ -144,7 +196,9 @@
   for (const t of document.querySelectorAll('.tabs [role=tab]')) {
     t.addEventListener('click', () => showModel(t.dataset.model, true));
   }
-  showModel(location.hash === '#v1' ? 'v1' : 'v2', false);
+  const MODELS = ['v2', 'v21', 'okome', 'v1'];
+  const fromHash = location.hash.slice(1);
+  showModel(MODELS.includes(fromHash) ? fromHash : 'v2', false);
 
   // manifest から版とファイルサイズを読んで、ボタンの下に出す
   async function fwInfo(model) {
@@ -161,7 +215,23 @@
     }
   }
   fwInfo('v2');
+  fwInfo('v21');
   fwInfo('v1');
+
+  // OKOME は manifest の "file"（UF2）の版とサイズを出す
+  (async () => {
+    const ver = document.querySelector('[data-fw="okome-version"]');
+    const size = document.querySelector('[data-fw="okome-size"]');
+    try {
+      const m = await (await fetch('firmware/manifest-okome.json', { cache: 'no-cache' })).json();
+      ver.textContent = m.version || '不明';
+      const r = await fetch('firmware/' + m.file, { method: 'HEAD' });
+      const n = Number(r.headers.get('content-length'));
+      size.textContent = n ? (n / 1024).toFixed(0) + ' KB' : '';
+    } catch (e) {
+      ver.textContent = '読み込めません';
+    }
+  })();
 </script>
 </body>
 </html>
