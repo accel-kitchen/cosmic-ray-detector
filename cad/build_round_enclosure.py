@@ -6,10 +6,11 @@ Writes cad/round-case/*.stl, a validation JSON and a preview PNG.
 
 Three printed parts: tube (wall only, open at both ends), bottom plate, lid. (No light pipe: the LED hole stays open.)
 The board hangs on three spacers from the BOTTOM PLATE, so removing the 4 plate screws
-lets the whole board assembly leave through the bottom. The lid and the ring base share a
-bore wider than the LED ring: lift the ring and its seat (build_ring_base.build_seat) out,
-and the ring, still soldered to its cable, drops through the lid into the tube and leaves
-through the bottom with the board. The lid can stay screwed on.
+lets the whole board assembly leave through the bottom. The lid has a 70 mm hole, wider than
+the 68 mm LED ring. The ring base (build_ring_base.build(lid=True)) plugs into that hole with
+no screws; lift it off, slide the cable out of its slit, and the ring, still soldered to its
+cable, drops through the lid into the tube and leaves through the bottom with the board. The
+lid can stay screwed on.
 
 Everything inside is unchanged from the rectangular compact case
 (build_compact_enclosure.py): same board posts, floor height, lid posts and
@@ -116,10 +117,7 @@ def design():
     for x, y in B.LID_POSTS:
         lid -= B.cyl(x, y, SEAM - 4, TOP + 1, B.LID_HOLE_D / 2)
         lid -= B.cyl(x, y, TOP - 1.4, TOP + 1, 3.2)
-    lid -= disc(RB.BORE_D / 2, SEAM - 6, TOP + 1)         # the LED ring passes through here (same bore as the ring base)
-    for deg in RB.PILOT_ANGLES:                           # M3 holes for the ring base (same frame as the ring base's pilots)
-        a = np.radians(deg)
-        lid -= B.cyl(*to_kicad(RB.PILOT_R * np.cos(a), RB.PILOT_R * np.sin(a)), SEAM - 6, TOP + 1, 3.4 / 2)
+    lid -= disc(RB.LID_HOLE_D / 2, SEAM - 6, TOP + 1)     # the LED ring passes through; the ring base plugs in here (no screws)
 
     return {'base': tube, 'plate': plate, 'lid': lid}, {}
 
@@ -209,38 +207,29 @@ def verify(solids):
     extra = (proj - old_inside) ^ cavity.project()   # old cavity only: its rounded corners were wall, never free
     rep['extra_obstruction_area_in_old_rectangle_mm2'] = round(extra.area(), 4)
     assert extra.area() < .01, 'something new in the tube blocks the old rectangle footprint'
-    # 5) assembled state: ring base and seat placed on the lid exactly as in the preview
-    ring = RB.build(feet=False, pilots=True, slit=False, bore=True).translate([CX, -CY, TOP])
-    stack = solids['lid'] + ring
-    assert (solids['lid'] ^ ring).volume() < .001
-    zt_ring = TOP + RB.BASE_H + RB.BOSS_H
-    seat = RB.build_seat().translate([CX, -CY, zt_ring - RB.SEAT_H])
-    assert (stack ^ seat).volume() < .001, 'seat collides with the ring base or lid'
-    # with the seat lifted out, a ring-sized disc goes straight down through ring base + lid and on down the tube
+    # 5) assembled state: the plug-in ring base sits in the lid hole exactly as in the preview
+    ring = RB.build(lid=True).translate([CX, -CY, TOP])
+    assert (solids['lid'] ^ ring).volume() < .001, 'ring base collides with the lid'
+    assert (solids['lid'] ^ ring.translate([0, 0, -.1])).volume() > 1., 'ring base does not rest on the lid'
+    assert ((solids['base'] + solids['plate']) ^ ring).volume() < .001, 'ring base spigot reaches into the tube parts'
+    zt_ring = TOP + RB.HEIGHT
+    # with the ring base lifted off, a disc 1 mm wider than the ring goes straight down through the lid and the tube
     ring_probe = disc(RB.RING_OD / 2 + .5, FLOOR, zt_ring + 1)
-    assert ((stack + solids['base']) ^ ring_probe).volume() < .001, 'the LED ring cannot pass down through the lid'
-    assert (seat ^ ring_probe).volume() > 1., 'ring probe cannot fail (the seat should block it)'
-    # with the seat in, the cable slot runs from under the ring through the seat, the bore and the lid
-    assert ((stack + seat) ^ ring_slot(SEAM - 5, zt_ring + 1, shrink=.5)).volume() < .001, 'cable slot not clear through seat + ring base + lid'
-    lid_hole_web = RB.PILOT_R - 3.4 / 2 - RB.BORE_D / 2
-    assert lid_hole_web >= B.MIN_WEB, 'lid M3 hole too close to the bore'
-    for deg in RB.PILOT_ANGLES:
-        a = np.radians(deg)
-        probe = B.cyl(*to_kicad(RB.PILOT_R * np.cos(a), RB.PILOT_R * np.sin(a)), SEAM - 5, TOP + RB.PILOT_DEPTH - .5, 1.2, 48)
-        assert (stack ^ probe).volume() < .001, f'M3 path blocked at {deg} deg'
-    # the test must be able to fail: the mirrored pattern (the old y-sign bug) is blocked
-    mirrored = 0.
-    for deg in RB.PILOT_ANGLES:
-        a = np.radians(deg)
-        probe = B.cyl(*to_kicad(RB.PILOT_R * np.cos(a), -RB.PILOT_R * np.sin(a)), SEAM - 5, TOP + RB.PILOT_DEPTH - .5, 1.2, 48)
-        mirrored += (stack ^ probe).volume()
-    assert mirrored > 1., 'assembly check cannot detect a mirrored hole pattern'
-    rep['assembled_ring_base'] = {'seat_fits_without_overlap': True,
-                                  'ring_passes_down_through_ring_base_lid_and_tube_with_seat_out': True,
+    assert ((solids['lid'] + solids['base']) ^ ring_probe).volume() < .001, 'the LED ring cannot pass down through the lid'
+    assert (ring ^ ring_probe).volume() > 1., 'ring probe cannot fail (the ring base should block it)'
+    # with the ring base in place, the cable slot runs from under the ring down through the ring base and the lid hole
+    assert ((solids['lid'] + ring) ^ ring_slot(SEAM - 5, zt_ring + 1, shrink=.5)).volume() < .001, 'cable slot not clear'
+    # a 4.4 mm cable slides out of the ring base sideways through its slit (needed to lift it off)
+    sweep = B.box(CX - RB.BASE_D / 2 - 2, CX - RB.SLOT_R + 1, CY - 2.2, CY + 2.2, TOP - RB.SPIGOT_H - .5, zt_ring + 1)
+    assert (ring ^ sweep).volume() < .001, 'cable cannot slide out of the ring base slit'
+    web_m2 = min(float(np.hypot(x - CX, y - CY)) for x, y in B.LID_POSTS) - 3.2 - RB.LID_HOLE_D / 2
+    assert web_m2 >= B.MIN_WEB, 'lid hole too close to the lid screw counterbores'
+    rep['assembled_ring_base'] = {'plug_in_rests_on_lid_without_overlap': True,
+                                  'ring_passes_down_through_lid_and_tube_with_ring_base_off': True,
                                   'ring_probe_diameter_mm': round(RB.RING_OD + 1., 2),
-                                  'cable_slot_clear_through_seat_ring_base_and_lid': True, 'm3_paths_clear': True,
-                                  'web_lid_m3_hole_to_bore_mm': round(lid_hole_web, 2),
-                                  'mirrored_pattern_blocked_mm3': round(mirrored, 1)}
+                                  'cable_slot_clear_through_ring_base_and_lid': True,
+                                  'cable_slides_out_of_ring_base_slit': True,
+                                  'web_lid_hole_to_lid_screw_counterbore_mm': round(web_m2, 2)}
     return rep
 
 def place(t, kind):
@@ -258,12 +247,9 @@ def render(solids, ring_base):
         print('Blender not found; preview skipped'); return
     from PIL import Image, ImageDraw, ImageFont
     ring = ring_base.copy(); ring.apply_translation([CX, -CY, TOP])
-    seat = trimesh.load(Path(__file__).resolve().parent / 'ring-base' / 'ring-base-seat.stl')
-    seat.apply_translation([CX, -CY, TOP + RB.BASE_H + RB.BOSS_H - RB.SEAT_H])
     items = []
     for name, mesh, col in (('base', B.to_mesh(solids['base']), [.18, .34, .43]), ('plate', B.to_mesh(solids['plate']), [.30, .46, .55]),
-                            ('lid', B.to_mesh(solids['lid']), [.07, .14, .20]), ('ringbase', ring, [.80, .72, .58]),
-                            ('seat', seat, [.93, .88, .76])):
+                            ('lid', B.to_mesh(solids['lid']), [.07, .14, .20]), ('ringbase', ring, [.80, .72, .58])):
         items.append(dict(name=name, vertices=mesh.vertices.tolist(), faces=mesh.faces.tolist(), color=col))
     with tempfile.TemporaryDirectory(prefix='round-preview-', dir=OUT) as temp:
         folder = Path(temp)
@@ -276,9 +262,9 @@ def render(solids, ring_base):
         d = ImageDraw.Draw(canvas)
         font = ImageFont.truetype('C:/Windows/Fonts/segoeui.ttf', 25)
         title = ImageFont.truetype('C:/Windows/Fonts/segoeui.ttf', 32)
-        d.text((52, 22), f'COSMIC RAY DETECTOR v2  /  round case  \u00d8{2*R_OUT:.1f} mm  +  LED ring base \u00d8{RB.BASE_D:g} (boss \u00d8{RB.BOSS_D:g})', fill=(35, 56, 70), font=title)
+        d.text((52, 22), f'COSMIC RAY DETECTOR v2  /  round case  \u00d8{2*R_OUT:.1f} mm  +  LED ring base \u00d8{RB.BASE_D:g} (plug-in, ring \u00d8{RB.RING_OD:g})', fill=(35, 56, 70), font=title)
         for i, (name, label) in enumerate([('front', 'OLED / RESET / LED side (+X)'), ('ports', 'USB / audio side'),
-                                           ('exploded', 'exploded: ring seat / ring base / lid / tube / bottom plate'), ('under', 'underside: plate with 4 screws'),
+                                           ('exploded', 'exploded: ring base / lid (70 mm hole) / tube / bottom plate'), ('under', 'underside: plate with 4 screws'),
                                            ('side', '-X wall: USB / 6-pin J4 plug window / microSD window'), ('trimmer', 'underside: gain-trimmer (R10) screwdriver hole')]):
             x = (i % 2) * 900; y = 85 + (i // 2) * 780
             d.text((x + 35, y), label, fill=(35, 56, 70), font=font)
@@ -291,18 +277,16 @@ def main():
     rep.update(info)
     rep['geometry_mm'] = {'inner_radius': R_IN, 'outer_diameter': round(2 * R_OUT, 1), 'wall': B.WALL,
                           'case_height_without_lid': round(SEAM - BOTTOM, 1),
-                          'total_height_with_ring_base': round(TOP - BOTTOM + RB.BASE_H + RB.BOSS_H, 1),
+                          'total_height_with_ring_base': round(TOP - BOTTOM + RB.HEIGHT, 1),
                           'axis_kicad_xy': [CX, CY]}
-    rep['ring_base'] = {'base_diameter': RB.BASE_D, 'boss_diameter': RB.BOSS_D, 'boss_height': RB.BOSS_H,
-                        'screws': '3x M3x8 from inside the lid', 'on_circle_radius_mm': RB.PILOT_R,
-                        'angles_deg': list(RB.PILOT_ANGLES), 'lid_hole_mm': 3.4, 'base_pilot_mm': RB.PILOT_D,
-                        'bore_through_lid_and_ring_base_mm': round(RB.BORE_D, 2),
-                        'seat': {'diameter': round(RB.SEAT_D, 2), 'thickness': RB.SEAT_H, 'file': 'ring-base/ring-base-seat.stl'},
-                        'cable_slot_in_seat_mm': [RB.SLOT_L, RB.SLOT_W], 'cable_slot_centre_radius_mm': RB.SLOT_R,
-                        'seat_open_slit_width_mm': RB.SLIT_W}
+    rep['ring_base'] = {'diameter': RB.BASE_D, 'height_above_lid': RB.HEIGHT, 'ring_measured_od_id': [RB.RING_OD, RB.RING_ID],
+                        'lid_hole_mm': RB.LID_HOLE_D, 'spigot_mm': [round(RB.SPIGOT_D, 2), RB.SPIGOT_H],
+                        'fixing': 'plug-in, no screws (rests on the lid around the hole; ball cover on top)',
+                        'cable_slot_mm': [RB.SLOT_L, RB.SLOT_W], 'cable_slot_centre_radius_mm': RB.SLOT_R,
+                        'open_slit_width_mm': RB.SLIT_W}
     rep['serviceability'] = {'plate_screws': 'M2x8 x4, from underneath, into tube bosses',
                              'plate_screw_positions_kicad_xy': [[round(x, 2), round(y, 2)] for x, y in PLATE_SCREWS],
-                             'ring_exit': 'lift ring + seat out, ring drops through the lid bore into the tube; lid stays screwed on',
+                             'ring_exit': 'lift ring and ring base off (cable out through the slit); ring drops through the 70 mm lid hole; lid stays screwed on',
                              'board_exit': 'downward through the open bottom with the plate, the ring following on its cable',
                              'ring_cable_end': 'soldered to the board (no connector)',
                              'min_ring_cable_length_mm': 150, 'comfortable_ring_cable_length_mm': 200}
@@ -312,7 +296,7 @@ def main():
     render(solids, rb)
     rep['notes'] = ['Detector model not available in this repo: interference with individual parts was not re-run.',
                     'Inside the case nothing changed from the compact case; only the outer wall is round and the floor is a separate plate.',
-                    'Ring size is assumed (see build_ring_base.py). No physical test print yet.']
+                    'Ring OD/ID measured (68/52); ring PCB thickness assumed (see build_ring_base.py). No physical test print yet.']
     (OUT / f'{NAME}-validation.json').write_text(json.dumps(rep, ensure_ascii=False, indent=2), encoding='utf-8')
     print(json.dumps(rep, ensure_ascii=False, indent=2))
 

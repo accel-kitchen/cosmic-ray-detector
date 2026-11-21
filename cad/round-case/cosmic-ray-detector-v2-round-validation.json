@@ -37,7 +37,7 @@
     "lid": {
       "watertight": true,
       "single_solid": true,
-      "volume_mm3": 20265.4,
+      "volume_mm3": 15807.2,
       "bounds_mm": [
         [
           19.4,
@@ -113,13 +113,12 @@
   "plate_screw_paths_clear": true,
   "extra_obstruction_area_in_old_rectangle_mm2": 0.0,
   "assembled_ring_base": {
-    "seat_fits_without_overlap": true,
-    "ring_passes_down_through_ring_base_lid_and_tube_with_seat_out": true,
-    "ring_probe_diameter_mm": 45.5,
-    "cable_slot_clear_through_seat_ring_base_and_lid": true,
-    "m3_paths_clear": true,
-    "web_lid_m3_hole_to_bore_mm": 4.3,
-    "mirrored_pattern_blocked_mm3": 113.7
+    "plug_in_rests_on_lid_without_overlap": true,
+    "ring_passes_down_through_lid_and_tube_with_ring_base_off": true,
+    "ring_probe_diameter_mm": 69.0,
+    "cable_slot_clear_through_ring_base_and_lid": true,
+    "cable_slides_out_of_ring_base_slit": true,
+    "web_lid_hole_to_lid_screw_counterbore_mm": 13.49
   },
   "geometry_mm": {
     "inner_radius": 54.2,
@@ -133,30 +132,24 @@
     ]
   },
   "ring_base": {
-    "base_diameter": 72.0,
-    "boss_diameter": 70.0,
-    "boss_height": 8.0,
-    "screws": "3x M3x8 from inside the lid",
-    "on_circle_radius_mm": 31.0,
-    "angles_deg": [
-      90.0,
-      210.0,
-      330.0
+    "diameter": 72.0,
+    "height_above_lid": 18.0,
+    "ring_measured_od_id": [
+      68.0,
+      52.0
     ],
-    "lid_hole_mm": 3.4,
-    "base_pilot_mm": 2.6,
-    "bore_through_lid_and_ring_base_mm": 50.0,
-    "seat": {
-      "diameter": 55.6,
-      "thickness": 4.0,
-      "file": "ring-base/ring-base-seat.stl"
-    },
-    "cable_slot_in_seat_mm": [
+    "lid_hole_mm": 70.0,
+    "spigot_mm": [
+      69.6,
+      2.0
+    ],
+    "fixing": "plug-in, no screws (rests on the lid around the hole; ball cover on top)",
+    "cable_slot_mm": [
       16.0,
       7.0
     ],
-    "cable_slot_centre_radius_mm": 19.5,
-    "seat_open_slit_width_mm": 6.0
+    "cable_slot_centre_radius_mm": 30.0,
+    "open_slit_width_mm": 6.0
   },
   "serviceability": {
     "plate_screws": "M2x8 x4, from underneath, into tube bosses",
@@ -178,7 +171,7 @@
         95.0
       ]
     ],
-    "ring_exit": "lift ring + seat out, ring drops through the lid bore into the tube; lid stays screwed on",
+    "ring_exit": "lift ring and ring base off (cable out through the slit); ring drops through the 70 mm lid hole; lid stays screwed on",
     "board_exit": "downward through the open bottom with the plate, the ring following on its cable",
     "ring_cable_end": "soldered to the board (no connector)",
     "min_ring_cable_length_mm": 150,
@@ -187,6 +180,6 @@
   "notes": [
     "Detector model not available in this repo: interference with individual parts was not re-run.",
     "Inside the case nothing changed from the compact case; only the outer wall is round and the floor is a separate plate.",
-    "Ring size is assumed (see build_ring_base.py). No physical test print yet."
+    "Ring OD/ID measured (68/52); ring PCB thickness assumed (see build_ring_base.py). No physical test print yet."
   ]
 }

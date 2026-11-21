@@ -37,8 +37,6 @@ views = [('front', (.20, -.04, .16), .02, .20, 0., 0., 0.),      # +X side: OLED
 for name, off, tz, scale, lift, rlift, pdrop in views:
     objs['lid'].location.z = lift
     objs['ringbase'].location.z = rlift
-    if 'seat' in objs:                                            # removable ring seat: lifted further out of its counterbore when exploded
-        objs['seat'].location.z = rlift + (.025 if rlift else 0.)
     objs['plate'].location.z = pdrop
     cam.location = (cx / 1000 + off[0], -cy / 1000 + off[1], off[2])
     tgt = Vector((cx / 1000, -cy / 1000, tz))
