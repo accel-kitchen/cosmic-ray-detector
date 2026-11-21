@@ -3531,7 +3531,7 @@ demo.devs = {
   // しきい値はベースラインからの高さ、VTH はアンプ出力の絶対電圧 [mV]、HV は固定で監視だけ。
   v21: {
     threshold: 152, duty: 0, mode: 'DIGITAL', autoMargin: 10,
-    sd: true, ext: true, oled: true, buzzer: true, vib: true, gps: false,
+    sd: true, ext: true, oled: true, buzzer: false, vib: true, gps: false,   // FW 2.1: ブザーは既定で OFF
     beepMin: 500, beepMax: 4000, beepMs: 25,
     vibMin: 20, vibMax: 120,
     bleName: 'CosmicRay',
