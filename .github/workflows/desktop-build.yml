@@ -33,8 +33,8 @@ jobs:
       run:
         working-directory: arduino/v2/desktop
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
@@ -43,9 +43,18 @@ jobs:
       - run: npm test
       - run: npm run ${{ matrix.script }}
         env:
-          # 署名の証明書を持っていないので、探しに行かせない
+          # 署名の証明書を持っていないので、探しに行かせない。Mac は package.json の identity "-" で
+          # アドホック署名だけする（署名が無いと Apple シリコンの Mac は起動を拒む）。
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
-      - uses: actions/upload-artifact@v4
+      - name: Check the Mac app signature
+        if: runner.os == 'macOS'
+        run: |
+          for app in dist/mac*/*.app; do
+            echo "== $app"
+            codesign --verify --deep --strict --verbose=2 "$app"
+            codesign -dv "$app" 2>&1 | grep -E 'Signature|Identifier|Format'
+          done
+      - uses: actions/upload-artifact@v5
         with:
           name: cosmicray-console-${{ matrix.os }}
           path: ${{ matrix.files }}

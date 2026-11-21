@@ -23,7 +23,7 @@ ESP32-S3 は DTR と RTS が一度に下がるとリセットされる（また�
 | Windows ポータブル版 | `CosmicRayConsole-Portable-<版>.exe` | インストールできない PC（学校など）、USB メモリで持ち歩く。設定は exe の隣の `CosmicRayConsole-data`、保存は `CosmicRay` に置き、PC には残さない。起動のたびに展開するので立ち上がりが数秒遅い。ログイン時の起動は使えない |
 | Mac 版 | `CosmicRayConsole-<版>-mac-arm64.dmg`（Apple シリコン）/ `-x64.dmg`（Intel） | Mac。Windows の上では作れないので GitHub Actions で作る（下記） |
 
-どれも署名していません。Windows は SmartScreen の「詳細情報 → 実行」、Mac は「システム設定 → プライバシーとセキュリティ → このまま開く」が要ります。
+どれも正式な署名はしていません（Mac 版は、起動できるようにアドホック署名だけしています）。Windows は SmartScreen の「詳細情報 → 実行」、Mac は「システム設定 → プライバシーとセキュリティ → このまま開く」が要ります。
 Mac で「壊れているため開けません」と出たときは、ターミナルで `xattr -cr "/Applications/CosmicRay Console.app"` を実行すると開けます。
 
 ## ブラウザ版との関係
