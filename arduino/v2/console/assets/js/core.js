@@ -4273,13 +4273,13 @@ function demoCommandV21(cmd, d, say) {
     demo.nextEventMs = Math.max(demo.nextEventMs, performance.now() + 300);
     say('OFS:' + f1(d.ofs), 330);
   } else if ((m = cmd.match(/^(?:AUTO_BASE|SET_BASE)(?::(\d+))?$/))) {
-    script(baseLines(m[1] != null ? clampI(parseInt(m[1]), 10, 300) : 50), 900, true);
+    script(baseLines(m[1] != null ? clampI(parseInt(m[1]), 10, 300) : 90), 900, true);   // FW 2.1 の既定の持ち上げは 90 mV
   } else if (cmd === 'GET_BASE') {
     say(baseLine(), 220);
   } else if (cmd === 'CALIBRATE') {
     script([
       '### CALIBRATE: AUTO_BASE -> AUTO_VTH -> AUTO_THRESH -> MCP4728 EEPROM',
-      ...baseLines(50), ...vthSweep(50, 4), ...threshLines(),
+      ...baseLines(90), ...vthSweep(50, 4), ...threshLines(),
       '### CALIBRATE: ch A / ch C written to the MCP4728 EEPROM.',
       cfgLine, threshLine,
     ], 110, true);

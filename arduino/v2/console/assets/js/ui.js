@@ -1694,8 +1694,9 @@ function bindControls() {
     Object.assign(state.v21, { cal: 'AUTO_BASE', calMsg: null, lastWarn: null });
     v21Busy('cal', 15000);
     renderV21();
-    // ch C が変わると VTH の基準（TP2）も動くので、続けて AUTO_VTH を勧める（ヒントに書いてある）
-    sendCommand(lift === 50 ? 'AUTO_BASE' : `AUTO_BASE:${lift}`);
+    // ch C が変わると VTH の基準（TP2）も動くので、続けて AUTO_VTH を勧める（ヒントに書いてある）。
+    // 値は必ず付けて送る（付けないとファームは基板に保存された lift を使う。既定は FW 2.1 で 90 mV）
+    sendCommand(`AUTO_BASE:${lift}`);
   });
   $('btnGetBase').addEventListener('click', () => sendCommand('GET_BASE'));
   $('btnNoise').addEventListener('click', () => {
