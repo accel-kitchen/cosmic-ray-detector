@@ -1,0 +1,19 @@
+# DRAFT: not yet applied anywhere. See deploy/README.md, step 9.
+# Where the backups go (/var/backups/cosmicray below) is the operator's choice: ideally another
+# disk or machine. Whatever it is, the "cosmicray" user must be able to write there.
+[Unit]
+Description=CosmicRay upload server: nightly backup
+
+[Service]
+Type=oneshot
+User=cosmicray
+Group=cosmicray
+WorkingDirectory=/opt/cosmicray-v3/current
+EnvironmentFile=/etc/cosmicray/env
+ExecStart=/opt/node-v22.23.4/bin/node scripts/backup.js /var/backups/cosmicray --keep 14
+UMask=0077
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/var/lib/cosmicray /var/backups/cosmicray

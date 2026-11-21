@@ -8,10 +8,11 @@
 // (a wild temperature, an over-long label) is accepted or trimmed, because a
 // refusal here destroys a real measurement for good.
 //
-// One known exception: a timestamp before 2015 or more than two days ahead is
-// refused, so a console whose PC clock is badly wrong loses those events for
-// good. Whether to keep them in a flagged "bad clock" file instead is an open
-// question (plan, Q-N14).
+// A timestamp that parses but lies before 2015 or more than two days ahead
+// means the console's PC clock is badly wrong. The event is still a real
+// measurement, so it is KEPT: filed by the day it was received, in a separate
+// "badclock" stream, flagged, with the time it claimed left untouched (plan,
+// Q-N14). Only a timestamp that cannot be read at all is refused.
 
 const ISO_UTC = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,9})?Z$/;
 const EARLIEST_MS = Date.parse('2015-01-01T00:00:00Z');
@@ -41,20 +42,24 @@ function validateEvent(body, nowMs = Date.now()) {
     return { ok: false, error: 'timestamp_utc must be an ISO-8601 UTC time (…Z)' };
   }
   const ms = Date.parse(body.timestamp_utc);
-  if (!Number.isFinite(ms) || ms < EARLIEST_MS || ms > nowMs + FUTURE_SLACK_MS) {
-    return { ok: false, error: 'timestamp_utc is outside the accepted range' };
+  if (!Number.isFinite(ms)) {
+    return { ok: false, error: 'timestamp_utc is not a valid date' };
   }
+  const badClock = ms < EARLIEST_MS || ms > nowMs + FUTURE_SLACK_MS;
 
   // temp is null when the board has no environment sensor (JSON turns NaN into null).
   const temp = isNum(body.temp) ? body.temp : null;
   const off = isInt(body.tz_offset_min) && Math.abs(body.tz_offset_min) <= 14 * 60 ? body.tz_offset_min : null;
 
-  const iso = new Date(ms).toISOString();        // normalised to millisecond precision
+  // The UTC date is the file boundary. A bad clock cannot be trusted to place
+  // the event, so those go by the day the server received them.
+  const day = (badClock ? new Date(nowMs) : new Date(ms)).toISOString().slice(0, 10);
   return {
     ok: true,
     rec: {
       t: body.timestamp_utc,                     // as sent, keeps sub-millisecond digits
-      day: iso.slice(0, 10),                     // UTC date: the file boundary
+      day,
+      badclock: badClock,
       event: body.event,
       time_us: body.time,
       adc: body.adc,

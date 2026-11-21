@@ -1,0 +1,52 @@
+# DRAFT: not yet applied anywhere. Check it against the VPS survey (deploy/SURVEY-PROMPT.md) first.
+#   install:  sudo cp cosmicray-v3.service /etc/systemd/system/ && sudo systemctl daemon-reload
+#   enable:   sudo systemctl enable --now cosmicray-v3
+#
+# Things the survey decides:
+#   - ExecStart: the real path of node (must be runnable by the "cosmicray" user: a node that
+#     lives under a home directory, e.g. nvm, will not be).
+#   - ProtectHome: keep "yes" only if node does not live under /home.
+#   - MemoryMax: see the note at the end.
+
+[Unit]
+Description=CosmicRay upload server (cosmicray-v3)
+After=network.target
+
+[Service]
+Type=simple
+User=cosmicray
+Group=cosmicray
+WorkingDirectory=/opt/cosmicray-v3/current
+EnvironmentFile=/etc/cosmicray/env
+# node is a copy of the one under accel-kitchen's nvm, made in README step 3b (the survey found
+# no system-wide node, and ProtectHome=yes below hides /home from the service).
+ExecStart=/opt/node-v22.23.4/bin/node src/index.js
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=15
+LimitNOFILE=4096
+UMask=0027
+
+# Hardening. MemoryDenyWriteExecute is deliberately NOT set: Node's JIT needs writable+executable memory.
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/var/lib/cosmicray
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+CapabilityBoundingSet=
+SystemCallArchitectures=native
+
+# Each password hash needs about 128 MiB at the default scrypt cost, and SCRYPT_CONCURRENCY
+# (in /etc/cosmicray/env) of them can run at once, plus Node itself (~100 MiB).
+# Uncomment and size this after the survey shows how much memory the VPS has:
+#MemoryMax=768M
+
+[Install]
+WantedBy=multi-user.target

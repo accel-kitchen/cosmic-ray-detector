@@ -1,5 +1,12 @@
 # 測定サーバー更新手順（CORS 対応版を載せる）
 
+> **注記（2026-11-21）：この文書の前提は崩れました。急ぎでは使わないでください。**
+> 旧サーバー（`https://accel-kitchen.com`）の API は、本物の Console（`https://accel-kitchen.com/app/cosmicray-monitor/`）と**同じオリジン**にあるので、
+> CORS が無くても、配信中の Console からは動いている可能性が高いです（そこから試した間違いパスワードのログインは `401` が正常に読めました）。
+> CORS が無くて困るのは、`file://`、`localhost`、別のホストから開いた Console だけです。
+> 新サーバー（`cosmicray.accel-kitchen.com`）を作る方針になったので、旧サーバーの更新は、必要になったときの参考として残しています。
+> 新サーバーの手順は `server/deploy/README.md` にあります。
+
 対象: `https://accel-kitchen.com` の `cosmicray-server`（`/opt/cosmicray-server`、PM2 管理）。
 目的: Console（v2 / v1）のブラウザからログインと送信ができるようにする。
 2026-11-21 時点の症状: サーバーが OPTIONS に `200` / 本文 `POST` を返し、`Access-Control-Allow-*` が付かない（CORS 修正 S-01 が未反映）。

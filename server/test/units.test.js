@@ -61,6 +61,37 @@ test('password: the default work factor is the OWASP scrypt minimum (N=2^17, r=8
   assert.equal(await verifyPassword('correct horse', h), true);
 });
 
+test('password: the concurrency cap is configurable and validated', async () => {
+  const { setMaxConcurrent } = require('../src/password');
+  assert.throws(() => setMaxConcurrent(0), /positive integer/);
+  assert.throws(() => setMaxConcurrent(1.5), /positive integer/);
+  setMaxConcurrent(1);                                         // strictly one at a time: still finishes
+  const hs = await Promise.all(Array.from({ length: 4 }, (_, i) => hashPassword(`pw-${i}-xxxxxxxx`, 1024)));
+  assert.equal(hs.length, 4);
+  setMaxConcurrent(2);
+});
+
+test('config: SCRYPT_CONCURRENCY is read, bad values fall back to 2; the commit comes from env, else the .commit file', () => {
+  const base = { JWT_SECRET: 'x'.repeat(40) };
+  assert.equal(loadConfig({ ...base }, { quiet: true }).scryptConcurrency, 2);
+  assert.equal(loadConfig({ ...base, SCRYPT_CONCURRENCY: '4' }, { quiet: true }).scryptConcurrency, 4);
+  assert.equal(loadConfig({ ...base, SCRYPT_CONCURRENCY: 'abc' }, { quiet: true }).scryptConcurrency, 2);
+  assert.equal(loadConfig({ ...base, SCRYPT_CONCURRENCY: '0' }, { quiet: true }).scryptConcurrency, 2);
+
+  assert.equal(loadConfig({ ...base, GIT_COMMIT: 'fromenv' }, { quiet: true }).commit, 'fromenv');
+  const file = path.join(__dirname, '..', '.commit');
+  const had = fs.existsSync(file) ? fs.readFileSync(file) : null;
+  try {
+    fs.writeFileSync(file, 'abc1234def\n');
+    assert.equal(loadConfig({ ...base }, { quiet: true }).commit, 'abc1234def');
+    assert.equal(loadConfig({ ...base, GIT_COMMIT: 'fromenv' }, { quiet: true }).commit, 'fromenv', 'env wins');
+    fs.rmSync(file);
+    assert.equal(loadConfig({ ...base }, { quiet: true }).commit, 'unknown');
+  } finally {
+    if (had) fs.writeFileSync(file, had); else fs.rmSync(file, { force: true });
+  }
+});
+
 test('config: production refuses to start without JWT_SECRET', () => {
   assert.throws(() => loadConfig({ NODE_ENV: 'production' }), /JWT_SECRET/);
   assert.doesNotThrow(() => loadConfig({ NODE_ENV: 'production', JWT_SECRET: 'x'.repeat(40) }));

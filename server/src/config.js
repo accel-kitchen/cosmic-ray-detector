@@ -1,6 +1,17 @@
 'use strict';
+const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+
+// deploy.sh writes the commit it unpacked into <app>/.commit, so /healthz can
+// say which code is running without anyone editing a service file.
+function readCommitFile() {
+  try {
+    return fs.readFileSync(path.join(__dirname, '..', '.commit'), 'utf8').trim().slice(0, 40) || 'unknown';
+  } catch (_) {
+    return 'unknown';
+  }
+}
 
 // All settings come from the environment so the same code runs on localhost,
 // in tests and on the VPS without edits. Nothing here is ever logged (the
@@ -30,8 +41,11 @@ function loadConfig(env = process.env, overrides = {}) {
     // on concurrent hashes). New hashes carry their own parameters, so this can
     // be raised later without invalidating existing passwords.
     scryptN: Number(env.SCRYPT_N || 131072),
+    // How many password hashes may run at once (each needs ~128 MiB at the
+    // default N). Set from the VPS's memory; the rest wait in a queue.
+    scryptConcurrency: Math.max(1, Math.floor(Number(env.SCRYPT_CONCURRENCY || 2)) || 2),
     claimUrl: env.CLAIM_URL || 'https://cosmicray.accel-kitchen.com/claim',
-    commit: env.GIT_COMMIT || 'unknown',
+    commit: env.GIT_COMMIT || readCommitFile(),
     version: '0.1.0',
     // Largest accepted request body. Console events are ~300 bytes.
     bodyLimit: env.BODY_LIMIT || '32kb',

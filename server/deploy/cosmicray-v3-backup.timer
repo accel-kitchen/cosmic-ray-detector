@@ -1,0 +1,11 @@
+# DRAFT: not yet applied anywhere. Nightly, with a little jitter; runs once after boot if a night was missed.
+[Unit]
+Description=CosmicRay upload server: nightly backup timer
+
+[Timer]
+OnCalendar=*-*-* 03:30:00
+RandomizedDelaySec=10min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

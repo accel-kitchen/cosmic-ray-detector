@@ -320,8 +320,7 @@ test('upload: structurally unusable events are 400 (the console drops them)', as
       'run_id too long': { run_id: 'x'.repeat(65) },
       'timestamp_utc missing': { timestamp_utc: undefined },
       'timestamp_utc local format': { timestamp_utc: '2026-11-21-21-10-11.123456' },
-      'timestamp_utc ancient': { timestamp_utc: '2001-01-01T00:00:00.000Z' },
-      'timestamp_utc far future': { timestamp_utc: '2027-06-01T00:00:00.000Z' },
+      'timestamp_utc impossible date': { timestamp_utc: '2026-13-45T00:00:00.000Z' },
     };
     for (const [name, over] of Object.entries(bad)) {
       const r = await t.call('POST', '/upload-data/sendai', { token: tok, body: consoleEvent(over) });
@@ -333,6 +332,51 @@ test('upload: structurally unusable events are 400 (the console drops them)', as
       assert.equal(r.status, 400, `body ${JSON.stringify(body)}`);
     }
     assert.equal(eventsOf(t.dir, 'sendai', '2026-11-21'), null, 'nothing was written');
+  } finally { await t.close(); }
+});
+
+test('upload (Q-N14): events from a badly wrong PC clock are kept, flagged, in their own stream', async () => {
+  const t = await boot();
+  try {
+    await t.seed('sendai');
+    const tok = await t.loginToken('sendai');
+    const send = (over) => t.call('POST', '/upload-data/sendai', { token: tok, body: consoleEvent(over) });
+
+    const ancient = await send({ event: 1, time: 1, timestamp_utc: '2001-01-01T00:00:00.000Z' });
+    assert.equal(ancient.status, 200);
+    assert.deepEqual(ancient.json, { success: true, duplicate: false, clock_suspect: true });
+    assert.equal((await send({ event: 2, time: 2, timestamp_utc: '2027-06-01T00:00:00.000Z' })).json.clock_suspect, true);
+
+    // Filed by the day it was RECEIVED (the clock cannot place it), in <day>.badclock.jsonl.
+    const bad = eventsOf(t.dir, 'sendai', '2026-11-21.badclock');
+    assert.equal(bad.length, 3, 'header + 2 events');
+    assert.equal(bad[0].stream, 'badclock');
+    assert.equal(bad[1].t, '2001-01-01T00:00:00.000Z', 'the time it claimed is left untouched');
+    assert.equal(bad[1].clock_suspect, true);
+    assert.equal(eventsOf(t.dir, 'sendai', '2026-11-21'), null, 'the main stream stays clean');
+    assert.equal(t.inst.db.prepare('SELECT event_count FROM stations WHERE id=?').get('sendai').event_count, 2);
+
+    // A retry of a bad-clock event is still not written twice.
+    assert.equal((await send({ event: 1, time: 1, timestamp_utc: '2001-01-01T00:00:00.000Z' })).json.duplicate, true);
+    assert.equal(eventsOf(t.dir, 'sendai', '2026-11-21.badclock').length, 3);
+
+    // A normal event goes to the main stream, without the flag in the response.
+    const ok = await send({ event: 3, time: 3 });
+    assert.deepEqual(ok.json, { success: true, duplicate: false });
+    assert.equal(eventsOf(t.dir, 'sendai', '2026-11-21').length, 2);
+  } finally { await t.close(); }
+});
+
+test('upload (Q-N14): the accepted window is 2015 .. two days ahead of the server clock', async () => {
+  const t = await boot();
+  try {
+    await t.seed('sendai');
+    const tok = await t.loginToken('sendai');
+    const send = (n, iso) => t.call('POST', '/upload-data/sendai', { token: tok, body: consoleEvent({ event: n, time: n, timestamp_utc: iso }) });
+    assert.equal((await send(1, '2026-11-23T11:59:00.000Z')).json.clock_suspect, undefined, 'just under two days ahead');
+    assert.equal((await send(2, '2026-11-23T12:01:00.000Z')).json.clock_suspect, true, 'just over');
+    assert.equal((await send(3, '2015-01-01T00:00:00.000Z')).json.clock_suspect, undefined, 'the earliest accepted instant');
+    assert.equal((await send(4, '2014-12-31T23:59:59.999Z')).json.clock_suspect, true);
   } finally { await t.close(); }
 });
 
@@ -391,12 +435,13 @@ test('rate limit: login attempts are limited per client IP, and other IPs are un
   const t = await boot();
   try {
     await t.seed('sendai');
-    // 10 attempts are allowed from one IP; the 11th is refused with Retry-After.
+    // 10 attempts (here at 10 different ids, so only the per-IP bucket is in play) are
+    // allowed from one IP; the 11th is refused with Retry-After.
     for (let i = 0; i < 10; i++) {
-      const r = await t.call('POST', '/auth/login', { body: { id: 'nobody', password: 'wrong-password' }, ip: '203.0.113.1' });
+      const r = await t.call('POST', '/auth/login', { body: { id: `nobody-${i}`, password: 'wrong-password' }, ip: '203.0.113.1' });
       assert.equal(r.status, 401, `attempt ${i + 1}`);
     }
-    const blocked = await t.call('POST', '/auth/login', { body: { id: 'nobody', password: 'wrong-password' }, ip: '203.0.113.1' });
+    const blocked = await t.call('POST', '/auth/login', { body: { id: 'nobody-x', password: 'wrong-password' }, ip: '203.0.113.1' });
     assert.equal(blocked.status, 429);
     assert.ok(Number(blocked.headers.get('retry-after')) >= 1);
     assert.equal(blocked.headers.get('access-control-allow-origin'), '*', '429 still carries CORS');
@@ -407,21 +452,54 @@ test('rate limit: login attempts are limited per client IP, and other IPs are un
   } finally { await t.close(); }
 });
 
-test('rate limit: failures per station are limited, but correct logins never lock a station out', async () => {
+test('rate limit (Q-N13): one address failing over and over cannot lock a station for anyone else', async () => {
   const t = await boot();
   try {
     await t.seed('sendai');
-    // Many correct logins from many IPs never consume the per-station failure budget.
-    for (let i = 0; i < 15; i++) {
-      const r = await t.call('POST', '/auth/login', { body: { id: 'sendai', password: 'pw-12345678' }, ip: `198.51.100.${i + 1}` });
+    await t.seed('osaka');
+    // Address A guesses at 'sendai': 5 failures fill its (station, address) bucket.
+    for (let i = 0; i < 5; i++) {
+      const r = await t.call('POST', '/auth/login', { body: { id: 'sendai', password: 'wrong-password' }, ip: '203.0.113.50' });
+      assert.equal(r.status, 401, `failure ${i + 1}`);
+    }
+    // A is now held off from 'sendai' (even with the right password)...
+    const held = await t.call('POST', '/auth/login', { body: { id: 'sendai', password: 'pw-12345678' }, ip: '203.0.113.50' });
+    assert.equal(held.status, 429);
+    // ...but not from other stations: it is the pair that is limited, not the whole address.
+    const other = await t.call('POST', '/auth/login', { body: { id: 'osaka', password: 'pw-12345678' }, ip: '203.0.113.50' });
+    assert.equal(other.status, 200);
+    // And the owner of 'sendai', from another address, is not affected at all.
+    const owner = await t.call('POST', '/auth/login', { body: { id: 'sendai', password: 'pw-12345678' }, ip: '198.51.100.7' });
+    assert.equal(owner.status, 200);
+  } finally { await t.close(); }
+});
+
+test('rate limit: correct logins never use up a station\'s failure budget', async () => {
+  const t = await boot();
+  try {
+    await t.seed('sendai');
+    for (let i = 0; i < 150; i++) {                       // more than the station-wide capacity of 100
+      const r = await t.call('POST', '/auth/login', { body: { id: 'sendai', password: 'pw-12345678' }, ip: `198.51.${Math.floor(i / 200)}.${(i % 200) + 1}` });
       assert.equal(r.status, 200, `good login ${i + 1}`);
     }
-    // Ten failures (from ten IPs) exhaust it; the next attempt, even correct, waits.
-    for (let i = 0; i < 10; i++) {
-      await t.call('POST', '/auth/login', { body: { id: 'sendai', password: 'wrong-password' }, ip: `192.0.2.${i + 1}` });
+  } finally { await t.close(); }
+});
+
+test('rate limit: many addresses failing at once do limit the station, until it refills', async () => {
+  const t = await boot({ limits: { loginId: { capacity: 20, refillPerSec: 0.5 } } });
+  try {
+    await t.seed('sendai');
+    // Five addresses, four failures each (below every per-address limit) empty the station bucket of 20.
+    for (let a = 1; a <= 5; a++) {
+      for (let i = 0; i < 4; i++) {
+        const r = await t.call('POST', '/auth/login', { body: { id: 'sendai', password: 'wrong-password' }, ip: `192.0.2.${a}` });
+        assert.equal(r.status, 401);
+      }
     }
-    const r = await t.call('POST', '/auth/login', { body: { id: 'sendai', password: 'pw-12345678' }, ip: '192.0.2.200' });
-    assert.equal(r.status, 429);
+    const fresh = { body: { id: 'sendai', password: 'pw-12345678' }, ip: '203.0.113.99' };
+    assert.equal((await t.call('POST', '/auth/login', fresh)).status, 429, 'station-wide bucket is empty');
+    t.advance(60 * 1000);                                  // 60 s at 0.5/s refills it
+    assert.equal((await t.call('POST', '/auth/login', fresh)).status, 200, 'and it recovers');
   } finally { await t.close(); }
 });
 

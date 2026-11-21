@@ -21,8 +21,10 @@ function createEventStore(db, dataDir) {
     'UPDATE stations SET last_seen_utc=?, event_count=event_count+1 WHERE id=?');
   const prune = db.prepare('DELETE FROM ingest_keys WHERE day < ?');
 
-  function fileFor(station, day) {
-    return path.join(eventsDir, station, `${day}.jsonl`);
+  // Events from a console with a badly wrong clock go to their own stream,
+  // <day>.badclock.jsonl, so the main files stay clean and the odd ones are easy to find.
+  function fileFor(station, day, badclock = false) {
+    return path.join(eventsDir, station, `${day}${badclock ? '.badclock' : ''}.jsonl`);
   }
 
   // station must already be a validated id ([a-z0-9_-]), so it is path-safe.
@@ -31,14 +33,16 @@ function createEventStore(db, dataDir) {
       return { duplicate: true };
     }
 
-    const file = fileFor(station, rec.day);
+    const file = fileFor(station, rec.day, rec.badclock);
     fs.mkdirSync(path.dirname(file), { recursive: true });
 
-    const { day, ...body } = rec;
-    const line = JSON.stringify({ ...body, rx: nowIso }) + '\n';
+    const { day, badclock, ...body } = rec;
+    const stored = badclock ? { ...body, clock_suspect: true, rx: nowIso } : { ...body, rx: nowIso };
+    const line = JSON.stringify(stored) + '\n';
     let chunk = line;
     if (!fs.existsSync(file)) {
-      const header = { kind: 'header', format_version: FORMAT_VERSION, station, day, created: nowIso };
+      const header = { kind: 'header', format_version: FORMAT_VERSION, station, day, created: nowIso,
+                       stream: badclock ? 'badclock' : 'main' };
       chunk = JSON.stringify(header) + '\n' + line;
     }
     // File first, key second: a crash in between leaves a line without a key,

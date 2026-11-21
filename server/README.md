@@ -25,6 +25,7 @@ node src/index.js
 | `HOST` / `PORT` | `127.0.0.1` / `3100` | keep the loopback in production; Apache is the only way in |
 | `TOKEN_TTL_S` | `86400` | token lifetime |
 | `SCRYPT_N` | `131072` (2^17) | password work factor, r=8, p=1: the [OWASP minimum](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html) when Argon2id is unavailable. ~128 MiB per hash, at most 2 at once. Each hash stores its own parameters, so it can be raised later |
+| `SCRYPT_CONCURRENCY` | `2` | how many password hashes may run at once; the rest queue. Size it from the VPS's free memory |
 | `CLAIM_URL` | `https://cosmicray.accel-kitchen.com/claim` | shown to legacy accounts that must register an email |
 | `GIT_COMMIT` | `unknown` | reported by `/healthz`; set it at deploy time |
 
@@ -37,6 +38,15 @@ $env:MY_PW = "..."; node scripts/seed-station.js my-station --password-env MY_PW
 ```
 
 Station ids are 3-32 characters of `a-z 0-9 _ -` (also the directory name, so this is the path-safety check).
+
+## Put it on the VPS
+
+A draft runbook, systemd units, Apache config, `deploy.sh`, `smoke.sh` and the read-only survey to
+run first are in [`deploy/`](deploy/README.md). None of it has been run on the VPS yet.
+
+```powershell
+node scripts/backup.js <destDir> [--keep N]     # nightly backup: SQLite snapshot + events mirror
+```
 
 ## Test
 
@@ -68,10 +78,12 @@ Field names carry their unit (`time_us`, `deadtime_ms`, `vol_mv`).
   can only be checked on the VPS through Apache, not on localhost.
 - The compat API carries `deadtime` in milliseconds and a computed `vol`; microsecond deadtime
   and the other v2 fields arrive with the v2 batch API (Phase 6).
-- An event whose `timestamp_utc` is before 2015 or more than two days ahead is refused with 400, and
-  the console then drops it for good (plan, Q-N14).
-- Failed logins are counted per station as well as per IP (plan, Q-N13): from one IP, wrong passwords
-  can keep a station from logging in. Decide before the server is public.
+- An event whose `timestamp_utc` is before 2015 or more than two days ahead of the server clock is
+  KEPT, not refused: it goes to `<received day>.badclock.jsonl`, flagged `clock_suspect`, with the time it
+  claimed untouched (plan, Q-N14). Only an unreadable date is a 400.
+- Failed logins are counted per client address, per (station, address) and per station (plan, Q-N13).
+  One address can never empty the station-wide bucket, so it cannot lock a station out for others; only
+  many addresses failing at once can, briefly. While that lasts even a correct password gets a 429.
 - Old bcrypt password hashes (from `users.json`) are not verified yet; that arrives with the migration
   (Phase 4).
 - Tested on Node 24 locally; the VPS has Node 22.

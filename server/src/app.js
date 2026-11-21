@@ -3,7 +3,7 @@ const express = require('express');
 const jwt = require('jsonwebtoken');
 const { openDb, SCHEMA_VERSION } = require('./db');
 const { Limiter } = require('./ratelimit');
-const { hashPassword, verifyPassword } = require('./password');
+const { hashPassword, verifyPassword, setMaxConcurrent } = require('./password');
 const { roundPosition } = require('./geo');
 const { validateEvent } = require('./validate');
 const { createEventStore } = require('./events');
@@ -12,15 +12,24 @@ const { createEventStore } = require('./events');
 // path-safety check as well: nothing outside [a-z0-9_-] ever reaches the disk.
 const STATION_ID = /^[a-z0-9][a-z0-9_-]{2,31}$/;
 
+// Failed logins are counted at three levels. The rule that keeps the station
+// ids (which are public on the map) from being used to lock people out:
+// ONE client address must never be able to empty the station-wide bucket.
+// A single IP is held to loginIdIp (5 burst, 0.1/s sustained) and to loginIp,
+// so it can take at most 5 tokens from the station bucket in a burst and
+// 0.1/s afterwards. The station bucket refills faster than that (0.5/s) and is
+// large (100), so it only runs dry when MANY addresses fail at once.
 const DEFAULT_LIMITS = {
-  loginIp:  { capacity: 10,   refillPerSec: 0.2 },   // every attempt, per client IP
-  loginId:  { capacity: 10,   refillPerSec: 0.1 },   // failed attempts only, per station
+  loginIp:   { capacity: 10,   refillPerSec: 0.2 },  // every attempt, per client IP
+  loginIdIp: { capacity: 5,    refillPerSec: 0.1 },  // failed attempts, per (station, client IP)
+  loginId:   { capacity: 100,  refillPerSec: 0.5 },  // failed attempts, per station, all addresses together
   refresh:  { capacity: 30,   refillPerSec: 0.1 },
   setup:    { capacity: 20,   refillPerSec: 0.2 },
   upload:   { capacity: 1000, refillPerSec: 200 },   // the console sends 4 in parallel
 };
 
 async function createApp(cfg, { now = Date.now } = {}) {
+  setMaxConcurrent(cfg.scryptConcurrency || 2);
   const db = openDb(cfg.dataDir);
   const store = createEventStore(db, cfg.dataDir);
   const lim = {};
@@ -128,17 +137,23 @@ async function createApp(cfg, { now = Date.now } = {}) {
     const sid = id.trim().toLowerCase();
     const validId = STATION_ID.test(sid);
 
-    // Failed attempts per station are limited too, but only failures count:
-    // otherwise anyone could lock a station out just by hammering its id.
+    // Only FAILED attempts count against a station (see DEFAULT_LIMITS), so
+    // correct logins never use the budget up.
+    const pairKey = `${sid}|${req.ip}`;
     if (validId) {
-      const idState = lim.loginId.peek(sid);
-      if (!idState.ok) return tooMany(res, idState);
+      const pair = lim.loginIdIp.peek(pairKey);
+      if (!pair.ok) return tooMany(res, pair);
+      const station = lim.loginId.peek(sid);
+      if (!station.ok) return tooMany(res, station);
     }
 
     const user = validId ? q.user.get(sid) : undefined;
     const ok = await verifyPassword(password, user ? user.password_hash : dummyHash);
     if (!user || !ok) {
-      if (validId) lim.loginId.take(sid);
+      if (validId) {
+        lim.loginIdIp.take(pairKey);
+        lim.loginId.take(sid);
+      }
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
@@ -192,7 +207,11 @@ async function createApp(cfg, { now = Date.now } = {}) {
 
     q.ensureStation.run(req.user.id);
     const out = store.append(req.user.id, v.rec, new Date(now()).toISOString());
-    res.json({ success: true, duplicate: out.duplicate });
+    // clock_suspect is only present when the console's clock was badly wrong
+    // (the event was kept, in the badclock stream).
+    res.json(v.rec.badclock
+      ? { success: true, duplicate: out.duplicate, clock_suspect: true }
+      : { success: true, duplicate: out.duplicate });
   });
 
   // --- fallbacks (JSON, and still behind the CORS middleware) --------------------

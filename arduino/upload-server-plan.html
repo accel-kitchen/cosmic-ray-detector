@@ -80,9 +80,17 @@
 <div class="blocker">
 <strong>今日の失敗の原因はコードではなく運用だった。</strong>同じ作り方を新サーバーに持ち込むと、同じ壁に当たる。
 </div>
+<div class="note">
+<strong>訂正（2026-11-21、Console の配信先が分かったあと）：</strong>最初に「ブラウザの Console からは失敗するはず」と書いたのは、<strong>別のオリジンから開いた場合だけ</strong>に当てはまる。
+実際の Console は <code>https://accel-kitchen.com/app/cosmicray-monitor/</code> で配信され、旧サーバーの API も同じ <code>https://accel-kitchen.com</code> から転送されている。同一オリジンなので CORS もプリフライトも要らず、
+<strong>配信中の Console は、旧サーバーに今も送れている可能性が高い</strong>（その Console から同一オリジンで間違ったパスワードを試すと、<code>401 Invalid credentials</code> が正常に読めた。配信中の <code>core.js</code> のアップロード部分はリポジトリと同じで、CSP の制限もない）。
+CORS が効くのは、<code>file://</code>、<code>localhost</code>、別のホストから開いた Console と、<strong>新サーバー（<code>cosmicray.accel-kitchen.com</code>）への送信</strong>で、後者は Console の「Server」欄を書き換えると、同一オリジンではなくなる。
+方針は変わらない。移行の前提は変わった：VPS の調査（2026-11-22）で、<strong>旧サーバーに直近 30 日に書いた局は 1 つもなく</strong>（最新は <code>ktt</code> の 2026-06-17）、Console のアップロード機能が本番で使われた形跡もない。
+つまり「配信中の Console は旧サーバーに送れるはず」は、仕組みの上の話で、<strong>本番で一度も確かめられていない</strong>。今送っている参加者がいないので、切り替え日も要らない（§5）。
+</div>
 <table>
   <tr><th>事実</th><th>確認方法</th><th>新サーバーへの教訓</th></tr>
-  <tr><td>公開サーバーは OPTIONS に <code>200</code>・本文 <code>POST</code>・<code>Allow: POST</code> を返し、<code>Access-Control-*</code> が付かない。ブラウザの Console は応答を読めない</td><td>curl（Origin: null）</td><td>合格基準は curl ではなく<strong>実ブラウザ</strong>にする</td></tr>
+  <tr><td>公開サーバーは OPTIONS に <code>200</code>・本文 <code>POST</code>・<code>Allow: POST</code> を返し、<code>Access-Control-*</code> が付かない。別のオリジン（<code>file://</code>、<code>localhost</code>、別のホスト）から開いたブラウザの Console は応答を読めない。同じ <code>https://accel-kitchen.com</code> から開いた Console には影響しない（上の訂正）</td><td>curl（Origin: null）</td><td>合格基準は curl ではなく<strong>実ブラウザ</strong>にする</td></tr>
   <tr><td>本番の <code>server.js</code>（2026-10-08 更新）は、手元のコミット版とも手元の作業版とも違う（待ち受けが <code>127.0.0.1</code>）</td><td>サーバー側 Claude の報告 / 手元の <code>git status</code></td><td><strong>git を唯一の正本</strong>にし、サーバーでは手で直さない。動いているコミットが分かるようにする</td></tr>
   <tr><td>Apache は一部のパス（<code>/auth/login</code>・<code>/setup-id</code>・<code>/upload-data/*</code> など）しか Express に転送せず、<code>/health</code> と <code>GET /latest-data/*</code> は届かない</td><td>curl の <code>X-Powered-By</code> の有無</td><td>新サブドメインは <strong>VirtualHost 全体を 1 つのアプリへ転送</strong>し、パス単位の許可リストにしない</td></tr>
   <tr><td>PM2 は <code>accel-kitchen</code> ユーザーのもので、別ユーザーの Claude は触れなかった</td><td>サーバー側 Claude の報告</td><td>専用ユーザー + <code>systemd</code> にして、運用の担当者を決める</td></tr>
@@ -233,13 +241,14 @@ cosmicray-v3（systemd、専用ユーザー、127.0.0.1:3100 だけで待ち受�
 <p>
 旧サーバーは<strong>読み取り専用にして残し</strong>、新サーバーへコピーする。旧側は消さない。
 旧クライアント（<code>cosmicwatch-app</code>、Python クライアント）は対象外なので、<strong>切り替えるのは Console の利用者だけ</strong>。
-旧サーバーのログには <code>sendai</code> と <code>test</code> の setup が直近にあるので、切り替えの前に次を行う。
+<strong>2026-11-22 の調査で、直近 30 日に書いた局は 0 だった</strong>（5 局：<code>ktt</code>、<code>nsr</code>、<code>sendai</code>、<code>test</code>、<code>waseda</code>。合計 191 MB。最新は 2026-06-17）。
+旧サーバーの <code>output.log</code> にあった <code>sendai</code>・<code>test</code> の setup は 2025 年のものだった。したがって切り替え日は要らず、移行はデータのアーカイブが中心になる。
 </p>
 <ol>
-  <li>旧サーバーのログ（<code>output.log</code>）から、直近 30 日に送ってきた局を洗い出す（読み取りのみ。ユーザーが実行）。</li>
-  <li>その局の持ち主に、切り替え日と、Console の URL 欄を <code>https://cosmicray.accel-kitchen.com</code> に変える手順を知らせる。</li>
-  <li>切り替え日に、旧サーバーのデータを<strong>もう一度取り込んで差分を埋める</strong>（取り込みは何度実行しても同じ結果になる）。</li>
-  <li>差分が合ったら、旧サーバーを読み取り専用にする。旧クライアントで送っている人がいれば、この時点で送れなくなることを事前に知らせる。</li>
+  <li>（済）直近 30 日に送ってきた局を洗い出す：<strong>0 局</strong>。5 局の持ち主に、新サーバーで登録し直すか、データだけ引き継ぐかを尋ねる。</li>
+  <li>取り込みの前に、旧サーバーのデータ一式（<code>cosmicray-data/</code> と <code>users.json</code>）を<strong>バックアップする</strong>（読み取りだけ）。</li>
+  <li>ドライラン → 本取り込み（取り込みは何度実行しても同じ結果になる）。</li>
+  <li>件数とチェックサムが合ったら、旧サーバーを読み取り専用にする（PM2 を止めるか、API だけ遮断する）。いま送っている人は観測されない。</li>
 </ol>
 <table>
   <tr><th>対象</th><th>方針</th><th>注意</th></tr>
@@ -257,9 +266,9 @@ cosmicray-v3（systemd、専用ユーザー、127.0.0.1:3100 だけで待ち受�
   <tr><th>Phase</th><th>内容</th><th>完了の条件</th><th class="who">主な実行者</th></tr>
   <tr><td>0 準備</td><td>Value-Domain で <code>cosmicray</code> の A レコードを追加（§3）、メール送信方法の決定（Q-N1）、同意文面の担当決め（Q-N2）、VPS の空きの調査（読み取りのみ）</td><td>DNS が引ける。Q-N1・Q-N2 に回答がある</td><td class="who">ユーザー / サーバー側 Claude</td></tr>
   <tr><td>1 ローカルで通す</td><td>互換 API（§2-1）、SQLite、JSONL（日付は UTC）、位置の丸め、レート制限（<code>trust proxy</code> 込み）、CORS、重複の扱いの決定、<strong>契約テスト</strong>。<strong>試験用の局を作る種データのスクリプト</strong>（管理 CLI は Phase 3 なので、これを前倒しする）。<code>localhost</code> で完結</td><td>契約テストが通り、<strong>Console を <code>localhost</code> のサーバーにつないで</strong>ログイン〜数イベントの送信ができ、JSONL に行が増える</td><td class="who">Claude</td></tr>
-  <tr><td>2 VPS に載せる</td><td>専用ユーザー、<code>systemd</code>、Apache の VirtualHost、証明書、バックアップ、<code>/healthz</code>。試験用の局（1 つ）</td><td><strong>実ブラウザで</strong> https のページと <code>file://</code> の両方から、ログイン〜送信ができ、サーバー上のデータが増える（§7）</td><td class="who">ユーザー（準備は Claude）</td></tr>
+  <tr><td>2 VPS に載せる</td><td>専用ユーザー、<code>systemd</code>、Apache の VirtualHost、証明書、バックアップ、<code>/healthz</code>。試験用の局（1 つ）。<strong>草案は <code>server/deploy/</code>（手順書・ユニット・Apache の設定・<code>deploy.sh</code>・<code>smoke.sh</code>・調査依頼文）。VPS では未実行で、調査の結果で確定する</strong></td><td><strong>実ブラウザで</strong> https のページと <code>file://</code> の両方から、ログイン〜送信ができ、サーバー上のデータが増える（§7）</td><td class="who">ユーザー（準備は Claude）</td></tr>
   <tr><td>3 自己登録</td><td>登録・メール認証・再設定・マイページ・削除・同意の記録</td><td>新規の参加者が、登録から Console での送信まで、管理者の手を借りずに完了できる</td><td class="who">Claude / ユーザー（メール設定）</td></tr>
-  <tr><td>4 旧データの移行</td><td>§5。送信中の局の洗い出し → ドライラン → 本取り込み → 切り替え日の差分取り込み → 旧サーバーを読み取り専用に</td><td>件数とチェックサムが旧データと一致する。旧アカウントがメール登録後にログインできる</td><td class="who">Claude（スクリプト）/ ユーザー（実行）</td></tr>
+  <tr><td>4 旧データの移行</td><td>§5。（送信中の局は 0 なので、切り替え日は無い）バックアップ → ドライラン → 本取り込み → 旧サーバーを読み取り専用に</td><td>件数とチェックサムが旧データと一致する。旧アカウントがメール登録後にログインできる</td><td class="who">Claude（スクリプト）/ ユーザー（実行）</td></tr>
   <tr><td>5 ビューアと地図</td><td>§4-3</td><td>公開地図に丸めた位置だけが出る。局を選ぶとグラフが見える</td><td class="who">Claude</td></tr>
   <tr><td>6 v2 バッチ API</td><td><code>server-plan.html</code> §4 の <code>/v2/ingest</code>、run メタデータ、<code>device_id</code>。Console の C-12（能力判定による自動切替）</td><td>Console が自動で v2 API を選び、v2 の全フィールドが保存される。<strong>ただし GPS 対応ファームがイベントごとに出す <code>lat</code> / <code>lon</code>（18 トークン。<code>core.js:1541-1548</code>）は保存しない</strong>。生の座標は保存しないという決定（§0）を守るため、サーバーは受け取った時点で捨てるか、格子の中心に丸める</td><td class="who">Claude</td></tr>
 </table>
@@ -268,6 +277,19 @@ cosmicray-v3（systemd、専用ユーザー、127.0.0.1:3100 だけで待ち受�
 <strong>確認できたこと：</strong>契約テスト 32 件が手元の Node 24 で通る（実コストの scrypt のハッシュを含む）。本物の Console（<code>http://localhost:8123</code> で配信）から、別オリジンの API（<code>http://localhost:3100</code>）へ、<strong>ブラウザで</strong>ログイン → <code>/setup-id</code> → 25 イベントの送信が通り、サーバーのファイル（重複なし・UTC 日付・格子の中心の位置）と Console の表示（sent 25 / failed 0）が一致した。間違ったパスワードでは、Console に「Invalid credentials」が出る（エラー応答にも CORS ヘッダが付いている）。生の座標とテスト用パスワードが、データのどこにも残っていないことをバイト検索で確認した。<br>
 <strong>未確認：</strong>(1) <code>file://</code>（<code>Origin: null</code>）で開いた Console の<strong>実ブラウザでの確認</strong>。プレビューは <code>file://</code> を <code>data:</code> のスナップショットにして送信を止める（<code>ERR_BLOCKED_BY_CLIENT</code>）。サンドボックス化した iframe（不透明オリジン、<code>Origin: null</code>）からも、リクエストはサーバーに届かなかった。どちらもサーバーの CORS の失敗ではなく、送信前にプレビュー側が止めている。<code>curl</code> では、<code>Origin: null</code> のプリフライトが 204 と CORS ヘッダを返す。(2) VPS の Node 22 での動作。(3) Apache 越しの接続元 IP（<code>X-Forwarded-For</code>）。(4) 実機（ボード）からの送信。上の確認では、実機の代わりに、ファームの 13 トークンのイベント行を Console の <code>processLine</code> に流した。<br>
 <strong>試験で見つかり、直したこと：</strong>Console は緯度・経度を<strong>入力欄の文字列</strong>（<code>"38.2545"</code>）で送る。最初の実装は数値しか受けず、位置が黙って無視された（テストが数値で書かれていたため、ブラウザの確認まで気づかなかった）。また、Console の <code>deadtime</code> は<strong>ミリ秒</strong>なので、JSONL の項目名を <code>deadtime_ms</code> にして単位を名前に入れた。
+</div>
+<div class="note">
+<strong>進捗（続き、2026-11-21）：Phase 2 の準備。VPS には何も触れていない</strong><br>
+<strong>コード：</strong>Q-N13（失敗の 3 段の数え方）と Q-N14（時計不良のイベントを別の流れに残す）を実装し、契約テストを書き換えた。<code>SCRYPT_CONCURRENCY</code>（環境変数）、<code>.commit</code>（<code>/healthz</code> が動いているコミットを返す）、<code>scripts/backup.js</code>（SQLite のオンラインバックアップ。<code>sqlite3</code> コマンド不要）、<code>server/.gitattributes</code>（LF 固定）を追加。テスト 41 件が通る。<br>
+<strong>VPS 用の草案（<code>server/deploy/</code>）：</strong>手順書、systemd のユニット、Apache の設定 2 本（証明書の前 / 後。<strong>CORS は Apache で付けない</strong>）、<code>deploy.sh</code>（<code>server/</code> だけを展開、失敗したら前の版に戻す）、<code>smoke.sh</code>、夜間バックアップ、サーバー側 Claude への<strong>調査依頼文</strong>（読み取りだけ）。<br>
+<strong>確認したこと：</strong>シェルの構文（<code>bash -n</code>）、<code>git archive</code> の接頭辞とコミット ID の取り出し、<code>smoke.sh</code> を手元のサーバー（全項目 PASS）と旧サーバー（5 件 FAIL、失敗を検出できる）に対して実行。<br>
+<strong>未確認：</strong>VPS での実行（<code>deploy.sh</code>、ユニット、Apache、証明書）、Node 22 での動作、Apache 越しの <code>X-Forwarded-For</code>（<code>smoke.sh</code> の 5）、<code>file://</code> の実ブラウザ。手元の WSL（Ubuntu 24.04、VPS と同系統）に Apache と Node 22 を入れれば予行演習できるが、WSL への導入になるので、許可をいただいてから行う。
+</div>
+<div class="note">
+<strong>進捗（2026-11-22）：VPS の調査を実施（読み取りだけ。<code>survey.sh</code> を root と <code>accel-kitchen</code> で実行）</strong><br>
+<strong>分かったこと：</strong>詳細は <code>server/deploy/README.md</code> の「調査の結果」。要点は、(1) <strong>旧サーバーに直近 30 日に書いた局は無い</strong>（5 局、191 MB）、(2) <code>node</code> は nvm の下にしか無い（専用の <code>node</code> を <code>/opt</code> にコピーする）、(3) Apache の必要なモジュールはすべて有効、証明書は snap の certbot、(4) ポート 3100 は空き、(5) メモリは 3.9 GiB で、scrypt の同時実行 2 で足りる、(6) アクセスログは 14 日で消える（Q-N2 のポリシーに書ける）、(7) メールの MTA は動いていないが、外向きの 25・587 は届く。<br>
+<strong>気づいた点：</strong>旧サーバーの <code>users.json</code> が全員から読み書きできる権限（<code>-rw-rw-rw-</code>）。中身はパスワードのハッシュで、同じ VPS に他のユーザーとアプリがある。<code>accel-kitchen</code> で <code>chmod 600</code> すれば直る（旧サーバーは今は使われていないが、データは残っている）。<br>
+<strong>調査スクリプトの不具合：</strong>Apache の転送ルールの検索が空だった（<code>sites-enabled</code> はシンボリックリンクで、<code>grep -r</code> はたどらない）。<code>-R</code> に直し、<code>mod_remoteip</code> の設定と <code>apache2ctl -S</code> の確認を足した。<code>remoteip</code> のモジュールは有効だが、設定があるかは未確認（<code>smoke.sh</code> の 5 で最終的に確かめる）。
 </div>
 <p class="why">
 Phase 1 を先に<code>localhost</code>で通すのは、他人の権限に頼る前に、自分で端から端まで検証できるため。Phase 2 以降の作業は、ユーザーが実行するコマンドとして書き出す。
@@ -282,7 +304,7 @@ Phase 1 を先に<code>localhost</code>で通すのは、他人の権限に頼�
     <ol>
       <li><code>file://</code>（<code>Origin: null</code>）で開いた Console</li>
       <li>新サーバー自身が <code>https://cosmicray.accel-kitchen.com/console/</code> で配信する Console（同一オリジン）</li>
-      <li><strong>別の https オリジン</strong>の Console。<strong>Console の本番の配信先が分からない</strong>ので（Q-N10）、決まるまでは、<code>https://accel-kitchen.com</code> 側に置いた試験ページで代用する</li>
+      <li><strong>本物の Console（<code>https://accel-kitchen.com/app/cosmicray-monitor/</code>）</strong>。新サーバーとは別のオリジンなので、CORS が実際に使われる。これが本番の使い方に最も近い</li>
     </ol></li>
   <li><strong>レート制限の独立：</strong>別々の接続元 IP（Apache を通して <code>X-Forwarded-For</code> が異なる 2 つ以上の IP）から、ログインを失敗させ続けても、別の IP のログインが止まらないこと。外から偽の <code>X-Forwarded-For</code> を付けても、制限を逃れられないこと（VPS 上で、Apache 越しに実際に試す。<code>localhost</code> の試験では、接続元が常にループバックなので、この項目は確かめられない）。</li>
   <li><strong>イベントの出どころ：</strong>Console のデモのイベントは送信キューに入らない。手元の V2 ボード（COM62、FW 2.0.0）をつなぐか、Console の <code>eventToLegacyPayload</code> と同じ形のイベントを送る試験スクリプトを使う。</li>
@@ -303,6 +325,7 @@ Phase 1 を先に<code>localhost</code>で通すのは、他人の権限に頼�
     (a) <strong>VPS の Postfix</strong>：SPF は通る。DKIM の署名（OpenDKIM）と、VPS の逆引き（PTR）の設定が要る。費用なし。届きやすさの調整が必要。<br>
     (b) <strong>Google Workspace の SMTP</strong>（アプリ専用パスワードか SMTP リレー）：すでに使っているので届きやすく、送信は 1 日あたりの上限がある。参加者のメールは Google を通る（受信側も Google のため）。<br>
     (c) <strong>外部のメール送信サービス</strong>：届きやすいが、参加者のメールが別の事業者を通るので、ポリシーに書く必要がある。<br>
+    <strong>VPS の調査（2026-11-22）：</strong>postfix も exim も動いておらず、外向きの 25・587 は届く。<code>/usr/sbin/sendmail</code> はあるが MTA は無い。<code>mta-sts-daemon</code>（127.0.0.1:8461）は動いている。したがって (a) は Postfix の導入から始まる。<br>
     どれでも、差出人は <code>noreply@accel-kitchen.com</code>（親ドメイン）にすると、既存の SPF・DMARC がそのまま使える。<code>cosmicray.accel-kitchen.com</code> を差出人にすると、サブドメイン用の SPF が別に要る。
     </td></tr>
   <tr><td>Q-N2</td><td>未成年の同意（保護者の同意の要否と取り方）、プライバシーポリシー、利用規約の文面と責任者</td><td>メールを預かり、位置の一部を公開するため。法的な判断を含むので、計画では画面と記録の仕組みだけを用意する</td></tr>
@@ -313,14 +336,15 @@ Phase 1 を先に<code>localhost</code>で通すのは、他人の権限に頼�
   <tr><td>Q-N7</td><td>トークンの期間と、24 時間を超える無人運転の扱い</td><td><code>server-plan.html</code> の Q-2 と同じ。Console はパスワードをメモリに持つ設計</td></tr>
   <tr><td>Q-N8</td><td>地図タイルの提供元</td><td>OpenStreetMap の公開タイルは大量利用に向かない。自前・有料・別の提供元から選ぶ</td></tr>
   <tr><td>Q-N9</td><td>deadtime（µs / ms）と <code>vol</code>（計算値）の扱い</td><td><code>server-plan.html</code> の Q-4・Q-6。JSONL には元の値を全部残すので、解釈は後で決められる</td></tr>
-  <tr><td>Q-N10</td><td>Console はどこで配信するか（<code>file://</code>、<code>localhost</code>、どの https オリジンか）</td><td>受け入れの https 試験のオリジンと、利用者への案内の URL が決まる。配信先が決まるまでは、新サーバー自身の <code>/console/</code> と試験ページで代用する</td></tr>
+  <tr><td>Q-N10</td><td><strong>（確認済み）</strong>Console は <code>https://accel-kitchen.com/app/cosmicray-monitor/</code> で配信されている（https、旧サーバーの API と同一オリジン）</td><td>お知らせいただいた URL（<code>xn--consoleaccel-kitchen-2m4s.com</code>）は存在しないドメインだった（3 つの DNS で NXDOMAIN）。「Consoleは」と「accel-kitchen.com/app/…」が 1 つのホスト名に連結された形に見える。見つけた URL が正しいか、ご確認ください。受け入れ試験の「別の https オリジン」には、この本物の Console を使う</td></tr>
   <tr><td>Q-N11</td><td>メール認証の直後に地図へ出すか、管理者の承認を挟むか</td><td>承認を挟むと、偽の局や不適切な局 ID が地図に出る前に止められるが、管理者の手間が増える。推奨は、承認なしで出す（局 ID の禁止語リストとレート制限で守る）</td></tr>
   <tr><td>Q-N12</td><td>アカウントを削除したデータが、バックアップに残る期間</td><td>削除を約束するなら、バックアップの保持期間と一致させる必要がある（例：バックアップは 30 日で消える、と画面に書く）</td></tr>
-  <tr><td>Q-N13</td><td>失敗したログインの数え方：局ごとか、局と IP の組か</td><td>いまは、局ごとに失敗 10 回で止める（IP は 1 秒に 0.2 回、局は 0.1 回の補充）。局 ID は地図で公開されるので、<strong>1 つの IP から間違ったパスワードを送り続けるだけで、その局の新規ログインを止め続けられる</strong>（テストもこの挙動を固定している）。Phase 2 で公開する前に決める。案：局と IP の組で数える</td></tr>
-  <tr><td>Q-N14</td><td>時刻の窓：<code>timestamp_utc</code> が 2015 年より前か、2 日以上先のイベントを、どうするか</td><td>いまは 400 で拒否し、Console はそのイベントを永久に捨てる。PC の時計が大きく狂った参加者の測定が失われる。案：受信日のファイルに「時計不良」の印を付けて入れる</td></tr>
+  <tr><td>Q-N13</td><td><strong>（実装済み）</strong>失敗したログインの数え方</td><td>局 ID は地図で公開されるので、守る条件は「<strong>1 つのアドレスが、局のバケツを空にできない</strong>」。失敗を 3 段で数える：アドレスごと（全試行、10 回まで、0.2/s の補充）、<strong>(局, アドレス) の組</strong>ごと（5 回まで、0.1/s）、局全体（100 回まで、<strong>0.5/s</strong>）。1 つのアドレスが局全体のバケツから取れるのは、最初の 5 回と、そのあとは 0.1/s だけで、局の補充（0.5/s）のほうが速いので空にならない。<strong>多数のアドレスが同時に失敗し続ける</strong>ときだけ、局全体が一時的に止まる（試験で確認。補充で戻る）。その間は、正しいパスワードのログインも 429 になる。契約テストで固定し、設定を壊すとテストが落ちることも確かめた。<strong>限界：</strong>接続元の数え方はアドレス単位なので、守れているのは IPv4。<code>cosmicray.accel-kitchen.com</code> に AAAA レコードを足して IPv6 でも受けると、/64 を持つ相手が多数のアドレスを使えて、局のバケツを空にできる。IPv6 を公開するときは /64 単位で数える</td></tr>
+  <tr><td>Q-N14</td><td><strong>（実装済み）</strong>時刻の窓：<code>timestamp_utc</code> が 2015 年より前か、サーバーの時計の 2 日以上先のイベント</td><td>拒否せず<strong>残す</strong>。受け取った日のファイル <code>&lt;日&gt;.badclock.jsonl</code> に、印（<code>clock_suspect: true</code>）を付けて入れ、Console が名乗った時刻（<code>t</code>）は書き換えない。応答は <code>200</code> に <code>clock_suspect: true</code> を足す。読めない日時（存在しない日付など）だけが 400</td></tr>
   <tr><td>Q-N15</td><td><strong>（回答済み）</strong><code>server/</code> は、この PCB のリポジトリ（<code>accel-kitchen/cosmic-ray-detector</code>）の中に置く</td><td>計画は「git のタグから展開」なので、そのままでは VPS が CAD やガーバーまで取得してしまう。対策は、VPS では<strong><code>server/</code> だけを取り出す</strong>こと（<code>git archive &lt;タグ&gt; server</code> を展開するか、sparse checkout）。サーバー用のタグは <code>server-v0.1.0</code> のように接頭辞を付け、基板・ケースの変更と区別する。コミットはまだしていない</td></tr>
-  <tr><td>R-N1</td><td>VPS の空き（メモリ・ディスク・CPU）が不明</td><td>Phase 0 に読み取りだけで調べる</td></tr>
-  <tr><td>R-N2</td><td>certbot の有無、Apache の有効なモジュール（proxy・headers・ssl）が不明</td><td>Phase 0 に読み取りだけで調べる</td></tr>
+  <tr><td>Q-N16</td><td>バックアップの保存先と保持</td><td>夜間のバックアップ（<code>server/scripts/backup.js</code>、DB は 14 世代）の置き場所は、<strong>別のディスクか別のマシン</strong>が望ましい。決めるまで、ユニットの <code>/var/backups/cosmicray</code> は仮。削除を約束するなら、ミラーしている <code>events/</code> からも消す必要がある（Q-N12 と一緒に決める）</td></tr>
+  <tr><td>R-N1</td><td><strong>（調査済み）</strong>VPS の空き：メモリ 3.9 GiB（空き 2.7 GiB、swap 2 GiB のうち 378 MiB 使用中）、ディスクの空き 46 GB、4 CPU</td><td>scrypt の同時実行 2（約 256 MiB）で足りる。MariaDB・別の Node アプリ・FastAPI などが同居しているので、余裕は見込みすぎない</td></tr>
+  <tr><td>R-N2</td><td><strong>（調査済み）</strong>certbot は snap 版で更新タイマーあり。必要なモジュール（proxy・proxy_http・headers・ssl・rewrite）はすべて有効。<code>node</code> は nvm の下にしか無い</td><td>手順書に反映済み（専用の <code>node</code> を <code>/opt</code> にコピーする）</td></tr>
 </table>
 </section>
 

@@ -10,11 +10,15 @@ const P = 1;
 // At N = 2^17 one hash needs ~128 MiB. Cap how many run at once so a burst of
 // logins cannot exhaust the VPS's memory; the rest queue (the login rate limit
 // already bounds how long that queue can get).
-const MAX_CONCURRENT = 2;
+let maxConcurrent = 2;
+function setMaxConcurrent(n) {
+  if (!Number.isInteger(n) || n < 1) throw new Error('maxConcurrent must be a positive integer');
+  maxConcurrent = n;
+}
 let active = 0;
 const waiters = [];
 async function acquire() {
-  if (active < MAX_CONCURRENT) { active++; return; }
+  if (active < maxConcurrent) { active++; return; }
   await new Promise((resolve) => waiters.push(resolve));   // the slot is handed over
 }
 function release() {
@@ -49,4 +53,4 @@ async function verifyPassword(password, stored) {
   }
 }
 
-module.exports = { hashPassword, verifyPassword };
+module.exports = { hashPassword, verifyPassword, setMaxConcurrent };

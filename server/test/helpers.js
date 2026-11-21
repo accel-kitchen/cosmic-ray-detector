@@ -34,7 +34,10 @@ async function boot(cfgOver = {}) {
   const cfg = loadConfig(
     { JWT_SECRET: 'test-secret-' + 'x'.repeat(40), DATA_DIR: dir, SCRYPT_N: '1024' },
     { quiet: true, ...cfgOver });
-  const inst = await createApp(cfg, { now: () => NOW });
+  // A clock the test can move forward (rate-limit refill, time-window checks).
+  let clockMs = NOW;
+  const advance = (ms) => { clockMs += ms; };
+  const inst = await createApp(cfg, { now: () => clockMs });
   const server = await new Promise((resolve) => {
     const s = inst.app.listen(0, '127.0.0.1', () => resolve(s));
   });
@@ -81,7 +84,7 @@ async function boot(cfgOver = {}) {
     });
   }
 
-  return { base, cfg, inst, dir, seed, call, loginToken, close };
+  return { base, cfg, inst, dir, seed, call, loginToken, close, advance };
 }
 
 // All bytes under a directory, for "this string must not be on disk anywhere".
