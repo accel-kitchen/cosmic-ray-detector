@@ -1,0 +1,90 @@
+{
+  "name": "cosmicray-console-desktop",
+  "productName": "CosmicRay Console",
+  "version": "1.0.0",
+  "description": "宇宙線検出器コンソールのデスクトップ版（窓を閉じても裏で記録を続ける常駐アプリ）",
+  "main": "main.js",
+  "private": true,
+  "author": "加速キッチン合同会社",
+  "license": "UNLICENSED",
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test test/*.test.js",
+    "icons": "electron scripts/make-icons.js",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder",
+    "dist:win": "electron-builder --win",
+    "dist:mac": "electron-builder --mac"
+  },
+  "devDependencies": {
+    "electron": "45.4.1",
+    "electron-builder": "26.18.0"
+  },
+  "build": {
+    "appId": "com.accel-kitchen.cosmicray-console",
+    "productName": "CosmicRay Console",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "lib/**",
+      "build/tray*.png",
+      "build/icon.png"
+    ],
+    "extraResources": [
+      {
+        "from": "../console",
+        "to": "console",
+        "filter": [
+          "**/*",
+          "!CHECKLIST.md",
+          "!review.html"
+        ]
+      }
+    ],
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ],
+      "icon": "build/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "artifactName": "CosmicRayConsole-Setup-${version}.${ext}"
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
+      ],
+      "category": "public.app-category.education",
+      "icon": "build/icon.png",
+      "artifactName": "CosmicRayConsole-${version}-mac-${arch}.${ext}",
+      "extendInfo": {
+        "NSBluetoothAlwaysUsageDescription": "Bluetooth で宇宙線検出器につなぐために使います。 / Used to connect to the cosmic-ray detector over Bluetooth.",
+        "NSBluetoothPeripheralUsageDescription": "Bluetooth で宇宙線検出器につなぐために使います。 / Used to connect to the cosmic-ray detector over Bluetooth."
+      }
+    },
+    "portable": {
+      "artifactName": "CosmicRayConsole-Portable-${version}.${ext}"
+    }
+  }
+}

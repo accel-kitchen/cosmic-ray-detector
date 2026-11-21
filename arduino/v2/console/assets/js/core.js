@@ -31,6 +31,9 @@ const Bus = (() => {
 const Hooks = {
   readUploadForm() {},   // copy the upload form into state.upload / uploadPassword
   closeScope() {},       // leave the oscilloscope view (turns the scope off)
+  // The desktop app (desktop.js) picks the save folder itself and returns a folder
+  // handle, or null when cancelled. In the browser it stays null: showDirectoryPicker.
+  pickSaveFolder: null,
 };
 
 // Values that used to be read straight from input elements.
@@ -2176,6 +2179,15 @@ function timerTargetText(mode, target) {
 let autoSaveRun = null;   // the flush in progress (awaited by forced flushes, N-1)
 
 async function selectSaveFolder() {
+  if (Hooks.pickSaveFolder) {
+    try {
+      const dirHandle = await Hooks.pickSaveFolder();
+      if (dirHandle) await useSaveFolder(dirHandle);
+    } catch (e) {
+      console.error('Folder select error:', e);
+    }
+    return;
+  }
   if (!('showDirectoryPicker' in window)) {
     Bus.emit('alert', { key: 'alert.fsApi' });
     return;
@@ -2183,24 +2195,30 @@ async function selectSaveFolder() {
   try {
     // Must be the first await, while the click's user activation is still valid.
     const dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
-    // Whatever is still queued for the previous folder goes there first. A forced
-    // flush also waits for a write already in progress, so none of it can end up
-    // in the new folder.
-    try { await flushAutoSave({ force: true }); } catch (_) {}
-    const as = state.autoSave;
-    as.dirHandle = dirHandle;
-    as.enabled = true;
-    as.prefix = null;
-    as.parts = {};
-    as.lastFile = { dat: null, csv: null };
-    as.written = { dat: 0, csv: 0 };
-    as.intervalMs = AUTOSAVE_MIN_INTERVAL_MS;
-    as.nextFlushMs = 0;
-    as.lastError = null;
-    Bus.emit('autosave');
+    await useSaveFolder(dirHandle);
   } catch (e) {
     if (e.name !== 'AbortError') console.error('Folder select error:', e);
   }
+}
+
+// Start auto-saving into dirHandle (a FileSystemDirectoryHandle, or the desktop
+// app's stand-in with the same getFileHandle / getFile / createWritable calls).
+async function useSaveFolder(dirHandle) {
+  // Whatever is still queued for the previous folder goes there first. A forced
+  // flush also waits for a write already in progress, so none of it can end up
+  // in the new folder.
+  try { await flushAutoSave({ force: true }); } catch (_) {}
+  const as = state.autoSave;
+  as.dirHandle = dirHandle;
+  as.enabled = true;
+  as.prefix = null;
+  as.parts = {};
+  as.lastFile = { dat: null, csv: null };
+  as.written = { dat: 0, csv: 0 };
+  as.intervalMs = AUTOSAVE_MIN_INTERVAL_MS;
+  as.nextFlushMs = 0;
+  as.lastError = null;
+  Bus.emit('autosave');
 }
 
 // Appends content, writing the header first only when the file is still empty.

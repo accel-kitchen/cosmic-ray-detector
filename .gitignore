@@ -13,3 +13,9 @@ arduino/**/build/
 
 # Claude Code local config
 .claude/
+
+# Desktop app (Electron): dependencies and build output
+arduino/v2/desktop/node_modules/
+arduino/v2/desktop/dist/
+# ...but the desktop app keeps its icons in build/
+!arduino/v2/desktop/build/

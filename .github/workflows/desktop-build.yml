@@ -1,0 +1,52 @@
+# CosmicRay Console デスクトップ版（arduino/v2/desktop）を Windows と Mac で作る。
+# Mac 版は Mac の上でしか作れないので、GitHub の macOS ランナーを使う。
+# 動かし方: Actions タブの "desktop-build" → Run workflow、または desktop-v* のタグを push する。
+# できたファイルは、その実行の Artifacts からダウンロードする（署名なし）。
+name: desktop-build
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'desktop-v*'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            script: dist:win
+            files: |
+              arduino/v2/desktop/dist/*.exe
+          - os: macos-latest
+            script: dist:mac
+            files: |
+              arduino/v2/desktop/dist/*.dmg
+              arduino/v2/desktop/dist/*.zip
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: arduino/v2/desktop
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: arduino/v2/desktop/package-lock.json
+      - run: npm ci
+      - run: npm test
+      - run: npm run ${{ matrix.script }}
+        env:
+          # 署名の証明書を持っていないので、探しに行かせない
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cosmicray-console-${{ matrix.os }}
+          path: ${{ matrix.files }}
+          if-no-files-found: error

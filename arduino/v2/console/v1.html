@@ -1765,6 +1765,14 @@ async function disconnect() {
   state.isConnected = false;
   clearTimeout(state.boardProbeTimer);
   if (state.transport === 'demo') demoStop();
+  // ESP32-S3 の内蔵 USB は DTR/RTS でチップをリセットする。そのまま close() すると両方が一度に下がって
+  // 基板が再起動し、イベント番号と時刻が 0 に戻る（2026-11-21、デスクトップ版で終了した直後に確認）。
+  // index.html（core.js の usbLinesSafe）と同じく、RTS → DTR の順に下げてから閉じる。
+  // リセット回路の無い基板（Arduino Nano など）には何も起きない。
+  if (state.transport === 'serial' && state.port) {
+    try { await state.port.setSignals({ requestToSend: false }); } catch (_) {}
+    try { await state.port.setSignals({ dataTerminalReady: false }); } catch (_) {}
+  }
   try {
     if (state.ble.device) {
       if (state.ble.txChar) {
@@ -2922,23 +2930,41 @@ function updateRawDisplay() {
 }
 
 // ========== Auto-Save ==========
+// デスクトップ版（assets/js/desktop.js）は保存先を自分で選び、フォルダの代役を返す。ブラウザでは null のまま。
+const Hooks = { pickSaveFolder: null };
+
 async function selectSaveFolder() {
+  if (Hooks.pickSaveFolder) {
+    try {
+      const dirHandle = await Hooks.pickSaveFolder();
+      if (dirHandle) await useSaveFolder(dirHandle);
+    } catch (e) {
+      console.error('Folder select error:', e);
+    }
+    return;
+  }
   if (!('showDirectoryPicker' in window)) {
     showMsg(t('alert.fsApi'));
     return;
   }
   try {
     const dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
-    const as = state.autoSave;
-    as.dirHandle = dirHandle;
-    as.enabled = true;
-    as.currentDate = null;
-    as.lastError = null;
-    as.lineCount = 0;   // ヘッダーは「ファイルが空のとき」に書くので、選び直しても二重にならない
-    updateAutoSaveUI();
+    await useSaveFolder(dirHandle);
   } catch (e) {
     if (e.name !== 'AbortError') console.error('Folder select error:', e);
   }
+}
+
+async function useSaveFolder(dirHandle) {
+  // 前のフォルダ宛てに残っているぶんは、前のフォルダに書いてから切り替える
+  try { await flushAutoSave(true); } catch (_) {}
+  const as = state.autoSave;
+  as.dirHandle = dirHandle;
+  as.enabled = true;
+  as.currentDate = null;
+  as.lastError = null;
+  as.lineCount = 0;   // ヘッダーは「ファイルが空のとき」に書くので、選び直しても二重にならない
+  updateAutoSaveUI();
 }
 
 // ファイル末尾に追記する。ファイルが空のときだけ、先頭にヘッダーを付ける
@@ -4139,5 +4165,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 </script>
+<script src="assets/js/desktop.js"></script>
 </body>
 </html>
