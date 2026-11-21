@@ -48,31 +48,58 @@
   },
   "lid_mount": {
     "file": "ring-base-lidmount.stl",
-    "volume_mm3": 76109.3,
+    "volume_mm3": 84226.8,
     "bounds_mm": [
       [
         -35.87,
         -36.0,
-        -2.0
+        -4.15
       ],
       [
         36.0,
-        36.0,
+        37.5,
         18.0
       ]
     ],
     "lid_hole_diameter_mm": 70.0,
     "ring_clearance_in_lid_hole_per_side_mm": 1.0,
     "spigot_diameter_mm": 69.6,
-    "spigot_height_mm": 2.0,
+    "spigot_height_mm": 4.15,
     "rest_rim_on_lid_mm": 0.7,
-    "screws": "none (plug-in)"
+    "screws": "none (bayonet)",
+    "bayonet": {
+      "lugs": 3,
+      "lug_angles_locked_deg": [
+        90.0,
+        210.0,
+        330.0
+      ],
+      "lug_span_deg": 20.6,
+      "lug_outer_radius_mm": 37.5,
+      "reach_under_lid_mm": 2.5,
+      "lug_thickness_mm": 1.6,
+      "axial_play_mm": 0.15,
+      "twist_deg": 30.0,
+      "lock_direction": "clockwise seen from above",
+      "lid_notch_centres_deg": [
+        120.0,
+        240.0,
+        360.0
+      ]
+    }
   },
   "checks": {
     "watertight_single_solids": true,
     "cable_slot_clear": true,
     "cable_slides_out_through_slit": true,
     "ring_fits_pocket": true,
-    "lid_mount_rests_on_lid_without_overlap": true
+    "bayonet_against_stand_in_lid": {
+      "locked_no_overlap": true,
+      "rests_on_lid": true,
+      "insert_path_clear": true,
+      "twist_path_clear": true,
+      "lift_when_locked_blocked_mm3": 29.4,
+      "overturn_2deg_blocked_mm3": 9.06
+    }
   }
 }

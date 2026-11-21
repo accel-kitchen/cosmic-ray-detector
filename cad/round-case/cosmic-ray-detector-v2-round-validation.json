@@ -37,7 +37,7 @@
     "lid": {
       "watertight": true,
       "single_solid": true,
-      "volume_mm3": 15807.2,
+      "volume_mm3": 15520.0,
       "bounds_mm": [
         [
           19.4,
@@ -60,7 +60,7 @@
   "old_free_interior_intrusion_mm3": {
     "base": 0.0,
     "plate": -0.0,
-    "lid": 0.0
+    "lid": 33.446191
   },
   "old_free_interior_mm3": 312802.4,
   "corner_to_wall_gap_mm": 0.53,
@@ -113,7 +113,14 @@
   "plate_screw_paths_clear": true,
   "extra_obstruction_area_in_old_rectangle_mm2": 0.0,
   "assembled_ring_base": {
-    "plug_in_rests_on_lid_without_overlap": true,
+    "bayonet": {
+      "locked_no_overlap": true,
+      "rests_on_lid": true,
+      "insert_path_clear": true,
+      "twist_path_clear": true,
+      "lift_when_locked_blocked_mm3": 29.3,
+      "overturn_2deg_blocked_mm3": 9.06
+    },
     "ring_passes_down_through_lid_and_tube_with_ring_base_off": true,
     "ring_probe_diameter_mm": 69.0,
     "cable_slot_clear_through_ring_base_and_lid": true,
@@ -141,9 +148,9 @@
     "lid_hole_mm": 70.0,
     "spigot_mm": [
       69.6,
-      2.0
+      4.15
     ],
-    "fixing": "plug-in, no screws (rests on the lid around the hole; ball cover on top)",
+    "fixing": "bayonet: insert at +30 deg, turn clockwise 30 deg to lock; no screws",
     "cable_slot_mm": [
       16.0,
       7.0
@@ -171,7 +178,7 @@
         95.0
       ]
     ],
-    "ring_exit": "lift ring and ring base off (cable out through the slit); ring drops through the 70 mm lid hole; lid stays screwed on",
+    "ring_exit": "turn the ring base back, lift ring and ring base off (cable out through the slit); ring drops through the 70 mm lid hole; lid stays screwed on",
     "board_exit": "downward through the open bottom with the plate, the ring following on its cable",
     "ring_cable_end": "soldered to the board (no connector)",
     "min_ring_cable_length_mm": 150,

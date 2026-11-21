@@ -6,9 +6,12 @@ Writes cad/ring-base/*.stl, a validation JSON and a preview PNG.
 
 Two versions with the same body:
 - ring-base.stl (stand-alone, on a table): rubber-foot recesses underneath.
-- ring-base-lidmount.stl (on the round case lid): a short spigot underneath plugs into the lid's
-  70 mm hole and the body rests on the hole's rim. No screws. Lift it off, slide the cable out
-  through the slit, and the ring (with its cable) passes straight down through the lid hole.
+- ring-base-lidmount.stl (on the round case lid): a spigot underneath goes into the lid's 70 mm
+  hole and the body rests on the hole's rim. Bayonet lock, no screws: three lugs at the foot of
+  the spigot pass down through notches in the lid hole; turning the base clockwise (seen from
+  above) by TWIST degrees puts them under the lid until they hit stops under the lid. Turn back,
+  lift off, slide the cable out through the slit, and the ring (with its cable) passes straight
+  down through the lid hole.
 Both: the ring lies in an annular pocket in the top face around a locating post. Its cable is
 soldered to the ring and leaves straight down from under the annulus, so it runs through a slot
 under the annulus and out sideways through an open slit (the other end is soldered to the board).
@@ -19,7 +22,7 @@ from pathlib import Path
 import json, sys
 import numpy as np
 import trimesh
-from manifold3d import Manifold
+from manifold3d import Manifold, CrossSection
 
 sys.stdout.reconfigure(encoding='utf-8')
 OUT = Path(__file__).resolve().parent / 'ring-base'
@@ -54,11 +57,23 @@ SLIT_W = 6.
 # ---- rubber feet (stand-alone) ----
 FOOT_D, FOOT_DEPTH, FOOT_R = 10.2, 1.2, 27.
 
-# ---- lid mount: plug-in, no screws ----
+# ---- lid mount: bayonet (twist-lock), no screws ----
 LID_HOLE_D = RING_OD + 2.           # hole in the round case lid; the ring passes with 1 mm a side
+LID_T = 2.4                         # lid thickness (build_compact_enclosure TOP - SEAM; asserted by the case script)
 SPIGOT_FIT = 0.2                    # radial clearance of the spigot in the lid hole
 SPIGOT_D = LID_HOLE_D - 2 * SPIGOT_FIT
-SPIGOT_H = 2.0                      # the lid is 2.4 mm thick
+LUG_GAP = 0.15                      # axial play between the lug tops and the lid underside when locked
+LUG_H = 1.6                         # lug thickness
+SPIGOT_H = LID_T + LUG_GAP + LUG_H  # the spigot reaches through the lid; the lugs sit just under it
+LUG_R = 37.5                        # lug outer radius: 2.5 mm under the lid beyond the 35 mm hole edge
+LUG_SPAN = 20.6                     # angular width of each lug (deg)
+# The odd-looking 20.6 / 2.15 / 0.65 keep every lug, notch and stop edge off the vertex angles of the
+# polygonal circles (2 deg steps here, 1.5 deg in the case script); an edge through a vertex leaves
+# zero-area triangles and the mesh is no longer watertight after cleaning.
+LUG_ANGLES = (90., 210., 330.)      # lug centres in the ring-base frame, LOCKED position (slit at 180 deg, toward J4)
+TWIST = 30.                         # insert TWIST deg counter-clockwise of locked, then turn clockwise to lock
+NOTCH_R_FIT, NOTCH_A_FIT = 0.4, 2.15  # lid notch clearance around a lug: radial mm, angular deg each side
+STOP_SPAN, STOP_A_GAP = 5., 0.65      # stops under the lid just past each locked lug: width, angular gap (deg)
 
 def slot_centres():
     """The two end-circle centres (x, y) of the stadium slot, in this part's frame."""
@@ -78,6 +93,10 @@ assert BASE_D / 2 - (SLOT_R + SLOT_W / 2) >= MIN_WALL, 'cable slot too close to 
 assert LID_HOLE_D / 2 - RING_OD / 2 >= 1.0, 'lid hole too tight for the ring'
 assert (BASE_D - LID_HOLE_D) / 2 - LID_EDGE >= 0.5, 'nothing left for the lid-mount body to rest on'
 assert BASE_D / 2 - EDGE - (FOOT_R + FOOT_D / 2) >= MIN_WALL, 'foot recess too close to the rim'
+assert LUG_R - LID_HOLE_D / 2 >= 2.0, 'lugs reach too little under the lid'
+_slit_half = np.degrees(np.arcsin((SLIT_W / 2) / (SPIGOT_D / 2)))
+assert all(abs((a - SLOT_ANGLE + 180) % 360 - 180) - LUG_SPAN / 2 >= _slit_half + 2 for a in LUG_ANGLES), 'a lug sits on the cable slit'
+assert TWIST > LUG_SPAN / 2 + NOTCH_A_FIT + STOP_A_GAP, 'twist too small: a locked lug would still sit under its notch'
 assert min(np.hypot(fx - sx, fy - sy) for fx, fy in _foot_centres() for sx, sy in slot_centres()) - FOOT_D / 2 - SLOT_W / 2 >= MIN_WALL, \
     'foot recess too close to the cable slot'
 
@@ -95,13 +114,54 @@ def slot_solid(z0, z1, shrink=0.):
     r = SLOT_W / 2 - shrink
     return Manifold.batch_hull([cyl(r, z0, z1).translate([x0, y0, 0]), cyl(r, z0, z1).translate([x1, y1, 0])])
 
+def sector2d(r0, r1, a0, a1):
+    """Annular sector between radii r0..r1 and angles a0..a1 (deg, counter-clockwise), as a 2D CrossSection."""
+    t = np.radians(np.linspace(a0, a1, max(8, int(abs(a1 - a0)) + 2)))
+    pts = [(r1 * np.cos(x), r1 * np.sin(x)) for x in t] + [(r0 * np.cos(x), r0 * np.sin(x)) for x in t[::-1]]
+    return CrossSection([pts])
+
+def sector(r0, r1, a0, a1, z0, z1):
+    return sector2d(r0, r1, a0, a1).extrude(z1 - z0).translate([0, 0, z0])
+
+def spigot():
+    """Spigot through the lid hole with the three bayonet lugs at its foot (locked position; z = 0 is the lid top).
+    Built as ONE extrusion of the outline (circle + lugs) over the full spigot height, then the lug material above
+    the lug tops is cut away with slightly wider sectors (inner radius 0.05 mm outside the spigot). Joining
+    separate solids instead either leaves zero-area slivers or two shells that only touch."""
+    z1 = -LID_T - LUG_GAP                                   # lug tops, just under the lid
+    outline = CrossSection.circle(SPIGOT_D / 2, SEG)
+    for a in LUG_ANGLES:
+        outline = outline + sector2d(SPIGOT_D / 2 - 0.5, LUG_R, a - LUG_SPAN / 2, a + LUG_SPAN / 2)
+    sp = outline.extrude(SPIGOT_H + 0.01).translate([0, 0, -SPIGOT_H])
+    for a in LUG_ANGLES:
+        sp = sp - sector(SPIGOT_D / 2 + 0.05, LUG_R + 1, a - LUG_SPAN / 2 - 1, a + LUG_SPAN / 2 + 1, z1, 1)
+    return sp
+
+def lid_notches():
+    """Cut into the lid around its hole: where the lugs pass down (insert position = locked + TWIST). Lid top at z = 0."""
+    out = None
+    for a in LUG_ANGLES:
+        c = a + TWIST
+        s = sector(LID_HOLE_D / 2 - 0.5, LUG_R + NOTCH_R_FIT, c - LUG_SPAN / 2 - NOTCH_A_FIT, c + LUG_SPAN / 2 + NOTCH_A_FIT, -LID_T - 1, 1)
+        out = s if out is None else out + s
+    return out
+
+def lid_stops():
+    """Blocks under the lid just clockwise of each locked lug: the base stops turning at the locked position."""
+    out = None
+    for a in LUG_ANGLES:
+        a1 = a - LUG_SPAN / 2 - STOP_A_GAP
+        s = sector(LID_HOLE_D / 2 + 0.3, LUG_R + NOTCH_R_FIT, a1 - STOP_SPAN, a1, -LID_T - LUG_GAP - LUG_H, -LID_T + 0.01)
+        out = s if out is None else out + s
+    return out
+
 def build(lid=False):
-    """lid=False: stand-alone base with feet. lid=True: plug-in version for the round case lid."""
+    """lid=False: stand-alone base with feet. lid=True: bayonet version for the round case lid (locked orientation)."""
     R = BASE_D / 2
     e = LID_EDGE if lid else EDGE
     part = cone(R - e, R, 0, e) + cyl(R, e, HEIGHT - TOP_EDGE) + cone(R, R - TOP_EDGE, HEIGHT - TOP_EDGE, HEIGHT)
     if lid:
-        part = part + cyl(SPIGOT_D / 2, -SPIGOT_H, 0.01)      # plugs into the lid hole and centres the body
+        part = part + spigot()                                 # through the lid hole, bayonet lugs at its foot
     zb = (-SPIGOT_H if lid else 0.) - 1
     # annular ring pocket in the top face, leaving the locating post
     part = part - cyl(POCKET_D / 2, HEIGHT - POCKET_DEPTH, HEIGHT + 1)
@@ -114,6 +174,25 @@ def build(lid=False):
         for fx, fy in _foot_centres():
             part = part - cyl(FOOT_D / 2, -1, FOOT_DEPTH).translate([fx, fy, 0])
     return part
+
+def bayonet_checks(lid, place=lambda m: m):
+    """Check the twist-lock against a lid solid. place(m) moves a ring-base-frame solid onto that lid
+    (lid top at the ring base's z = 0). Raises AssertionError on failure; returns a small report."""
+    cap = build(lid=True)
+    at = lambda a=0., dz=0.: place(cap.rotate([0, 0, a]).translate([0, 0, dz]))
+    ov = lambda m: (lid ^ m).volume()
+    assert ov(at()) < 1e-3, 'locked: ring base collides with the lid'
+    assert ov(at(dz=-.1)) > .5, 'ring base does not rest on the lid'
+    lift = ov(at(dz=LUG_GAP + .3))
+    assert lift > .5, 'locked ring base can be lifted off: the lugs do not catch under the lid'
+    for dz in np.arange(0., SPIGOT_H + 1.01, .25):
+        assert ov(at(TWIST, dz)) < 1e-3, f'cannot insert at the notch position (blocked at dz = {dz:.2f})'
+    for a in np.arange(0., TWIST + .01, 1.):
+        assert ov(at(a)) < 1e-3, f'cannot turn to the locked position (blocked at {a:.0f} deg)'
+    stop = ov(at(-2.))
+    assert stop > .05, 'the stops do not stop the turn at the locked position'
+    return {'locked_no_overlap': True, 'rests_on_lid': True, 'insert_path_clear': True, 'twist_path_clear': True,
+            'lift_when_locked_blocked_mm3': round(lift, 1), 'overturn_2deg_blocked_mm3': round(stop, 2)}
 
 def to_trimesh(m):
     mesh = m.to_mesh()
@@ -134,11 +213,9 @@ def main():
         # the ring fits its pocket: a ring-shaped probe (OD/ID with 0.1 mm to spare) at PCB height overlaps nothing
         ring = cyl(RING_OD / 2 - .1, HEIGHT - POCKET_DEPTH + .05, HEIGHT) - cyl(RING_ID / 2 + .1, HEIGHT - 2, HEIGHT + 1)
         assert (m ^ ring).volume() < 1e-3, f'{name}: ring does not fit the pocket'
-    cap = parts['ring-base-lidmount']
-    # lid-mount: rests on the lid top (z = 0) around the 70 mm hole, spigot inside the hole
-    lid_ring = cyl(BASE_D / 2 + 10, -2.4, 0) - cyl(LID_HOLE_D / 2, -3, 1)
-    assert (cap ^ lid_ring).volume() < 1e-3, 'lid-mount body collides with the lid'
-    assert (cap.translate([0, 0, -.1]) ^ lid_ring).volume() > 1., 'lid-mount body does not rest on the lid'
+    # lid-mount: bayonet against a stand-in lid ring with the same hole, notches and stops as the case lid
+    lid_stub = cyl(BASE_D / 2 + 10, -LID_T, 0) - cyl(LID_HOLE_D / 2, -LID_T - 1, 1) - lid_notches() + lid_stops()
+    bayonet = bayonet_checks(lid_stub)
     t = meshes['ring-base']
     checks = {
         'ring_measured': {'od': RING_OD, 'id': RING_ID, 'pcb_assumed': RING_PCB},
@@ -154,10 +231,15 @@ def main():
         'lid_mount': {'file': 'ring-base-lidmount.stl', 'volume_mm3': round(float(meshes['ring-base-lidmount'].volume), 1),
                       'bounds_mm': np.round(meshes['ring-base-lidmount'].bounds, 2).tolist(),
                       'lid_hole_diameter_mm': LID_HOLE_D, 'ring_clearance_in_lid_hole_per_side_mm': (LID_HOLE_D - RING_OD) / 2,
-                      'spigot_diameter_mm': round(SPIGOT_D, 2), 'spigot_height_mm': SPIGOT_H,
-                      'rest_rim_on_lid_mm': round((BASE_D - LID_HOLE_D) / 2 - LID_EDGE, 2), 'screws': 'none (plug-in)'},
+                      'spigot_diameter_mm': round(SPIGOT_D, 2), 'spigot_height_mm': round(SPIGOT_H, 2),
+                      'rest_rim_on_lid_mm': round((BASE_D - LID_HOLE_D) / 2 - LID_EDGE, 2), 'screws': 'none (bayonet)',
+                      'bayonet': {'lugs': len(LUG_ANGLES), 'lug_angles_locked_deg': list(LUG_ANGLES), 'lug_span_deg': LUG_SPAN,
+                                  'lug_outer_radius_mm': LUG_R, 'reach_under_lid_mm': LUG_R - LID_HOLE_D / 2,
+                                  'lug_thickness_mm': LUG_H, 'axial_play_mm': LUG_GAP,
+                                  'twist_deg': TWIST, 'lock_direction': 'clockwise seen from above',
+                                  'lid_notch_centres_deg': [a + TWIST for a in LUG_ANGLES]}},
         'checks': {'watertight_single_solids': True, 'cable_slot_clear': True, 'cable_slides_out_through_slit': True,
-                   'ring_fits_pocket': True, 'lid_mount_rests_on_lid_without_overlap': True},
+                   'ring_fits_pocket': True, 'bayonet_against_stand_in_lid': bayonet},
     }
     (OUT / 'ring-base-validation.json').write_text(json.dumps(checks, indent=2, ensure_ascii=False), encoding='utf-8')
     print(json.dumps(checks, indent=2, ensure_ascii=False))
@@ -200,19 +282,37 @@ def render(tm, cap_tm):
     ax2.plot(outline[:, 0], outline[:, 1], color='tab:orange', lw=1.6, label=f'cable slot {SLOT_L:g} x {SLOT_W:g} + slit')
     ax2.plot([-BASE_D / 2, -SLOT_R], [SLIT_W / 2] * 2, color='tab:orange', lw=1)
     ax2.plot([-BASE_D / 2, -SLOT_R], [-SLIT_W / 2] * 2, color='tab:orange', lw=1)
+    # bayonet: lugs (locked, solid blue) and the lid notches they drop through (dashed purple), lid stops (black)
+    def sector_outline(r0, r1, a0, a1):
+        tt = np.radians(np.linspace(a0, a1, 30))
+        xs = np.r_[r1 * np.cos(tt), r0 * np.cos(tt[::-1]), r1 * np.cos(tt[:1])]
+        ys = np.r_[r1 * np.sin(tt), r0 * np.sin(tt[::-1]), r1 * np.sin(tt[:1])]
+        return xs, ys
+    for i, a in enumerate(LUG_ANGLES):
+        xs, ys = sector_outline(SPIGOT_D / 2, LUG_R, a - LUG_SPAN / 2, a + LUG_SPAN / 2)
+        ax2.fill(xs, ys, color='tab:blue', alpha=.6, label='lug (locked)' if i == 0 else None)
+        c = a + TWIST
+        xs, ys = sector_outline(LID_HOLE_D / 2, LUG_R + NOTCH_R_FIT, c - LUG_SPAN / 2 - NOTCH_A_FIT, c + LUG_SPAN / 2 + NOTCH_A_FIT)
+        ax2.plot(xs, ys, color='tab:purple', ls='--', lw=1, label=f'lid notch (insert, +{TWIST:g}°)' if i == 0 else None)
+        a1 = a - LUG_SPAN / 2 - STOP_A_GAP
+        xs, ys = sector_outline(LID_HOLE_D / 2 + .3, LUG_R + NOTCH_R_FIT, a1 - STOP_SPAN, a1)
+        ax2.fill(xs, ys, color='k', label='stop under the lid' if i == 0 else None)
     ax2.set_aspect('equal'); ax2.legend(fontsize=7, loc='lower right', bbox_to_anchor=(1.25, -0.08)); ax2.set_title('top (mm)', fontsize=10)
     ax2.axis('off')
-    # sections through Y = 0 (slot + slit on -X)
+    # sections: stand-alone through Y = 0 (slot + slit on -X); lid-mount through X = 0 (lug at +Y, locked under the lid)
     for k, (mesh, title, lid) in enumerate(((tm, 'stand-alone ring-base.stl: section Y=0', False),
-                                            (cap_tm, 'lid-mount on the lid: section Y=0', True))):
+                                            (cap_tm, 'lid-mount, locked: section X=0 (lug at +Y)', True))):
         a = fig.add_subplot(1, 4, 3 + k)
-        sec = mesh.section(plane_origin=[0, 0.0, 0], plane_normal=[0, 1, 0])
+        normal, col = ([1, 0, 0], 1) if lid else ([0, 1, 0], 0)
+        sec = mesh.section(plane_origin=[0, 0.0, 0], plane_normal=normal)
         for p in sec.discrete:
-            a.fill(p[:, 0], p[:, 2], color='#d6b88f', ec='k', lw=0.6)
+            a.fill(p[:, col], p[:, 2], color='#d6b88f', ec='k', lw=0.6)
         if lid:
             for x0, x1 in ((-50, -LID_HOLE_D / 2), (LID_HOLE_D / 2, 50)):
-                a.fill([x0, x1, x1, x0], [-2.4, -2.4, 0, 0], color='#33475b', ec='k', lw=0.6)
-            a.text(42, -6, 'lid', fontsize=8, ha='center')
+                a.fill([x0, x1, x1, x0], [-LID_T, -LID_T, 0, 0], color='#33475b', ec='k', lw=0.6)
+            a.text(44, -6.5, 'lid', fontsize=8, ha='center')
+            a.annotate('lug', xy=(LUG_R - 1, -LID_T - LUG_GAP - LUG_H / 2), xytext=(46, -12), fontsize=8,
+                       arrowprops=dict(arrowstyle='->', lw=.8))
         zr = HEIGHT - POCKET_DEPTH
         for s in (-1, 1):
             a.fill([s * RING_ID / 2, s * RING_OD / 2, s * RING_OD / 2, s * RING_ID / 2], [zr, zr, HEIGHT, HEIGHT], color='crimson')

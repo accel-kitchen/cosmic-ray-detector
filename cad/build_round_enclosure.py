@@ -7,8 +7,9 @@ Writes cad/round-case/*.stl, a validation JSON and a preview PNG.
 Three printed parts: tube (wall only, open at both ends), bottom plate, lid. (No light pipe: the LED hole stays open.)
 The board hangs on three spacers from the BOTTOM PLATE, so removing the 4 plate screws
 lets the whole board assembly leave through the bottom. The lid has a 70 mm hole, wider than
-the 68 mm LED ring. The ring base (build_ring_base.build(lid=True)) plugs into that hole with
-no screws; lift it off, slide the cable out of its slit, and the ring, still soldered to its
+the 68 mm LED ring. The ring base (build_ring_base.build(lid=True)) locks into that hole with a
+bayonet (three lugs, notches in the hole, stops under the lid; no screws); turn it back, lift
+it off, slide the cable out of its slit, and the ring, still soldered to its
 cable, drops through the lid into the tube and leaves through the bottom with the board. The
 lid can stay screwed on.
 
@@ -117,7 +118,10 @@ def design():
     for x, y in B.LID_POSTS:
         lid -= B.cyl(x, y, SEAM - 4, TOP + 1, B.LID_HOLE_D / 2)
         lid -= B.cyl(x, y, TOP - 1.4, TOP + 1, 3.2)
-    lid -= disc(RB.LID_HOLE_D / 2, SEAM - 6, TOP + 1)     # the LED ring passes through; the ring base plugs in here (no screws)
+    lid -= disc(RB.LID_HOLE_D / 2, SEAM - 6, TOP + 1)     # the LED ring passes through; the ring base twists in here (no screws)
+    assert abs((TOP - SEAM) - RB.LID_T) < 1e-6, 'build_ring_base.LID_T must match the lid thickness'
+    lid -= RB.lid_notches().translate([CX, -CY, TOP])     # bayonet: where the ring base's lugs pass down
+    lid += RB.lid_stops().translate([CX, -CY, TOP])       # bayonet: blocks under the lid that end the twist at the locked position
 
     return {'base': tube, 'plate': plate, 'lid': lid}, {}
 
@@ -207,11 +211,13 @@ def verify(solids):
     extra = (proj - old_inside) ^ cavity.project()   # old cavity only: its rounded corners were wall, never free
     rep['extra_obstruction_area_in_old_rectangle_mm2'] = round(extra.area(), 4)
     assert extra.area() < .01, 'something new in the tube blocks the old rectangle footprint'
-    # 5) assembled state: the plug-in ring base sits in the lid hole exactly as in the preview
-    ring = RB.build(lid=True).translate([CX, -CY, TOP])
-    assert (solids['lid'] ^ ring).volume() < .001, 'ring base collides with the lid'
-    assert (solids['lid'] ^ ring.translate([0, 0, -.1])).volume() > 1., 'ring base does not rest on the lid'
-    assert ((solids['base'] + solids['plate']) ^ ring).volume() < .001, 'ring base spigot reaches into the tube parts'
+    # 5) assembled state: the ring base twisted into the lid hole (locked) exactly as in the preview
+    place = lambda m: m.translate([CX, -CY, TOP])
+    ring = place(RB.build(lid=True))
+    bayonet = RB.bayonet_checks(solids['lid'], place)     # locked fit, rests on the lid, insert + twist paths clear, lift and over-turn blocked
+    for a in (0., RB.TWIST):
+        assert ((solids['base'] + solids['plate']) ^ place(RB.build(lid=True).rotate([0, 0, a]))).volume() < .001, \
+            'ring base spigot or lugs reach into the tube parts'
     zt_ring = TOP + RB.HEIGHT
     # with the ring base lifted off, a disc 1 mm wider than the ring goes straight down through the lid and the tube
     ring_probe = disc(RB.RING_OD / 2 + .5, FLOOR, zt_ring + 1)
@@ -224,7 +230,7 @@ def verify(solids):
     assert (ring ^ sweep).volume() < .001, 'cable cannot slide out of the ring base slit'
     web_m2 = min(float(np.hypot(x - CX, y - CY)) for x, y in B.LID_POSTS) - 3.2 - RB.LID_HOLE_D / 2
     assert web_m2 >= B.MIN_WEB, 'lid hole too close to the lid screw counterbores'
-    rep['assembled_ring_base'] = {'plug_in_rests_on_lid_without_overlap': True,
+    rep['assembled_ring_base'] = {'bayonet': bayonet,
                                   'ring_passes_down_through_lid_and_tube_with_ring_base_off': True,
                                   'ring_probe_diameter_mm': round(RB.RING_OD + 1., 2),
                                   'cable_slot_clear_through_ring_base_and_lid': True,
@@ -262,7 +268,7 @@ def render(solids, ring_base):
         d = ImageDraw.Draw(canvas)
         font = ImageFont.truetype('C:/Windows/Fonts/segoeui.ttf', 25)
         title = ImageFont.truetype('C:/Windows/Fonts/segoeui.ttf', 32)
-        d.text((52, 22), f'COSMIC RAY DETECTOR v2  /  round case  \u00d8{2*R_OUT:.1f} mm  +  LED ring base \u00d8{RB.BASE_D:g} (plug-in, ring \u00d8{RB.RING_OD:g})', fill=(35, 56, 70), font=title)
+        d.text((52, 22), f'COSMIC RAY DETECTOR v2  /  round case  \u00d8{2*R_OUT:.1f} mm  +  LED ring base \u00d8{RB.BASE_D:g} (twist-lock, ring \u00d8{RB.RING_OD:g})', fill=(35, 56, 70), font=title)
         for i, (name, label) in enumerate([('front', 'OLED / RESET / LED side (+X)'), ('ports', 'USB / audio side'),
                                            ('exploded', 'exploded: ring base / lid (70 mm hole) / tube / bottom plate'), ('under', 'underside: plate with 4 screws'),
                                            ('side', '-X wall: USB / 6-pin J4 plug window / microSD window'), ('trimmer', 'underside: gain-trimmer (R10) screwdriver hole')]):
@@ -281,12 +287,12 @@ def main():
                           'axis_kicad_xy': [CX, CY]}
     rep['ring_base'] = {'diameter': RB.BASE_D, 'height_above_lid': RB.HEIGHT, 'ring_measured_od_id': [RB.RING_OD, RB.RING_ID],
                         'lid_hole_mm': RB.LID_HOLE_D, 'spigot_mm': [round(RB.SPIGOT_D, 2), RB.SPIGOT_H],
-                        'fixing': 'plug-in, no screws (rests on the lid around the hole; ball cover on top)',
+                        'fixing': f'bayonet: insert at +{RB.TWIST:g} deg, turn clockwise {RB.TWIST:g} deg to lock; no screws',
                         'cable_slot_mm': [RB.SLOT_L, RB.SLOT_W], 'cable_slot_centre_radius_mm': RB.SLOT_R,
                         'open_slit_width_mm': RB.SLIT_W}
     rep['serviceability'] = {'plate_screws': 'M2x8 x4, from underneath, into tube bosses',
                              'plate_screw_positions_kicad_xy': [[round(x, 2), round(y, 2)] for x, y in PLATE_SCREWS],
-                             'ring_exit': 'lift ring and ring base off (cable out through the slit); ring drops through the 70 mm lid hole; lid stays screwed on',
+                             'ring_exit': 'turn the ring base back, lift ring and ring base off (cable out through the slit); ring drops through the 70 mm lid hole; lid stays screwed on',
                              'board_exit': 'downward through the open bottom with the plate, the ring following on its cable',
                              'ring_cable_end': 'soldered to the board (no connector)',
                              'min_ring_cable_length_mm': 150, 'comfortable_ring_cable_length_mm': 200}
