@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>宇宙線検出器 V2 — 測定サーバー新規構築 計画</title>
+<style>
+  :root {
+    --accent: #00BCD4; --accent-dark: #0097A7; --bg: #fafafa; --card: #ffffff;
+    --text: #263238; --muted: #607D8B; --border: #CFD8DC;
+    --hi: #E53935; --mid: #FB8C00; --lo: #43A047;
+  }
+  * { box-sizing: border-box; }
+  body { font-family: "Segoe UI","Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;
+         background: var(--bg); color: var(--text); margin: 0; line-height: 1.7; }
+  header { background: linear-gradient(135deg,#006064,var(--accent-dark)); color:#fff; padding:28px 24px 20px; }
+  header h1 { margin:0 0 4px; font-size:1.5rem; }
+  header p { margin:0; opacity:.85; font-size:.9rem; }
+  main { max-width: 980px; margin: 0 auto; padding: 24px 16px 64px; }
+  section { background: var(--card); border:1px solid var(--border); border-radius:8px; padding:20px 24px; margin-bottom:24px; }
+  h2 { margin:0 0 12px; font-size:1.15rem; color:var(--accent-dark); border-bottom:2px solid var(--accent); padding-bottom:6px; }
+  h3 { margin:20px 0 6px; font-size:1rem; }
+  h4 { margin:16px 0 4px; font-size:.92rem; color:var(--muted); }
+  table { border-collapse:collapse; width:100%; font-size:.88rem; margin:8px 0; }
+  th,td { border:1px solid var(--border); padding:6px 10px; text-align:left; vertical-align:top; }
+  th { background:#ECEFF1; white-space:nowrap; }
+  code { background:#ECEFF1; border-radius:3px; padding:1px 5px; font-family:Consolas,"Courier New",monospace; font-size:.85em; }
+  pre { background:#263238; color:#ECEFF1; border-radius:6px; padding:12px 14px; overflow-x:auto;
+        font-family:Consolas,"Courier New",monospace; font-size:.8rem; line-height:1.55; }
+  pre code { background:none; color:inherit; padding:0; font-size:1em; }
+  .note { background:#E0F7FA; border-left:4px solid var(--accent); padding:10px 14px; border-radius:0 6px 6px 0; font-size:.88rem; margin:10px 0; }
+  .blocker { background:#FFEBEE; border-left:4px solid var(--hi); padding:10px 14px; border-radius:0 6px 6px 0; font-size:.88rem; margin:12px 0; }
+  .blocker strong { color: var(--hi); }
+  .why { color:var(--muted); font-size:.86rem; }
+  .ok { color:var(--lo); font-weight:bold; }
+  .ng { color:var(--hi); font-weight:bold; }
+  .who { white-space:nowrap; font-size:.8rem; }
+  footer { text-align:center; color:var(--muted); font-size:.8rem; padding:12px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>宇宙線検出器 V2 — 測定サーバー新規構築 計画</h1>
+  <p>2026-11-21 / 送信先: <code>https://cosmicray.accel-kitchen.com</code> / 既存の <code>cosmicray-server</code> は使わず、並行して新設する</p>
+</header>
+<main>
+
+<!-- ============================================================ -->
+<section id="decided">
+<h2>0. 決まっていること</h2>
+<table>
+  <tr><th>項目</th><th>決定</th><th>出どころ</th></tr>
+  <tr><td>置き場所</td><td>いまの VPS（<code>accel-kitchen.com</code>、118.27.30.120）に別サービスとして立てる</td><td>ユーザー回答</td></tr>
+  <tr><td>URL</td><td><code>https://cosmicray.accel-kitchen.com</code>（新サブドメイン。今は名前解決できない）</td><td>ユーザー回答</td></tr>
+  <tr><td>デプロイ権限</td><td>ユーザーが root か sudo で実行する。サーバー側の Claude は準備（読み取り・設定案・手順書）まで</td><td>ユーザー回答</td></tr>
+  <tr><td>送信者</td><td>探究プログラムの参加者（中高専生）が多数。<strong>メール認証つきの自己登録</strong></td><td>ユーザー回答</td></tr>
+  <tr><td>地図の位置</td><td>全員を<strong>約 10 km に丸めて公開</strong></td><td>ユーザー回答</td></tr>
+  <tr><td>読み出し</td><td>各局を表示する公開地図（局 ID・丸めた位置・状態は誰でも見られる）。<strong>グラフ・集計はログインした参加者だけ</strong></td><td>ユーザー回答</td></tr>
+  <tr><td>生の座標</td><td><strong>サーバーに保存しない</strong>（受け取った時点で 0.1° の格子に丸め、丸めた値だけ保存する）</td><td>ユーザー回答</td></tr>
+  <tr><td>旧クライアント</td><td><code>cosmicwatch-app</code> と Python クライアントは<strong>対象外</strong>（旧サーバーへ送り続ける）。新サーバーへ送るのは Console だけ</td><td>ユーザー回答</td></tr>
+  <tr><td>旧データ</td><td>旧サーバーのデータ（<code>sendai</code>、<code>test</code> など）を新サーバーへ<strong>移行する</strong></td><td>ユーザー回答</td></tr>
+</table>
+
+<h3>私が推奨として置いたもの（まだ決まっていない。違えば変える）</h3>
+<table>
+  <tr><th>項目</th><th>推奨</th><th>理由・影響</th></tr>
+  <tr><td>Console の改修</td><td>Phase 1〜5 では Console を変更しない。URL を入れるだけで動く互換 API にする</td><td>Console は変えずに済むが、Console が送る内容に引きずられる（§2-1）</td></tr>
+  <tr><td>アカウントの形</td><td><strong>1 アカウント = 1 局 = 1 つの局 ID</strong>。同じ局の複数装置は <code>device_label</code> と run で区別する</td><td>Console が <code>id</code> しか持たず、<code>server-plan.html</code> §4-6 も「局の中のフィールド」としていた</td></tr>
+  <tr><td>技術構成</td><td>Node 22 + Express + SQLite、観測データは追記専用 JSONL</td><td>§2-2</td></tr>
+  <tr><td>生ダウンロード</td><td>本人と管理者だけ</td><td>公開するかは Q-N5</td></tr>
+  <tr><td>メール認証の直後の地図掲載</td><td>認証が済んだら、管理者の承認なしに地図へ出す</td><td>中高生の位置（丸めた値）が出るので、承認を挟むかは Q-N11</td></tr>
+  <tr><td>メール送信方法</td><td>未決（Phase 3 まで待てる）</td><td>Q-N1</td></tr>
+</table>
+</section>
+
+<!-- ============================================================ -->
+<section id="lessons">
+<h2>1. 今回の調査で分かったこと（作り直しの理由）</h2>
+<div class="blocker">
+<strong>今日の失敗の原因はコードではなく運用だった。</strong>同じ作り方を新サーバーに持ち込むと、同じ壁に当たる。
+</div>
+<table>
+  <tr><th>事実</th><th>確認方法</th><th>新サーバーへの教訓</th></tr>
+  <tr><td>公開サーバーは OPTIONS に <code>200</code>・本文 <code>POST</code>・<code>Allow: POST</code> を返し、<code>Access-Control-*</code> が付かない。ブラウザの Console は応答を読めない</td><td>curl（Origin: null）</td><td>合格基準は curl ではなく<strong>実ブラウザ</strong>にする</td></tr>
+  <tr><td>本番の <code>server.js</code>（2026-10-08 更新）は、手元のコミット版とも手元の作業版とも違う（待ち受けが <code>127.0.0.1</code>）</td><td>サーバー側 Claude の報告 / 手元の <code>git status</code></td><td><strong>git を唯一の正本</strong>にし、サーバーでは手で直さない。動いているコミットが分かるようにする</td></tr>
+  <tr><td>Apache は一部のパス（<code>/auth/login</code>・<code>/setup-id</code>・<code>/upload-data/*</code> など）しか Express に転送せず、<code>/health</code> と <code>GET /latest-data/*</code> は届かない</td><td>curl の <code>X-Powered-By</code> の有無</td><td>新サブドメインは <strong>VirtualHost 全体を 1 つのアプリへ転送</strong>し、パス単位の許可リストにしない</td></tr>
+  <tr><td>PM2 は <code>accel-kitchen</code> ユーザーのもので、別ユーザーの Claude は触れなかった</td><td>サーバー側 Claude の報告</td><td>専用ユーザー + <code>systemd</code> にして、運用の担当者を決める</td></tr>
+  <tr><td><code>server-plan.html</code> の「Phase 0 完了」「実サーバー相手の自動テスト 48 件」は、本番に反映されておらず、テストの所在も不明</td><td>公開サーバーの挙動 / リポジトリ内の検索（見つからず）</td><td>契約テストを成果物にする（§7）。古い計画書の記述は「古い」と明記する（§9）</td></tr>
+  <tr><td><code>/list-ids</code> が無認証で見え、<code>/setup-id</code> は GPS を受け取って保存する</td><td>curl（200）/ <code>server-plan.html</code></td><td>中高生が参加者なので、<strong>公開してよい情報だけを返す</strong>設計にする（§4）</td></tr>
+</table>
+</section>
+
+<!-- ============================================================ -->
+<section id="principles">
+<h2>2. 設計方針</h2>
+
+<h3>2-1. Console を変えず、互換 API から始める</h3>
+<p>
+Console（<code>core.js</code> の <code>uploadLogin</code> 〜 <code>flushUpload</code>）は、すでに次の契約で話す。新サーバーが同じ契約を実装すれば、URL 欄に入れるだけで動く。
+</p>
+<table>
+  <tr><th>エンドポイント</th><th>Console が送るもの</th><th>Console が期待するもの</th></tr>
+  <tr><td><code>POST /auth/login</code></td><td><code>{id, password}</code></td><td><code>{token}</code>（JWT。<code>exp</code> を読んで期限を判断）</td></tr>
+  <tr><td><code>POST /setup-id</code></td><td>Bearer + <code>{id, comment, gps_latitude, gps_longitude, created_at}</code></td><td>2xx。<strong>何度呼んでも成功する</strong>（毎回のログインで呼ぶ）</td></tr>
+  <tr><td><code>POST /auth/refresh</code></td><td>Bearer（本文は <code>{}</code>）</td><td><code>{token}</code></td></tr>
+  <tr><td><code>POST /upload-data/:id</code></td><td>Bearer + 1 イベント: <code>event, timestamp, time, adc, vol, deadtime, temp, timestamp_utc, tz, tz_offset_min, run_id, device_label</code>（4 並列・1 回に最大 20 件）</td><td>2xx = 受理。<code>400</code> = 永久に不正（Console は捨てて先へ進む）。<code>401/403</code> = 再認証。それ以外（<code>429</code>・<code>5xx</code>）= 再送</td></tr>
+</table>
+<div class="note">
+<strong>契約上の注意：</strong>ステータスの使い分けが Console の挙動を決める。<code>400</code> を一時的な不具合に使うとデータが捨てられ、永久に不正なものに <code>5xx</code> を使うと再送が止まらない。
+サーバーが受け取る <code>id</code> は<strong>局 ID（登録時に参加者が決めるユーザー名）</strong>で、メールアドレスではない（Console の入力欄は <code>id</code> しか持たない）。
+</div>
+<div class="blocker">
+<strong>Console を変えない限り、本人が知らないままコメントが公開される。</strong>
+Console は毎回のログインで <code>/setup-id</code> に <code>settings.fileComment</code>（ローカル保存用のコメント）または装置ラベルを送る（<code>core.js:2775</code>）。
+そのため、<code>/setup-id</code> が受け取るコメントと装置ラベルは<strong>非公開で保存</strong>し、公開用の説明（局の紹介文）はマイページだけで設定できるようにする。公開 API はマイページの紹介文だけを返す。
+</div>
+<p class="why">
+v2 のバッチ API・run メタデータ・全フィールド対応は、<code>server-plan.html</code> の §4（<code>POST /v2/ingest/:id</code>、<code>.jsonl</code>、<code>Idempotency-Key</code>、<code>device_id</code>）の決定をそのまま再利用し、設計し直さない（Phase 6）。
+</p>
+
+<h3>2-2. 技術構成</h3>
+<table>
+  <tr><th>要素</th><th>選択</th><th>理由</th></tr>
+  <tr><td>実行環境</td><td>Node 22（VPS に v22.14.0 が入っている）+ Express</td><td>既存の資産と運用知識を使える。TypeScript は使わず、追加の建て付けを増やさない</td></tr>
+  <tr><td>アカウント・局・同意・トークン</td><td><strong>SQLite</strong>（<code>better-sqlite3</code> の配布済みバイナリ）</td><td>自己登録・メール認証・再設定・削除・同意の記録は、<code>users.json</code> では扱いきれない。<code>node:sqlite</code> は実験段階なので使わない</td></tr>
+  <tr><td>イベント本体</td><td>局ごと・日ごとの追記専用 <code>.jsonl</code>（正）+ SQLite に時間別の集計（ビューア用）。<strong>日付の境界は UTC</strong>（<code>timestamp_utc</code> で切る）</td><td><code>server-plan.html</code> §4-3 の推奨を踏襲。バックアップ・解析が容易で、集計が壊れても再生成できる。UTC で切るのは、旧サーバーのタイムゾーン問題を持ち込まないため</td></tr>
+  <tr><td>パスワード</td><td><strong>scrypt（N=2^17, r=8, p=1）</strong>。ハッシュ 1 件あたり約 128 MiB を使うので、同時に走らせるのは 2 件までに制限し、残りは待たせる。パラメータはハッシュ自体に入れるので、あとから上げられる。旧 bcrypt ハッシュの検証は<strong>未実装で、Phase 4（移行）で足す</strong>（ログイン成功時に scrypt へ再ハッシュ）</td><td>Node 22 / 24 の標準の <code>crypto</code> だけで済む（<code>argon2</code> は Node 24.7 以降）。N=2^17 は <a href="https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html">OWASP</a> が、Argon2id が使えないときの scrypt の最低ラインとして示す値。VPS のメモリ（R-N1）を見て同時実行数を決める</td></tr>
+  <tr><td>トークン</td><td>JWT HS256、24 時間（Console の <code>/auth/refresh</code> 前提と合わせる）+ ユーザーごとの失効番号</td><td>パスワード変更・アカウント停止で既存トークンを無効にできる</td></tr>
+  <tr><td>Cookie</td><td>どこにも使わない（Bearer のみ）</td><td>CORS を <code>*</code> にしても、認証情報が自動で付かない</td></tr>
+  <tr><td>公開ページ</td><td>登録・認証・再設定・マイページ・ビューア・地図を、同じサーバーから静的に配信</td><td>同一オリジンなので CORS の問題が出ない。Console だけが別オリジンから API を呼ぶ</td></tr>
+</table>
+<p class="why">
+<strong>未検証の前提：</strong>1 局あたりのイベント率と参加局数は不明（§8 の Q-N3）。ディスク予算とローテーションはこの値で決まるため、旧データ（<code>sendai</code> など）の実測値から見積もる。
+</p>
+
+<h3>2-3. 公開と非公開を最初から分ける</h3>
+<table>
+  <tr><th>情報</th><th>誰が見られるか</th></tr>
+  <tr><td>メールアドレス</td><td>本人と管理者のみ。ビューア・API・ログ・エラー文に出さない。認証と再設定の送信にだけ使う</td></tr>
+  <tr><td>局 ID（ユーザー名）</td><td>公開。実名を使わないよう、登録画面で明示する</td></tr>
+  <tr><td>位置</td><td>公開するのは<strong>丸めた値だけ</strong>。丸める格子は緯度・経度とも 0.1°（日本付近で約 9〜11 km）の中心。<strong>生の座標はサーバーに保存しない</strong>（<code>/setup-id</code> が受け取った時点で丸める）</td></tr>
+  <tr><td>局の一覧（地図）</td><td>誰でも見られる。局 ID、丸めた位置、最終受信時刻、状態のみ</td></tr>
+  <tr><td>観測データ（グラフ・集計）</td><td><strong>ログインした参加者だけ</strong>（決定済み）。生イベントのダウンロードは本人と管理者のみ（推奨。公開するかは §8 の Q-N5）</td></tr>
+  <tr><td>紹介文（マイページで設定）</td><td>公開。登録画面で「自宅の住所や学校名を書かない」と明示する</td></tr>
+  <tr><td><code>/setup-id</code> のコメント・装置ラベル</td><td>非公開（本人と管理者のみ）。上の赤枠の理由による</td></tr>
+</table>
+<div class="note">
+<strong>注意：</strong>約 10 km の格子でも、周辺に局が 1 つしかない地域では、その格子にいる 1 人が特定されうる。ユーザーの決定どおり全員を 10 km に丸めるが、登録画面でこの点を説明し、地図の点は格子の中心に置く（実位置より中心側にずらす）。
+</div>
+
+<h3>2-4. 未成年と個人情報（人が決めること）</h3>
+<p>
+メールアドレスを預かり、位置の一部を公開するので、<strong>プライバシーポリシー・利用規約・保護者の同意の取り方</strong>が必要になる。これは法的な判断を含むので、計画では「画面に出す場所」と「同意の記録を残す仕組み」だけを用意し、文面と運用は加速キッチンの責任者が決める（§8 の Q-N2）。
+</p>
+<ul>
+  <li>登録画面に、収集する情報、公開される情報、削除の方法を書く。</li>
+  <li>同意した日時と、同意した文面の版を記録する。</li>
+  <li>アカウント削除（メール・位置・観測データを消す）と、本人データの書き出しを、マイページから実行できるようにする。</li>
+  <li>メールは認証と再設定にだけ使い、お知らせなどの別目的には使わない。</li>
+</ul>
+</section>
+
+<!-- ============================================================ -->
+<section id="arch">
+<h2>3. 構成と運用</h2>
+<pre><code>ブラウザ / Console
+   │ https://cosmicray.accel-kitchen.com
+   ▼
+Apache 2.4（既存。新しい VirtualHost + Let's Encrypt 証明書）
+   │ ProxyPass / http://127.0.0.1:3100/   ← VirtualHost 全体を転送。パス単位にしない
+   ▼
+cosmicray-v3（systemd、専用ユーザー、127.0.0.1:3100 だけで待ち受け）
+   ├─ /var/lib/cosmicray/db.sqlite          アカウント・局・同意・集計
+   ├─ /var/lib/cosmicray/events/&lt;局&gt;/&lt;日&gt;.jsonl   観測データ（正）
+   └─ /etc/cosmicray/env (0600)             JWT_SECRET、メール送信の設定</code></pre>
+
+<table>
+  <tr><th>項目</th><th>決めること</th><th>実行者</th></tr>
+  <tr><td>DNS</td><td>ネームサーバーは <code>ns1.value-domain.com</code> / <code>ns2.value-domain.com</code>（2026-11-21 に確認）なので、<strong>Value-Domain の管理画面の DNS 設定</strong>で、ホスト名 <code>cosmicray</code> の A レコードを <code>118.27.30.120</code> に追加する。追加前の状態は、<code>cosmicray.accel-kitchen.com</code> が引けない（未登録）。追加後は <code>nslookup cosmicray.accel-kitchen.com 8.8.8.8</code> で引けることを確認してから、証明書の取得（HTTP-01 には名前解決が先に要る）と Apache の設定に進む</td><td class="who">ユーザー</td></tr>
+  <tr><td>Apache</td><td>VirtualHost、<code>ProxyPass</code> / <code>ProxyPassReverse</code> / <code>ProxyPreserveHost</code>、OPTIONS を Apache が横取りしないこと、<code>Access-Control-*</code> を消さないこと。証明書は certbot（入っているかは未確認）</td><td class="who">ユーザー（設定案はサーバー側 Claude）</td></tr>
+  <tr><td>サービス</td><td>専用ユーザー <code>cosmicray</code>、<code>systemd</code> のユニット、<code>Restart=on-failure</code>、環境ファイルは 0600。ログは <code>journald</code></td><td class="who">ユーザー（ユニットの案はサーバー側 Claude）</td></tr>
+  <tr><td>デプロイ</td><td>git のタグ（<code>server-v*</code>）から、決まったスクリプトで<code>server/</code> だけを展開する（同じリポジトリに CAD やガーバーがあるため、全体は取得しない）。サーバーで直接編集しない。<code>/healthz</code>（内部向け）が<strong>展開中のコミットとスキーマ版</strong>を返す</td><td class="who">ユーザー（スクリプトは Claude）</td></tr>
+  <tr><td>バックアップ</td><td>毎晩、SQLite を <code>.backup</code> で複製し、<code>/var/lib/cosmicray</code> を別の場所へ。復元の手順を<strong>一度実際に試す</strong></td><td class="who">ユーザー（手順は Claude）</td></tr>
+  <tr><td>濫用対策</td><td>登録・ログイン・再設定は IP とアカウント単位のレート制限。1 アカウント = 1 局とし、1 秒あたりのイベント数と 1 日あたりのバイト数に上限。まずはメール認証とレート制限で運用し、荒れたら CAPTCHA を検討する</td><td class="who">Claude（実装）</td></tr>
+  <tr><td>接続元 IP</td><td>Apache の背後では、アプリから見た接続元が全員 <code>127.0.0.1</code> になる。<strong>このままだと IP 単位のレート制限が全参加者で 1 つになり、ログインが全員止まる</strong>。Express の <code>trust proxy</code> を「ループバックだけ信頼」に設定する。Apache の <code>mod_proxy</code> は <code>X-Forwarded-For</code> の<strong>右端に実際の接続元を追記する</strong>（既存の値は消さない）ので、アプリは「右端の、ループバックでないアドレス」を接続元とする。外から偽の <code>X-Forwarded-For</code> を送っても、右端は Apache が付けた本物のアドレスなので効かない。これを VPS で実際に確かめる</td><td class="who">Claude（アプリ）/ ユーザー（Apache）</td></tr>
+  <tr><td>メール送信</td><td>SPF・DKIM・DMARC。送信方法は §8 の Q-N1</td><td class="who">ユーザー（DNS）</td></tr>
+  <tr><td>監視</td><td>外部からの死活確認（登録ページの 200 と、<code>OPTIONS</code> が 204 であること）。ディスク残量</td><td class="who">ユーザー</td></tr>
+</table>
+<p class="why">
+<strong>VPS の空き（メモリ・ディスク・CPU）は未確認。</strong>Phase 2 の前に、サーバー側 Claude に読み取りだけで調べさせる。
+</p>
+</section>
+
+<!-- ============================================================ -->
+<section id="api">
+<h2>4. API の範囲</h2>
+
+<h3>4-1. Console 互換（Phase 1）</h3>
+<p>§2-1 の 4 つのエンドポイント。加えて次を守る。</p>
+<ul>
+  <li>CORS ミドルウェアを、本文パーサ・静的配信・認証・各ルートよりも<strong>前</strong>に置く。成功・401・404 を含む<strong>すべての応答</strong>に付け、<code>OPTIONS</code> には 204 を返す。<code>Allow-Credentials</code> は付けない。</li>
+  <li>CORS の <code>*</code> は、Console が使う API に限る。登録・マイページなどの同一オリジンのページは Bearer をメモリに置くだけで、Cookie を使わない。</li>
+  <li><code>/setup-id</code> は、自分の局にだけ許し、何度でも成功する。GPS は受け取った時点で 0.1° の格子に丸め、<strong>生の値は保存しない</strong>。コメントと装置ラベルは非公開で保存する（§2-1 の赤枠）。</li>
+  <li><code>/upload-data/:id</code> は、本人の局にだけ許す。受理するフィールドは<strong>旧 Console の全フィールド</strong>を JSONL に残す（<code>vol</code> は計算値であることも記録）。</li>
+  <li>レート制限は、Console の並列送信（4 並列）を通せる値にする。</li>
+  <li><strong>重複：</strong>互換 API は 1 件 1 POST で、タイムアウト後に再送される。Console は接続ごとに新しい <code>run_id</code>（UUID）を作る（<code>core.js:373</code>。再接続では変わらない）が、<strong>ボードが再起動するとイベント番号 <code>event</code> は 0 に戻る</strong>。このため、重複の判定は <code>event</code> 単独ではなく <code>(局, run_id, event, time)</code> の組にする。推奨は、この組に一意制約をかけて再送を無害にすること（Phase 1 で決める。決めなければ「重複あり」と文書に書く）。</li>
+  <li><strong>旧クライアントの少ないフィールド</strong>（<code>timestamp, adc, vol, deadtime</code>）への対応は<strong>しない</strong>（旧クライアントは対象外）。Console のペイロードだけを必須とする。</li>
+</ul>
+
+<h3>4-2. 参加者向け（Phase 3）</h3>
+<table>
+  <tr><th>操作</th><th>方針</th></tr>
+  <tr><td>登録</td><td>局 ID・メール・パスワード・同意。<strong>1 アカウント = 1 局 = 1 つの局 ID</strong>。局 ID は英数字と一部の記号に限り、予約語（<code>admin</code> など）と既存 ID を拒否</td></tr>
+  <tr><td>メール認証</td><td>認証前は <code>/auth/login</code> を拒否（<code>403</code> と理由）。トークンはハッシュで保存し、24 時間で失効</td></tr>
+  <tr><td>パスワード再設定</td><td>メールの URL から。1 回限り。成功したらユーザーの失効番号を進めて、既存のトークンを無効にする</td></tr>
+  <tr><td>マイページ</td><td>公開精度の確認、局の設定、データの書き出し、<strong>アカウント削除</strong>。ログインは Bearer をメモリに置くだけ</td></tr>
+  <tr><td>管理</td><td>管理者用の CLI（局の停止、削除、再認証の送信）。まずはウェブ画面を作らない</td></tr>
+</table>
+
+<h3>4-3. 公開読み出し（Phase 5）</h3>
+<table>
+  <tr><th>エンドポイント</th><th>返すもの</th></tr>
+  <tr><td><code>GET /public/stations</code></td><td>局 ID、丸めた位置、最終受信時刻、状態。<strong>メールと生の座標は含まない</strong></td></tr>
+  <tr><td><code>GET /stations/:id/summary</code>（<strong>Bearer 必須</strong>）</td><td>時間別の計数、ADC スペクトル、温度などの集計。ログインした参加者だけが取得できる</td></tr>
+  <tr><td>ビューア・地図</td><td>静的ページ。地図（局の一覧）は誰でも見られ、局を選んでグラフを見るにはログインが要る。旧ビューア（Bootstrap + Chart.js + Leaflet）を土台にする。地図タイルは OpenStreetMap の公開タイルを大量に使えないので、提供元を決める（§8 の Q-N8）</td></tr>
+</table>
+</section>
+
+<!-- ============================================================ -->
+<section id="migration">
+<h2>5. 旧データの移行</h2>
+<p>
+旧サーバーは<strong>読み取り専用にして残し</strong>、新サーバーへコピーする。旧側は消さない。
+旧クライアント（<code>cosmicwatch-app</code>、Python クライアント）は対象外なので、<strong>切り替えるのは Console の利用者だけ</strong>。
+旧サーバーのログには <code>sendai</code> と <code>test</code> の setup が直近にあるので、切り替えの前に次を行う。
+</p>
+<ol>
+  <li>旧サーバーのログ（<code>output.log</code>）から、直近 30 日に送ってきた局を洗い出す（読み取りのみ。ユーザーが実行）。</li>
+  <li>その局の持ち主に、切り替え日と、Console の URL 欄を <code>https://cosmicray.accel-kitchen.com</code> に変える手順を知らせる。</li>
+  <li>切り替え日に、旧サーバーのデータを<strong>もう一度取り込んで差分を埋める</strong>（取り込みは何度実行しても同じ結果になる）。</li>
+  <li>差分が合ったら、旧サーバーを読み取り専用にする。旧クライアントで送っている人がいれば、この時点で送れなくなることを事前に知らせる。</li>
+</ol>
+<table>
+  <tr><th>対象</th><th>方針</th><th>注意</th></tr>
+  <tr><td>アカウント（<code>users.json</code>）</td><td>bcrypt ハッシュをそのまま取り込む。<strong>メールが無いので「メール未登録」の旧アカウント</strong>として入れ、メールの登録と認証を済ませるまで<strong>Console からのログインは 403</strong> にし、応答の <code>error</code> に「<code>https://cosmicray.accel-kitchen.com/claim</code> でメールを登録してください」と書く（Console はログイン失敗時に <code>error</code> の文字列をそのまま表示する。Console にメール登録の画面は無い）。登録は、同じ局 ID とパスワードでログインできる専用ページ（<code>/claim</code>）で行う</td><td>旧アカウントは、メール登録を済ませるまで公開地図に出さない。パスワードの平文は扱わない</td></tr>
+  <tr><td>観測データ（<code>.dat</code>、7 カラム）</td><td>JSONL に変換して取り込む。各行に <code>source: "legacy-import"</code> を付ける</td><td>日時のタイムゾーン、ADC のビット深度（0–1023 / 0–4095）、<code>deadtime</code> の単位は、旧データでは事後に分からない（<code>server-plan.html</code> の Q-4・Q-9）。局ごとに注記を持たせ、分からないものは「不明」と記録する</td></tr>
+  <tr><td>局の位置（旧 <code>config.json</code> など）</td><td>取り込み時に 0.1° の格子へ丸める。旧サーバーが生の GPS を公開していたことも、公開をやめる理由として記録</td><td>生の座標は新サーバーに持ち込まない</td></tr>
+  <tr><td>検証</td><td>先に<strong>ドライラン</strong>（件数・日付範囲・チェックサムの比較）。結果が合ったら本取り込み。取り込みは<strong>何度実行しても同じ結果</strong>（重複させない）</td><td>旧データの読み出しには <code>accel-kitchen</code> か root の権限が必要。実行はユーザー</td></tr>
+</table>
+</section>
+
+<!-- ============================================================ -->
+<section id="phases">
+<h2>6. フェーズ</h2>
+<table>
+  <tr><th>Phase</th><th>内容</th><th>完了の条件</th><th class="who">主な実行者</th></tr>
+  <tr><td>0 準備</td><td>Value-Domain で <code>cosmicray</code> の A レコードを追加（§3）、メール送信方法の決定（Q-N1）、同意文面の担当決め（Q-N2）、VPS の空きの調査（読み取りのみ）</td><td>DNS が引ける。Q-N1・Q-N2 に回答がある</td><td class="who">ユーザー / サーバー側 Claude</td></tr>
+  <tr><td>1 ローカルで通す</td><td>互換 API（§2-1）、SQLite、JSONL（日付は UTC）、位置の丸め、レート制限（<code>trust proxy</code> 込み）、CORS、重複の扱いの決定、<strong>契約テスト</strong>。<strong>試験用の局を作る種データのスクリプト</strong>（管理 CLI は Phase 3 なので、これを前倒しする）。<code>localhost</code> で完結</td><td>契約テストが通り、<strong>Console を <code>localhost</code> のサーバーにつないで</strong>ログイン〜数イベントの送信ができ、JSONL に行が増える</td><td class="who">Claude</td></tr>
+  <tr><td>2 VPS に載せる</td><td>専用ユーザー、<code>systemd</code>、Apache の VirtualHost、証明書、バックアップ、<code>/healthz</code>。試験用の局（1 つ）</td><td><strong>実ブラウザで</strong> https のページと <code>file://</code> の両方から、ログイン〜送信ができ、サーバー上のデータが増える（§7）</td><td class="who">ユーザー（準備は Claude）</td></tr>
+  <tr><td>3 自己登録</td><td>登録・メール認証・再設定・マイページ・削除・同意の記録</td><td>新規の参加者が、登録から Console での送信まで、管理者の手を借りずに完了できる</td><td class="who">Claude / ユーザー（メール設定）</td></tr>
+  <tr><td>4 旧データの移行</td><td>§5。送信中の局の洗い出し → ドライラン → 本取り込み → 切り替え日の差分取り込み → 旧サーバーを読み取り専用に</td><td>件数とチェックサムが旧データと一致する。旧アカウントがメール登録後にログインできる</td><td class="who">Claude（スクリプト）/ ユーザー（実行）</td></tr>
+  <tr><td>5 ビューアと地図</td><td>§4-3</td><td>公開地図に丸めた位置だけが出る。局を選ぶとグラフが見える</td><td class="who">Claude</td></tr>
+  <tr><td>6 v2 バッチ API</td><td><code>server-plan.html</code> §4 の <code>/v2/ingest</code>、run メタデータ、<code>device_id</code>。Console の C-12（能力判定による自動切替）</td><td>Console が自動で v2 API を選び、v2 の全フィールドが保存される。<strong>ただし GPS 対応ファームがイベントごとに出す <code>lat</code> / <code>lon</code>（18 トークン。<code>core.js:1541-1548</code>）は保存しない</strong>。生の座標は保存しないという決定（§0）を守るため、サーバーは受け取った時点で捨てるか、格子の中心に丸める</td><td class="who">Claude</td></tr>
+</table>
+<div class="note">
+<strong>進捗（2026-11-21、Phase 1 を実装。コードは <code>server/</code>）</strong><br>
+<strong>確認できたこと：</strong>契約テスト 32 件が手元の Node 24 で通る（実コストの scrypt のハッシュを含む）。本物の Console（<code>http://localhost:8123</code> で配信）から、別オリジンの API（<code>http://localhost:3100</code>）へ、<strong>ブラウザで</strong>ログイン → <code>/setup-id</code> → 25 イベントの送信が通り、サーバーのファイル（重複なし・UTC 日付・格子の中心の位置）と Console の表示（sent 25 / failed 0）が一致した。間違ったパスワードでは、Console に「Invalid credentials」が出る（エラー応答にも CORS ヘッダが付いている）。生の座標とテスト用パスワードが、データのどこにも残っていないことをバイト検索で確認した。<br>
+<strong>未確認：</strong>(1) <code>file://</code>（<code>Origin: null</code>）で開いた Console の<strong>実ブラウザでの確認</strong>。プレビューは <code>file://</code> を <code>data:</code> のスナップショットにして送信を止める（<code>ERR_BLOCKED_BY_CLIENT</code>）。サンドボックス化した iframe（不透明オリジン、<code>Origin: null</code>）からも、リクエストはサーバーに届かなかった。どちらもサーバーの CORS の失敗ではなく、送信前にプレビュー側が止めている。<code>curl</code> では、<code>Origin: null</code> のプリフライトが 204 と CORS ヘッダを返す。(2) VPS の Node 22 での動作。(3) Apache 越しの接続元 IP（<code>X-Forwarded-For</code>）。(4) 実機（ボード）からの送信。上の確認では、実機の代わりに、ファームの 13 トークンのイベント行を Console の <code>processLine</code> に流した。<br>
+<strong>試験で見つかり、直したこと：</strong>Console は緯度・経度を<strong>入力欄の文字列</strong>（<code>"38.2545"</code>）で送る。最初の実装は数値しか受けず、位置が黙って無視された（テストが数値で書かれていたため、ブラウザの確認まで気づかなかった）。また、Console の <code>deadtime</code> は<strong>ミリ秒</strong>なので、JSONL の項目名を <code>deadtime_ms</code> にして単位を名前に入れた。
+</div>
+<p class="why">
+Phase 1 を先に<code>localhost</code>で通すのは、他人の権限に頼る前に、自分で端から端まで検証できるため。Phase 2 以降の作業は、ユーザーが実行するコマンドとして書き出す。
+</p>
+</section>
+
+<!-- ============================================================ -->
+<section id="accept">
+<h2>7. 受け入れ基準とテスト</h2>
+<ul>
+  <li><strong>実ブラウザで確認する。</strong>次の 3 つのオリジンから、Console でログインし、数イベントを送って、サーバー側のファイルの行が増えることを見る。curl だけの確認は合格にしない（今日は curl では正常に見えた）。
+    <ol>
+      <li><code>file://</code>（<code>Origin: null</code>）で開いた Console</li>
+      <li>新サーバー自身が <code>https://cosmicray.accel-kitchen.com/console/</code> で配信する Console（同一オリジン）</li>
+      <li><strong>別の https オリジン</strong>の Console。<strong>Console の本番の配信先が分からない</strong>ので（Q-N10）、決まるまでは、<code>https://accel-kitchen.com</code> 側に置いた試験ページで代用する</li>
+    </ol></li>
+  <li><strong>レート制限の独立：</strong>別々の接続元 IP（Apache を通して <code>X-Forwarded-For</code> が異なる 2 つ以上の IP）から、ログインを失敗させ続けても、別の IP のログインが止まらないこと。外から偽の <code>X-Forwarded-For</code> を付けても、制限を逃れられないこと（VPS 上で、Apache 越しに実際に試す。<code>localhost</code> の試験では、接続元が常にループバックなので、この項目は確かめられない）。</li>
+  <li><strong>イベントの出どころ：</strong>Console のデモのイベントは送信キューに入らない。手元の V2 ボード（COM62、FW 2.0.0）をつなぐか、Console の <code>eventToLegacyPayload</code> と同じ形のイベントを送る試験スクリプトを使う。</li>
+  <li><strong>契約テスト（リポジトリに入れる）：</strong>互換 API の 4 エンドポイントについて、成功、400（永久に不正）、401/403（再認証）、429/5xx（再送）、<code>OPTIONS</code> の 204 と CORS ヘッダを、成功・失敗の両方の応答で確かめる。<code>server-plan.html</code> にある「自動テスト 48 件」は手元で見つからないので、これを新しい基準にする。</li>
+  <li><strong>プライバシーのテスト：</strong>公開 API のどの応答にも、メール・生の座標・パスワードのハッシュが含まれないこと。登録直後の局は、メール認証が済むまで地図に出ないこと。</li>
+  <li><strong>復元のテスト：</strong>バックアップから別の場所へ復元し、ログインとデータの閲覧ができること。</li>
+</ul>
+</section>
+
+<!-- ============================================================ -->
+<section id="open">
+<h2>8. 未決事項</h2>
+<table>
+  <tr><th>#</th><th>問い</th><th>なぜ判断が必要か</th></tr>
+  <tr><td>Q-N1</td><td>認証メールの送信方法：VPS に Postfix を入れるか、外部のメール送信サービスを使うか</td><td>
+    DNS の現状（2026-11-21、公開 DNS で確認）：MX は <strong>Google Workspace</strong>、SPF は <code>v=spf1 ip4:118.27.30.120 include:_spf.google.com include:_spf.prtimes.jp ~all</code>（<strong>VPS の IP がすでに入っている</strong>）、DMARC は <code>p=none</code>。DKIM は Value-Domain の DNS に <code>google._domainkey</code>（Google Workspace のもの）がある。VPS から送る場合の DKIM は無い。<br>
+    選択肢：<br>
+    (a) <strong>VPS の Postfix</strong>：SPF は通る。DKIM の署名（OpenDKIM）と、VPS の逆引き（PTR）の設定が要る。費用なし。届きやすさの調整が必要。<br>
+    (b) <strong>Google Workspace の SMTP</strong>（アプリ専用パスワードか SMTP リレー）：すでに使っているので届きやすく、送信は 1 日あたりの上限がある。参加者のメールは Google を通る（受信側も Google のため）。<br>
+    (c) <strong>外部のメール送信サービス</strong>：届きやすいが、参加者のメールが別の事業者を通るので、ポリシーに書く必要がある。<br>
+    どれでも、差出人は <code>noreply@accel-kitchen.com</code>（親ドメイン）にすると、既存の SPF・DMARC がそのまま使える。<code>cosmicray.accel-kitchen.com</code> を差出人にすると、サブドメイン用の SPF が別に要る。
+    </td></tr>
+  <tr><td>Q-N2</td><td>未成年の同意（保護者の同意の要否と取り方）、プライバシーポリシー、利用規約の文面と責任者</td><td>メールを預かり、位置の一部を公開するため。法的な判断を含むので、計画では画面と記録の仕組みだけを用意する</td></tr>
+  <tr><td>Q-N3</td><td>参加局数とイベント率の見込み</td><td>ディスク予算、ローテーション、レート制限の値が決まる。旧データ（<code>sendai</code> など）から実測できる</td></tr>
+  <tr><td>Q-N4</td><td><strong>（回答済み）</strong>生の座標は保存しない</td><td>丸めた値からは元に戻せないので、あとから精度を細かくすることはできない</td></tr>
+  <tr><td>Q-N5</td><td>観測データの生ダウンロードを公開するか、ライセンスをどうするか。グラフ・集計は「ログインした参加者だけ」と回答済み</td><td>推奨は、生データは本人と管理者だけ。探究の教材として広く公開したいなら、ライセンスの明記が要る</td></tr>
+  <tr><td>Q-N6</td><td>旧アカウントの扱い：メール未登録のまま残すか、期限を決めて停止するか</td><td>旧アカウントは同意の記録も無いため</td></tr>
+  <tr><td>Q-N7</td><td>トークンの期間と、24 時間を超える無人運転の扱い</td><td><code>server-plan.html</code> の Q-2 と同じ。Console はパスワードをメモリに持つ設計</td></tr>
+  <tr><td>Q-N8</td><td>地図タイルの提供元</td><td>OpenStreetMap の公開タイルは大量利用に向かない。自前・有料・別の提供元から選ぶ</td></tr>
+  <tr><td>Q-N9</td><td>deadtime（µs / ms）と <code>vol</code>（計算値）の扱い</td><td><code>server-plan.html</code> の Q-4・Q-6。JSONL には元の値を全部残すので、解釈は後で決められる</td></tr>
+  <tr><td>Q-N10</td><td>Console はどこで配信するか（<code>file://</code>、<code>localhost</code>、どの https オリジンか）</td><td>受け入れの https 試験のオリジンと、利用者への案内の URL が決まる。配信先が決まるまでは、新サーバー自身の <code>/console/</code> と試験ページで代用する</td></tr>
+  <tr><td>Q-N11</td><td>メール認証の直後に地図へ出すか、管理者の承認を挟むか</td><td>承認を挟むと、偽の局や不適切な局 ID が地図に出る前に止められるが、管理者の手間が増える。推奨は、承認なしで出す（局 ID の禁止語リストとレート制限で守る）</td></tr>
+  <tr><td>Q-N12</td><td>アカウントを削除したデータが、バックアップに残る期間</td><td>削除を約束するなら、バックアップの保持期間と一致させる必要がある（例：バックアップは 30 日で消える、と画面に書く）</td></tr>
+  <tr><td>Q-N13</td><td>失敗したログインの数え方：局ごとか、局と IP の組か</td><td>いまは、局ごとに失敗 10 回で止める（IP は 1 秒に 0.2 回、局は 0.1 回の補充）。局 ID は地図で公開されるので、<strong>1 つの IP から間違ったパスワードを送り続けるだけで、その局の新規ログインを止め続けられる</strong>（テストもこの挙動を固定している）。Phase 2 で公開する前に決める。案：局と IP の組で数える</td></tr>
+  <tr><td>Q-N14</td><td>時刻の窓：<code>timestamp_utc</code> が 2015 年より前か、2 日以上先のイベントを、どうするか</td><td>いまは 400 で拒否し、Console はそのイベントを永久に捨てる。PC の時計が大きく狂った参加者の測定が失われる。案：受信日のファイルに「時計不良」の印を付けて入れる</td></tr>
+  <tr><td>Q-N15</td><td><strong>（回答済み）</strong><code>server/</code> は、この PCB のリポジトリ（<code>accel-kitchen/cosmic-ray-detector</code>）の中に置く</td><td>計画は「git のタグから展開」なので、そのままでは VPS が CAD やガーバーまで取得してしまう。対策は、VPS では<strong><code>server/</code> だけを取り出す</strong>こと（<code>git archive &lt;タグ&gt; server</code> を展開するか、sparse checkout）。サーバー用のタグは <code>server-v0.1.0</code> のように接頭辞を付け、基板・ケースの変更と区別する。コミットはまだしていない</td></tr>
+  <tr><td>R-N1</td><td>VPS の空き（メモリ・ディスク・CPU）が不明</td><td>Phase 0 に読み取りだけで調べる</td></tr>
+  <tr><td>R-N2</td><td>certbot の有無、Apache の有効なモジュール（proxy・headers・ssl）が不明</td><td>Phase 0 に読み取りだけで調べる</td></tr>
+</table>
+</section>
+
+<!-- ============================================================ -->
+<section id="stale">
+<h2>9. 古くなった既存文書の記述</h2>
+<table>
+  <tr><th>文書</th><th>記述</th><th>現状</th></tr>
+  <tr><td><code>server-plan.html</code></td><td>送信先 <code>http://accel-kitchen.com:3000</code></td><td>公開は <code>https://accel-kitchen.com</code>。3000 番は 127.0.0.1 のみで外から届かない</td></tr>
+  <tr><td><code>server-plan.html</code></td><td>S-01〜S-08「実装・検証済み」、Phase 0 完了</td><td>手元の作業版には入っているが、<strong>本番には未反映</strong>（OPTIONS に CORS が付かない）。新サーバーでは要件として引き継ぐ</td></tr>
+  <tr><td><code>server-plan.html</code></td><td>S-09（TLS 化）は未了、Q-1 の判断待ち</td><td>公開 URL は Apache 経由で https になっている。新サブドメインでも同じ方式</td></tr>
+  <tr><td><code>server-plan.html</code></td><td>Q-7（再起動の権限）</td><td><code>accel-kitchen</code> ユーザーが持つ。新サーバーは専用ユーザー + <code>systemd</code> にして、ユーザーが root で運用する</td></tr>
+  <tr><td><code>server-deploy.md</code> / <code>server-claude-instructions.md</code></td><td>旧サーバーへ CORS 対応を載せる手順</td><td>新サーバーを作る方針では、旧サーバーの更新は急がない。旧サーバーは読み取り専用で残す（§5）</td></tr>
+</table>
+</section>
+
+</main>
+<footer>Accel Kitchen — Cosmic Ray Detector V2</footer>
+</body>
+</html>
