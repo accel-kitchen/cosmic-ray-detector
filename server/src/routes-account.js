@@ -366,7 +366,7 @@ function register(app, ctx) {
   });
 
   // The owner's own measurement files (the .jsonl source of truth), for downloading.
-  const FILE = /^\d{4}-\d{2}-\d{2}(\.badclock)?\.jsonl$/;
+  const FILE = /^\d{4}-\d{2}-\d{2}(\.badclock|\.legacy)?\.jsonl$/;
   app.get('/me/events', requireAuth, meLimit, (req, res) => {
     const dir = path.join(cfg.dataDir, 'events', req.user.id);
     let files = [];

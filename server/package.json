@@ -1,6 +1,6 @@
 {
   "name": "cosmicray-v3-server",
-  "version": "0.3.7",
+  "version": "0.3.8",
   "private": true,
   "description": "Measurement upload server for the CosmicRay Recorder console (compat API, Phase 1)",
   "main": "src/index.js",

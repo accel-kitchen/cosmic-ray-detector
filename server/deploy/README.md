@@ -244,6 +244,50 @@ sudo -u cosmicray bash -c 'read -rsp "password: " OPPW; echo; export OPPW; cd /o
 入れたら、`https://cosmicray.accel-kitchen.com/admin` でログインできます。パスワードは **8 文字以上**（英数字で構いません。名前を含めない）で、他では使っていないものにしてください
 （二段階認証はありません。操作はすべて記録に残り、画面から削除はできません）。見直し・確認は `admin.js audit` でも読めます。
 
+## 旧サーバーのデータを移す（server-v0.3.8）
+
+旧サーバー（`/opt/cosmicray-server`、PM2）は読むだけで、何も変えません。**旧アカウント（`users.json`）は取り込みません**（パスワードのハッシュも持ち込みません。`users.json` は開きません）。
+局 ID は「予約」（`legacy_unclaimed`）として入れるので、他の人は登録できず、誰もログインできません。位置は 0.1° の格子に丸めたものだけ、旧 `config.json` のコメントは非公開のメモに入れます。地図には出しません（`listed = 0`）。
+
+**読み方の決め（2026-11-22）。** 実データ（`inspect-old-data.sh`）で見た行の形は 3 つです。詳しくは `server/src/legacy.js` の冒頭に書いてあります。
+
+| 形 | 行数（約） | 扱い |
+|---|---|---|
+| 7 列（EVENT, DATE, TIME, ADC, SIPM, DEADTIME, TEMP） | 211 万 | DATE は**日本時間**（TIME 列との差が秒の単位で、ちょうど 9 時間なのを確認）。UTC に直して取り込む |
+| 4 列（イベント番号, DATE, X, Y） | 約 81 万（sendai・waseda） | **推定**：Y を ADC とみる。DATE は日本時間と仮定（確かめられない）。X は意味が分からないので、`lx` に残すだけ |
+| 4 列（ADC, DATE, 電圧, デッドタイム） | 約 0.8 万（test） | **推定**：旧サーバーの読み取り側の名前に合わせる。イベント番号は、ファイル内の連番を付ける |
+
+どの行にも、`lg`（形:日付:行番号）が付くので、読み方が違っていたと分かったら、旧ファイル（残してある）からやり直せます。日付が読めない行（`NaN-NaN-…`）は、取り込まずに数えます。
+事前に旧データを **tar で控えます**（root だけが読める場所へ）:
+
+```bash
+sudo install -d -m 700 /var/backups/old-server
+```
+```bash
+sudo tar czf /var/backups/old-server/cosmicray-old-$(date +%Y%m%d).tar.gz -C /opt cosmicray-server/cosmicray-data cosmicray-server/users.json
+```
+```bash
+sudo ls -l /var/backups/old-server
+```
+
+**ドライラン**（読んで報告するだけ。書きません）:
+
+```bash
+sudo -u cosmicray bash -c 'cd /opt/cosmicray-v3/current && /opt/node-v22.23.4/bin/node --env-file=/etc/cosmicray/env scripts/import-legacy.js --from /opt/cosmicray-server'
+```
+
+見るところ: 局ごとの行数（形ごと）、読めずに飛ばした行（理由と例）、時間の範囲、そして **`C7 check` の「largest gap」**。日付と TIME 列の差の最大値で、**数秒から数十秒**なら正常です。数百秒を超える行が多いなら、時刻の読み方が違うので、取り込まずに知らせてください。
+
+**本番の取り込み**（同じコマンドに `--commit`。何度やっても同じ結果になります）:
+
+```bash
+sudo -u cosmicray bash -c 'cd /opt/cosmicray-v3/current && /opt/node-v22.23.4/bin/node --env-file=/etc/cosmicray/env scripts/import-legacy.js --from /opt/cosmicray-server --commit'
+```
+
+局ごとに `OK, matches the parsed count` と出れば、書いた行数と読んだ行数が一致しています。局を絞るときは `--station sendai` を付けます。
+新サーバーですでに使われている局 ID は、触らずに飛ばします（終了コードが 0 以外になります）。ディスクは、旧データの約 3 倍（全部で 600 MB 前後）使います。取り込みは 1 局あたり数十秒から数分です。
+**引き継ぎ**（持ち主が見つかったとき）の道具は、まだありません。予約した局は、運営の画面（`/admin`）に `legacy_unclaimed` として出ます。
+
 ## 決めたこと（2026-11-22）と、環境ファイルの設定
 
 | 項目 | 決定 | 設定 |

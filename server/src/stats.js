@@ -89,7 +89,8 @@ function* mainStreamFiles(eventsDir, station) {
   const dir = path.join(eventsDir, station);
   if (!fs.existsSync(dir)) return;
   for (const f of fs.readdirSync(dir).sort()) {
-    if (/^\d{4}-\d{2}-\d{2}\.jsonl$/.test(f)) yield path.join(dir, f);   // not <day>.badclock.jsonl
+    // <day>.jsonl (live uploads) and <day>.legacy.jsonl (imported from the old server), not <day>.badclock.jsonl
+    if (/^\d{4}-\d{2}-\d{2}(\.legacy)?\.jsonl$/.test(f)) yield path.join(dir, f);
   }
 }
 
