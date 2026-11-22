@@ -493,7 +493,13 @@ test('mailer: smtp builds a plain-text message from the configured sender; outbo
   await m.send({ to: 'a@example.org', subject: 's', text: 't' });
   assert.deepEqual(opts.auth, { user: 'u', pass: 'p' });
   assert.equal(opts.secure, true);
+  assert.equal(opts.requireTLS, false);                 // already TLS from the first byte
   assert.equal(opts.host, 'smtp.example.org');
+  // STARTTLS (port 587) must be REQUIRED for a remote server, and may be skipped only for this machine
+  const starttls = (host) => { let o; createMailer({ ...cfg, mail: { ...cfg.mail, smtp: { ...cfg.mail.smtp, host, port: 587, secure: false } } },
+    { createTransport: (x) => { o = x; return { sendMail: async () => {} }; } }); return o.requireTLS; };
+  assert.equal(starttls('smtp.gmail.com'), true);
+  assert.equal(starttls('localhost'), false);
   assert.deepEqual(sent[0], { from: 'CosmicRay <noreply@example.org>', to: 'a@example.org', subject: 's', text: 't' });
   assert.equal('html' in sent[0], false);
 

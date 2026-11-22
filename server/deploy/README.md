@@ -226,6 +226,33 @@ sudo systemctl restart cosmicray-v3
 `deploy.sh` が自動で戻した場合も、手で戻した場合も、**新しい版が DB に書いたもの（登録・トークンなど）は戻った DB に入っていません。**
 測定データのファイル（`events/`）は、触られていません。控えは `/var/backups/cosmicray/pre-deploy/` に 10 件まで残ります。
 
+## 決めたこと（2026-11-22）と、環境ファイルの設定
+
+| 項目 | 決定 | 設定 |
+|---|---|---|
+| メール（Q-N1） | Google Workspace の SMTP。DNS は、SPF・DKIM（`google._domainkey`）・DMARC（p=none）が設定済みなのを確認した | `MAIL_TRANSPORT=smtp`、`SMTP_HOST=smtp.gmail.com`、`SMTP_PORT=587`、`SMTP_SECURE=0`、`SMTP_USER=noreply@accel-kitchen.com`、`SMTP_PASS=…`、`MAIL_FROM=CosmicRay <noreply@accel-kitchen.com>` |
+| 地図の背景（Q-N8） | OpenStreetMap | `MAP_TILE=osm` |
+| 載せる条件（Q-N11） | メール確認で自動掲載。公開前に人の目は入らない | `AUTO_LIST_ON_VERIFY=1` |
+| 他人に見せる系列（Q-N17） | いまのまま（1 時間ごと・30 日分） | 変更なし |
+
+**Gmail で送るときの注意**（Google の管理コンソールでの操作。画面の名前は変わることがあります）
+- Gmail の SMTP は、**認証したアカウントのアドレスで送ります**。`MAIL_FROM` の `noreply@accel-kitchen.com` が、`SMTP_USER` と同じユーザー（または、そのユーザーの「別の送信元アドレス」）でないと、差出人が書き換えられます。
+  Workspace に `noreply@accel-kitchen.com` のユーザー（または別名）を作るのが、いちばん単純です。
+- そのユーザーで、2 段階認証を有効にし、**アプリ パスワード**を作ります（管理者が許可していないと作れません）。パスワードは、`/etc/cosmicray/env` の `SMTP_PASS` にだけ入れます（チャットには貼らない）。
+- 送信の上限は、Workspace のアカウントごとの 1 日の上限が先に効きます（`MAIL_GLOBAL_PER_DAY=300` はそれより小さい）。
+- 認証情報を持たない方法として、Google の「SMTP リレー サービス」（VPS の IP `118.27.30.120` を許可する）もあります。その場合は `SMTP_HOST=smtp-relay.gmail.com`、`SMTP_USER` と `SMTP_PASS` は空にします。
+  ただし、VPS 上のどのプログラムでも、ドメインの名前で送れるようになります。
+
+**送信の試験**（`/etc/cosmicray/env` を直したら、`sudo systemctl restart cosmicray-v3` の前に、1 通だけ）:
+```bash
+sudo -u cosmicray bash -c 'set -a; . /etc/cosmicray/env; set +a; cd /opt/cosmicray-v3/current && /opt/node-v22.23.4/bin/node scripts/mail-test.js あなたのアドレス'
+```
+使っている設定（パスワードは出ません）と、結果が出ます。Gmail 以外にも、携帯キャリアと学校のアドレスで、届くか・迷惑メールに入らないかを確かめてください。
+
+**注意：自動掲載のとき**
+- 登録の完了だけで、約 10 km の位置と紹介文（自由記述）が、誰にでも見える地図に出ます。紹介文には、人の名前や学校名が書かれるかもしれません。
+- 運営が、通報を受ける窓口と、`scripts/admin.js list-off <id>`（掲載を外す）をいつでも実行できる手順を、先に決めておいてください。
+
 ## 自己登録を開く前のチェックリスト
 
 `REGISTRATION_OPEN=1` にする前に、**すべて**済ませてください。一つでも欠けたまま開くと、中高生のメールアドレスと位置を預かることになります。

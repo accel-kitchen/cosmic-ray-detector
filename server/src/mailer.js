@@ -21,6 +21,9 @@ function createMailer(cfg, deps = {}) {
     const s = cfg.mail.smtp;
     const transporter = createTransport({
       host: s.host, port: s.port, secure: s.secure,
+      // Port 587 starts in plain text and upgrades with STARTTLS. Without this, nodemailer would carry on
+      // in plain text (password included) if the upgrade were stripped. Only a server on this machine may skip it.
+      requireTLS: !s.secure && !['localhost', '127.0.0.1', '::1'].includes(s.host),
       auth: s.user ? { user: s.user, pass: s.pass } : undefined,
       connectionTimeout: 10000, greetingTimeout: 10000, socketTimeout: 20000,
     });
