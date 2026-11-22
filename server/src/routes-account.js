@@ -33,8 +33,16 @@ const RESERVED = new Set([
   'register', 'login', 'logout', 'account', 'verify', 'reset', 'forgot', 'station', 'stations', 'public',
 ]);
 
+// The shortest password a participant may choose (the owner's decision, 2026-11-22: 8, down from 10).
+// The page texts (register, reset, account) say the same number; the login limits do the rest.
+const PASSWORD_MIN = 8;
+
 // Not a full list: it stops the obvious ones. Length and the checks below do the real work.
+// With the minimum at 8, the usual 8- and 9-character choices are in here too.
 const COMMON_PASSWORDS = new Set([
+  'password', 'password1', 'passw0rd', 'pass1234', '12345678', '123456789', '11111111', '00000000', '87654321',
+  'qwertyui', 'qwerty123', 'abcd1234', 'abc12345', 'abcdefgh', 'asdfghjk', '1q2w3e4r', 'iloveyou', 'iloveyou1',
+  'admin123', 'letmein1', 'welcome1', 'minecraft', 'pokemon1', 'sakura123', 'cosmicray', 'cosmic123',
   'password12', 'password123', 'password1234', 'passw0rd123', '1234567890', '12345678910', '0123456789',
   'qwertyuiop', 'qwerty12345', 'qwerty123456', 'iloveyou123', 'abcdefghij', 'abc1234567', 'asdfghjkl1',
   'letmein1234', 'welcome1234', 'admin12345', 'changeme123', 'cosmicray1', 'cosmicray12', 'cosmicray123',
@@ -54,7 +62,7 @@ function normEmail(v) {
 
 // Returns a problem code, or null when the password is acceptable.
 function passwordProblem(pw, id, email) {
-  if (typeof pw !== 'string' || pw.length < 10) return 'too_short';
+  if (typeof pw !== 'string' || pw.length < PASSWORD_MIN) return 'too_short';
   if (pw.length > 256) return 'too_long';
   const lower = pw.toLowerCase();
   if (COMMON_PASSWORDS.has(lower)) return 'too_common';
@@ -65,7 +73,7 @@ function passwordProblem(pw, id, email) {
 }
 
 const PASSWORD_JA = {
-  too_short: 'パスワードは 10 文字以上にしてください。',
+  too_short: `パスワードは ${PASSWORD_MIN} 文字以上にしてください。`,
   too_long: 'パスワードが長すぎます（256 文字まで）。',
   too_common: 'よく使われるパスワードです。別のものにしてください。',
   contains_id: 'パスワードに局 ID を含めないでください。',

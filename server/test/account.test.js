@@ -135,8 +135,10 @@ test('sign up: every kind of bad input is refused and creates nothing', async ()
       ['consent false', { consent: false }, 400, 'consent_required'],
       ['consent as the string "true"', { consent: 'true' }, 400, 'consent_required'],
       ['consent to a different text', { consent_version: 'draft-0' }, 400, 'consent_required'],
-      ['password too short', { password: 'short-pw' }, 400, 'weak_password'],
+      ['password one short of the minimum (7)', { password: 'k7m-q2x' }, 400, 'weak_password'],
       ['password too common', { password: 'password123' }, 400, 'weak_password'],
+      ['password too common, 8 characters', { password: 'password' }, 400, 'weak_password'],
+      ['password too common, digits only', { password: '12345678' }, 400, 'weak_password'],
       ['password contains the id', { id: 'sakura', password: 'my-sakura-password' }, 400, 'weak_password'],
       ['one repeated character', { password: 'aaaaaaaaaaaa' }, 400, 'weak_password'],
       ['password not a string', { password: 1234567890123 }, 400, 'weak_password'],
@@ -149,6 +151,18 @@ test('sign up: every kind of bad input is refused and creates nothing', async ()
     }
     assert.equal(t.inst.db.prepare('SELECT COUNT(*) n FROM users').get().n, 0);
     assert.equal(readOutbox(t.dir).length, 0);
+  } finally { await t.close(); }
+});
+
+test('sign up: the minimum password length is 8 (the owner\'s choice), and the message says so', async () => {
+  const t = await boot({}, OPEN);
+  try {
+    const short = await signup(t, { password: 'k7m-q2x' });
+    assert.equal(short.status, 400);
+    assert.match(short.json.message_ja, /8 文字以上/);
+    const ok = await signup(t, { password: 'k7m-q2xz' });                  // exactly 8, not on the common list
+    assert.equal(ok.status, 200);
+    assert.equal(t.inst.db.prepare('SELECT COUNT(*) n FROM users').get().n, 1);
   } finally { await t.close(); }
 });
 
