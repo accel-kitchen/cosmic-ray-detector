@@ -499,7 +499,6 @@ test('mailer: smtp builds a plain-text message from the configured sender; outbo
   assert.equal(opts.secure, true);
   assert.equal(opts.requireTLS, false);                 // already TLS from the first byte
   assert.equal(opts.host, 'smtp.example.org');
-  assert.equal(opts.family, 4, 'always IPv4: an IP-allowlisted relay must see the one address that was allowed');
   // EHLO carries a real host name, not the machine's own (a dotless name would be sent as "[127.0.0.1]")
   assert.equal(opts.name, 'cosmicray.accel-kitchen.com', 'default: the host of PUBLIC_URL');
   { let o; const withName = loadConfig({ JWT_SECRET: 'x'.repeat(40), DATA_DIR: cfg.dataDir, MAIL_TRANSPORT: 'smtp', SMTP_EHLO_NAME: 'mail.example.org' }, { quiet: true });

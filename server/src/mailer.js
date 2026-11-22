@@ -25,9 +25,9 @@ function createMailer(cfg, deps = {}) {
       // in plain text (password included) if the upgrade were stripped. Only a server on this machine may skip it.
       requireTLS: !s.secure && !['localhost', '127.0.0.1', '::1'].includes(s.host),
       auth: s.user ? { user: s.user, pass: s.pass } : undefined,
-      // IPv4 only: a relay that lets in "this machine's address" (no password) sees the address the
-      // connection comes from, and this host has an IPv6 address too. Mixing the two ends in a refusal.
-      family: 4,
+      // NOTE: nodemailer 10 has no option that forces IPv4 (it resolves both families and tries IPv6 first).
+      // A relay that admits "this machine's address" (no password) therefore sees the IPv6 address of this
+      // host when it has one: register BOTH addresses in the relay rule (see deploy/README.md).
       // A proper host name in EHLO instead of whatever the machine is called (see config.js).
       ...(s.name ? { name: s.name } : {}),
       connectionTimeout: 10000, greetingTimeout: 10000, socketTimeout: 20000,

@@ -112,16 +112,19 @@
     const holder = document.getElementById('nav');
     if (!holder) return;
     const s = store.get();
-    const links = [el('a', { href: '/' }, '地図')];
+    // The page we are on is marked (aria-current), also for the clean URL with or without ".html".
+    const here = location.pathname.replace(/\.html$/, '').replace(/\/+$/, '') || '/';
+    const link = (href, text, cls) => el('a', { href, class: cls, 'aria-current': href === here ? 'page' : false }, text);
+    const links = [link('/', '地図')];
     if (s) {
-      links.push(el('a', { href: '/account' }, 'アカウント'));
-      links.push(el('span', { class: 'who' }, s.id));
-      const out = el('a', { href: '#', 'data-act': 'logout' }, 'ログアウト');
+      links.push(link('/account', 'アカウント'));
+      links.push(el('span', { class: 'who', title: 'ログイン中の局 ID' }, s.id));
+      const out = el('a', { href: '#', class: 'quiet', 'data-act': 'logout' }, 'ログアウト');
       out.addEventListener('click', (e) => { e.preventDefault(); logout(); location.href = '/'; });
       links.push(out);
     } else {
-      links.push(el('a', { href: '/account' }, 'ログイン'));
-      links.push(el('a', { href: '/register' }, '新規登録'));
+      links.push(link('/account', 'ログイン'));
+      links.push(link('/register', '新規登録', 'cta'));
     }
     holder.textContent = '';
     links.forEach((l) => holder.appendChild(l));

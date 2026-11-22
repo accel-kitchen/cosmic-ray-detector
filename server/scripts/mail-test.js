@@ -11,13 +11,18 @@ const { loadConfig } = require('../src/config');
 const { createMailer } = require('../src/mailer');
 
 async function main() {
-  const to = process.argv[2];
-  if (!to || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) { console.error('usage: mail-test.js <address>'); process.exit(2); }
+  // --debug prints the whole SMTP conversation (what we sent, what the server answered), to see where a
+  // refusal or a dropped connection happens. Credentials are masked by nodemailer; this setup has none.
+  const debug = process.argv.includes('--debug');
+  const to = process.argv.slice(2).filter((a) => a !== '--debug')[0];
+  if (!to || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) { console.error('usage: mail-test.js <address> [--debug]'); process.exit(2); }
   const cfg = loadConfig(process.env, { quiet: true });
   const m = cfg.mail;
-  console.log(`transport=${m.transport} host=${m.smtp.host} port=${m.smtp.port} secure=${m.smtp.secure} user=${m.smtp.user ? m.smtp.user : '(none)'} from=${m.from}`);
+  console.log(`transport=${m.transport} host=${m.smtp.host} port=${m.smtp.port} secure=${m.smtp.secure} user=${m.smtp.user ? m.smtp.user : '(none)'} ehlo=${m.smtp.name || '(machine name)'} from=${m.from}`);
   if (m.transport !== 'smtp') { console.error('MAIL_TRANSPORT is not "smtp": nothing was sent'); process.exit(1); }
-  const mailer = createMailer(cfg);
+  const mailer = createMailer(cfg, debug
+    ? { createTransport: (o) => require('nodemailer').createTransport({ ...o, logger: true, debug: true }) }
+    : {});
   const info = await mailer.send({
     to,
     subject: '【CosmicRay】メール送信の試験',
@@ -26,4 +31,4 @@ async function main() {
   console.log(`sent: ${info && info.response ? info.response : 'ok'}`);
   if (info && info.rejected && info.rejected.length) { console.error('REJECTED:', info.rejected.join(', ')); process.exit(1); }
 }
-main().catch((e) => { console.error(`FAILED: ${e.message}`); process.exit(1); });
+main().catch((e) => { console.error(`FAILED: ${e.message}${e.code || e.command ? ` [${[e.code, e.command].filter(Boolean).join(' ')}]` : ''}`); process.exit(1); });

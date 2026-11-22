@@ -248,7 +248,7 @@ sudo -u cosmicray bash -c 'read -rsp "password: " OPPW; echo; export OPPW; cd /o
 
 | 項目 | 決定 | 設定 |
 |---|---|---|
-| メール（Q-N1） | **Google Workspace の SMTP リレー（VPS の IP を許可、パスワードなし）で、差出人は `info@accel-kitchen.com`**（2026-11-22 に変更。当初はアプリ パスワードと noreply の案）。DNS は、SPF・DKIM（`google._domainkey`）・DMARC（p=none）が設定済みなのを確認した | `MAIL_TRANSPORT=smtp`、`SMTP_HOST=smtp-relay.gmail.com`、`SMTP_PORT=587`、`SMTP_SECURE=0`、`SMTP_USER` と `SMTP_PASS` は書かない、`MAIL_FROM=CosmicRay <info@accel-kitchen.com>`。管理コンソールの「SMTP リレー サービス」で、送信者は「ドメイン内のアドレスのみ」、IP `118.27.30.120`（確認のため IPv6 も）、認証なし、TLS 必須。メールの接続は IPv4 に固定（0.3.4 以降） |
+| メール（Q-N1） | **Google Workspace の SMTP リレー（VPS の IP を許可、パスワードなし）で、差出人は `info@accel-kitchen.com`**（2026-11-22 に変更。当初はアプリ パスワードと noreply の案）。DNS は、SPF・DKIM（`google._domainkey`）・DMARC（p=none）が設定済みなのを確認した | `MAIL_TRANSPORT=smtp`、`SMTP_HOST=smtp-relay.gmail.com`、`SMTP_PORT=587`、`SMTP_SECURE=0`、`SMTP_USER` と `SMTP_PASS` は書かない、`MAIL_FROM=CosmicRay <info@accel-kitchen.com>`。管理コンソールの「SMTP リレー サービス」で、送信者は「ドメイン内のアドレスのみ」、IP は **IPv4（`118.27.30.120`）と、この VPS の IPv6（`2400:8500:1801:415:118:27:30:120`）の両方**、認証なし、TLS 必須。nodemailer には IPv4 だけで接続させる設定がなく、IPv6 が先に使われるため、片方だけだと `550-5.7.1 Invalid credentials for relay [IPv6]` で断られる（2026-11-22 に確認）。EHLO には、ホスト名ではなく `cosmicray.accel-kitchen.com` を名乗る（0.3.5 以降。`SMTP_EHLO_NAME` で変えられる） |
 | 地図の背景（Q-N8） | OpenStreetMap | `MAP_TILE=osm` |
 | 載せる条件（Q-N11） | メール確認で自動掲載。公開前に人の目は入らない | `AUTO_LIST_ON_VERIFY=1` |
 | 他人に見せる系列（Q-N17） | いまのまま（1 時間ごと・30 日分） | 変更なし |
