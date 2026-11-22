@@ -248,13 +248,15 @@ sudo -u cosmicray bash -c 'read -rsp "password: " OPPW; echo; export OPPW; set -
 
 | 項目 | 決定 | 設定 |
 |---|---|---|
-| メール（Q-N1） | Google Workspace の SMTP。DNS は、SPF・DKIM（`google._domainkey`）・DMARC（p=none）が設定済みなのを確認した | `MAIL_TRANSPORT=smtp`、`SMTP_HOST=smtp.gmail.com`、`SMTP_PORT=587`、`SMTP_SECURE=0`、`SMTP_USER=noreply@accel-kitchen.com`、`SMTP_PASS=…`、`MAIL_FROM=CosmicRay <noreply@accel-kitchen.com>` |
+| メール（Q-N1） | **Google Workspace の SMTP リレー（VPS の IP を許可、パスワードなし）で、差出人は `info@accel-kitchen.com`**（2026-11-22 に変更。当初はアプリ パスワードと noreply の案）。DNS は、SPF・DKIM（`google._domainkey`）・DMARC（p=none）が設定済みなのを確認した | `MAIL_TRANSPORT=smtp`、`SMTP_HOST=smtp-relay.gmail.com`、`SMTP_PORT=587`、`SMTP_SECURE=0`、`SMTP_USER` と `SMTP_PASS` は書かない、`MAIL_FROM=CosmicRay <info@accel-kitchen.com>`。管理コンソールの「SMTP リレー サービス」で、送信者は「ドメイン内のアドレスのみ」、IP `118.27.30.120`（確認のため IPv6 も）、認証なし、TLS 必須。メールの接続は IPv4 に固定（0.3.4 以降） |
 | 地図の背景（Q-N8） | OpenStreetMap | `MAP_TILE=osm` |
 | 載せる条件（Q-N11） | メール確認で自動掲載。公開前に人の目は入らない | `AUTO_LIST_ON_VERIFY=1` |
 | 他人に見せる系列（Q-N17） | いまのまま（1 時間ごと・30 日分） | 変更なし |
 | 未成年の同意（Q-N2） | 登録のときの確認はしない。規約とプライバシーに「保護者や先生に相談してから」と書くだけ | 文面のみ（0.3.3） |
 | 通報の窓口 | `info@accel-kitchen.com`。受けたら `scripts/admin.js list-off <id>` か、運営の画面で外す | 文面のみ（0.3.3） |
 | バックアップの保持（Q-N12/N18） | 夜の DB は 14 世代、削除した局は `removed/` で 14 日、展開前の控えは 14 日（最新の 1 つを除く）。文面は「遅くとも 3 週間以内」 | `backup.js`（0.3.3） |
+
+**以下は、アプリ パスワード方式を選んだ場合の注意です。リレー方式（上の表）では要りません。**
 
 **Gmail で送るときの注意**（Google の管理コンソールでの操作。画面の名前は変わることがあります）
 - Gmail の SMTP は、**認証したアカウントのアドレスで送ります**。`MAIL_FROM` の `noreply@accel-kitchen.com` が、`SMTP_USER` と同じユーザー（または、そのユーザーの「別の送信元アドレス」）でないと、差出人が書き換えられます。
@@ -278,7 +280,7 @@ sudo -u cosmicray bash -c 'set -a; . /etc/cosmicray/env; set +a; cd /opt/cosmicr
 
 `REGISTRATION_OPEN=1` にする前に、**すべて**済ませてください。一つでも欠けたまま開くと、中高生のメールアドレスと位置を預かることになります。
 
-- [ ] 利用規約とプライバシーの文面が、責任者に**承認された**（いまは「案」。承認したら `CONSENT_VERSION` を `draft-` なしの名前に変え、ページの「案」の表示と赤枠を外す）。
+- [ ] 利用規約とプライバシーの文面が、責任者に**承認された**（0.3.4 で「案」の表示は外してあります。承認が済んだら、環境ファイルの `CONSENT_VERSION` を `draft-` なしの名前にします。本番で `draft-` のまま `REGISTRATION_OPEN=1` にすると、起動が拒否されます）。
       未成年の同意の取り方（保護者への説明）も決める（計画書の Q-N2）。
 - [ ] メールの送り方を決め、`MAIL_TRANSPORT=smtp` と `SMTP_*` を設定した（Q-N1）。**実際に届く**ことを、Gmail に加え、参加者が使いそうな携帯キャリア・学校のアドレスでも確かめた。迷惑メールに入らないか（SPF・DKIM・DMARC）も見る。
 - [ ] バックアップが動いていて、復元を試した（Q-N16）。バックアップに残るコピーが消えるまでの期間を、プライバシーの文面に書いた（Q-N12）。

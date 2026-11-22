@@ -184,7 +184,7 @@ function register(app, ctx) {
     if (RESERVED.has(id)) return fail(res, 409, 'id_taken', 'この局 ID は使えません。別の ID を選んでください。');
     if (!email) return fail(res, 400, 'bad_email', 'メールアドレスの形が正しくありません。');
     if (b.consent !== true || b.consent_version !== cfg.consentVersion) {
-      return fail(res, 400, 'consent_required', '利用規約とプライバシーについて（案）に同意してください。ページを開き直して、もう一度お試しください。');
+      return fail(res, 400, 'consent_required', '利用規約とプライバシーについてに同意してください。ページを開き直して、もう一度お試しください。');
     }
     const problem = passwordProblem(b.password, id, email);
     if (problem) return fail(res, 400, 'weak_password', PASSWORD_JA[problem], 'weak password');

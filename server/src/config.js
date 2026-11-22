@@ -43,6 +43,10 @@ function loadConfig(env = process.env, overrides = {}) {
   if (registrationOpen && production && mailTransport !== 'smtp') {
     throw new Error('REGISTRATION_OPEN needs MAIL_TRANSPORT=smtp in production');
   }
+  // A draft text must not be the one people agree to. Name the approved version (CONSENT_VERSION) first.
+  if (registrationOpen && production && /^draft/i.test(env.CONSENT_VERSION || 'draft-1')) {
+    throw new Error('REGISTRATION_OPEN in production needs an approved CONSENT_VERSION (not "draft...")');
+  }
 
   const cfg = {
     production,
@@ -89,7 +93,7 @@ function loadConfig(env = process.env, overrides = {}) {
     scryptConcurrency: Math.max(1, Math.floor(Number(env.SCRYPT_CONCURRENCY || 2)) || 2),
     claimUrl: env.CLAIM_URL || 'https://cosmicray.accel-kitchen.com/claim',
     commit: env.GIT_COMMIT || readCommitFile(),
-    version: '0.3.3',
+    version: '0.3.4',
     // Largest accepted request body. Console events are ~300 bytes.
     bodyLimit: env.BODY_LIMIT || '32kb',
     ...overrides,

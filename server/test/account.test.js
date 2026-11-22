@@ -44,7 +44,11 @@ test('registration is closed by default, and cannot be opened without a way to s
   const base = { JWT_SECRET: 'x'.repeat(40), DATA_DIR: os.tmpdir() };
   assert.throws(() => loadConfig({ ...base, REGISTRATION_OPEN: '1' }, { quiet: true }), /MAIL_TRANSPORT/);
   assert.throws(() => loadConfig({ ...base, REGISTRATION_OPEN: '1', MAIL_TRANSPORT: 'outbox', NODE_ENV: 'production' }, { quiet: true }), /smtp/);
-  assert.doesNotThrow(() => loadConfig({ ...base, REGISTRATION_OPEN: '1', MAIL_TRANSPORT: 'smtp', NODE_ENV: 'production' }, { quiet: true }));
+  const prod = { ...base, REGISTRATION_OPEN: '1', MAIL_TRANSPORT: 'smtp', NODE_ENV: 'production' };
+  assert.throws(() => loadConfig(prod, { quiet: true }), /CONSENT_VERSION/, 'a draft text is never the one people agree to in production');
+  assert.throws(() => loadConfig({ ...prod, CONSENT_VERSION: 'draft-2' }, { quiet: true }), /CONSENT_VERSION/);
+  assert.doesNotThrow(() => loadConfig({ ...prod, CONSENT_VERSION: '2026-11-22' }, { quiet: true }));
+  assert.doesNotThrow(() => loadConfig({ ...base, MAIL_TRANSPORT: 'smtp', NODE_ENV: 'production' }, { quiet: true }), 'closed registration may keep the draft name');
   assert.throws(() => loadConfig({ ...base, MAP_TILE: 'bing' }, { quiet: true }), /MAP_TILE/);
   assert.equal(loadConfig(base, { quiet: true }).autoListOnVerify, false, 'a new station is NOT listed unless the operator says so');
 });
@@ -495,6 +499,7 @@ test('mailer: smtp builds a plain-text message from the configured sender; outbo
   assert.equal(opts.secure, true);
   assert.equal(opts.requireTLS, false);                 // already TLS from the first byte
   assert.equal(opts.host, 'smtp.example.org');
+  assert.equal(opts.family, 4, 'always IPv4: an IP-allowlisted relay must see the one address that was allowed');
   // STARTTLS (port 587) must be REQUIRED for a remote server, and may be skipped only for this machine
   const starttls = (host) => { let o; createMailer({ ...cfg, mail: { ...cfg.mail, smtp: { ...cfg.mail.smtp, host, port: 587, secure: false } } },
     { createTransport: (x) => { o = x; return { sendMail: async () => {} }; } }); return o.requireTLS; };
@@ -561,14 +566,14 @@ test('on start, registrations never confirmed within UNVERIFIED_DAYS are swept a
 
 // ------------------------------------------------------------------ the pages
 
-test('the Phase 3 pages exist, say they are drafts where the text is not final, and never confirm by themselves', () => {
+test('the Phase 3 pages exist, carry no draft marker once the text is approved, and never confirm by themselves', () => {
   const pub = path.join(__dirname, '..', 'public');
   for (const f of ['register', 'verify', 'forgot', 'reset', 'account', 'terms', 'privacy', 'station', 'index']) {
     assert.ok(fs.existsSync(path.join(pub, f + '.html')), f);
   }
   for (const f of ['terms', 'privacy']) {
     const html = fs.readFileSync(path.join(pub, f + '.html'), 'utf8');
-    assert.match(html, /class="draft"/, `${f}: marked as a draft until the person responsible has approved it`);
+    assert.doesNotMatch(html, /class="draft"|（案）|まだ決まっていません/, `${f}: approved text carries no draft marker and no open question`);
   }
   const reg = fs.readFileSync(path.join(pub, 'register.html'), 'utf8');
   assert.match(reg, /name="website"/, 'the hidden field');
