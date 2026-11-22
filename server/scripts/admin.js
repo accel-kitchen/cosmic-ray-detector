@@ -29,7 +29,7 @@ const { hashPassword } = require('../src/password');
 const { createOperator } = require('../src/operator');
 const { STATION_ID } = require('../src/app');
 
-const ADMIN_MIN_PASSWORD = 14;
+const ADMIN_MIN_PASSWORD = 8;      // the operator's choice (2026-11-22): 8+ characters, letters and digits are fine. The login limits do the rest.
 const [cmd, rawId, flag] = process.argv.slice(2);
 const id = (rawId || '').toLowerCase();
 const fail = (m) => { console.error(m); process.exit(2); };

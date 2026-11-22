@@ -56,7 +56,7 @@ put a station on / take it off the map, hide an introduction text, disable / ena
 **No delete on the page**: removing an account and its measurements cannot be undone, so it stays `scripts/admin.js delete <id> --yes`.
 
 - Operators are **not stations**: their own table (`admins`), created only with `scripts/admin.js admin-create <name>` on the server
-  (the password is asked for with the keyboard echo off, or read from stdin or `--password-env`; never from the command line; 14+ characters).
+  (the password is asked for with the keyboard echo off, or read from stdin or `--password-env`; never from the command line; 8+ characters).
 - Sign in at `/admin-api/login` (the page does it). The token carries `typ: "admin"`; every station route refuses it and the operator routes refuse a station token.
   It lasts 2 hours (`ADMIN_TOKEN_TTL_S`). Operator state is read from the database on every request, so disabling an operator or changing the password ends their sessions at once.
 - Password only (no second factor) was the owner's choice. What limits the damage: strict per-address and per-name login limits, a short token, no web delete,
@@ -74,7 +74,7 @@ node scripts/admin.js hide-description <id>     # hide the owner's introduction 
 node scripts/admin.js disable <id> | enable <id>   # enable restores the earlier status: it never skips e-mail confirmation
 node scripts/admin.js delete <id> --yes         # the account and ALL its data (CLI only: there is no delete on the web page)
 node scripts/admin.js prune-unverified
-node scripts/admin.js admin-create <name>       # an operator account for the /admin page (password asked for, hidden; 14+ characters)
+node scripts/admin.js admin-create <name>       # an operator account for the /admin page (password asked for, hidden; 8+ characters)
 node scripts/admin.js admin-password <name> | admin-disable <name> | admin-enable <name> | admin-list
 node scripts/admin.js audit [N]                 # the last N operator actions (page and command line alike)
 node scripts/rebuild-stats.js [id]              # rebuild the graph statistics from the JSONL files

@@ -158,4 +158,8 @@ ls -1dt "$APP_ROOT"/releases/* | tail -n +"$((KEEP + 1))" | xargs -r rm -rf
 if [ -d "$SNAP_DIR" ]; then
   find "$SNAP_DIR" -maxdepth 1 -name 'db-before-*.sqlite' -printf '%T@ %p
 ' | sort -rn     | tail -n +"$((SNAP_KEEP + 1))" | cut -d' ' -f2- | xargs -r rm -f
+  # These copies hold e-mail addresses. A copy is only useful right after its own deploy, so nothing
+  # older than SNAP_DAYS stays (the newest one always does), and a deleted account is gone from here too.
+  find "$SNAP_DIR" -maxdepth 1 -name 'db-before-*.sqlite' -mtime +"${SNAP_DAYS:-14}" -printf '%T@ %p
+' | sort -rn | tail -n +2 | cut -d' ' -f2- | xargs -r rm -f
 fi

@@ -241,7 +241,7 @@ sudo -u cosmicray bash -c 'set -a; . /etc/cosmicray/env; set +a; cd /opt/cosmicr
 sudo -u cosmicray bash -c 'read -rsp "password: " OPPW; echo; export OPPW; set -a; . /etc/cosmicray/env; set +a; cd /opt/cosmicray-v3/current && /opt/node-v22.23.4/bin/node scripts/admin.js admin-create あなたの運営名 --password-env OPPW'
 ```
 （隠しの入力は、手元では、パイプ渡しと環境変数の経路だけを試しました。`sudo -u` の下で、端末から入れる経路は、まだ一度も動かしていません。）
-入れたら、`https://cosmicray.accel-kitchen.com/admin` でログインできます。パスワードは **14 文字以上**で、他では使っていないものにしてください
+入れたら、`https://cosmicray.accel-kitchen.com/admin` でログインできます。パスワードは **8 文字以上**（英数字で構いません。名前を含めない）で、他では使っていないものにしてください
 （二段階認証はありません。操作はすべて記録に残り、画面から削除はできません）。見直し・確認は `admin.js audit` でも読めます。
 
 ## 決めたこと（2026-11-22）と、環境ファイルの設定

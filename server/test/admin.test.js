@@ -278,9 +278,11 @@ test('the admin command: creates an operator (password from the environment, nev
   try {
     const run = (args, env) => spawnSync(process.execPath, [path.join(__dirname, '..', 'scripts', 'admin.js'), ...args], {
       env: { ...process.env, JWT_SECRET: t.cfg.jwtSecret, DATA_DIR: t.dir, SCRYPT_N: '1024', ...env }, encoding: 'utf8', input: '' });
-    const short = run(['admin-create', 'ops-two', '--password-env', 'PW'], { PW: 'short' });
+    const short = run(['admin-create', 'ops-two', '--password-env', 'PW'], { PW: 'short12' });
     assert.notEqual(short.status, 0);
-    assert.match(short.stderr, /14\+ characters/);
+    assert.match(short.stderr, /8\+ characters/);
+    const plain = run(['admin-create', 'ops-plain', '--password-env', 'PW'], { PW: 'abcd1234' });      // exactly 8, letters and digits
+    assert.equal(plain.status, 0, plain.stderr);
     const withName = run(['admin-create', 'ops-two', '--password-env', 'PW'], { PW: 'xx-ops-two-xx-long-enough' });
     assert.notEqual(withName.status, 0);
     const ok = run(['admin-create', 'ops-two', '--password-env', 'PW'], { PW: 'this-is-long-enough-1' });

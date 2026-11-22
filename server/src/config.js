@@ -89,7 +89,7 @@ function loadConfig(env = process.env, overrides = {}) {
     scryptConcurrency: Math.max(1, Math.floor(Number(env.SCRYPT_CONCURRENCY || 2)) || 2),
     claimUrl: env.CLAIM_URL || 'https://cosmicray.accel-kitchen.com/claim',
     commit: env.GIT_COMMIT || readCommitFile(),
-    version: '0.3.1',
+    version: '0.3.2',
     // Largest accepted request body. Console events are ~300 bytes.
     bodyLimit: env.BODY_LIMIT || '32kb',
     ...overrides,

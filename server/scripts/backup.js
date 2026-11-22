@@ -11,7 +11,9 @@
 //   line; the next run replaces it.
 //
 // Where destDir lives (another disk, another machine) is the operator's choice.
-// Deleting a participant's data must also remove it from destDir: see the plan, Q-N12.
+// Deleting a participant's data must also remove it from destDir: see the plan, Q-N12. A deleted
+// station leaves events/ at the next run, waits 14 days in removed/, then is gone; the DB copies
+// rotate out after `--keep` runs (14 nights).
 const fs = require('fs');
 const path = require('path');
 const Database = require('better-sqlite3');
@@ -31,7 +33,32 @@ function mirror(src, dst) {
   return copied;
 }
 
-async function runBackup(dataDir, destDir, { keep = 14, now = () => new Date() } = {}) {
+// A station whose directory is gone from the data (the account was deleted) must go from the mirror too,
+// or "delete my account" would leave the measurements in the backup for ever. It is MOVED to removed/<stamp>/
+// first and dropped after `removedKeepDays`: if the data directory ever looks empty by mistake, the
+// backup is not wiped by the very next nightly run.
+function retire(srcEvents, dstEvents, removedDir, stamp, nowMs, removedKeepDays) {
+  let moved = 0;
+  if (fs.existsSync(dstEvents)) {
+    for (const e of fs.readdirSync(dstEvents, { withFileTypes: true })) {
+      if (!e.isDirectory() || fs.existsSync(path.join(srcEvents, e.name))) continue;
+      const to = path.join(removedDir, stamp);
+      fs.mkdirSync(to, { recursive: true });
+      fs.renameSync(path.join(dstEvents, e.name), path.join(to, e.name));
+      moved++;
+    }
+  }
+  let dropped = 0;
+  if (fs.existsSync(removedDir)) {
+    for (const e of fs.readdirSync(removedDir, { withFileTypes: true })) {
+      const p = path.join(removedDir, e.name);
+      if (nowMs - fs.statSync(p).mtimeMs > removedKeepDays * 24 * 3600 * 1000) { fs.rmSync(p, { recursive: true, force: true }); dropped++; }
+    }
+  }
+  return { moved, dropped };
+}
+
+async function runBackup(dataDir, destDir, { keep = 14, removedKeepDays = 14, now = () => new Date() } = {}) {
   const dbDir = path.join(destDir, 'db');
   fs.mkdirSync(dbDir, { recursive: true });
 
@@ -40,13 +67,16 @@ async function runBackup(dataDir, destDir, { keep = 14, now = () => new Date() }
   const src = new Database(path.join(dataDir, 'db.sqlite'), { readonly: true, fileMustExist: true });
   try { await src.backup(dbOut); } finally { src.close(); }
 
-  const copied = mirror(path.join(dataDir, 'events'), path.join(destDir, 'events'));
+  const srcEvents = path.join(dataDir, 'events');
+  const dstEvents = path.join(destDir, 'events');
+  const copied = mirror(srcEvents, dstEvents);
+  const gone = retire(srcEvents, dstEvents, path.join(destDir, 'removed'), stamp, now().getTime(), removedKeepDays);
 
   const snaps = fs.readdirSync(dbDir).filter((f) => /^db-.*\.sqlite$/.test(f)).sort();
   const drop = snaps.slice(0, Math.max(0, snaps.length - keep));
   for (const f of drop) fs.rmSync(path.join(dbDir, f));
 
-  return { db: dbOut, eventFilesCopied: copied, snapshotsKept: snaps.length - drop.length };
+  return { db: dbOut, eventFilesCopied: copied, snapshotsKept: snaps.length - drop.length, stationsRetired: gone.moved, retiredDropped: gone.dropped };
 }
 
 module.exports = { runBackup, mirror };
@@ -63,6 +93,6 @@ if (require.main === module) {
   }
   const cfg = loadConfig(process.env, { quiet: true });
   runBackup(cfg.dataDir, path.resolve(dest), { keep })
-    .then((r) => console.log(`backup ok: ${r.db}; event files copied: ${r.eventFilesCopied}; snapshots kept: ${r.snapshotsKept}`))
+    .then((r) => console.log(`backup ok: ${r.db}; event files copied: ${r.eventFilesCopied}; snapshots kept: ${r.snapshotsKept}; deleted stations set aside: ${r.stationsRetired}, dropped: ${r.retiredDropped}`))
     .catch((e) => { console.error('backup FAILED:', e.message); process.exit(1); });
 }

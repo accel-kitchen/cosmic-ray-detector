@@ -71,6 +71,36 @@ test('backup: only the newest N snapshots are kept', async () => {
   }
 });
 
+test('backup: a deleted station leaves the mirror (moved aside first, dropped after 14 days)', async () => {
+  const data = fs.mkdtempSync(path.join(os.tmpdir(), 'crd-bk-data-'));
+  const dest = fs.mkdtempSync(path.join(os.tmpdir(), 'crd-bk-dest-'));
+  try {
+    const { db } = seedData(data);
+    const day = (n) => new Date(Date.UTC(2026, 10, n, 1));
+    await runBackup(data, dest, { now: () => day(1) });
+    assert.ok(fs.existsSync(path.join(dest, 'events', 'sendai')));
+
+    fs.rmSync(path.join(data, 'events', 'sendai'), { recursive: true });       // what deleteAccount does
+    const r = await runBackup(data, dest, { now: () => day(2) });
+    assert.equal(r.stationsRetired, 1);
+    assert.ok(!fs.existsSync(path.join(dest, 'events', 'sendai')), 'no longer in the live mirror');
+    const aside = fs.readdirSync(path.join(dest, 'removed'));
+    assert.equal(aside.length, 1);
+    assert.ok(fs.existsSync(path.join(dest, 'removed', aside[0], 'sendai')), 'kept aside for a while, against a mistake');
+
+    // Real time decides the age of the folder (mtime), so age it by hand instead of waiting.
+    const old = new Date(Date.now() - 15 * 24 * 3600 * 1000);
+    fs.utimesSync(path.join(dest, 'removed', aside[0]), old, old);
+    const r2 = await runBackup(data, dest, { now: () => new Date() });
+    assert.equal(r2.retiredDropped, 1);
+    assert.equal(fs.readdirSync(path.join(dest, 'removed')).length, 0, 'gone for good');
+    db.close();
+  } finally {
+    fs.rmSync(data, { recursive: true, force: true });
+    fs.rmSync(dest, { recursive: true, force: true });
+  }
+});
+
 test('backup: refuses cleanly when there is no database', async () => {
   const data = fs.mkdtempSync(path.join(os.tmpdir(), 'crd-bk-empty-'));
   const dest = fs.mkdtempSync(path.join(os.tmpdir(), 'crd-bk-dest-'));
