@@ -28,6 +28,8 @@ function createMailer(cfg, deps = {}) {
       // IPv4 only: a relay that lets in "this machine's address" (no password) sees the address the
       // connection comes from, and this host has an IPv6 address too. Mixing the two ends in a refusal.
       family: 4,
+      // A proper host name in EHLO instead of whatever the machine is called (see config.js).
+      ...(s.name ? { name: s.name } : {}),
       connectionTimeout: 10000, greetingTimeout: 10000, socketTimeout: 20000,
     });
     return {

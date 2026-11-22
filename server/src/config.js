@@ -48,10 +48,17 @@ function loadConfig(env = process.env, overrides = {}) {
     throw new Error('REGISTRATION_OPEN in production needs an approved CONSENT_VERSION (not "draft...")');
   }
 
+  const publicUrl = (env.PUBLIC_URL || 'https://cosmicray.accel-kitchen.com').replace(/\/+$/, '');
+  // The name this server gives in EHLO. Left alone, nodemailer sends the machine's own name, and a name
+  // without a dot (this VPS is called "118-27-30-120") becomes "[127.0.0.1]": a loopback address literal
+  // from a public host, which a strict relay such as Google's may turn away. Default: the public host name.
+  let ehloName = String(env.SMTP_EHLO_NAME || '').trim();
+  if (!ehloName) { try { ehloName = new URL(publicUrl).hostname; } catch { ehloName = ''; } }
+
   const cfg = {
     production,
     // Where the links in mails point, and what the pages call themselves.
-    publicUrl: (env.PUBLIC_URL || 'https://cosmicray.accel-kitchen.com').replace(/\/+$/, ''),
+    publicUrl,
     // CLOSED by default. Open it only after the terms text is final (plan, Q-N2) and a real
     // mail has been delivered to the addresses participants use.
     registrationOpen,
@@ -73,6 +80,7 @@ function loadConfig(env = process.env, overrides = {}) {
         secure: flag(env.SMTP_SECURE),               // true = TLS from the start (port 465)
         user: env.SMTP_USER || '',
         pass: env.SMTP_PASS || '',                   // a secret: lives only in /etc/cosmicray/env
+        name: ehloName,                              // EHLO name (SMTP_EHLO_NAME, default: host of PUBLIC_URL)
       },
       perAddressPerDay: Math.max(1, Number(env.MAIL_PER_ADDRESS_PER_DAY || 5)),
       globalPerDay: Math.max(1, Number(env.MAIL_GLOBAL_PER_DAY || 300)),
@@ -93,7 +101,7 @@ function loadConfig(env = process.env, overrides = {}) {
     scryptConcurrency: Math.max(1, Math.floor(Number(env.SCRYPT_CONCURRENCY || 2)) || 2),
     claimUrl: env.CLAIM_URL || 'https://cosmicray.accel-kitchen.com/claim',
     commit: env.GIT_COMMIT || readCommitFile(),
-    version: '0.3.4',
+    version: '0.3.5',
     // Largest accepted request body. Console events are ~300 bytes.
     bodyLimit: env.BODY_LIMIT || '32kb',
     ...overrides,

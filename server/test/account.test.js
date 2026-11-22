@@ -500,6 +500,11 @@ test('mailer: smtp builds a plain-text message from the configured sender; outbo
   assert.equal(opts.requireTLS, false);                 // already TLS from the first byte
   assert.equal(opts.host, 'smtp.example.org');
   assert.equal(opts.family, 4, 'always IPv4: an IP-allowlisted relay must see the one address that was allowed');
+  // EHLO carries a real host name, not the machine's own (a dotless name would be sent as "[127.0.0.1]")
+  assert.equal(opts.name, 'cosmicray.accel-kitchen.com', 'default: the host of PUBLIC_URL');
+  { let o; const withName = loadConfig({ JWT_SECRET: 'x'.repeat(40), DATA_DIR: cfg.dataDir, MAIL_TRANSPORT: 'smtp', SMTP_EHLO_NAME: 'mail.example.org' }, { quiet: true });
+    createMailer(withName, { createTransport: (x) => { o = x; return { sendMail: async () => {} }; } });
+    assert.equal(o.name, 'mail.example.org', 'SMTP_EHLO_NAME overrides the default'); }
   // STARTTLS (port 587) must be REQUIRED for a remote server, and may be skipped only for this machine
   const starttls = (host) => { let o; createMailer({ ...cfg, mail: { ...cfg.mail, smtp: { ...cfg.mail.smtp, host, port: 587, secure: false } } },
     { createTransport: (x) => { o = x; return { sendMail: async () => {} }; } }); return o.requireTLS; };

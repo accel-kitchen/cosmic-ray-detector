@@ -131,7 +131,7 @@ cd /opt/cosmicray-v3/current && /opt/node-v22.23.4/bin/node --test "test/*.test.
 ### 6. VPS: 試験用の局
 試験用のパスワードは、画面に出さず、ファイルに書かせます。
 ```bash
-sudo -u cosmicray bash -c 'set -a; . /etc/cosmicray/env; set +a; cd /opt/cosmicray-v3/current && node scripts/seed-station.js acceptance-test'
+sudo -u cosmicray bash -c 'cd /opt/cosmicray-v3/current && /opt/node-v22.23.4/bin/node --env-file=/etc/cosmicray/env scripts/seed-station.js acceptance-test'
 sudo cat /var/lib/cosmicray/seed-acceptance-test.txt     # 手順 8 でログインするとき見る。終わったら消す
 ```
 
@@ -216,7 +216,7 @@ sudo systemctl restart cosmicray-v3
 **載せた直後の確認**
 
 - 初回の起動で、**既存のイベントから集計が自動で作られます**（ログに `built the statistics from N existing events`）。
-  手で作り直すときは `sudo -u cosmicray bash -c 'set -a; . /etc/cosmicray/env; set +a; cd /opt/cosmicray-v3/current && /opt/node-v22.23.4/bin/node scripts/rebuild-stats.js'`。
+  手で作り直すときは `sudo -u cosmicray bash -c 'cd /opt/cosmicray-v3/current && /opt/node-v22.23.4/bin/node --env-file=/etc/cosmicray/env scripts/rebuild-stats.js'`。
 - **地図は空のはずです**（`https://cosmicray.accel-kitchen.com/`）。既存の局（試験用の `acceptance-test` など）は、アップグレードでは掲載されません（`listed = 0`）。
   載せるときだけ、運営が `scripts/admin.js list-on <id>` を実行します。
 - ブラウザで、地図 → 局の名前 → ログイン → グラフ、の順に見る。
@@ -234,11 +234,11 @@ sudo systemctl restart cosmicray-v3
 
 **運営アカウントを作る**（VPS で。パスワードは、キーボードから入れます。コマンドの引数やチャットには書きません）:
 ```bash
-sudo -u cosmicray bash -c 'set -a; . /etc/cosmicray/env; set +a; cd /opt/cosmicray-v3/current && /opt/node-v22.23.4/bin/node scripts/admin.js admin-create あなたの運営名'
+sudo -u cosmicray bash -c 'cd /opt/cosmicray-v3/current && /opt/node-v22.23.4/bin/node --env-file=/etc/cosmicray/env scripts/admin.js admin-create あなたの運営名'
 ```
 キーボードからの入力（エコーなし）が使えない環境では、同じ `bash -c` の中で変数に読み込み、`--password-env` で渡します（履歴や `ps` には残りません）:
 ```bash
-sudo -u cosmicray bash -c 'read -rsp "password: " OPPW; echo; export OPPW; set -a; . /etc/cosmicray/env; set +a; cd /opt/cosmicray-v3/current && /opt/node-v22.23.4/bin/node scripts/admin.js admin-create あなたの運営名 --password-env OPPW'
+sudo -u cosmicray bash -c 'read -rsp "password: " OPPW; echo; export OPPW; cd /opt/cosmicray-v3/current && /opt/node-v22.23.4/bin/node --env-file=/etc/cosmicray/env scripts/admin.js admin-create あなたの運営名 --password-env OPPW'
 ```
 （隠しの入力は、手元では、パイプ渡しと環境変数の経路だけを試しました。`sudo -u` の下で、端末から入れる経路は、まだ一度も動かしていません。）
 入れたら、`https://cosmicray.accel-kitchen.com/admin` でログインできます。パスワードは **8 文字以上**（英数字で構いません。名前を含めない）で、他では使っていないものにしてください
@@ -268,8 +268,9 @@ sudo -u cosmicray bash -c 'read -rsp "password: " OPPW; echo; export OPPW; set -
 
 **送信の試験**（`/etc/cosmicray/env` を直したら、`sudo systemctl restart cosmicray-v3` の前に、1 通だけ）:
 ```bash
-sudo -u cosmicray bash -c 'set -a; . /etc/cosmicray/env; set +a; cd /opt/cosmicray-v3/current && /opt/node-v22.23.4/bin/node scripts/mail-test.js あなたのアドレス'
+sudo -u cosmicray bash -c 'cd /opt/cosmicray-v3/current && /opt/node-v22.23.4/bin/node --env-file=/etc/cosmicray/env scripts/mail-test.js あなたのアドレス'
 ```
+環境ファイルは、systemd と `node --env-file` が読む形式です。**シェルの `source` や `.` では読まないでください**（`MAIL_FROM=CosmicRay <info@…>` の `<` で構文エラーになり、その行から後ろが読まれません）。
 使っている設定（パスワードは出ません）と、結果が出ます。Gmail 以外にも、携帯キャリアと学校のアドレスで、届くか・迷惑メールに入らないかを確かめてください。
 
 **注意：自動掲載のとき**

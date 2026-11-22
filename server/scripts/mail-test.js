@@ -2,7 +2,9 @@
 // Sends ONE test message with the mail settings the server itself uses, so that delivery can be checked
 // before registration is opened. It prints what it used, never the password.
 //
-//   sudo -u cosmicray bash -c 'set -a; . /etc/cosmicray/env; set +a; cd /opt/cosmicray-v3/current && /opt/node-v22.23.4/bin/node scripts/mail-test.js you@example.org'
+//   sudo -u cosmicray bash -c 'cd /opt/cosmicray-v3/current && /opt/node-v22.23.4/bin/node --env-file=/etc/cosmicray/env scripts/mail-test.js you@example.org'
+//
+// (Do not `source` the env file in a shell: MAIL_FROM contains "<...>", which the shell reads as a redirect.)
 //
 // It does not touch the database and does not count against the daily mail budget.
 const { loadConfig } = require('../src/config');
