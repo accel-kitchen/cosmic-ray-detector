@@ -27,6 +27,10 @@
       <button type="button" class="secondary" data-days="365">1 年</button>
       <button type="button" class="secondary" data-days="3660">全期間</button>
     </div>
+    <div id="rangebox" class="rangebox hidden">
+      <div id="ovinfo" class="lead" aria-live="polite"></div>
+      <canvas id="overview" class="rangebar" role="img" aria-label="データのある日を色で示した帯。ドラッグして表示する期間を選べます（日付の欄からも選べます）"></canvas>
+    </div>
     <form id="range" class="range" aria-label="期間を日付で指定する">
       <label>から <input type="date" id="from" required></label>
       <label>まで <input type="date" id="to" required></label>
@@ -80,6 +84,7 @@
 </div></footer>
 <script src="/js/common.js"></script>
 <script src="/js/charts.js"></script>
+<script src="/js/rangebar.js"></script>
 <script src="/js/station.js"></script>
 </body>
 </html>

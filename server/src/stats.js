@@ -86,6 +86,12 @@ function dailySeries(db, station, sinceDay, untilDay = null) {
   return series(db, station, sinceDay, untilDay, 10).map(({ key, ...r }) => ({ day: key, ...r }));
 }
 
+// Events per UTC day, only the days that have data (for the overview bar).
+function dailyCounts(db, station, sinceDay) {
+  return db.prepare(`SELECT substr(hour, 1, 10) AS day, SUM(max_event - min_event + 1) AS count
+                       FROM stats_hourly WHERE station_id = ? AND hour >= ? GROUP BY day ORDER BY day`).all(station, sinceDay);
+}
+
 // How many different UTC hours hold data in the window (informational).
 function hoursWithData(db, station, sinceDay, untilDay = null) {
   return db.prepare(`SELECT COUNT(DISTINCT hour) AS n FROM stats_hourly
@@ -143,4 +149,4 @@ function rebuild(db, dataDir, station = null) {
   return n;
 }
 
-module.exports = { prepare, applyEvent, hourlySeries, dailySeries, hoursWithData, adcHistogram, rebuild, BIN_WIDTH, BINS };
+module.exports = { prepare, applyEvent, hourlySeries, dailySeries, dailyCounts, hoursWithData, adcHistogram, rebuild, BIN_WIDTH, BINS };

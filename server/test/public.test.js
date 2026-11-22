@@ -346,6 +346,28 @@ test('summary: data older than 30 days: a long window is one point per day, a da
   } finally { await t.close(); }
 });
 
+test('overview: the days that have data, for the pick-a-period bar; same visibility rules as the summary', async () => {
+  const t = await boot();
+  try {
+    const tok = await populate(t);                                    // 3 events on 2026-11-21 for "shown"
+    await send(t, tok.shown, 'shown', 'r5', [1, 2], { start: HOUR0 - 40 * 24 * 3600e3 });     // 2 events 40 days earlier
+    const other = await t.loginToken('hidden');
+    const r = await t.call('GET', '/stations/shown/overview', { token: other });
+    assert.equal(r.status, 200);
+    assert.equal(r.headers.get('cache-control'), 'private, no-store');
+    assert.equal(r.json.today, '2026-11-21');
+    assert.equal(r.json.first, '2026-10-12');
+    assert.equal(r.json.last, '2026-11-21');
+    assert.deepEqual(r.json.days, [['2026-10-12', 2], ['2026-11-21', 3]]);
+    assert.equal((await t.call('GET', '/stations/hidden/overview', { token: other })).json.days.length, 1, 'one\'s own station, even when not listed');
+    assert.equal((await t.call('GET', '/stations/hidden/overview', { token: tok.shown })).status, 404, 'not on the map: not there for others');
+    assert.equal((await t.call('GET', '/stations/shown/overview')).status, 401);
+    await t.seed('fresh'); t.inst.db.prepare("INSERT OR IGNORE INTO stations (id) VALUES ('fresh')").run();
+    const empty = await t.call('GET', '/stations/fresh/overview', { token: await t.loginToken('fresh') });
+    assert.equal(empty.json.first, null);
+  } finally { await t.close(); }
+});
+
 test('summary: reading is rate limited per user', async () => {
   const t = await boot({ limits: { read: { capacity: 3, refillPerSec: 0.001 } } });
   try {

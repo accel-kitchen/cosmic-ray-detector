@@ -16,6 +16,22 @@
   let days = 7;
   let range = null;                       // { from, to } when the person picked dates; otherwise the last `days` days
 
+  // The bar of days with data. Dragging on it picks a period (the same as the date boxes).
+  const bar = CRD.rangeBar($('overview'), {
+    onSelect: (from, to) => { range = { from, to }; load(); },
+    onInfo: (text) => { $('ovinfo').textContent = text || INFO_HINT; },
+  });
+  const INFO_HINT = '色の付いた日にデータがあります。ドラッグして、表示する期間を選べます。';
+  let overviewDone = false;
+  async function loadOverview() {
+    if (overviewDone) return;
+    overviewDone = true;
+    const r = await api('/stations/' + encodeURIComponent(id) + '/overview', { auth: true });
+    if (!r.ok || !r.json) { overviewDone = false; return; }
+    if (bar.load(r.json)) { $('rangebox').classList.remove('hidden'); $('ovinfo').textContent = INFO_HINT; bar.setWindow(onShow.from, onShow.to); }
+  }
+  let onShow = { from: null, to: null };
+
   const fmtLocal = (ms) => new Date(ms).toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 
   const DAYMS = 86400e3;
@@ -63,6 +79,9 @@
       stats.appendChild(stat(d.listed ? '載っている' : '載っていない', '公開地図への掲載'));
     }
 
+    onShow = { from: d.from, to: d.to };
+    bar.setWindow(d.from, d.to);
+    loadOverview();
     // Buttons and date boxes show what is on the screen now.
     document.querySelectorAll('.tabs button').forEach((b) => b.setAttribute('aria-pressed', String(!range && Number(b.dataset.days) === days)));
     $('from').value = d.from; $('to').value = d.to;
@@ -119,7 +138,7 @@
     range = { from: $('from').value, to: $('to').value };
     load();
   });
-  window.addEventListener('resize', () => { if (!$('content').classList.contains('hidden')) load(); });
+  window.addEventListener('resize', () => { if (!$('content').classList.contains('hidden')) { bar.redraw(); load(); } });
 
   if (!session()) needLogin(); else load();
 })();

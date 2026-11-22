@@ -95,18 +95,39 @@ function register(app, ctx) {
     });
   });
 
-  app.get('/stations/:id/summary', requireAuth, (req, res) => {
+  // The checks both station reads share: the rate limit, and who may look at which station. Answers the
+  // request itself and returns null when the read is refused.
+  function stationForRead(req, res) {
     const lr = lim.read.take(req.user.id);
-    if (!lr.ok) return tooMany(res, lr);
-
+    if (!lr.ok) { tooMany(res, lr); return null; }
     const id = String(req.params.id || '').trim().toLowerCase();
-    if (!STATION_ID.test(id)) return res.status(404).json({ error: 'Not found' });
+    if (!STATION_ID.test(id)) { res.status(404).json({ error: 'Not found' }); return null; }
     const row = oneStation.get(id);
     const mine = req.user.id === id;
     // A station that is not on the map does not exist for other people (404, not 403).
     if (!row || (!mine && !(row.listed === 1 && row.admin_hold === 0 && LIVE.includes(row.status)))) {
-      return res.status(404).json({ error: 'Not found' });
+      res.status(404).json({ error: 'Not found' });
+      return null;
     }
+    return { id, row, mine };
+  }
+
+  // The whole history in one small answer: [day, events] for every UTC day that has data (at most the last
+  // MAX_DAYS days). The station page draws its "pick a period" bar from it.
+  app.get('/stations/:id/overview', requireAuth, (req, res) => {
+    const st = stationForRead(req, res);
+    if (!st) return;
+    const today = new Date(now()).toISOString().slice(0, 10);
+    const since = new Date(now() - (MAX_DAYS - 1) * DAY).toISOString().slice(0, 10);
+    const days = stats.dailyCounts(db, st.id, since).map((r) => [r.day, r.count]);
+    res.set('Cache-Control', 'private, no-store');
+    res.json({ id: st.id, today, first: days.length ? days[0][0] : null, last: days.length ? days[days.length - 1][0] : null, days });
+  });
+
+  app.get('/stations/:id/summary', requireAuth, (req, res) => {
+    const st = stationForRead(req, res);
+    if (!st) return;
+    const { id, row, mine } = st;
 
     // The window: `days` (the last N days, 1..MAX_DAYS, default 7) or `from` and `to` (UTC dates, to defaults to
     // today). Up to 31 days it is one point per hour; longer, one point per UTC day (so a year is 365 points).
