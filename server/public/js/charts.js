@@ -1,7 +1,7 @@
 /* Small canvas charts: a line chart (with gaps where there is no data) and a bar chart.
  * Written here instead of pulling in a charting library: nothing third-party runs on these pages,
  * and a station's data never reaches any outside code. Colours come from the page's CSS variables,
- * so light and dark follow the page. */
+ * so the charts follow the page theme. */
 (function () {
   'use strict';
 
@@ -62,7 +62,7 @@
     const t0 = points[0].t, t1 = points[points.length - 1].t || t0 + 1;
     const X = (t) => pad.l + ((t - t0) / Math.max(1, t1 - t0)) * (w - pad.l - pad.r);
     const Y = (y) => pad.t + (1 - (y - lo) / Math.max(1e-9, hi - lo)) * (h - pad.t - pad.b);
-    ctx.strokeStyle = color || css('--accent', '#0b7a8a'); ctx.lineWidth = 2; ctx.lineJoin = 'round';
+    ctx.strokeStyle = color || css('--signal', '#2E8BA0'); ctx.lineWidth = 2; ctx.lineJoin = 'round';
     ctx.beginPath();
     let pen = false;
     for (const p of points) {
@@ -89,7 +89,7 @@
     const hi = niceMax(max);
     const pad = frame(ctx, w, h, 0, hi, yLabel);
     const bw = (w - pad.l - pad.r) / values.length;
-    ctx.fillStyle = color || css('--accent', '#0b7a8a');
+    ctx.fillStyle = color || css('--signal', '#2E8BA0');
     values.forEach((v, i) => {
       const bh = (v / hi) * (h - pad.t - pad.b);
       ctx.fillRect(pad.l + i * bw + 0.5, h - pad.b - bh, Math.max(1, bw - 1), bh);

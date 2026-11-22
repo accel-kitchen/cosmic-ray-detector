@@ -122,3 +122,10 @@ test('pages: the operator page calls only routes that exist under /admin-api, an
   assert.ok(page.includes("'crd_admin_session'") && !fs.readFileSync(path.join(PUBLIC, 'js', 'common.js'), 'utf8').includes('crd_admin_session'));
   assert.ok(!/innerHTML|outerHTML|insertAdjacentHTML|document\.write|eval\(/.test(page), 'text only');
 });
+
+test('pages: the stylesheet is light only (no dark mode), whatever the browser prefers', () => {
+  const css = fs.readFileSync(path.join(PUBLIC, 'css', 'site.css'), 'utf8');
+  assert.ok(!/prefers-color-scheme/.test(css), 'no dark-mode media query');
+  assert.ok(/color-scheme:\s*light/.test(css), 'the browser is told the page is light (form controls, scrollbars)');
+  assert.ok(/--paper:\s*#FAF6EB/i.test(css), 'the main site cream');
+});
