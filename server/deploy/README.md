@@ -164,6 +164,16 @@ bash smoke.sh
 5. あなたの Chrome で、`file://` で開いた Console からも、間違ったパスワードで「Invalid credentials」が出ること（`Origin: null`）。
 
 ### 9. バックアップ
+**一括で入れるなら**（下の手作業と同じことを、確認つきでやります。何度実行してもかまいません）:
+```bash
+cd /tmp/deploy && sudo bash ./install-backup.sh
+```
+別のディスクに置くなら `sudo BACKUP_DIR=/mnt/…/cosmicray bash ./install-backup.sh`。既定の `/var/backups/cosmicray` は**本体と同じディスク**なので、
+消し間違い・不具合のあるリリース・DB の破損には効きますが、ディスクごと失うのには効きません。別のマシンへのコピー（`rsync` など）は、別途、決めてから足します。
+スクリプトは、入れた直後に 1 回実行し、最新の DB の控えが開けること（整合性・スキーマ）と、`events/` のファイル数が合うことまで確かめます。
+手元では、スタブの `systemctl` などで流れだけ確かめました（実際の systemd での実行は、これが最初です）。
+
+手作業で入れる場合:
 保存先は、**別のディスクか別のマシン**が望ましいです（決めてください）。決まったら `cosmicray-v3-backup.service` の 2 か所のパスを直して入れます。
 ```bash
 sudo cp cosmicray-v3-backup.service cosmicray-v3-backup.timer /etc/systemd/system/
