@@ -78,6 +78,7 @@ function loadConfig(env = process.env, overrides = {}) {
     dataDir: path.resolve(env.DATA_DIR || path.join(__dirname, '..', 'data')),
     jwtSecret,
     tokenTtlSec: Number(env.TOKEN_TTL_S || 24 * 3600),
+    adminTokenTtlSec: Number(env.ADMIN_TOKEN_TTL_S || 2 * 3600),     // an operator signs in again after 2 hours
     // scrypt work factor. 2^17 with r=8, p=1 is the OWASP minimum when Argon2id
     // is not available (it needs ~128 MiB per hash; see password.js for the cap
     // on concurrent hashes). New hashes carry their own parameters, so this can
@@ -88,7 +89,7 @@ function loadConfig(env = process.env, overrides = {}) {
     scryptConcurrency: Math.max(1, Math.floor(Number(env.SCRYPT_CONCURRENCY || 2)) || 2),
     claimUrl: env.CLAIM_URL || 'https://cosmicray.accel-kitchen.com/claim',
     commit: env.GIT_COMMIT || readCommitFile(),
-    version: '0.2.1',
+    version: '0.3.0',
     // Largest accepted request body. Console events are ~300 bytes.
     bodyLimit: env.BODY_LIMIT || '32kb',
     ...overrides,

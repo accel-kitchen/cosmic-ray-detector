@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const Database = require('better-sqlite3');
 
-const SCHEMA_VERSION = 2;
+const SCHEMA_VERSION = 3;
 
 // Forward-only migrations keyed on PRAGMA user_version. Never edit a step that has
 // shipped: add a new one. (Step 0 -> 1 shipped in server-v0.1.0.)
@@ -120,6 +120,41 @@ const MIGRATIONS = [
     n          INTEGER NOT NULL,
     PRIMARY KEY (station_id, day, bin)
   ) WITHOUT ROWID;
+  `,
+
+  // 2 -> 3: operator tools (a web page and the CLI share them).
+  `
+  -- Operators are NOT stations: they have their own table, never appear on the map, never upload, and
+  -- their login (POST /admin/login) issues a token that the station routes refuse (and vice versa).
+  CREATE TABLE admins (
+    name          TEXT PRIMARY KEY,
+    password_hash TEXT NOT NULL,
+    status        TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active','disabled')),
+    token_version INTEGER NOT NULL DEFAULT 0,
+    created_at    TEXT NOT NULL
+  );
+
+  -- Who did what, when. No foreign keys, so a row survives the deletion of the station it is about,
+  -- and no e-mail address or description text is ever written here: only names, ids and fixed words.
+  CREATE TABLE admin_audit (
+    id     INTEGER PRIMARY KEY,
+    at     TEXT NOT NULL,
+    actor  TEXT NOT NULL,           -- an admin name, or 'cli' for a command run on the server
+    action TEXT NOT NULL,
+    target TEXT,                    -- a station id
+    detail TEXT                     -- a short fixed word, never user text
+  );
+  CREATE INDEX admin_audit_at ON admin_audit(at);
+
+  -- An operator took the station off the map: neither the owner's own switch nor the automatic
+  -- listing at confirmation may put it back. Only an operator lists it again.
+  ALTER TABLE stations ADD COLUMN admin_hold         INTEGER NOT NULL DEFAULT 0;
+  -- An operator hid the owner's introduction text. An edit by the owner does not clear it.
+  ALTER TABLE stations ADD COLUMN description_hidden INTEGER NOT NULL DEFAULT 0;
+
+  -- The status an account had before an operator disabled it, so enabling it again does not
+  -- skip e-mail confirmation (NULL for accounts disabled before this column existed).
+  ALTER TABLE users ADD COLUMN prev_status TEXT;
   `,
 ];
 

@@ -226,6 +226,19 @@ sudo systemctl restart cosmicray-v3
 `deploy.sh` が自動で戻した場合も、手で戻した場合も、**新しい版が DB に書いたもの（登録・トークンなど）は戻った DB に入っていません。**
 測定データのファイル（`events/`）は、触られていません。控えは `/var/backups/cosmicray/pre-deploy/` に 10 件まで残ります。
 
+## server-v0.3.0 を載せるとき（運営の画面）
+
+0.3.0 は、スキーマを **2 → 3** にします（運営用のテーブルと、地図の「保留」・紹介文の「非表示」の列）。0.2.x と同じように、`deploy.sh` が切り替えの前に DB の控えを取り、
+健全性の確認に失敗したら控えを戻します。展開は `sudo bash ./deploy.sh tarball /tmp/server-v0.3.0.tar.gz server-v0.3.0`、そのあと `bash smoke.sh`（新しい 10 番が通ること）。
+`/etc/cosmicray/env` は変えなくて構いません。
+
+**運営アカウントを作る**（VPS で。パスワードは、キーボードから入れます。コマンドの引数やチャットには書きません）:
+```bash
+sudo -u cosmicray bash -c 'set -a; . /etc/cosmicray/env; set +a; cd /opt/cosmicray-v3/current && /opt/node-v22.23.4/bin/node scripts/admin.js admin-create あなたの運営名'
+```
+入れたら、`https://cosmicray.accel-kitchen.com/admin` でログインできます。パスワードは **14 文字以上**で、他では使っていないものにしてください
+（二段階認証はありません。操作はすべて記録に残り、画面から削除はできません）。見直し・確認は `admin.js audit` でも読めます。
+
 ## 決めたこと（2026-11-22）と、環境ファイルの設定
 
 | 項目 | 決定 | 設定 |

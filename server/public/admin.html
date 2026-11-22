@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>運営の画面 | CosmicRay 観測ネットワーク</title>
+<link rel="stylesheet" href="/css/site.css">
+</head>
+<body>
+<header class="site"><div class="bar"><span class="brand">CosmicRay 観測ネットワーク ・ 運営</span></div></header>
+<main>
+  <h1>運営の画面</h1>
+  <div id="gate" class="card hidden">
+    <h2>運営のログイン</h2>
+    <form id="login" class="stack" novalidate>
+      <label>運営の名前<input id="a-name" type="text" autocomplete="username" required maxlength="32"></label>
+      <label>パスワード<input id="a-pw" type="password" autocomplete="current-password" required maxlength="256"></label>
+      <div class="row"><button id="a-go" type="submit">ログイン</button></div>
+      <div id="login-msg"></div>
+    </form>
+    <p class="lead">この画面は、運営だけのものです。参加者の局のログインとは別の名前・パスワードを使います。2 時間たつと、自動でログアウトします。</p>
+  </div>
+
+  <div id="app" class="hidden">
+    <div class="row">
+      <span id="who"></span>
+      <button id="logout" type="button" class="secondary">ログアウト</button>
+    </div>
+    <div id="msg"></div>
+    <div class="tabs">
+      <button id="tab-list" type="button">局の一覧</button>
+      <button id="tab-audit" type="button" class="secondary">操作の記録</button>
+    </div>
+
+    <section id="pane-list">
+      <div class="note">一覧には、メールアドレスは出ません。局の名前を押すと詳細に出ます（見たことは、記録に残ります）。削除はこの画面にはありません（サーバーで <code>admin.js delete</code>）。</div>
+      <form id="search" class="row" novalidate>
+        <input id="q" type="text" maxlength="32" placeholder="局 ID で絞り込む" aria-label="局 ID で絞り込む">
+        <button type="submit">探す</button>
+      </form>
+      <p id="count" class="lead"></p>
+      <div class="card"><table class="data admin" id="stations"></table></div>
+      <div class="row"><button id="more" type="button" class="secondary hidden">さらに表示</button></div>
+      <div id="detail" class="card hidden"></div>
+    </section>
+
+    <section id="pane-audit" class="hidden">
+      <div class="card"><table class="data admin" id="audit"></table></div>
+    </section>
+  </div>
+</main>
+<footer class="site">加速キッチン ・ 運営用</footer>
+<script src="/js/common.js"></script>
+<script src="/js/admin.js"></script>
+</body>
+</html>

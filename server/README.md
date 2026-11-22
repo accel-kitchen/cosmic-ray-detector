@@ -49,15 +49,34 @@ $env:MY_PW = "..."; node scripts/seed-station.js my-station --password-env MY_PW
 
 Station ids are 3-32 characters of `a-z 0-9 _ -` (also the directory name, so this is the path-safety check).
 
+## Operator page (`/admin`)
+
+A web page for the operator: list the stations, open one (this is where the e-mail address is shown, and looking is logged),
+put a station on / take it off the map, hide an introduction text, disable / enable an account, and read the audit log.
+**No delete on the page**: removing an account and its measurements cannot be undone, so it stays `scripts/admin.js delete <id> --yes`.
+
+- Operators are **not stations**: their own table (`admins`), created only with `scripts/admin.js admin-create <name>` on the server
+  (the password is asked for with the keyboard echo off, or read from stdin or `--password-env`; never from the command line; 14+ characters).
+- Sign in at `/admin-api/login` (the page does it). The token carries `typ: "admin"`; every station route refuses it and the operator routes refuse a station token.
+  It lasts 2 hours (`ADMIN_TOKEN_TTL_S`). Operator state is read from the database on every request, so disabling an operator or changing the password ends their sessions at once.
+- Password only (no second factor) was the owner's choice. What limits the damage: strict per-address and per-name login limits, a short token, no web delete,
+  and the audit log. Use a long, unique password.
+- "Off the map" is a **hold**: the owner and the automatic listing cannot put the station back; only an operator can. Hiding the introduction text also survives the owner editing it.
+- The audit log (`admin_audit`) holds who (an operator name or `cli`), when, what and which station id. Never an e-mail address or description text.
+
 ## Operator commands
 
 ```powershell
 node scripts/admin.js list                      # who is registered, what is on the public map
-node scripts/admin.js list-on <id>              # put a station on the public map (needs an active account and a position)
-node scripts/admin.js list-off <id>
-node scripts/admin.js disable <id> | enable <id>
-node scripts/admin.js delete <id> --yes         # the account and ALL its data
+node scripts/admin.js list-on <id>              # put a station on the public map (needs an active account and a position; clears a hold)
+node scripts/admin.js list-off <id>             # off the map AND held there: the owner cannot switch it back on
+node scripts/admin.js hide-description <id>     # hide the owner's introduction text from other people (show-description undoes it)
+node scripts/admin.js disable <id> | enable <id>   # enable restores the earlier status: it never skips e-mail confirmation
+node scripts/admin.js delete <id> --yes         # the account and ALL its data (CLI only: there is no delete on the web page)
 node scripts/admin.js prune-unverified
+node scripts/admin.js admin-create <name>       # an operator account for the /admin page (password asked for, hidden; 14+ characters)
+node scripts/admin.js admin-password <name> | admin-disable <name> | admin-enable <name> | admin-list
+node scripts/admin.js audit [N]                 # the last N operator actions (page and command line alike)
 node scripts/rebuild-stats.js [id]              # rebuild the graph statistics from the JSONL files
 node scripts/backup.js <destDir> [--keep N]     # SQLite snapshot + events mirror
 node scripts/db-snapshot.js snapshot|restore|version ...   # used by deploy.sh around a release switch

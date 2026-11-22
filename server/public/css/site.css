@@ -77,3 +77,11 @@ table.data th:first-child, table.data td:first-child { text-align: left; }
 
 /* leaflet bits we rely on */
 .leaflet-container { font: inherit; }
+
+/* operator page */
+table.admin th, table.admin td { text-align: left; vertical-align: top; }
+.badge { display: inline-block; margin-right: 6px; padding: 0 8px; border-radius: 999px; border: 1px solid var(--line); font-size: .8rem; }
+.badge.ok { border-color: var(--ok); color: var(--ok); }
+.badge.warn { border-color: var(--warn); color: var(--warn); }
+#detail dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 16px; margin: 0 0 12px; }
+#detail dt { font-weight: 600; } #detail dd { margin: 0; overflow-wrap: anywhere; }

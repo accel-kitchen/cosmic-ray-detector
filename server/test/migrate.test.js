@@ -74,3 +74,31 @@ test('the email column is unique when set, and many accounts may have none', () 
     db.close();
   } finally { fs.rmSync(dir, { recursive: true, force: true }); }
 });
+
+test('migration 2 -> 3 (operator tools) keeps a deployed 0.2.x database and adds safe defaults', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'crd-mig-'));
+  try {
+    const raw = new Database(path.join(dir, 'db.sqlite'));
+    raw.pragma('journal_mode = WAL');
+    raw.exec(MIGRATIONS[0]); raw.exec(MIGRATIONS[1]);
+    raw.pragma('user_version = 2');
+    raw.prepare("INSERT INTO users (id,password_hash,status,created_at,email,email_verified_at,created_via) VALUES ('osaka','h','active','2026-11-22T00:00:00Z','o@example.org','2026-11-22T00:01:00Z','register')").run();
+    raw.prepare("INSERT INTO users (id,password_hash,status,created_at) VALUES ('frozen','h','disabled','2026-11-22T00:00:00Z')").run();
+    raw.prepare("INSERT INTO stations (id,lat_grid,lon_grid,listed,public_description,event_count) VALUES ('osaka',34.65,135.55,1,'hello',7)").run();
+    raw.close();
+
+    const db = openDb(dir);
+    assert.equal(db.pragma('user_version', { simple: true }), 3);
+    const s = db.prepare("SELECT * FROM stations WHERE id='osaka'").get();
+    assert.equal(s.listed, 1, 'what was on the map stays on the map');
+    assert.equal(s.admin_hold, 0);
+    assert.equal(s.description_hidden, 0);
+    assert.equal(s.public_description, 'hello');
+    assert.equal(db.prepare("SELECT prev_status FROM users WHERE id='frozen'").get().prev_status, null);
+    assert.equal(db.prepare('SELECT COUNT(*) n FROM admins').get().n, 0, 'nobody becomes an operator by upgrading');
+    assert.equal(db.prepare('SELECT COUNT(*) n FROM admin_audit').get().n, 0);
+    // the audit table has no foreign key, so a row outlives the station it names
+    assert.equal(db.prepare("PRAGMA foreign_key_list('admin_audit')").all().length, 0);
+    db.close();
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+});

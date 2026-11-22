@@ -120,5 +120,16 @@ else
 fi
 if printf '%s' "$cfgj" | grep -q '"tile":null'; then pass "no map tiles: nothing is sent to a map service"; else echo "  INFO  a map-tile provider is configured: viewers' addresses reach it (plan, Q-N8)"; fi
 
+echo "10. The operator page and API: the page is served, and the API refuses a visitor"
+oh=$(curl -sS -m 10 -D - -o /dev/null "$BASE/admin")
+if printf '%s' "$oh" | head -1 | grep -q 200 && printf '%s' "$oh" | grep -qi "x-robots-tag: noindex" && printf '%s' "$oh" | grep -qi "script-src 'self'"; then
+  pass "/admin -> 200, noindex, script-src 'self'"
+else fail "/admin: unexpected headers: $(printf '%s' "$oh" | head -3 | tr -d '' | tr '
+' ' ')"; fi
+for p in /admin-api/me /admin-api/stations /admin-api/audit; do
+  c=$(curl -sS -m 10 -o /dev/null -w "%{http_code}" "$BASE$p")
+  if [ "$c" = 401 ]; then pass "$p without a login -> 401"; else fail "$p without a login -> $c (want 401)"; fi
+done
+
 echo
 if [ "$FAILS" -eq 0 ]; then echo "RESULT: all checks passed (now do the real-browser test)"; else echo "RESULT: $FAILS failure(s)"; exit 1; fi

@@ -44,6 +44,7 @@ function register(app, ctx) {
     dotfiles: 'ignore',
     setHeaders(res, file) {
       if (file.endsWith('.html')) pageHeaders(res);
+      if (file.endsWith('admin.html')) res.setHeader('X-Robots-Tag', 'noindex');     // the operator page is not for search engines
       else if (/[\\/]vendor[\\/]/.test(file)) res.setHeader('Cache-Control', 'public, max-age=86400');
       else res.setHeader('Cache-Control', 'no-cache');
     },

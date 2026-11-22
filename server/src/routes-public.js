@@ -48,14 +48,16 @@ function register(app, ctx) {
   const { cfg, db, now, requireAuth, lim, tooMany, STATION_ID } = ctx;
 
   const listed = db.prepare(`
-    SELECT s.id, s.lat_grid, s.lon_grid, s.public_description, s.last_seen_utc
+    SELECT s.id, s.lat_grid, s.lon_grid,
+           CASE WHEN s.description_hidden = 1 THEN NULL ELSE s.public_description END AS public_description,
+           s.last_seen_utc
       FROM stations s JOIN users u ON u.id = s.id
-     WHERE u.status = 'active' AND s.listed = 1
+     WHERE u.status = 'active' AND s.listed = 1 AND s.admin_hold = 0
        AND s.lat_grid IS NOT NULL AND s.lon_grid IS NOT NULL
      ORDER BY s.id`);
 
   const oneStation = db.prepare(`
-    SELECT s.id, s.listed, s.public_description, s.last_seen_utc, s.event_count, u.status
+    SELECT s.id, s.listed, s.admin_hold, s.description_hidden, s.public_description, s.last_seen_utc, s.event_count, u.status
       FROM stations s JOIN users u ON u.id = s.id WHERE s.id = ?`);
 
   app.get('/config.json', (req, res) => {
@@ -91,7 +93,7 @@ function register(app, ctx) {
     const row = oneStation.get(id);
     const mine = req.user.id === id;
     // A station that is not on the map does not exist for other people (404, not 403).
-    if (!row || (!mine && !(row.listed === 1 && row.status === 'active'))) {
+    if (!row || (!mine && !(row.listed === 1 && row.admin_hold === 0 && row.status === 'active'))) {
       return res.status(404).json({ error: 'Not found' });
     }
 
@@ -103,7 +105,8 @@ function register(app, ctx) {
       id,
       days,
       mine,
-      description: row.public_description || null,
+      // An operator can hide the text from other people. The owner still sees their own text.
+      description: (row.description_hidden === 1 && !mine ? null : row.public_description) || null,
       activity: activity(row.last_seen_utc, nowMs),
       hourly,
       adc: stats.adcHistogram(db, id, since.slice(0, 10)),
@@ -111,7 +114,8 @@ function register(app, ctx) {
     };
     if (mine) {                             // the owner sees their own exact figures
       body.last_seen_utc = row.last_seen_utc;
-      body.listed = row.listed === 1;
+      body.listed = row.listed === 1 && row.admin_hold === 0;
+      body.description_hidden = row.description_hidden === 1;
       body.event_count = row.event_count;
     }
     res.set('Cache-Control', 'private, no-store');

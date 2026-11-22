@@ -89,7 +89,7 @@ function register(app, ctx) {
     useToken: db.prepare('UPDATE auth_tokens SET used_at = ? WHERE id = ? AND used_at IS NULL'),
     voidTokens: db.prepare('UPDATE auth_tokens SET used_at = ? WHERE user_id = ? AND kind = ? AND used_at IS NULL'),
     activate: db.prepare(`UPDATE users SET status = 'active', email_verified_at = COALESCE(email_verified_at, ?) WHERE id = ? AND status = 'pending_email'`),
-    autoList: db.prepare('UPDATE stations SET listed = 1 WHERE id = ?'),
+    autoList: db.prepare('UPDATE stations SET listed = 1 WHERE id = ? AND admin_hold = 0'),
     setPassword: db.prepare('UPDATE users SET password_hash = ?, token_version = token_version + 1 WHERE id = ?'),
     station: db.prepare('SELECT * FROM stations WHERE id = ?'),
     setProfile: db.prepare('UPDATE stations SET public_description = ? WHERE id = ?'),
@@ -299,6 +299,8 @@ function register(app, ctx) {
       consent_at: u.consent_at || null,
       listed: s.listed === 1,
       listing_needs_approval: !cfg.autoListOnVerify,
+      held_by_operator: s.admin_hold === 1,            // an operator took it off the map: only an operator can list it again
+      description_hidden: s.description_hidden === 1,  // an operator hid the introduction text from other people
       public_description: s.public_description || null,
       station: { lat: s.lat_grid ?? null, lon: s.lon_grid ?? null, event_count: s.event_count || 0, last_seen_utc: s.last_seen_utc || null },
     });
@@ -321,6 +323,9 @@ function register(app, ctx) {
         return fail(res, 403, 'needs_approval', '地図への掲載は、運営の確認が必要です。運営にご連絡ください。', 'listing needs approval');
       }
       q.insertStation.run(req.user.id);
+      if (b.listed && (q.station.get(req.user.id) || {}).admin_hold === 1) {
+        return fail(res, 403, 'held_by_operator', '運営が、この局を地図から外しています。運営にご連絡ください。', 'held by an operator');
+      }
       q.setListed.run(b.listed ? 1 : 0, req.user.id);          // taking oneself OFF the map is always allowed
       out.listed = b.listed;
     }

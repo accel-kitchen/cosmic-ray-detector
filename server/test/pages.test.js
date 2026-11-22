@@ -103,10 +103,22 @@ test('pages: files outside public/ cannot be read through the static handler', a
 test('pages: the map and graph pages use only the API endpoints that exist', () => {
   const used = new Set();
   for (const f of jsFiles()) {
+    if (f === 'admin.js') continue;                       // the operator page has its own api() under /admin-api (next test)
     const src = fs.readFileSync(path.join(PUBLIC, 'js', f), 'utf8');
     for (const m of src.matchAll(/api\(\s*['"`]([^'"`?$]+)/g)) used.add(m[1].replace(/\/$/, ''));
   }
   const known = ['/public/stations', '/stations', '/auth/login', '/auth/register', '/auth/verify-email', '/auth/forgot', '/auth/reset',
                  '/auth/resend-verify', '/me', '/me/profile', '/me/password', '/me/delete', '/me/export', '/me/events'];
   for (const u of used) assert.ok(known.some((k) => u === k || u.startsWith(k)), `unknown endpoint used by a page: ${u}`);
+});
+
+test('pages: the operator page calls only routes that exist under /admin-api, and keeps its own session key', () => {
+  const page = fs.readFileSync(path.join(PUBLIC, 'js', 'admin.js'), 'utf8');
+  const routes = fs.readFileSync(path.join(__dirname, '..', 'src', 'routes-admin.js'), 'utf8');
+  const used = new Set();
+  for (const m of page.matchAll(/api\(\s*['"`](\/[a-z]+)/g)) used.add(m[1]);
+  assert.ok(used.size >= 3, 'login, stations and audit are used');
+  for (const u of used) assert.ok(routes.includes(`'/admin-api${u}`), `no route for ${u}`);
+  assert.ok(page.includes("'crd_admin_session'") && !fs.readFileSync(path.join(PUBLIC, 'js', 'common.js'), 'utf8').includes('crd_admin_session'));
+  assert.ok(!/innerHTML|outerHTML|insertAdjacentHTML|document\.write|eval\(/.test(page), 'text only');
 });

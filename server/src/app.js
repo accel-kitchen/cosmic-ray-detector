@@ -11,6 +11,7 @@ const routesPublic = require('./routes-public');
 const pages = require('./pages');
 const stats = require('./stats');
 const routesAccount = require('./routes-account');
+const routesAdmin = require('./routes-admin');
 const { createMailer } = require('./mailer');
 const { pruneUnverified } = require('./accounts');
 
@@ -39,6 +40,11 @@ const DEFAULT_LIMITS = {
   token:    { capacity: 20,   refillPerSec: 0.1 },       // verify / reset link submissions per client address
   me:       { capacity: 60,   refillPerSec: 1 },         // account page requests per user
   secret:   { capacity: 5,    refillPerSec: 0.05 },      // password change / account deletion per user (each costs a hash)
+  // Operator login: stricter than the station login, because this account can change what everyone sees.
+  adminLoginIp:   { capacity: 5,   refillPerSec: 0.05 },  // every attempt, per client address (5, then one per 20 s)
+  adminLoginPair: { capacity: 3,   refillPerSec: 0.02 },  // failed attempts, per (name, client address)
+  adminLoginName: { capacity: 30,  refillPerSec: 0.1 },   // failed attempts, per name, all addresses together
+  admin:          { capacity: 120, refillPerSec: 2 },     // requests per logged-in operator
 };
 
 async function createApp(cfg, { now = Date.now, ...deps } = {}) {
@@ -127,6 +133,9 @@ async function createApp(cfg, { now = Date.now, ...deps } = {}) {
     } catch (e) {
       return res.status(401).json({ error: e.name === 'TokenExpiredError' ? 'Token expired' : 'Invalid token', code: 'token_invalid' });
     }
+    // An operator token (typ: 'admin') is for /admin routes only. Its subject is an operator name, which
+    // could equal a station id, so it must never be looked up as a station.
+    if (p.typ) return res.status(401).json({ error: 'Invalid token', code: 'token_invalid' });
     const user = typeof p.sub === 'string' ? q.user.get(p.sub) : undefined;
     if (!user || user.token_version !== p.ver) return res.status(401).json({ error: 'Token revoked', code: 'token_invalid' });
     if (user.status !== 'active') return res.status(403).json({ error: 'This account is not active' });
@@ -240,6 +249,7 @@ async function createApp(cfg, { now = Date.now, ...deps } = {}) {
                 hashPassword, verifyPassword, dummyHash, STATION_ID, mailer };
   routesPublic.register(app, ctx);
   routesAccount.register(app, ctx);
+  routesAdmin.register(app, ctx);
   pages.register(app, ctx);
 
   // --- fallbacks (JSON, and still behind the CORS middleware) --------------------
