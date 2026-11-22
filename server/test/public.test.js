@@ -155,12 +155,56 @@ test('public map: only active, listed stations with a position appear', async ()
     assert.equal(r.status, 200);
     assert.deepEqual(r.json.stations.map((s) => s.id), ['shown']);
     const s = r.json.stations[0];
-    assert.deepEqual(Object.keys(s).sort(), ['activity', 'description', 'id', 'lat', 'lon']);
+    assert.deepEqual(Object.keys(s).sort(), ['activity', 'description', 'id', 'lat', 'legacy', 'lon']);
+    assert.equal(s.legacy, false);
     assert.equal(s.lat, 35.65);
     assert.equal(s.lon, 139.75);
     assert.equal(s.description, 'Hello <b>world</b> from a rooftop', 'stored as plain text; the page must show it with textContent');
     assert.match(r.headers.get('cache-control'), /public/);
     assert.equal(r.headers.get('access-control-allow-origin'), '*');
+  } finally { await t.close(); }
+});
+
+test('public map: a reserved station of the old server can be on the map, marked as such; a hold keeps it off', async () => {
+  const t = await boot();
+  try {
+    await populate(t);
+    const db = t.inst.db;
+    const run = (...args) => spawnSync(process.execPath, [path.join(__dirname, '..', 'scripts', 'admin.js'), ...args], {
+      encoding: 'utf8', env: { ...process.env, DATA_DIR: t.dir, JWT_SECRET: 'test-secret-' + 'x'.repeat(40) },
+    });
+    for (const id of ['old-a', 'old-b', 'old-c', 'old-nopos']) {
+      await t.seed(id, 'legacy_unclaimed');
+      db.prepare('INSERT OR IGNORE INTO stations (id) VALUES (?)').run(id);
+    }
+    db.prepare("UPDATE stations SET lat_grid = 36.15, lon_grid = 140.25, last_seen_utc = '2025-09-01T00:00:00.000Z' WHERE id IN ('old-a','old-b','old-c')").run();
+
+    assert.deepEqual((await t.call('GET', '/public/stations')).json.stations.map((s) => s.id), ['shown'], 'reserved stations start off the map');
+    assert.equal(run('list-on', 'old-nopos').status, 2, 'no position: cannot be listed');
+
+    assert.equal(run('list-off', 'old-c').status, 0);                         // a hold
+    const bulk = run('list-on-legacy');
+    assert.equal(bulk.status, 0, bulk.stderr);
+    assert.match(bulk.stdout, /old-a: now on the public map/);
+    assert.equal(bulk.stdout.includes('old-c'), false, 'a held station is left alone');
+    assert.equal(bulk.stdout.includes('old-nopos'), false);
+
+    const r = await t.call('GET', '/public/stations');
+    assert.deepEqual(r.json.stations.map((s) => s.id), ['old-a', 'old-b', 'shown']);
+    const a = r.json.stations.find((s) => s.id === 'old-a');
+    assert.equal(a.legacy, true);
+    assert.equal(a.activity, 'idle');
+    assert.equal(a.description, null);
+    assert.equal(r.json.stations.find((s) => s.id === 'shown').legacy, false);
+
+    // the graphs are for logged-in people, as for any station; nobody can log in AS the reserved station
+    const other = await t.loginToken('hidden');
+    const sum = await t.call('GET', '/stations/old-a/summary', { token: other });
+    assert.equal(sum.status, 200);
+    assert.equal(sum.json.legacy, true);
+    assert.equal((await t.call('GET', '/stations/old-c/summary', { token: other })).status, 404, 'held: not there for others');
+
+    assert.equal(run('list-on-legacy').stdout.trim().startsWith('nothing to list'), true, 'a second run has nothing left to do');
   } finally { await t.close(); }
 });
 

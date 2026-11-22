@@ -15,6 +15,7 @@ const stats = require('./stats');
 // is only known to ~10 km still tells a lot about when a young participant is at home.
 
 const DAY = 24 * 3600 * 1000;
+const LIVE = ['active', 'legacy_unclaimed'];     // account states whose station may be on the map
 
 // 'today' | 'week' | 'idle'
 function activity(lastSeenIso, nowMs) {
@@ -50,9 +51,9 @@ function register(app, ctx) {
   const listed = db.prepare(`
     SELECT s.id, s.lat_grid, s.lon_grid,
            CASE WHEN s.description_hidden = 1 THEN NULL ELSE s.public_description END AS public_description,
-           s.last_seen_utc
+           s.last_seen_utc, u.status
       FROM stations s JOIN users u ON u.id = s.id
-     WHERE u.status = 'active' AND s.listed = 1 AND s.admin_hold = 0
+     WHERE u.status IN ('active', 'legacy_unclaimed') AND s.listed = 1 AND s.admin_hold = 0
        AND s.lat_grid IS NOT NULL AND s.lon_grid IS NOT NULL
      ORDER BY s.id`);
 
@@ -80,6 +81,8 @@ function register(app, ctx) {
         lon: r.lon_grid,
         activity: activity(r.last_seen_utc, nowMs),
         description: r.public_description || null,
+        // a station from the old server whose owner has not taken it over yet (its id is reserved)
+        legacy: r.status === 'legacy_unclaimed',
       })),
     });
   });
@@ -93,7 +96,7 @@ function register(app, ctx) {
     const row = oneStation.get(id);
     const mine = req.user.id === id;
     // A station that is not on the map does not exist for other people (404, not 403).
-    if (!row || (!mine && !(row.listed === 1 && row.admin_hold === 0 && row.status === 'active'))) {
+    if (!row || (!mine && !(row.listed === 1 && row.admin_hold === 0 && LIVE.includes(row.status)))) {
       return res.status(404).json({ error: 'Not found' });
     }
 
@@ -105,6 +108,7 @@ function register(app, ctx) {
       id,
       days,
       mine,
+      legacy: row.status === 'legacy_unclaimed',
       // An operator can hide the text from other people. The owner still sees their own text.
       description: (row.description_hidden === 1 && !mine ? null : row.public_description) || null,
       activity: activity(row.last_seen_utc, nowMs),

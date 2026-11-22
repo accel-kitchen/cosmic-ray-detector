@@ -31,7 +31,7 @@
 
   function render(d) {
     $('content').classList.remove('hidden');
-    $('desc').textContent = d.description || '';
+    $('desc').textContent = d.legacy ? '旧サーバーから引き継いだ観測局です。持ち主の引き継ぎを待っています。' : (d.description || '');
     const [label, cls] = ACTIVITY[d.activity] || ACTIVITY.idle;
     const stats = $('stats');
     stats.textContent = '';

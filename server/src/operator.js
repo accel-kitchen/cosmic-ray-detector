@@ -37,7 +37,7 @@ function createOperator(db, now = Date.now) {
         const u = getUser.get(id);
         if (!u) return miss;
         const s = getStation.get(id);
-        if (u.status !== 'active') return { ok: false, status: 409, code: 'not_active', message: `This account is ${u.status}: only an active account can be listed.` };
+        if (u.status !== 'active' && u.status !== 'legacy_unclaimed') return { ok: false, status: 409, code: 'not_active', message: `This account is ${u.status}: only an active account (or a reserved station from the old server) can be listed.` };
         if (!s || s.lat_grid == null || s.lon_grid == null) return { ok: false, status: 409, code: 'no_position', message: 'This station has no position yet (the Console sends it at login), so it would not show on the map.' };
         db.prepare('UPDATE stations SET listed = 1, admin_hold = 0 WHERE id = ?').run(id);
         audit(actor, 'list-on', id);

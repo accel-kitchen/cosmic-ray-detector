@@ -7,6 +7,7 @@
 //     node scripts/admin.js list
 //     node scripts/admin.js show <id>
 //     node scripts/admin.js list-on <id>        put the station on the public map (clears an operator hold)
+//     node scripts/admin.js list-on-legacy      put every reserved station of the old server (with a position) on the map
 //     node scripts/admin.js list-off <id>       take it off the map and HOLD it there: its owner cannot switch it back on
 //     node scripts/admin.js hide-description <id> | show-description <id>
 //     node scripts/admin.js disable <id>        stop it logging in and uploading (tokens are revoked)
@@ -109,6 +110,14 @@ async function main() {
       break;
     }
     case 'list-on': needId(); done(op.listOn('cli', id), `${id}: now on the public map (any operator hold is cleared)`); break;
+    case 'list-on-legacy': {                    // every reserved station from the old server that has a position and is not held
+      const rows = db.prepare(`SELECT u.id FROM users u JOIN stations s ON s.id = u.id
+                                WHERE u.status = 'legacy_unclaimed' AND s.lat_grid IS NOT NULL AND s.lon_grid IS NOT NULL
+                                  AND s.listed = 0 AND s.admin_hold = 0 ORDER BY u.id`).all();
+      for (const r of rows) { const x = op.listOn('cli', r.id); console.log(`${r.id}: ${x.ok ? 'now on the public map' : 'not listed: ' + x.message}`); }
+      if (!rows.length) console.log('nothing to list (no reserved old station with a position that is off the map and not held)');
+      break;
+    }
     case 'list-off': needId(); done(op.listOff('cli', id), `${id}: off the map, and held there (its owner cannot switch it back on)`); break;
     case 'hide-description': needId(); done(op.setDescriptionHidden('cli', id, true), `${id}: introduction text hidden from other people`); break;
     case 'show-description': needId(); done(op.setDescriptionHidden('cli', id, false), `${id}: introduction text shown again`); break;
@@ -164,7 +173,7 @@ async function main() {
       break;
     }
     default:
-      fail('commands: list | show <id> | list-on <id> | list-off <id> | hide-description <id> | show-description <id> | disable <id> | enable <id> | delete <id> --yes | prune-unverified\n' +
+      fail('commands: list | show <id> | list-on <id> | list-on-legacy | list-off <id> | hide-description <id> | show-description <id> | disable <id> | enable <id> | delete <id> --yes | prune-unverified\n' +
            '          admin-create <name> | admin-password <name> | admin-disable <name> | admin-enable <name> | admin-list | audit [N]');
   }
   db.close();

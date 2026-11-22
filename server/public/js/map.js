@@ -59,6 +59,7 @@
     const popup = el('div', {},
       el('strong', {}, s.id), el('br'),
       el('span', {}, label),
+      s.legacy ? el('p', { class: 'lead' }, '旧サーバーから引き継いだ観測局です。持ち主の引き継ぎを待っています。') : null,
       s.description ? el('p', {}, s.description) : null,
       el('a', { href: '/station?id=' + encodeURIComponent(s.id) }, 'グラフを見る（ログインが必要）'));
     dot.bindPopup(popup);
@@ -70,6 +71,7 @@
     const show = el('a', { href: '#', 'aria-label': s.id + ' を地図で見る' }, '地図');
     show.addEventListener('click', (e) => { e.preventDefault(); map.setView([s.lat, s.lon], Math.max(map.getZoom(), 8)); dot.openPopup(); });
     list.appendChild(el('li', {}, el('span', { class: 'dot ' + cls }), a, ' ', show,
+      s.legacy ? el('div', { class: 'lead' }, '旧サーバーの観測局（引き継ぎ待ち）') : null,
       s.description ? el('div', { class: 'lead' }, s.description.length > 60 ? s.description.slice(0, 60) + '…' : s.description) : null));
   }
 

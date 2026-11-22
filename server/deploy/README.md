@@ -286,6 +286,13 @@ sudo -u cosmicray bash -c 'cd /opt/cosmicray-v3/current && /opt/node-v22.23.4/bi
 
 局ごとに `OK, matches the parsed count` と出れば、書いた行数と読んだ行数が一致しています。局を絞るときは `--station sendai` を付けます。
 新サーバーですでに使われている局 ID は、触らずに飛ばします（終了コードが 0 以外になります）。ディスクは、旧データの約 3 倍（全部で 600 MB 前後）使います。取り込みは 1 局あたり数十秒から数分です。
+**地図に載せる**（server-v0.3.10）。取り込んだ局は、最初は地図に出ません。位置のある局を全部載せるには:
+
+```bash
+sudo -u cosmicray bash -c 'cd /opt/cosmicray-v3/current && /opt/node-v22.23.4/bin/node --env-file=/etc/cosmicray/env scripts/admin.js list-on-legacy'
+```
+
+1 局だけなら `scripts/admin.js list-on <id>`、外すなら `list-off <id>`（運営の画面からもできます）。運営が外した局（保留）は、`list-on-legacy` では載せません。載った局は「旧サーバーから引き継いだ観測局（引き継ぎ待ち）」と表示され、ログインした人はグラフも見られます（持ち主としてログインすることは、まだできません）。
 **引き継ぎ**（持ち主が見つかったとき）の道具は、まだありません。予約した局は、運営の画面（`/admin`）に `legacy_unclaimed` として出ます。
 
 ## 決めたこと（2026-11-22）と、環境ファイルの設定
