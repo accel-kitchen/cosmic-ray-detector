@@ -140,7 +140,7 @@
     add('同意', d.consent_version ? `${d.consent_version}（${when(d.consent_at)}）` : null);
     add('位置（約 10 km の格子の中心）', d.position ? `${d.position.lat}, ${d.position.lon}` : '未送信');
     add('地図', d.admin_hold ? '運営が外している（本人は戻せません）' : (d.listed ? '載っている' : '載っていない'));
-    add('自己紹介', d.public_description + (d.description_hidden ? '  ［他の人には隠している］' : ''));
+    add('自己紹介', (d.public_description || '（なし）') + (d.description_hidden ? '  ［他の人には隠している］' : ''));
     add('イベント数', String(d.events));
     add('最終受信', when(d.last_seen_utc));
     box.appendChild(el('h2', {}, '局の詳細'));

@@ -270,6 +270,8 @@ async function createApp(cfg, { now = Date.now, ...deps } = {}) {
     store.pruneKeys();
     try { pruneUnverified(db, cfg.dataDir, { nowMs: now(), days: cfg.unverifiedDays }); } catch (e) { if (!cfg.quiet) console.error('sweep failed:', e.message); }
     db.prepare('DELETE FROM deleted_ids WHERE deleted_at < ?').run(new Date(now() - 90 * 24 * 3600 * 1000).toISOString());
+    // The operator audit log keeps about 13 months (it grows with every login and every look at a station).
+    db.prepare('DELETE FROM admin_audit WHERE at < ?').run(new Date(now() - 400 * 24 * 3600 * 1000).toISOString());
   };
   sweep();
   const timer = setInterval(sweep, 6 * 3600 * 1000);

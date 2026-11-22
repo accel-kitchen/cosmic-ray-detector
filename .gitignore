@@ -19,3 +19,6 @@ arduino/v2/desktop/node_modules/
 arduino/v2/desktop/dist/
 # ...but the desktop app keeps its icons in build/
 !arduino/v2/desktop/build/
+
+# Server release tarballs (built with git archive for deploy; the tag is the source of truth)
+server-v*.tar.gz

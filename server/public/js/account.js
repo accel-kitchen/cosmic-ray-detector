@@ -22,11 +22,20 @@
 
     $('desc').value = me.public_description || '';
 
-    $('listing').textContent = me.listed
-      ? '地図に載っています。'
-      : (me.listing_needs_approval ? '地図には載っていません。載せるには、運営の確認が必要です（運営にご連絡ください）。' : '地図には載っていません。');
+    // Two things an operator can do to a station: take it off the map (and keep it off), and hide the text.
+    const notice = $('notice');
+    notice.textContent = '';
+    if (me.held_by_operator) notice.appendChild(el('div', { class: 'note warn' }, '運営が、この局を地図から外しています。ご自分では戻せません。心当たりがなければ、運営にご連絡ください。'));
+    if (me.description_hidden) notice.appendChild(el('div', { class: 'note warn' }, '自己紹介の文章は、運営によって、他の人には見えなくなっています。書き直しても、運営が解くまでは見えません。'));
+
+    $('listing').textContent = me.held_by_operator
+      ? '地図には載っていません（運営が外しています）。'
+      : me.listed
+        ? '地図に載っています。'
+        : (me.listing_needs_approval ? '地図には載っていません。載せるには、運営の確認が必要です（運営にご連絡ください）。' : '地図には載っていません。');
     const lb = $('listbtn');
-    if (me.listed) { lb.textContent = '地図から外す'; lb.classList.remove('hidden'); lb.dataset.to = 'off'; }
+    if (me.held_by_operator) lb.classList.add('hidden');
+    else if (me.listed) { lb.textContent = '地図から外す'; lb.classList.remove('hidden'); lb.dataset.to = 'off'; }
     else if (!me.listing_needs_approval) { lb.textContent = '地図に載せる'; lb.classList.remove('hidden'); lb.dataset.to = 'on'; }
     else lb.classList.add('hidden');
 

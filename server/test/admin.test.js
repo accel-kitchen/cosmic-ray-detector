@@ -301,3 +301,17 @@ test('the admin command: creates an operator (password from the environment, nev
     assert.ok(t.inst.db.prepare("SELECT 1 FROM admin_audit WHERE actor='cli' AND action='list-off' AND target='osaka'").get());
   } finally { await t.close(); }
 });
+
+test('the audit log is trimmed after about 13 months, recent rows stay', async () => {
+  const t = await boot();
+  try {
+    t.inst.db.prepare("INSERT INTO admin_audit (at, actor, action) VALUES ('2025-01-01T00:00:00Z', 'cli', 'old')").run();
+    t.inst.db.prepare("INSERT INTO admin_audit (at, actor, action) VALUES ('2026-11-01T00:00:00Z', 'cli', 'recent')").run();
+    // the sweep runs when the app starts: start a second app on the same data
+    const { createApp } = require('../src/app');
+    const again = await createApp(t.cfg, { now: () => Date.parse('2026-11-21T12:00:00Z') });
+    const left = again.db.prepare('SELECT action FROM admin_audit ORDER BY id').all().map((r) => r.action);
+    assert.deepEqual(left, ['recent']);
+    again.close();
+  } finally { await t.close(); }
+});
