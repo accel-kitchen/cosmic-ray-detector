@@ -46,7 +46,7 @@ const fmt = (n) => n.toLocaleString('en-US');
 // What one old station directory holds, parsed. onFile(name, parsed) is called per file in date order.
 function readStation(dir, onFile) {
   const names = fs.readdirSync(dir).filter((f) => f.endsWith('.dat')).sort();
-  const total = { files: names.length, rows: 0, layouts: { C7: 0, A: 0, B: 0 }, skipped: {}, examples: {}, first: null, last: null, runs: new Set(),
+  const total = { files: names.length, rows: 0, layouts: { C7: 0, C7b: 0, A: 0, B: 0 }, skipped: {}, examples: {}, first: null, last: null, runs: new Set(),
                   c7drift: { n: 0, max: 0, over600: 0 } };
   for (const name of names) {
     const text = fs.readFileSync(path.join(dir, name), 'utf8');
@@ -111,7 +111,10 @@ function main() {
     let existing = null;
     try { existing = checkDb ? checkDb.prepare('SELECT status FROM users WHERE id=?').get(id) : null; } catch (_) { /* no users table yet */ }
     if (existing && existing.status !== 'legacy_unclaimed') {
-      console.log(`${id}: SKIPPED, a live account (${existing.status}) already uses this id`); failures++; continue;
+      failures++;
+      if (args.commit) { console.log(`${id}: SKIPPED, a live account (${existing.status}) already uses this id`); continue; }
+      // a dry run still reads and reports the old data, so it can be judged before the account question is settled
+      console.log(`${id}: WOULD BE SKIPPED on a real import: a live account (${existing.status}) already uses this id (reported below all the same)`);
     }
 
     const conf = readConfig(dir);
@@ -148,7 +151,7 @@ function main() {
 
     const sk = Object.entries(total.skipped).map(([k, v]) => `${k}=${fmt(v)}`).join(', ') || 'none';
     console.log(`${id}`);
-    console.log(`   files ${total.files}, rows read ${fmt(total.rows + Object.values(total.skipped).reduce((a, b) => a + b, 0))}, usable ${fmt(total.rows)}  (C7 ${fmt(total.layouts.C7)}, A ${fmt(total.layouts.A)}, B ${fmt(total.layouts.B)})`);
+    console.log(`   files ${total.files}, rows read ${fmt(total.rows + Object.values(total.skipped).reduce((a, b) => a + b, 0))}, usable ${fmt(total.rows)}  (C7 ${fmt(total.layouts.C7)}, C7b ${fmt(total.layouts.C7b)}, A ${fmt(total.layouts.A)}, B ${fmt(total.layouts.B)})`);
     console.log(`   skipped: ${sk}`);
     for (const [k, v] of Object.entries(total.examples)) console.log(`      e.g. ${k}: ${v.slice(0, 120)}`);
     console.log(`   time range (UTC): ${total.first || '-'}  ..  ${total.last || '-'}   runs: ${fmt(total.runs.size)}   position: ${conf.pos ? 'yes (rounded to 0.1 deg)' : 'none'}   note: ${conf.comment ? 'yes' : 'none'}`);

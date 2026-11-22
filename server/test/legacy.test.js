@@ -7,7 +7,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { spawnSync } = require('child_process');
-const { parseDatFile, parseLocalDate } = require('../src/legacy');
+const { parseDatFile, parseLocalDate, parseIsoUtc } = require('../src/legacy');
 const stats = require('../src/stats');
 const { boot, readAllBytes } = require('./helpers');
 
@@ -37,7 +37,7 @@ test('legacy: the three row shapes become records, and a row that cannot be read
     C7('6', '2026-06-16-08-32-53.000000', '1781566373100000', '70000'),               // adc out of range
   ].join('\n');
   const r = parseDatFile(text, '2026-06-16.dat');
-  assert.deepEqual(r.layouts, { C7: 2, A: 2, B: 0 });
+  assert.deepEqual(r.layouts, { C7: 2, C7b: 0, A: 2, B: 0 });
   assert.deepEqual(r.skipped, { '2_fields': 1, bad_number: 1, bad_time: 1, bad_adc: 1 });
   const [a, b, c, d] = r.records;
   assert.equal(a.t, '2026-06-15T23:32:52.951000Z');
@@ -56,9 +56,31 @@ test('legacy: the three row shapes become records, and a row that cannot be read
 test('legacy: layout B (adc first, a decimal third column) is told from A, and gets event numbers 1, 2, 3', () => {
   const text = ['545\t2025-08-15-20-47-31.650\t26.69\t35', '485\t2025-08-15-20-47-32.646\t23.41\t69', '371\t2025-08-15-20-47-33.641\t22.24\t64'].join('\n');
   const r = parseDatFile(text, '2025-08-15.dat');
-  assert.deepEqual(r.layouts, { C7: 0, A: 0, B: 3 });
+  assert.deepEqual(r.layouts, { C7: 0, C7b: 0, A: 0, B: 3 });
   assert.deepEqual(r.records.map((x) => [x.event, x.adc, x.vol_mv, x.deadtime_ms]), [[1, 545, 26.69, 35], [2, 485, 23.41, 69], [3, 371, 22.24, 64]]);
   assert.ok(r.records.every((x) => /^B:/.test(x.lg)));
+});
+
+test('legacy: the earlier 7-column writer (day, then the full time) and the ISO-UTC rows are read too (both found on the real files)', () => {
+  // waseda, 2025-08-26: "1 <TAB> 2025-08-26 <TAB> 2025-08-26-22-39-23.402000 <TAB> 89 <TAB> 21.05 <TAB> 374 <TAB> 26.05"
+  const c7b = ['1\t2025-08-26\t2025-08-26-22-39-23.402000\t89\t21.05\t374\t26.05', '2\t2025-08-26\t2025-08-26-22-39-24.402000\t90\t21.5\t380\t26.1'].join('\n');
+  const r = parseDatFile(c7b, '2025-08-26.dat');
+  assert.deepEqual(r.layouts, { C7: 0, C7b: 2, A: 0, B: 0 });
+  assert.deepEqual(r.skipped, {});
+  assert.equal(r.records[0].t, '2025-08-26T13:39:23.402000Z', 'Japan time, like C7');
+  assert.deepEqual([r.records[0].event, r.records[0].adc, r.records[0].vol_mv, r.records[0].deadtime_ms, r.records[0].temp_c], [1, 89, 21.05, 374, 26.05]);
+  assert.equal(r.records[0].time_us, parseLocalDate('2025-08-26-22-39-23.402000').us, 'no device time: time_us follows the date');
+  assert.match(r.records[0].lg, /^C7b:2025-08-26:1$/);
+
+  // test, 2025-08-15, file "2025-08-15T07:15:08.853Z.dat": "458 <TAB> 2025-08-15T07:15:08.853Z <TAB> 20.59 <TAB> 41"
+  const iso = ['458\t2025-08-15T07:15:08.853Z\t20.59\t41', '460\t2025-08-15T07:15:09.900Z\t21.00\t42'].join('\n');
+  const q = parseDatFile(iso, '2025-08-15T07:15:08.853Z.dat');
+  assert.deepEqual(q.layouts, { C7: 0, C7b: 0, A: 0, B: 2 });
+  assert.equal(q.records[0].t, '2025-08-15T07:15:08.853000Z', 'already UTC: no 9-hour shift');
+  assert.equal(q.records[0].adc, 458); assert.equal(q.records[0].vol_mv, 20.59);
+  assert.equal(q.records[0].run_id, 'legacy-2025-08-15-1', 'the day in the file name is still found');
+  assert.equal(parseIsoUtc('2025-02-31T00:00:00Z'), null);
+  assert.equal(parseIsoUtc('2025-08-15T07:15:08Z').iso, '2025-08-15T07:15:08.000000Z');
 });
 
 test('legacy: a restarted board (the event counter goes back) starts a new run, so the hourly counts are not mixed', () => {
@@ -106,8 +128,8 @@ test('import script: a dry run reads and reports, writes nothing, and prints no 
     const r = runScript(t, ['--from', old, '--station', 'sendai', '--station', 'test']);
     assert.equal(r.status, 0, r.stderr + r.stdout);
     assert.match(r.stdout, /DRY RUN/);
-    assert.match(r.stdout, /sendai[\s\S]*C7 6, A 2, B 0/);
-    assert.match(r.stdout, /test[\s\S]*C7 0, A 0, B 2/);
+    assert.match(r.stdout, /sendai[\s\S]*C7 6, C7b 0, A 2, B 0/);
+    assert.match(r.stdout, /test[\s\S]*C7 0, C7b 0, A 0, B 2/);
     assert.match(r.stdout, /bad_time=1/, 'the spoiled row is reported');
     assert.ok(!fs.existsSync(path.join(t.dir, 'events', 'sendai')), 'no files in a dry run');
     assert.equal(t.inst.db.prepare('SELECT COUNT(*) n FROM users').get().n, 0, 'no account in a dry run');
@@ -169,6 +191,9 @@ test('import script: a station id that a live account already uses is left alone
   const t = await boot(); const old = makeOldServer();
   try {
     await t.seed('waseda', 'active');
+    const dry = runScript(t, ['--from', old, '--station', 'waseda']);           // a dry run says so, and still reports the old data
+    assert.match(dry.stdout, /waseda: WOULD BE SKIPPED on a real import: a live account \(active\)/);
+    assert.match(dry.stdout, /usable 1 {2}\(C7 1,/);
     const r = runScript(t, ['--from', old, '--station', 'waseda', '--commit']);
     assert.notEqual(r.status, 0);
     assert.match(r.stdout, /SKIPPED, a live account \(active\)/);
