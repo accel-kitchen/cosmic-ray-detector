@@ -187,6 +187,14 @@ sudo systemctl start cosmicray-v3-backup.service && journalctl -u cosmicray-v3-b
 
 ### 10. 更新とロールバック
 更新は、コミット → 新しいタグ → 手順 2 → `sudo bash ./deploy.sh tarball …`。直近 5 件のリリースが残ります。
+
+**手元の PC から 1 行で出す**（`deploy-remote.ps1`）。タグから tarball を作り、`scp` で送り、VPS で `deploy.sh` と `smoke.sh` を続けて実行します。`sudo` のパスワードを 1 回聞かれるだけです。`deploy.sh` が失敗したときは、`smoke.sh` は走りません（切り戻しは `deploy.sh` が自分でします）。DB と環境ファイルには触れず、局を地図に載せることもしません。
+
+```powershell
+powershell -File server\deploy\deploy-remote.ps1                      # いちばん新しい server-v* のタグ。実行前に確認があります
+powershell -File server\deploy\deploy-remote.ps1 -Tag server-v0.3.12
+powershell -File server\deploy\deploy-remote.ps1 -DryRun              # tarball だけ作り、実行するコマンドを表示する（どこにも接続しない）
+```
 手で戻すとき:
 ```bash
 ls -1dt /opt/cosmicray-v3/releases/*                       # 戻したい版を選ぶ
