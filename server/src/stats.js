@@ -55,29 +55,46 @@ function applyEvent(stmts, station, e) {
 
 // --- reading ------------------------------------------------------------------------------------
 
-function hourlySeries(db, station, sinceHour) {
+// One point per UTC hour (or, with `bucketLen` 10, per UTC day: the same sums over a longer key).
+// sinceHour / untilHour are 'YYYY-MM-DDTHH' strings (a day 'YYYY-MM-DD' works too, as a prefix);
+// untilHour is inclusive and optional.
+function series(db, station, sinceKey, untilKey, bucketLen) {
   const rows = db.prepare(`
-    SELECT hour,
+    SELECT substr(hour, 1, ?) AS k,
            SUM(max_event - min_event + 1)       AS count,
            SUM(max_event - min_event)           AS d_events,
            SUM(max_time_us - min_time_us)       AS d_us,
            SUM(temp_sum) AS temp_sum, SUM(temp_n) AS temp_n
       FROM stats_hourly
-     WHERE station_id = ? AND hour >= ?
-     GROUP BY hour ORDER BY hour`).all(station, sinceHour);
+     WHERE station_id = ? AND hour >= ? AND (? IS NULL OR substr(hour, 1, length(?)) <= ?)
+     GROUP BY k ORDER BY k`).all(bucketLen, station, sinceKey, untilKey, untilKey, untilKey);
   return rows.map((r) => ({
-    hour: r.hour,
+    key: r.k,
     count: r.count,
     // events per minute, from the events and the device-clock time between the first and last row;
-    // null when the hour holds a single row (no interval to measure)
+    // null when the bucket holds a single row (no interval to measure)
     rate_per_min: r.d_us > 0 ? (r.d_events / (r.d_us / 1e6)) * 60 : null,
     temp_c: r.temp_n > 0 ? r.temp_sum / r.temp_n : null,
   }));
 }
 
-function adcHistogram(db, station, sinceDay) {
+function hourlySeries(db, station, sinceHour, untilHour = null) {
+  return series(db, station, sinceHour, untilHour, 13).map(({ key, ...r }) => ({ hour: key, ...r }));
+}
+
+function dailySeries(db, station, sinceDay, untilDay = null) {
+  return series(db, station, sinceDay, untilDay, 10).map(({ key, ...r }) => ({ day: key, ...r }));
+}
+
+// How many different UTC hours hold data in the window (informational).
+function hoursWithData(db, station, sinceDay, untilDay = null) {
+  return db.prepare(`SELECT COUNT(DISTINCT hour) AS n FROM stats_hourly
+                      WHERE station_id = ? AND hour >= ? AND (? IS NULL OR substr(hour, 1, 10) <= ?)`).get(station, sinceDay, untilDay, untilDay).n;
+}
+
+function adcHistogram(db, station, sinceDay, untilDay = null) {
   const bins = new Array(BINS).fill(0);
-  for (const r of db.prepare('SELECT bin, SUM(n) AS n FROM stats_adc WHERE station_id = ? AND day >= ? GROUP BY bin').all(station, sinceDay)) {
+  for (const r of db.prepare('SELECT bin, SUM(n) AS n FROM stats_adc WHERE station_id = ? AND day >= ? AND (? IS NULL OR day <= ?) GROUP BY bin').all(station, sinceDay, untilDay, untilDay)) {
     bins[r.bin] = r.n;
   }
   return { bin_width: BIN_WIDTH, bins };
@@ -126,4 +143,4 @@ function rebuild(db, dataDir, station = null) {
   return n;
 }
 
-module.exports = { prepare, applyEvent, hourlySeries, adcHistogram, rebuild, BIN_WIDTH, BINS };
+module.exports = { prepare, applyEvent, hourlySeries, dailySeries, hoursWithData, adcHistogram, rebuild, BIN_WIDTH, BINS };

@@ -285,13 +285,64 @@ test('summary: shape, window and clamping', async () => {
     assert.equal(r.json.adc.bin_width, 64);
     assert.equal(r.headers.get('cache-control'), 'private, no-store');
 
-    assert.equal((await t.call('GET', '/stations/shown/summary?days=9999', { token: tok.shown })).json.days, 30);
+    assert.equal((await t.call('GET', '/stations/shown/summary?days=99999', { token: tok.shown })).json.days, 3660);
+    assert.equal((await t.call('GET', '/stations/shown/summary?days=30', { token: tok.shown })).json.bucket, 'hour');
     assert.equal((await t.call('GET', '/stations/shown/summary?days=0', { token: tok.shown })).json.days, 7);
     assert.equal((await t.call('GET', '/stations/shown/summary?days=abc', { token: tok.shown })).json.days, 7);
 
     t.advance(3 * 24 * 3600e3);                                       // the data is now 3 days old
     assert.equal((await t.call('GET', '/stations/shown/summary?days=1', { token: tok.shown })).json.hourly.length, 0);
     assert.equal((await t.call('GET', '/stations/shown/summary?days=7', { token: tok.shown })).json.hourly.length, 1);
+  } finally { await t.close(); }
+});
+
+test('summary: data older than 30 days: a long window is one point per day, a date range of up to 31 days stays hourly', async () => {
+  const t = await boot();
+  try {
+    const tok = await populate(t);                                    // 3 events on 2026-11-21 (hour 10 UTC)
+    t.advance(100 * 24 * 3600e3);                                     // that is now 100 days ago
+    const get = async (q) => t.call('GET', '/stations/shown/summary?' + q, { token: tok.shown });
+
+    const none = (await get('days=30')).json;
+    assert.equal(none.bucket, 'hour');
+    assert.equal(none.totals.events, 0, 'the last 30 days hold nothing');
+
+    const year = (await get('days=365')).json;
+    assert.equal(year.bucket, 'day');
+    assert.equal(year.hourly.length, 0);
+    assert.equal(year.daily.length, 1);
+    assert.equal(year.daily[0].day, '2026-11-21');
+    assert.equal(year.daily[0].count, 3);
+    assert.equal(year.totals.events, 3);
+    assert.equal(year.totals.days_with_data, 1);
+    assert.equal(year.totals.hours_with_data, 1);
+    assert.equal(year.adc.bins.reduce((a, b) => a + b, 0), 3);
+
+    const all = (await get('days=3660')).json;
+    assert.equal(all.daily.length, 1);
+
+    const day = (await get('from=2026-11-21&to=2026-11-21')).json;      // an old day, by date: hourly
+    assert.equal(day.bucket, 'hour');
+    assert.equal(day.from, '2026-11-21'); assert.equal(day.to, '2026-11-21');
+    assert.equal(day.hourly.length, 1);
+    assert.equal(day.hourly[0].hour, '2026-11-21T10');
+    assert.equal(day.totals.events, 3);
+    assert.equal(day.adc.bins.reduce((a, b) => a + b, 0), 3);
+
+    const other = (await get('from=2026-11-22&to=2026-12-20')).json;     // 29 days, after the data
+    assert.equal(other.bucket, 'hour');
+    assert.equal(other.totals.events, 0);
+    assert.equal((await get('from=2026-10-01&to=2026-12-20')).json.bucket, 'day', 'more than 31 days: daily');
+    assert.equal((await get('from=2026-11-21')).json.to, '2027-03-01', 'to defaults to today');
+    assert.equal((await get('from=2026-11-21&to=2099-01-01')).json.to, '2027-03-01', 'a date in the future is cut at today');
+
+    for (const q of ['from=2026-13-01', 'from=abc', 'from=2026-12-01&to=2026-11-01', 'from=2000-01-01&to=2026-12-01', 'from=2026-02-30', 'from=2026-11-01&to=x']) {
+      const r = await get(q);
+      assert.equal(r.status, 400, q);
+      assert.equal(r.json.code, 'bad_range');
+    }
+    const owner = (await t.call('GET', '/stations/shown/summary?days=365', { token: tok.shown })).json;
+    assert.equal(owner.mine, true);
   } finally { await t.close(); }
 });
 

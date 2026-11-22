@@ -24,9 +24,17 @@
       <button type="button" class="secondary" data-days="1">1 日</button>
       <button type="button" class="secondary" data-days="7">7 日</button>
       <button type="button" class="secondary" data-days="30">30 日</button>
+      <button type="button" class="secondary" data-days="365">1 年</button>
+      <button type="button" class="secondary" data-days="3660">全期間</button>
     </div>
+    <form id="range" class="range" aria-label="期間を日付で指定する">
+      <label>から <input type="date" id="from" required></label>
+      <label>まで <input type="date" id="to" required></label>
+      <button type="submit" class="secondary">表示</button>
+    </form>
+    <p id="bucketnote" class="lead hidden"></p>
     <div class="charts">
-      <div><h2>1 時間あたりのイベント数</h2><canvas id="c-count" class="chart" role="img" aria-label="1 時間あたりのイベント数の折れ線グラフ"></canvas></div>
+      <div><h2 id="h-count">1 時間あたりのイベント数</h2><canvas id="c-count" class="chart" role="img" aria-label="1 時間あたりのイベント数の折れ線グラフ"></canvas></div>
       <div><h2>計数率（1 分あたり）</h2><canvas id="c-rate" class="chart" role="img" aria-label="計数率の折れ線グラフ"></canvas></div>
       <div><h2>温度（装置のセンサー）</h2><canvas id="c-temp" class="chart" role="img" aria-label="温度の折れ線グラフ"></canvas></div>
       <div><h2>波高（ADC）の分布</h2><canvas id="c-adc" class="chart" role="img" aria-label="ADC 値の分布の棒グラフ"></canvas></div>
@@ -35,7 +43,7 @@
       イベント数は、装置が数えたイベント番号から求めています（Console の「送る量」を間引きにしていても、実際の数になります）。
       時刻は、お使いの端末の時間帯で表示しています。波高は 64 カウントごとにまとめた分布です。
     </div>
-    <details><summary>数値を表で見る（直近 48 時間分）</summary><div id="table"></div></details>
+    <details><summary id="tablesum">数値を表で見る（直近 48 時間分）</summary><div id="table"></div></details>
   </div>
 </main>
 <footer class="site"><div class="foot-inner">

@@ -110,7 +110,7 @@ The first five are what the console uses.
 | `POST /upload-data/:id` | Bearer, owner | one event per request. 400 only for structurally unusable events |
 | `GET /healthz` | – | version, commit, schema |
 | `GET /public/stations` | – | stations an operator has listed: id, the 0.1° cell centre, a coarse activity (`today`/`week`/`idle`), the owner's introduction. Nothing private |
-| `GET /stations/:id/summary?days=` | Bearer | graphs: events per hour, rate, temperature, ADC histogram. Listed stations, or one's own. Others never see the exact last-data time |
+| `GET /stations/:id/summary?days=N` or `?from=YYYY-MM-DD&to=YYYY-MM-DD` | Bearer | graphs: events, rate, temperature, ADC histogram. Up to 31 days: one point per UTC hour (`hourly`); longer (up to 3660 days): one per UTC day (`daily`); `bucket` says which. Listed stations, or one's own. Others never see the exact last-data time |
 | `GET /config.json` | – | whether registration is open, the map-tile setting |
 | `POST /auth/register`, `/auth/verify-email`, `/auth/resend-verify`, `/auth/forgot`, `/auth/reset` | – | self-registration and password reset. Same answers whether or not an address is known; single-use tokens, stored hashed, in the mailed link's `#fragment`; mail rationed per recipient and in total |
 | `GET /me`, `PUT /me/profile`, `POST /me/password`, `POST /me/delete`, `GET /me/events[/:file]` | Bearer | the owner's account: introduction, leaving the map, password, deleting everything, downloading one's own files |

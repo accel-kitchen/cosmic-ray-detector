@@ -15,6 +15,14 @@ const stats = require('./stats');
 // is only known to ~10 km still tells a lot about when a young participant is at home.
 
 const DAY = 24 * 3600 * 1000;
+const MAX_DAYS = 3660;                // the longest window one request may ask for (10 years)
+const HOURLY_DAYS = 31;               // up to this many days: a point per hour; longer: a point per day
+// 'YYYY-MM-DD' that is a real date, else null
+function parseDay(s) {
+  if (typeof s !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(s)) return null;
+  const d = new Date(s + 'T00:00:00Z');
+  return Number.isFinite(d.getTime()) && d.toISOString().slice(0, 10) === s ? s : null;
+}
 const LIVE = ['active', 'legacy_unclaimed'];     // account states whose station may be on the map
 
 // 'today' | 'week' | 'idle'
@@ -100,21 +108,46 @@ function register(app, ctx) {
       return res.status(404).json({ error: 'Not found' });
     }
 
-    const days = Math.min(30, Math.max(1, parseInt(req.query.days, 10) || 7));
+    // The window: `days` (the last N days, 1..MAX_DAYS, default 7) or `from` and `to` (UTC dates, to defaults to
+    // today). Up to 31 days it is one point per hour; longer, one point per UTC day (so a year is 365 points).
     const nowMs = now();
-    const since = new Date(nowMs - days * DAY).toISOString();
-    const hourly = stats.hourlySeries(db, id, since.slice(0, 13));
+    const today = new Date(nowMs).toISOString().slice(0, 10);
+    let days, sinceIso, untilDay = null, from, to;
+    if (req.query.from !== undefined) {
+      const f = parseDay(req.query.from);
+      const t = req.query.to === undefined ? today : parseDay(req.query.to);
+      if (!f || !t) return res.status(400).json({ error: 'from and to must be dates like 2026-11-01', code: 'bad_range' });
+      from = f; to = t > today ? today : t;
+      if (from > to) return res.status(400).json({ error: 'from is after to', code: 'bad_range' });
+      days = Math.round((Date.parse(to) - Date.parse(from)) / DAY) + 1;
+      if (days > MAX_DAYS) return res.status(400).json({ error: `at most ${MAX_DAYS} days at a time`, code: 'bad_range' });
+      sinceIso = from; untilDay = to;
+    } else {
+      days = Math.min(MAX_DAYS, Math.max(1, parseInt(req.query.days, 10) || 7));
+      sinceIso = new Date(nowMs - days * DAY).toISOString();
+      from = sinceIso.slice(0, 10); to = today;
+    }
+    const bucket = days <= HOURLY_DAYS ? 'hour' : 'day';
+    const hourly = bucket === 'hour' ? stats.hourlySeries(db, id, req.query.from !== undefined ? from : sinceIso.slice(0, 13), untilDay) : [];
+    const daily = bucket === 'day' ? stats.dailySeries(db, id, from, untilDay) : [];
     const body = {
       id,
       days,
+      bucket,
+      from, to,
       mine,
       legacy: row.status === 'legacy_unclaimed',
       // An operator can hide the text from other people. The owner still sees their own text.
       description: (row.description_hidden === 1 && !mine ? null : row.public_description) || null,
       activity: activity(row.last_seen_utc, nowMs),
       hourly,
-      adc: stats.adcHistogram(db, id, since.slice(0, 10)),
-      totals: { events: hourly.reduce((a, h) => a + h.count, 0), hours_with_data: hourly.length },
+      daily,
+      adc: stats.adcHistogram(db, id, from, untilDay),
+      totals: {
+        events: (bucket === 'hour' ? hourly : daily).reduce((a, h) => a + h.count, 0),
+        hours_with_data: bucket === 'hour' ? hourly.length : stats.hoursWithData(db, id, from, untilDay),
+        days_with_data: bucket === 'day' ? daily.length : new Set(hourly.map((h) => h.hour.slice(0, 10))).size,
+      },
     };
     if (mine) {                             // the owner sees their own exact figures
       body.last_seen_utc = row.last_seen_utc;
