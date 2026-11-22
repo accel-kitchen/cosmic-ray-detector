@@ -58,6 +58,19 @@ function retire(srcEvents, dstEvents, removedDir, stamp, nowMs, removedKeepDays)
   return { moved, dropped };
 }
 
+// deploy.sh keeps a database copy from before each switch in <dest>/pre-deploy. They hold e-mail
+// addresses too, and a copy is only useful right after its own deploy: nothing older than
+// `days` stays (the newest always does), so a deleted account leaves these as well.
+function prunePreDeploy(dir, nowMs, days) {
+  if (!fs.existsSync(dir)) return 0;
+  const files = fs.readdirSync(dir).filter((f) => /^db-before-.*\.sqlite$/.test(f))
+    .map((f) => ({ p: path.join(dir, f), t: fs.statSync(path.join(dir, f)).mtimeMs }))
+    .sort((a, b) => b.t - a.t);
+  let n = 0;
+  for (const f of files.slice(1)) if (nowMs - f.t > days * 24 * 3600 * 1000) { fs.rmSync(f.p); n++; }
+  return n;
+}
+
 async function runBackup(dataDir, destDir, { keep = 14, removedKeepDays = 14, now = () => new Date() } = {}) {
   const dbDir = path.join(destDir, 'db');
   fs.mkdirSync(dbDir, { recursive: true });
@@ -72,11 +85,13 @@ async function runBackup(dataDir, destDir, { keep = 14, removedKeepDays = 14, no
   const copied = mirror(srcEvents, dstEvents);
   const gone = retire(srcEvents, dstEvents, path.join(destDir, 'removed'), stamp, now().getTime(), removedKeepDays);
 
+  const preDeployDropped = prunePreDeploy(path.join(destDir, 'pre-deploy'), now().getTime(), removedKeepDays);
+
   const snaps = fs.readdirSync(dbDir).filter((f) => /^db-.*\.sqlite$/.test(f)).sort();
   const drop = snaps.slice(0, Math.max(0, snaps.length - keep));
   for (const f of drop) fs.rmSync(path.join(dbDir, f));
 
-  return { db: dbOut, eventFilesCopied: copied, snapshotsKept: snaps.length - drop.length, stationsRetired: gone.moved, retiredDropped: gone.dropped };
+  return { db: dbOut, eventFilesCopied: copied, snapshotsKept: snaps.length - drop.length, stationsRetired: gone.moved, retiredDropped: gone.dropped, preDeployDropped };
 }
 
 module.exports = { runBackup, mirror };

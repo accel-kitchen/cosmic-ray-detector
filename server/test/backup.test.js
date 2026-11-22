@@ -101,6 +101,32 @@ test('backup: a deleted station leaves the mirror (moved aside first, dropped af
   }
 });
 
+test('backup: old pre-deploy copies are dropped, the newest one stays', async () => {
+  const data = fs.mkdtempSync(path.join(os.tmpdir(), 'crd-bk-data-'));
+  const dest = fs.mkdtempSync(path.join(os.tmpdir(), 'crd-bk-dest-'));
+  try {
+    const { db } = seedData(data);
+    const pre = path.join(dest, 'pre-deploy');
+    fs.mkdirSync(pre);
+    const mk = (name, ageDays) => {
+      const p = path.join(pre, name); fs.writeFileSync(p, 'x');
+      const t = new Date(Date.now() - ageDays * 24 * 3600 * 1000); fs.utimesSync(p, t, t);
+    };
+    mk('db-before-a.sqlite', 40); mk('db-before-b.sqlite', 20); mk('db-before-c.sqlite', 3);
+    const r = await runBackup(data, dest, { now: () => new Date() });
+    assert.equal(r.preDeployDropped, 2);
+    assert.deepEqual(fs.readdirSync(pre), ['db-before-c.sqlite']);
+
+    mk('db-before-c.sqlite', 90);                        // even alone and old, the newest copy stays
+    assert.equal((await runBackup(data, dest, { now: () => new Date() })).preDeployDropped, 0);
+    assert.deepEqual(fs.readdirSync(pre), ['db-before-c.sqlite']);
+    db.close();
+  } finally {
+    fs.rmSync(data, { recursive: true, force: true });
+    fs.rmSync(dest, { recursive: true, force: true });
+  }
+});
+
 test('backup: refuses cleanly when there is no database', async () => {
   const data = fs.mkdtempSync(path.join(os.tmpdir(), 'crd-bk-empty-'));
   const dest = fs.mkdtempSync(path.join(os.tmpdir(), 'crd-bk-dest-'));

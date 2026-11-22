@@ -252,6 +252,9 @@ sudo -u cosmicray bash -c 'read -rsp "password: " OPPW; echo; export OPPW; set -
 | 地図の背景（Q-N8） | OpenStreetMap | `MAP_TILE=osm` |
 | 載せる条件（Q-N11） | メール確認で自動掲載。公開前に人の目は入らない | `AUTO_LIST_ON_VERIFY=1` |
 | 他人に見せる系列（Q-N17） | いまのまま（1 時間ごと・30 日分） | 変更なし |
+| 未成年の同意（Q-N2） | 登録のときの確認はしない。規約とプライバシーに「保護者や先生に相談してから」と書くだけ | 文面のみ（0.3.3） |
+| 通報の窓口 | `info@accel-kitchen.com`。受けたら `scripts/admin.js list-off <id>` か、運営の画面で外す | 文面のみ（0.3.3） |
+| バックアップの保持（Q-N12/N18） | 夜の DB は 14 世代、削除した局は `removed/` で 14 日、展開前の控えは 14 日（最新の 1 つを除く）。文面は「遅くとも 3 週間以内」 | `backup.js`（0.3.3） |
 
 **Gmail で送るときの注意**（Google の管理コンソールでの操作。画面の名前は変わることがあります）
 - Gmail の SMTP は、**認証したアカウントのアドレスで送ります**。`MAIL_FROM` の `noreply@accel-kitchen.com` が、`SMTP_USER` と同じユーザー（または、そのユーザーの「別の送信元アドレス」）でないと、差出人が書き換えられます。
