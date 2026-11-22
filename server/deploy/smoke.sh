@@ -87,5 +87,38 @@ else
   esac
 fi
 
+
+echo "7. Pages: HTML with a strict Content-Security-Policy (no inline script, no third-party code)"
+for p in / /register /account /station /terms /privacy; do
+  h=$(curl -sS -m 10 -D - -o /dev/null "$BASE$p")
+  c=$(printf '%s' "$h" | head -1 | awk '{print $2}')
+  csp=$(printf '%s' "$h" | hdr content-security-policy)
+  if [ "$c" = 200 ] && printf '%s' "$csp" | grep -q "script-src 'self'" && ! printf '%s' "$csp" | grep -qE "unsafe-inline|unsafe-eval"; then
+    pass "$p -> 200, script-src 'self'"
+  else
+    fail "$p -> code=$c csp='$csp'"
+  fi
+done
+
+echo "8. Public list: JSON, and nothing private in it"
+body=$(curl -sS -m 10 "$BASE/public/stations")
+if printf '%s' "$body" | grep -q '"stations"' && ! printf '%s' "$body" | grep -qiE 'email|password|last_seen|comment|label|token'; then
+  pass "$(printf '%s' "$body" | head -c 90)"
+else
+  fail "unexpected body: $(printf '%s' "$body" | head -c 120)"
+fi
+
+echo "9. Account endpoints refuse a visitor, and registration is in the state it was shipped in"
+c=$(curl -sS -m 10 -o /dev/null -w "%{http_code}" "$BASE/me")
+if [ "$c" = 401 ]; then pass "/me without a login -> 401"; else fail "/me without a login -> $c (want 401)"; fi
+cfgj=$(curl -sS -m 10 "$BASE/config.json")
+if printf '%s' "$cfgj" | grep -q '"registration_open":false'; then
+  r=$(curl -sS -m 10 -o /dev/null -w "%{http_code}" -X POST "$BASE/auth/register" -H "Content-Type: application/json" -d '{}')
+  if [ "$r" = 403 ]; then pass "registration is CLOSED (as shipped); sign-up answers 403"; else fail "registration says closed but sign-up answered $r"; fi
+else
+  echo "  INFO  registration is OPEN. Open it only after the checklist in deploy/README.md (terms text final, a real mail delivered)."
+fi
+if printf '%s' "$cfgj" | grep -q '"tile":null'; then pass "no map tiles: nothing is sent to a map service"; else echo "  INFO  a map-tile provider is configured: viewers' addresses reach it (plan, Q-N8)"; fi
+
 echo
 if [ "$FAILS" -eq 0 ]; then echo "RESULT: all checks passed (now do the real-browser test)"; else echo "RESULT: $FAILS failure(s)"; exit 1; fi

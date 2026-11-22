@@ -20,6 +20,7 @@
 | `apache-1-bootstrap.conf` / `apache-2-final.conf` | Apache の設定（証明書の取得前 / 後） |
 | `deploy.sh` | `server/` だけを展開し、切り替え、健全性を確認し、失敗なら戻す |
 | `smoke.sh` | 公開 URL の確認（curl だけ。**合格基準ではなく、最初の確認**） |
+| `test-deploy.sh` | `deploy.sh` の制御の流れ（控え・ロールバック・DB の復元・控えの間引き）を、**スタブ**で確かめる。実サービスは使わない。Linux（root）か Git Bash で実行 |
 | `cosmicray-v3-backup.service` / `.timer` | 毎晩のバックアップ（`scripts/backup.js`） |
 
 ## 調査の結果（2026-11-22、`survey.sh` を root と `accel-kitchen` で実行）
@@ -182,6 +183,57 @@ ls -1dt /opt/cosmicray-v3/releases/*                       # 戻したい版を�
 sudo ln -sfn /opt/cosmicray-v3/releases/<選んだ版> /opt/cosmicray-v3/current.new && sudo mv -T /opt/cosmicray-v3/current.new /opt/cosmicray-v3/current
 sudo systemctl restart cosmicray-v3
 ```
+
+## server-v0.2.0 を載せるとき（自己登録・地図・グラフ）
+
+0.2.0 は**データベースの形（スキーマ 1 → 2）を変えます**。旧版（0.1.0）は、自分より新しいスキーマを見ると起動を拒否するので、
+ロールバックには、コードだけでなく DB を戻す手当てが要ります。`deploy.sh` が、切り替えの前に DB の控えを取り、
+健全性の確認に失敗したら、控えを戻して旧版を起動し直します（`scripts/db-snapshot.js`）。
+手元では、`test-deploy.sh`（スタブ、Git Bash）で 28 項目が通り、DB を戻さない欠陥を入れると落ちることを確かめました。
+**実際の VPS（`runuser`・systemd・本物の SQLite）では、まだ一度も動かしていません。** 最初の 0.2.0 の展開が、その実地の試験になります。
+
+**載せる前に（順番どおり）**
+
+1. **バックアップを入れる**（手順 9）。実機のデータがすでに流れ始めているので、スキーマを変える前に必要です。
+   保存先は、別のディスクか別のマシンが望ましいです（計画書の Q-N16）。復元を一度は試してください。
+2. **`/etc/cosmicray/env` は、変えなくて構いません。** 新しい項目（登録、地図、メール）は、すべて**安全な既定値**です
+   （登録は閉じている、地図の背景なし、メールなし）。項目の一覧は `env.example` の末尾にあります。
+3. 手元で、コミット → タグ `server-v0.2.0` → `git archive`（手順 2）。他のセッションの変更を混ぜないよう、`server/` と文書だけをコミットします。
+4. VPS で `sudo bash ./deploy.sh tarball /tmp/server-v0.2.0.tar.gz server-v0.2.0`。
+   出力に `== snapshot of the database before switching` と、最後に `database copy from before the switch: …` が出ることを確かめます。
+5. `bash smoke.sh`。新しい 7〜9 番（ページの CSP、公開リストに私的な項目が無いこと、登録が閉じていること）も通ること。
+
+**載せた直後の確認**
+
+- 初回の起動で、**既存のイベントから集計が自動で作られます**（ログに `built the statistics from N existing events`）。
+  手で作り直すときは `sudo -u cosmicray bash -c 'set -a; . /etc/cosmicray/env; set +a; cd /opt/cosmicray-v3/current && /opt/node-v22.23.4/bin/node scripts/rebuild-stats.js'`。
+- **地図は空のはずです**（`https://cosmicray.accel-kitchen.com/`）。既存の局（試験用の `acceptance-test` など）は、アップグレードでは掲載されません（`listed = 0`）。
+  載せるときだけ、運営が `scripts/admin.js list-on <id>` を実行します。
+- ブラウザで、地図 → 局の名前 → ログイン → グラフ、の順に見る。
+
+**ロールバックしたとき**
+
+`deploy.sh` が自動で戻した場合も、手で戻した場合も、**新しい版が DB に書いたもの（登録・トークンなど）は戻った DB に入っていません。**
+測定データのファイル（`events/`）は、触られていません。控えは `/var/backups/cosmicray/pre-deploy/` に 10 件まで残ります。
+
+## 自己登録を開く前のチェックリスト
+
+`REGISTRATION_OPEN=1` にする前に、**すべて**済ませてください。一つでも欠けたまま開くと、中高生のメールアドレスと位置を預かることになります。
+
+- [ ] 利用規約とプライバシーの文面が、責任者に**承認された**（いまは「案」。承認したら `CONSENT_VERSION` を `draft-` なしの名前に変え、ページの「案」の表示と赤枠を外す）。
+      未成年の同意の取り方（保護者への説明）も決める（計画書の Q-N2）。
+- [ ] メールの送り方を決め、`MAIL_TRANSPORT=smtp` と `SMTP_*` を設定した（Q-N1）。**実際に届く**ことを、Gmail に加え、参加者が使いそうな携帯キャリア・学校のアドレスでも確かめた。迷惑メールに入らないか（SPF・DKIM・DMARC）も見る。
+- [ ] バックアップが動いていて、復元を試した（Q-N16）。バックアップに残るコピーが消えるまでの期間を、プライバシーの文面に書いた（Q-N12）。
+- [ ] 地図の背景を決めた（Q-N8）。`none` のままでも構いません。`gsi` / `osm` は、閲覧者のアドレスが提供元に渡ります。
+- [ ] 載せる条件を決めた（Q-N11）。既定は「運営が確認して `list-on`」です。
+- [ ] 他の参加者に見せる系列の粒度を決めた（Q-N17）。いまは、ログインした誰にでも、地図に載った局の 1 時間ごとの系列が 30 日分見えます。
+- [ ] 展開前の DB の控え（メールアドレスとハッシュを含む）を、バックアップの保持期間の対象に入れた（Q-N18）。
+- [ ] メールの全体上限（1 日 300 通）と、使い切られたときの連絡先を決めた（Q-N19）。
+- [ ] 自分で、登録 → メール → 確認 → ログイン → Console から送信 → 地図に載せる → アカウント削除、を一通りやってみた。
+- [ ] アクセスログが 14 日で消える設定になっていることを、もう一度確認した（Apache の logrotate）。
+
+開けるときは、`/etc/cosmicray/env` の `REGISTRATION_OPEN=1` にして、`sudo systemctl restart cosmicray-v3`。閉じるときは、`0` に戻して再起動です。
+開いている間にしか、新しい登録は入りませんが、すでに登録された人のログインと送信は、閉じても変わりません。
 
 ## うまくいかないとき
 

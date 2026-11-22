@@ -29,10 +29,10 @@ function consoleEvent(over = {}) {
   };
 }
 
-async function boot(cfgOver = {}) {
+async function boot(cfgOver = {}, env = {}) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'crd-test-'));
   const cfg = loadConfig(
-    { JWT_SECRET: 'test-secret-' + 'x'.repeat(40), DATA_DIR: dir, SCRYPT_N: '1024' },
+    { JWT_SECRET: 'test-secret-' + 'x'.repeat(40), DATA_DIR: dir, SCRYPT_N: '1024', ...env },
     { quiet: true, ...cfgOver });
   // A clock the test can move forward (rate-limit refill, time-window checks).
   let clockMs = NOW;
@@ -87,6 +87,19 @@ async function boot(cfgOver = {}) {
   return { base, cfg, inst, dir, seed, call, loginToken, close, advance };
 }
 
+// The mails the "outbox" transport wrote, oldest first.
+function readOutbox(dir) {
+  const box = path.join(dir, 'outbox');
+  if (!fs.existsSync(box)) return [];
+  return fs.readdirSync(box).sort().map((f) => JSON.parse(fs.readFileSync(path.join(box, f), 'utf8')));
+}
+
+// The #token=... from the link in a mail.
+function tokenIn(mail) {
+  const m = /#token=([A-Za-z0-9_-]+)/.exec(mail.text);
+  return m ? m[1] : null;
+}
+
 // All bytes under a directory, for "this string must not be on disk anywhere".
 function readAllBytes(dir) {
   const parts = [];
@@ -99,4 +112,4 @@ function readAllBytes(dir) {
   return Buffer.concat(parts);
 }
 
-module.exports = { boot, consoleEvent, readAllBytes, NOW };
+module.exports = { boot, consoleEvent, readAllBytes, readOutbox, tokenIn, NOW };

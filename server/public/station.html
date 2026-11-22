@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>観測局 | CosmicRay 観測ネットワーク</title>
+<link rel="stylesheet" href="/css/site.css">
+</head>
+<body>
+<header class="site"><div class="bar"><a class="brand" href="/">CosmicRay 観測ネットワーク</a><nav id="nav"></nav></div></header>
+<main>
+  <h1 id="title">観測局</h1>
+  <div id="gate" class="card hidden">
+    <h2>ログインしてグラフを見る</h2>
+    <p>グラフは、ログインした参加者だけが見られます。</p>
+    <div id="loginbox"></div>
+    <p id="regnote" class="hidden">観測局をお持ちでない方は、<a href="/register">新規登録</a>へ。</p>
+  </div>
+  <div id="msg"></div>
+  <div id="content" class="hidden">
+    <p id="desc" class="lead"></p>
+    <div class="stats" id="stats"></div>
+    <div class="tabs" role="group" aria-label="表示する期間">
+      <button type="button" class="secondary" data-days="1">1 日</button>
+      <button type="button" class="secondary" data-days="7">7 日</button>
+      <button type="button" class="secondary" data-days="30">30 日</button>
+    </div>
+    <div class="charts">
+      <div><h2>1 時間あたりのイベント数</h2><canvas id="c-count" class="chart" role="img" aria-label="1 時間あたりのイベント数の折れ線グラフ"></canvas></div>
+      <div><h2>計数率（1 分あたり）</h2><canvas id="c-rate" class="chart" role="img" aria-label="計数率の折れ線グラフ"></canvas></div>
+      <div><h2>温度（装置のセンサー）</h2><canvas id="c-temp" class="chart" role="img" aria-label="温度の折れ線グラフ"></canvas></div>
+      <div><h2>波高（ADC）の分布</h2><canvas id="c-adc" class="chart" role="img" aria-label="ADC 値の分布の棒グラフ"></canvas></div>
+    </div>
+    <div class="note">
+      イベント数は、装置が数えたイベント番号から求めています（Console の「送る量」を間引きにしていても、実際の数になります）。
+      時刻は、お使いの端末の時間帯で表示しています。波高は 64 カウントごとにまとめた分布です。
+    </div>
+    <details><summary>数値を表で見る（直近 48 時間分）</summary><div id="table"></div></details>
+  </div>
+</main>
+<footer class="site">
+  <a href="/terms">利用規約（案）</a> ・ <a href="/privacy">プライバシーについて（案）</a> ・ 加速キッチン
+</footer>
+<script src="/js/common.js"></script>
+<script src="/js/charts.js"></script>
+<script src="/js/station.js"></script>
+</body>
+</html>

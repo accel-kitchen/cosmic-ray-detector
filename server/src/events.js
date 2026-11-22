@@ -1,6 +1,7 @@
 'use strict';
 const fs = require('fs');
 const path = require('path');
+const stats = require('./stats');
 
 const FORMAT_VERSION = 1;
 
@@ -20,6 +21,7 @@ function createEventStore(db, dataDir) {
   const touch = db.prepare(
     'UPDATE stations SET last_seen_utc=?, event_count=event_count+1 WHERE id=?');
   const prune = db.prepare('DELETE FROM ingest_keys WHERE day < ?');
+  const statStmts = stats.prepare(db);
 
   // Events from a console with a badly wrong clock go to their own stream,
   // <day>.badclock.jsonl, so the main files stay clean and the odd ones are easy to find.
@@ -52,6 +54,8 @@ function createEventStore(db, dataDir) {
     db.transaction(() => {
       addKey.run(station, rec.run_id, rec.event, rec.time_us, rec.day);
       touch.run(nowIso, station);
+      // Badly-clocked events have no trustworthy hour: they stay out of the statistics.
+      if (!badclock) stats.applyEvent(statStmts, station, rec);
     })();
     return { duplicate: false };
   }

@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>新規登録 | CosmicRay 観測ネットワーク</title>
+<link rel="stylesheet" href="/css/site.css">
+</head>
+<body>
+<header class="site"><div class="bar"><a class="brand" href="/">CosmicRay 観測ネットワーク</a><nav id="nav"></nav></div></header>
+<main>
+  <h1>新規登録</h1>
+  <p class="lead">観測局を登録すると、Console から測定データをこのサーバーへ送れます。</p>
+
+  <div id="closed" class="note warn hidden">現在、新しい登録は受け付けていません。受け付けを始めたら、この場所でお知らせします。</div>
+
+  <div id="done" class="hidden">
+    <div class="msg ok" role="status">確認メールを送りました。メールの中のリンクを開き、ページのボタンを押すと、登録が完了します（24 時間以内）。届かないときは、迷惑メールのフォルダも見てください。</div>
+    <p>メールが届かないとき: <a href="/forgot">こちら</a>から、確認メールを再送できます。</p>
+  </div>
+
+  <form id="form" class="stack hidden" autocomplete="on" novalidate>
+    <div class="note">
+      <strong>公開されるもの:</strong> 局 ID、約 10 km 四方の中心に丸めた位置、自己紹介（書いた場合）、データの有無（今日／今週／休止中）。<br>
+      <strong>公開されないもの:</strong> メールアドレス、パスワード、正確な位置（サーバーにも保存しません）。<br>
+      局 ID と自己紹介には、<strong>本名・学校名・住所を書かないでください。</strong>
+    </div>
+    <label>局 ID<small>半角の英小文字・数字・「-」「_」で 3〜32 文字。あとから変えられません。</small>
+      <input id="id" type="text" name="id" required minlength="3" maxlength="32" autocomplete="username" autocapitalize="none" spellcheck="false">
+    </label>
+    <label>メールアドレス<small>確認とパスワードの再設定にだけ使います。公開されません。</small>
+      <input id="email" type="email" name="email" required maxlength="254" autocomplete="email">
+    </label>
+    <label>パスワード<small>10 文字以上。長い文章のようなものがおすすめです。</small>
+      <input id="password" type="password" name="password" required minlength="10" maxlength="256" autocomplete="new-password">
+    </label>
+    <label>パスワード（もう一度）
+      <input id="password2" type="password" name="password2" required minlength="10" maxlength="256" autocomplete="new-password">
+    </label>
+    <div class="honey" aria-hidden="true">
+      <label>この欄は空のままにしてください<input id="website" type="text" name="website" tabindex="-1" autocomplete="off"></label>
+    </div>
+    <label class="check"><input id="consent" type="checkbox" name="consent" required>
+      <span><a href="/terms" target="_blank" rel="noopener">利用規約（案）</a>と<a href="/privacy" target="_blank" rel="noopener">プライバシーについて（案）</a>を読み、同意します。<br>
+      <small>未成年の方は、保護者や先生にも読んでもらい、相談してから登録してください。</small></span>
+    </label>
+    <div class="row"><button id="submit" type="submit">登録する</button></div>
+    <div id="msg"></div>
+  </form>
+</main>
+<footer class="site">
+  <a href="/terms">利用規約（案）</a> ・ <a href="/privacy">プライバシーについて（案）</a> ・ 加速キッチン
+</footer>
+<script src="/js/common.js"></script>
+<script src="/js/register.js"></script>
+</body>
+</html>

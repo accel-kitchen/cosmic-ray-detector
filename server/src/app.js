@@ -7,6 +7,12 @@ const { hashPassword, verifyPassword, setMaxConcurrent } = require('./password')
 const { roundPosition } = require('./geo');
 const { validateEvent } = require('./validate');
 const { createEventStore } = require('./events');
+const routesPublic = require('./routes-public');
+const pages = require('./pages');
+const stats = require('./stats');
+const routesAccount = require('./routes-account');
+const { createMailer } = require('./mailer');
+const { pruneUnverified } = require('./accounts');
 
 // Station ids double as login names and directory names, so the pattern is the
 // path-safety check as well: nothing outside [a-z0-9_-] ever reaches the disk.
@@ -26,12 +32,26 @@ const DEFAULT_LIMITS = {
   refresh:  { capacity: 30,   refillPerSec: 0.1 },
   setup:    { capacity: 20,   refillPerSec: 0.2 },
   upload:   { capacity: 1000, refillPerSec: 200 },   // the console sends 4 in parallel
+  read:     { capacity: 60,   refillPerSec: 1 },     // graph requests per logged-in user
+  register: { capacity: 5,    refillPerSec: 5 / 3600 },  // sign-ups per client address (5, then 5 an hour)
+  forgot:   { capacity: 5,    refillPerSec: 5 / 3600 },  // password-reset requests per client address
+  resend:   { capacity: 5,    refillPerSec: 5 / 3600 },  // "send the confirmation again" per client address
+  token:    { capacity: 20,   refillPerSec: 0.1 },       // verify / reset link submissions per client address
+  me:       { capacity: 60,   refillPerSec: 1 },         // account page requests per user
+  secret:   { capacity: 5,    refillPerSec: 0.05 },      // password change / account deletion per user (each costs a hash)
 };
 
-async function createApp(cfg, { now = Date.now } = {}) {
+async function createApp(cfg, { now = Date.now, ...deps } = {}) {
   setMaxConcurrent(cfg.scryptConcurrency || 2);
   const db = openDb(cfg.dataDir);
   const store = createEventStore(db, cfg.dataDir);
+  // First start after the upgrade: the measurements already on disk have no statistics yet. Build them
+  // once from the files (they are the source of truth). From then on every event updates them as it arrives.
+  if (!db.prepare("SELECT 1 FROM meta WHERE key = 'stats_built'").get()) {
+    const n = stats.rebuild(db, cfg.dataDir);
+    db.prepare("INSERT INTO meta (key, value) VALUES ('stats_built', ?)").run(new Date(now()).toISOString());
+    if (!cfg.quiet) console.log(`built the statistics from ${n} existing events`);
+  }
   const lim = {};
   const L = { ...DEFAULT_LIMITS, ...(cfg.limits || {}) };
   for (const k of Object.keys(L)) lim[k] = new Limiter({ ...L[k], now });
@@ -90,7 +110,7 @@ async function createApp(cfg, { now = Date.now } = {}) {
 
   const tooMany = (res, r) => {
     res.set('Retry-After', String(r.retryAfterSec));
-    return res.status(429).json({ error: 'Too many requests', retry_after_s: r.retryAfterSec });
+    return res.status(429).json({ error: 'Too many requests', code: 'rate_limited', retry_after_s: r.retryAfterSec });
   };
 
   const signToken = (user) => jwt.sign(
@@ -100,15 +120,15 @@ async function createApp(cfg, { now = Date.now } = {}) {
 
   function requireAuth(req, res, next) {
     const m = /^Bearer (.+)$/i.exec(req.get('authorization') || '');
-    if (!m) return res.status(401).json({ error: 'Missing token' });
+    if (!m) return res.status(401).json({ error: 'Missing token', code: 'token_invalid' });
     let p;
     try {
       p = jwt.verify(m[1], cfg.jwtSecret, { algorithms: ['HS256'] });
     } catch (e) {
-      return res.status(401).json({ error: e.name === 'TokenExpiredError' ? 'Token expired' : 'Invalid token' });
+      return res.status(401).json({ error: e.name === 'TokenExpiredError' ? 'Token expired' : 'Invalid token', code: 'token_invalid' });
     }
     const user = typeof p.sub === 'string' ? q.user.get(p.sub) : undefined;
-    if (!user || user.token_version !== p.ver) return res.status(401).json({ error: 'Token revoked' });
+    if (!user || user.token_version !== p.ver) return res.status(401).json({ error: 'Token revoked', code: 'token_invalid' });
     if (user.status !== 'active') return res.status(403).json({ error: 'This account is not active' });
     req.user = user;
     next();
@@ -159,12 +179,12 @@ async function createApp(cfg, { now = Date.now } = {}) {
 
     // Account state is only revealed to someone who knows the password.
     if (user.status === 'legacy_unclaimed') {
-      return res.status(403).json({ error: `Register an email address first: ${cfg.claimUrl}` });
+      return res.status(403).json({ error: `Register an email address first: ${cfg.claimUrl}`, code: 'email_required' });
     }
     if (user.status === 'pending_email') {
-      return res.status(403).json({ error: 'Verify your email address first (check your inbox).' });
+      return res.status(403).json({ error: 'Verify your email address first (check your inbox).', code: 'email_not_verified' });
     }
-    if (user.status !== 'active') return res.status(403).json({ error: 'This account is disabled' });
+    if (user.status !== 'active') return res.status(403).json({ error: 'This account is disabled', code: 'disabled' });
 
     res.json({ success: true, token: signToken(user), user: { id: user.id, role: 'user' } });
   });
@@ -214,6 +234,14 @@ async function createApp(cfg, { now = Date.now } = {}) {
       : { success: true, duplicate: out.duplicate });
   });
 
+  // --- the rest of the API, in modules sharing one context -----------------------
+  const mailer = deps.mailer || createMailer(cfg);
+  const ctx = { cfg, db, q, lim, store, now, tooMany, requireAuth, requireOwner, signToken,
+                hashPassword, verifyPassword, dummyHash, STATION_ID, mailer };
+  routesPublic.register(app, ctx);
+  routesAccount.register(app, ctx);
+  pages.register(app, ctx);
+
   // --- fallbacks (JSON, and still behind the CORS middleware) --------------------
   app.use((req, res) => res.status(404).json({ error: 'Not found' }));
 
@@ -226,8 +254,15 @@ async function createApp(cfg, { now = Date.now } = {}) {
   });
 
   // Old duplicate-guard keys are dropped at start and every six hours.
-  store.pruneKeys();
-  const timer = setInterval(() => store.pruneKeys(), 6 * 3600 * 1000);
+  // Registrations never confirmed within UNVERIFIED_DAYS free their id again (otherwise ids can be
+  // squatted), and old "deleted id" reservations lapse.
+  const sweep = () => {
+    store.pruneKeys();
+    try { pruneUnverified(db, cfg.dataDir, { nowMs: now(), days: cfg.unverifiedDays }); } catch (e) { if (!cfg.quiet) console.error('sweep failed:', e.message); }
+    db.prepare('DELETE FROM deleted_ids WHERE deleted_at < ?').run(new Date(now() - 90 * 24 * 3600 * 1000).toISOString());
+  };
+  sweep();
+  const timer = setInterval(sweep, 6 * 3600 * 1000);
   timer.unref();
 
   return {

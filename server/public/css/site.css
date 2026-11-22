@@ -1,0 +1,79 @@
+/* CosmicRay observation server: shared styles. No inline styles anywhere (the CSP forbids them). */
+:root {
+  --paper: #faf6eb; --card: #fffdf7; --ink: #2b2723; --muted: #6f665b; --line: #ddd3bf;
+  --accent: #0b7a8a; --accent-ink: #ffffff; --warn: #a2461f; --ok: #2f7d46;
+  --today: #2f7d46; --week: #c98a1a; --idle: #9a9388;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #1b1915; --card: #24211c; --ink: #ece6d8; --muted: #a79e8f; --line: #3a352c;
+    --accent: #4cb6c6; --accent-ink: #10201f; --warn: #e08a62; --ok: #6bc486;
+    --today: #6bc486; --week: #e0b24f; --idle: #7c7568;
+  }
+}
+* { box-sizing: border-box; }
+html { background: var(--paper); }
+body { margin: 0; color: var(--ink); background: var(--paper); line-height: 1.7;
+       font-family: "Hiragino Sans", "Yu Gothic UI", "Noto Sans JP", "Segoe UI", system-ui, sans-serif; }
+a { color: var(--accent); }
+.hidden { display: none !important; }
+
+header.site { border-bottom: 1px solid var(--line); background: var(--card); }
+header.site .bar { max-width: 960px; margin: 0 auto; padding: 10px 16px; display: flex; flex-wrap: wrap; gap: 6px 18px; align-items: center; }
+header.site .brand { font-weight: 700; color: var(--ink); text-decoration: none; margin-right: auto; }
+header.site nav { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center; font-size: .95rem; }
+header.site nav .who { color: var(--muted); }
+
+main { max-width: 960px; margin: 0 auto; padding: 20px 16px 48px; }
+h1 { font-size: 1.5rem; margin: .2em 0 .4em; }
+h2 { font-size: 1.15rem; margin: 1.6em 0 .4em; padding-bottom: 4px; border-bottom: 2px solid var(--accent); }
+p.lead { color: var(--muted); margin-top: 0; }
+footer.site { max-width: 960px; margin: 0 auto; padding: 18px 16px 40px; color: var(--muted); font-size: .85rem; border-top: 1px solid var(--line); }
+
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; margin: 14px 0; }
+.note { border-left: 4px solid var(--accent); background: var(--card); padding: 10px 14px; border-radius: 0 8px 8px 0; margin: 14px 0; font-size: .92rem; }
+.note.warn { border-left-color: var(--warn); }
+.draft { border: 2px dashed var(--warn); color: var(--warn); padding: 8px 12px; border-radius: 8px; margin: 12px 0; font-weight: 600; }
+.msg { margin: 10px 0; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--line); }
+.msg.error { border-color: var(--warn); color: var(--warn); }
+.msg.ok { border-color: var(--ok); color: var(--ok); }
+
+form.stack { display: grid; gap: 12px; max-width: 460px; }
+label { display: grid; gap: 4px; font-weight: 600; font-size: .92rem; }
+label small { font-weight: 400; color: var(--muted); }
+input[type=text], input[type=email], input[type=password], textarea, select {
+  font: inherit; color: var(--ink); background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; width: 100%; }
+textarea { min-height: 5em; resize: vertical; }
+label.check { display: flex; gap: 8px; align-items: flex-start; font-weight: 400; }
+label.check input { margin-top: .45em; }
+.honey { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }   /* hidden from people, not from bots */
+button, a.btn { font: inherit; cursor: pointer; border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink);
+                border-radius: 8px; padding: 8px 16px; text-decoration: none; display: inline-block; }
+button.secondary, a.btn.secondary { background: transparent; color: var(--accent); }
+button.danger { background: var(--warn); border-color: var(--warn); color: #fff; }
+button:disabled { opacity: .55; cursor: default; }
+.row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+
+/* map page */
+.mapwrap { display: grid; grid-template-columns: 1fr 260px; gap: 14px; }
+@media (max-width: 760px) { .mapwrap { grid-template-columns: 1fr; } }
+#map { height: 62vh; min-height: 340px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); }
+ul.stations { list-style: none; margin: 0; padding: 0; max-height: 62vh; overflow: auto; }
+ul.stations li { padding: 6px 4px; border-bottom: 1px solid var(--line); }
+.dot { display: inline-block; width: .8em; height: .8em; border-radius: 50%; margin-right: .5em; background: var(--idle); }
+.dot.today { background: var(--today); } .dot.week { background: var(--week); }
+.legend { font-size: .85rem; color: var(--muted); display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 8px; }
+
+/* station page */
+.charts { display: grid; gap: 14px; }
+canvas.chart { width: 100%; height: 220px; display: block; background: var(--card); border: 1px solid var(--line); border-radius: 10px; }
+.stats { display: flex; flex-wrap: wrap; gap: 8px 28px; margin: 8px 0 14px; }
+.stats b { font-size: 1.3rem; }
+table.data { border-collapse: collapse; width: 100%; font-size: .85rem; }
+table.data th, table.data td { border: 1px solid var(--line); padding: 3px 8px; text-align: right; }
+table.data th:first-child, table.data td:first-child { text-align: left; }
+.tabs { display: flex; gap: 6px; margin: 6px 0; }
+.tabs button { padding: 4px 12px; }
+
+/* leaflet bits we rely on */
+.leaflet-container { font: inherit; }

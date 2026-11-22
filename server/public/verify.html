@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>メールアドレスの確認 | CosmicRay 観測ネットワーク</title>
+<link rel="stylesheet" href="/css/site.css">
+</head>
+<body>
+<header class="site"><div class="bar"><a class="brand" href="/">CosmicRay 観測ネットワーク</a><nav id="nav"></nav></div></header>
+<main>
+  <h1>メールアドレスの確認</h1>
+  <div id="ask" class="card hidden">
+    <p>ボタンを押すと、メールアドレスの確認が完了します。</p>
+    <p class="lead">このページを開いただけでは、確認は完了しません（メールソフトが自動でリンクを開くことがあるためです）。</p>
+    <div class="row"><button id="go" type="button">メールアドレスを確認する</button></div>
+  </div>
+  <div id="msg"></div>
+  <div id="after" class="hidden">
+    <p>これで、Console の「サーバー送信」に、局 ID とパスワードを入れて使えます。</p>
+    <p><a class="btn" href="/account">アカウントを開く</a></p>
+  </div>
+  <div id="bad" class="hidden">
+    <p>確認メールが届いていない、または期限が切れたときは、<a href="/forgot">こちら</a>の「確認メールをもう一度送る」から再送できます。</p>
+  </div>
+</main>
+<footer class="site">
+  <a href="/terms">利用規約（案）</a> ・ <a href="/privacy">プライバシーについて（案）</a> ・ 加速キッチン
+</footer>
+<script src="/js/common.js"></script>
+<script src="/js/verify.js"></script>
+</body>
+</html>

@@ -9,6 +9,7 @@ const fs = require('fs');
 const path = require('path');
 const jwt = require('jsonwebtoken');
 const { boot, consoleEvent, readAllBytes } = require('./helpers');
+const { SCHEMA_VERSION } = require('../src/db');
 
 const SECRET = 'test-secret-' + 'x'.repeat(40);
 
@@ -526,6 +527,6 @@ test('healthz reports version, commit and schema', async () => {
     assert.equal(r.status, 200);
     assert.equal(r.json.status, 'ok');
     assert.equal(r.json.commit, 'abc1234');
-    assert.equal(r.json.schema, 1);
+    assert.equal(r.json.schema, SCHEMA_VERSION);
   } finally { await t.close(); }
 });

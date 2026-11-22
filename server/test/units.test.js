@@ -8,7 +8,7 @@ const { spawnSync } = require('child_process');
 const { roundPosition } = require('../src/geo');
 const { hashPassword, verifyPassword } = require('../src/password');
 const { loadConfig } = require('../src/config');
-const { openDb } = require('../src/db');
+const { openDb, SCHEMA_VERSION } = require('../src/db');
 const { Limiter } = require('../src/ratelimit');
 const { boot } = require('./helpers');
 
@@ -101,7 +101,7 @@ test('db: reopening keeps the data; a newer schema is refused', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'crd-db-'));
   try {
     let db = openDb(dir);
-    assert.equal(db.pragma('user_version', { simple: true }), 1);
+    assert.equal(db.pragma('user_version', { simple: true }), SCHEMA_VERSION);
     db.prepare("INSERT INTO users (id,password_hash,status,created_at) VALUES ('abc','h','active','t')").run();
     db.close();
     db = openDb(dir);
