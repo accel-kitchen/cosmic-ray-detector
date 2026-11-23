@@ -3016,6 +3016,12 @@ let autoSaveRun = null;
 async function flushAutoSave(force) {
   const as = state.autoSave;
   if (!as.enabled || !as.dirHandle) return;
+  // 見出し（# Board= ADC=0-…、4 列目の名前）は基板の種別で変わる。つないだ直後は種別を問い合わせ中
+  // （probeBoard は接続の 0.8 秒後、Nano と決めるのはさらに 1.5 秒後）なので、決まるまで最初の書き込みを待つ。
+  // 待たないと、ESP32-S3 の基板でも「ArduinoNano ADC=0-1023」の見出しで書き始めてしまう（2026-11-21 に確認）。
+  // force（切断・ページを閉じる）のときは待たない。データを失うよりは見出しが違うほうがよい。
+  // デモも同じ問い合わせ（GET_BOARD）を通るので、同じく待つ。
+  if (!force && state.isConnected && state.board === null) return;
   if (autoSaveRun) {
     if (!force) return;
     try { await autoSaveRun; } catch (_) {}

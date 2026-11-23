@@ -1,7 +1,7 @@
 {
   "name": "cosmicray-console-desktop",
   "productName": "CosmicRay Console",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "宇宙線検出器コンソールのデスクトップ版（窓を閉じても裏で記録を続ける常駐アプリ）",
   "main": "main.js",
   "private": true,
