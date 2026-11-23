@@ -35,6 +35,19 @@
       <div class="row"><button id="listbtn" type="button" class="secondary hidden"></button></div>
       <div id="listing-msg"></div>
       <p id="where" class="lead"></p>
+      <form id="posform" class="stack" novalidate>
+        <div class="grid2">
+          <label>緯度<small>例: 38.2545（北が正）</small>
+            <input id="lat" type="text" inputmode="decimal" autocomplete="off" maxlength="16">
+          </label>
+          <label>経度<small>例: 140.8634（東が正）</small>
+            <input id="lon" type="text" inputmode="decimal" autocomplete="off" maxlength="16">
+          </label>
+        </div>
+        <div class="row"><button id="possave" type="submit">位置を保存する</button><button id="posclear" type="button" class="secondary">位置を消す</button></div>
+        <div id="pos-msg"></div>
+      </form>
+      <p class="lead">入れた値は、<strong>約 10 km 四方の中心に丸められて</strong>から保存されます。正確な位置は、サーバーに残りません。Console に緯度・経度を入れてある場合は、Console がログインするたびに、その値で上書きします。</p>
     </div>
 
     <h2>観測データ</h2>

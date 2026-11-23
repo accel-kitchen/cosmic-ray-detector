@@ -115,7 +115,7 @@ The first five are what the console uses.
 | `GET /config.json` | – | whether registration is open, the map-tile setting |
 | `POST /auth/claim` | – | the owner of a reserved station of the old server takes it over: the single-use link an operator mailed (`scripts/admin.js claim <id> <email>`, 7 days), the terms, a password. Makes the account active with that address confirmed |
 | `POST /auth/register`, `/auth/verify-email`, `/auth/resend-verify`, `/auth/forgot`, `/auth/reset` | – | self-registration and password reset. Same answers whether or not an address is known; single-use tokens, stored hashed, in the mailed link's `#fragment`; mail rationed per recipient and in total |
-| `GET /me`, `PUT /me/profile`, `POST /me/password`, `POST /me/delete`, `GET /me/events[/:file]` | Bearer | the owner's account: introduction, leaving the map, password, deleting everything, downloading one's own files |
+| `GET /me`, `PUT /me/profile` (`description`, `listed`, and `position: {lat, lon}` or `null`: rounded to the 0.1-degree cell centre before it is stored; a Console that sends its own position at login overwrites it), `POST /me/password`, `POST /me/delete`, `GET /me/events[/:file]` | Bearer | the owner's account: introduction, leaving the map, password, deleting everything, downloading one's own files |
 
 Pages (same server, strict CSP, no inline script, nothing third-party; Leaflet is vendored): `/` map,
 `/station?id=`, `/register`, `/verify`, `/forgot`, `/reset`, `/claim`, `/account`, `/terms`, `/privacy`. The terms and

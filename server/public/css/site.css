@@ -101,6 +101,7 @@ button.secondary:hover:not(:disabled), a.btn.secondary:hover { background: #fff;
 button.danger { background: var(--warn); border-color: var(--warn); color: #fff; }
 button.danger:hover:not(:disabled) { background: #85382A; border-color: #85382A; color: #fff; }
 button:disabled { opacity: .55; cursor: default; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
 
 /* map page */

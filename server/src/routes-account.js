@@ -3,6 +3,7 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const { deleteAccount } = require('./accounts');
+const { roundPosition } = require('./geo');
 
 // Self-registration and the account page (plan, section 4-2).
 //
@@ -13,7 +14,7 @@ const { deleteAccount } = require('./accounts');
 //   POST /auth/reset           choose a new password with that token
 //   POST /auth/claim           a reserved station of the old server: terms + password, with the link an operator mailed
 //   GET  /me                   the owner's own account
-//   PUT  /me/profile           public introduction, and taking the station off the map
+//   PUT  /me/profile           public introduction, the position (rounded to a 0.1-degree cell), and taking the station off the map
 //   POST /me/password          change the password
 //   POST /me/delete            delete the account and ALL its data
 //   GET  /me/events[/:file]    download one's own measurement files
@@ -105,6 +106,7 @@ function register(app, ctx) {
     station: db.prepare('SELECT * FROM stations WHERE id = ?'),
     setProfile: db.prepare('UPDATE stations SET public_description = ? WHERE id = ?'),
     setListed: db.prepare('UPDATE stations SET listed = ? WHERE id = ?'),
+    setPosition: db.prepare('UPDATE stations SET lat_grid = ?, lon_grid = ? WHERE id = ?'),
     count: db.prepare('SELECT n FROM mail_counters WHERE key = ? AND day = ?'),
     bump: db.prepare(`INSERT INTO mail_counters (key, day, n) VALUES (?, ?, 1)
                       ON CONFLICT (key, day) DO UPDATE SET n = n + 1`),
@@ -360,6 +362,15 @@ function register(app, ctx) {
       if ([...text].length > 200) return fail(res, 400, 'too_long', '紹介文は 200 文字までです。');
       q.setProfile.run(text || null, req.user.id);
       out.public_description = text || null;
+    }
+    if ('position' in b) {
+      // { lat, lon } in degrees, or null to remove the position. Rounded to the centre of a 0.1-degree cell here, as for
+      // the Console's: the exact coordinates are never stored. (A Console that sends its own at every login overwrites this.)
+      const p = b.position === null ? null : (b.position && typeof b.position === 'object' ? roundPosition(b.position.lat, b.position.lon) : undefined);
+      if (p === undefined || (b.position !== null && !p)) return fail(res, 400, 'bad_position', '緯度と経度の形が正しくありません。半角の数字で、緯度は -90〜90、経度は -180〜180 にしてください。', 'bad position');
+      q.insertStation.run(req.user.id);
+      q.setPosition.run(p ? p.lat : null, p ? p.lon : null, req.user.id);
+      out.position = p;
     }
     if ('listed' in b) {
       if (typeof b.listed !== 'boolean') return fail(res, 400, 'bad_listed', '掲載の指定が正しくありません。');

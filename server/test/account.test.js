@@ -775,3 +775,39 @@ test('claim: scripts/admin.js claim mails the link (or prints it), and says why 
     assert.match(claimAdmin(t, 'claim', 'ktt', 'again@example.org').stderr, /active/, 'an account that is already claimed is refused');
   } finally { await t.close(); }
 });
+
+test('profile: the owner can set the position (rounded to a 0.1-degree cell, never stored exactly) or remove it; a bad one is refused', async () => {
+  const t = await boot({}, OPEN);
+  try {
+    const tok = await registerAndVerify(t);
+    const put = (position) => t.call('PUT', '/me/profile', { token: tok, body: { position } });
+    const row = () => t.inst.db.prepare("SELECT lat_grid, lon_grid FROM stations WHERE id = 'sakura'").get();
+
+    const a = await put({ lat: '38.2545', lon: 140.8634 });                  // text from a form box, or numbers
+    assert.equal(a.status, 200);
+    assert.deepEqual(a.json.position, { lat: 38.25, lon: 140.85 });
+    assert.deepEqual(row(), { lat_grid: 38.25, lon_grid: 140.85 });
+    const me = (await t.call('GET', '/me', { token: tok })).json;
+    assert.deepEqual([me.station.lat, me.station.lon], [38.25, 140.85]);
+    assert.ok(!JSON.stringify(t.inst.db.prepare('SELECT * FROM stations').all()).includes('38.2545'), 'the exact value is nowhere in the table');
+
+    for (const bad of [{ lat: 'abc', lon: 140 }, { lat: 91, lon: 0 }, { lat: 0, lon: 181 }, { lat: 35 }, 'x', 5, [], {}]) {
+      const r = await put(bad);
+      assert.equal(r.status, 400, JSON.stringify(bad));
+      assert.equal(r.json.code, 'bad_position');
+    }
+    assert.deepEqual(row(), { lat_grid: 38.25, lon_grid: 140.85 }, 'refusals change nothing');
+
+    const gone = await put(null);
+    assert.equal(gone.status, 200);
+    assert.equal(gone.json.position, null);
+    assert.deepEqual(row(), { lat_grid: null, lon_grid: null });
+    // one request can carry a position together with the introduction
+    const both = await t.call('PUT', '/me/profile', { token: tok, body: { description: 'hi', position: { lat: 35.68, lon: 139.76 } } });
+    assert.equal(both.status, 200);
+    assert.deepEqual(row(), { lat_grid: 35.65, lon_grid: 139.75 });
+
+    // anonymous people cannot
+    assert.equal((await t.call('PUT', '/me/profile', { body: { position: { lat: 1, lon: 1 } } })).status, 401);
+  } finally { await t.close(); }
+});

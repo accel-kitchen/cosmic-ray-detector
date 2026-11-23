@@ -41,7 +41,7 @@
 
     const s = me.station;
     $('where').textContent = s.lat == null
-      ? '位置: まだ届いていません。Console の「緯度・経度」を入れてログインすると、約 10 km 四方の中心に丸めて保存されます（正確な位置は保存しません）。'
+      ? '位置: まだありません。下の欄に入れるか、Console の「緯度・経度」を入れてログインすると、約 10 km 四方の中心に丸めて保存されます。位置がないと、地図には出ません。'
       : `位置: 約 10 km 四方の中心  北緯 ${s.lat}°  東経 ${s.lon}°（丸めた値です）`;
     $('data').textContent = `届いたイベント: ${s.event_count} 件 ／ 最後に届いた時刻: ${fmt(s.last_seen_utc)}`;
   }
@@ -91,6 +91,28 @@
     const r = await api('/me/profile', { method: 'PUT', auth: true, body: { description: $('desc').value } });
     showMessage($('profile-msg'), r.ok ? 'ok' : 'error', r.ok ? '保存しました。' : explain(r));
     if (r.ok) { me.public_description = r.json.public_description; $('desc').value = me.public_description || ''; }
+  });
+
+  // The position: what is typed goes to the server, which rounds it to a 0.1-degree cell; the rounded value comes back.
+  const num = (v) => String(v).normalize('NFKC').trim();
+  async function savePosition(position) {
+    const r = await api('/me/profile', { method: 'PUT', auth: true, body: { position } });
+    if (r.ok) {
+      me.station.lat = r.json.position ? r.json.position.lat : null;
+      me.station.lon = r.json.position ? r.json.position.lon : null;
+      $('lat').value = ''; $('lon').value = '';
+      render();
+      showMessage($('pos-msg'), 'ok', r.json.position ? '位置を保存しました（丸めた値は、上に出ています）。' : '位置を消しました。');
+    } else showMessage($('pos-msg'), 'error', explain(r));
+  }
+  $('posform').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const lat = num($('lat').value), lon = num($('lon').value);
+    if (!lat || !lon) { showMessage($('pos-msg'), 'error', '緯度と経度の、両方を入れてください。'); return; }
+    savePosition({ lat, lon });
+  });
+  $('posclear').addEventListener('click', () => {
+    if (confirm('保存している位置を消します。地図には、位置が入るまで、出なくなります。')) savePosition(null);
   });
 
   $('listbtn').addEventListener('click', async () => {
