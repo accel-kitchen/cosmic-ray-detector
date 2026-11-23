@@ -20,6 +20,7 @@ const { pathToFileURL } = require('url');
 const ports = require('./lib/ports');
 const savedir = require('./lib/savedir');
 const Settings = require('./lib/settings');
+const { createBleChooser } = require('./lib/blechooser');
 
 // ---------- コマンドライン（主に試験用） ----------
 function argValue(name) {
@@ -41,6 +42,7 @@ const opt = {
   // ここから下は開発中（パッケージしていない）だけ効く
   testJs: argValue('test-js'),           // コンソールが用意できたら、このファイルの JS をページで動かす
   chooserCancel: hasArg('chooser-cancel'),   // 人向けのポート選択画面を出さずに「キャンセル」とする
+  chooserFirst: hasArg('chooser-first'),     // Bluetooth の一覧を出さずに、最初に見つかった機器を選ぶ
 };
 // ポータブル版（electron-builder の portable）は、置いた場所の環境変数を渡してくる。
 // 設定と保存はその exe の隣に置き、PC に何も残さない（USB メモリに入れて持ち歩ける）。
@@ -360,40 +362,22 @@ async function chooseSerialPort(portList, webContents) {
   return r.response < ordered.length ? ordered[r.response] : null;
 }
 
-// Web Bluetooth: 探している間に何度も呼ばれる。1 回の requestDevice には 1 回だけ答える。
-// 実機ではまだ試していない（BLE は Electron の Windows 版での動きが未確認）。
+// Web Bluetooth の機器選び。段取りは lib/blechooser.js（1 回の要求に、いつも最新の callback で 1 回だけ答える）。
 function setUpBluetooth(wc) {
-  let pending = null;
+  const isMain = () => !!win && !win.isDestroyed() && wc === win.webContents;
+  const parent = () => BrowserWindow.fromWebContents(wc) || win;
+  const chooser = createBleChooser({
+    isAuto: () => autoPick && isMain(),
+    pickAuto: (devices) => ports.pickAutoBle(devices, settings.lastBle),
+    pickFirst: opt.chooserFirst && !app.isPackaged,
+    choose: (devices) => chooseBle(devices, wc),
+    notFound: () => dialog.showMessageBox(parent(), { type: 'info', title: T('pickBleTitle'), message: T('noBle'), detail: T('noBleDetail') }),
+    onPicked: (d) => { if (isMain()) pendingBle = { deviceId: d.deviceId, deviceName: d.deviceName || null }; },
+    log,
+  });
   wc.on('select-bluetooth-device', (event, deviceList, callback) => {
     event.preventDefault();
-    if (!pending || pending.callback !== callback) {
-      const auto = autoPick && wc === (win && win.webContents);
-      pending = { callback, devices: [], auto, done: false };
-      const mine = pending;
-      const finish = (id) => {
-        if (mine.done) return;
-        mine.done = true;
-        clearTimeout(mine.timer);
-        mine.callback(id || '');
-      };
-      mine.finish = finish;
-      mine.timer = setTimeout(async () => {
-        if (mine.done) return;
-        if (mine.auto) { finish(''); return; }
-        const d = await chooseBle(mine.devices, wc);
-        if (d && wc === (win && win.webContents)) pendingBle = { deviceId: d.deviceId, deviceName: d.deviceName || null };
-        finish(d ? d.deviceId : '');
-      }, auto ? 15000 : 5000);
-    }
-    pending.devices = deviceList;
-    if (pending.auto) {
-      const d = ports.pickAutoBle(deviceList, settings.lastBle);
-      if (d) {
-        log('ble: auto-picked', d.deviceName);
-        pendingBle = { deviceId: d.deviceId, deviceName: d.deviceName || null };
-        pending.finish(d.deviceId);
-      }
-    }
+    chooser.onSelect(deviceList, callback);
   });
 }
 
