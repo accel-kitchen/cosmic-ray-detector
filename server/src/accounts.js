@@ -12,6 +12,7 @@ function deleteAccount(db, dataDir, id, { nowIso = new Date().toISOString(), tom
   db.transaction(() => {
     db.prepare('DELETE FROM stats_hourly WHERE station_id = ?').run(id);
     db.prepare('DELETE FROM stats_adc WHERE station_id = ?').run(id);
+    db.prepare('DELETE FROM stats_adc_fine WHERE station_id = ?').run(id);
     db.prepare('DELETE FROM ingest_keys WHERE station_id = ?').run(id);
     db.prepare('DELETE FROM stations WHERE id = ?').run(id);
     db.prepare('DELETE FROM users WHERE id = ?').run(id);          // auth_tokens go with it (ON DELETE CASCADE)

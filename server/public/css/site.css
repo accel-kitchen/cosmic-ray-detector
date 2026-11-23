@@ -130,6 +130,8 @@ table.data th:first-child, table.data td:first-child { text-align: left; }
 .rangebox .lead { min-height: 1.5em; margin: 0 0 4px; font-size: .9rem; }
 canvas.rangebar { width: 100%; height: 64px; display: block; background: var(--card); border: 1px solid var(--line); border-radius: 10px;
                   cursor: crosshair; touch-action: pan-y; user-select: none; -webkit-user-select: none; }
+.scalebox { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 6px 0 12px; font-size: .92rem; }
+.scalebox select { width: auto; padding: 4px 8px; }
 form.range { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: end; margin: 8px 0; }
 form.range label { grid-template-columns: auto auto; align-items: center; gap: 6px; font-weight: 400; }
 form.range input[type=date] { width: auto; }

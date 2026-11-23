@@ -148,6 +148,8 @@ function register(app, ctx) {
       sinceIso = new Date(nowMs - days * DAY).toISOString();
       from = sinceIso.slice(0, 10); to = today;
     }
+    const fineReady = !!db.prepare("SELECT 1 FROM meta WHERE key = 'adc_fine_built'").get();
+    const adcWidth = parseInt(req.query.adc_bin, 10) || stats.BIN_WIDTH;          // an unknown width is answered with 64
     const bucket = days <= HOURLY_DAYS ? 'hour' : 'day';
     const hourly = bucket === 'hour' ? stats.hourlySeries(db, id, req.query.from !== undefined ? from : sinceIso.slice(0, 13), untilDay) : [];
     const daily = bucket === 'day' ? stats.dailySeries(db, id, from, untilDay) : [];
@@ -163,7 +165,7 @@ function register(app, ctx) {
       activity: activity(row.last_seen_utc, nowMs),
       hourly,
       daily,
-      adc: stats.adcHistogram(db, id, from, untilDay),
+      adc: { ...stats.adcHistogram(db, id, from, untilDay, adcWidth, fineReady), fine_ready: fineReady, widths: fineReady ? stats.ADC_WIDTHS : stats.ADC_WIDTHS.filter((w) => w >= stats.BIN_WIDTH) },
       totals: {
         events: (bucket === 'hour' ? hourly : daily).reduce((a, h) => a + h.count, 0),
         hours_with_data: bucket === 'hour' ? hourly.length : stats.hoursWithData(db, id, from, untilDay),

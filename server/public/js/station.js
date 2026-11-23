@@ -31,6 +31,9 @@
     if (bar.load(r.json)) { $('rangebox').classList.remove('hidden'); $('ovinfo').textContent = INFO_HINT; bar.setWindow(onShow.from, onShow.to); }
   }
   let onShow = { from: null, to: null };
+  let last = null;                        // the last answer, so a new scale or a resized window redraws without asking again
+  let adcBin = 64;                        // the width of one bar of the ADC histogram, in counts
+  let yscale = 'auto';                    // 'auto' | 'linear' | 'log'
 
   const fmtLocal = (ms) => new Date(ms).toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 
@@ -63,6 +66,7 @@
   }
 
   function render(d) {
+    last = d;
     $('content').classList.remove('hidden');
     $('desc').textContent = d.legacy ? '旧サーバーから引き継いだ観測局です。持ち主の引き継ぎを待っています。' : (d.description || '');
     const [label, cls] = ACTIVITY[d.activity] || ACTIVITY.idle;
@@ -92,10 +96,22 @@
 
     const rows = daily ? d.daily : d.hourly;
     const xFormat = daily ? fmtDay : undefined;
-    CRD.drawLine($('c-count'), timeline(d, 'count'), { yLabel: daily ? '件 / 日' : '件 / 時間', xFormat });
-    CRD.drawLine($('c-rate'), timeline(d, 'rate_per_min'), { yLabel: '件 / 分', xFormat });
-    CRD.drawLine($('c-temp'), timeline(d, 'temp_c'), { yLabel: '℃', yMin: 'auto', xFormat });
-    CRD.drawBars($('c-adc'), d.adc.bins, { yLabel: '件', labelFor: (i) => String(i * d.adc.bin_width) });
+    CRD.drawLine($('c-count'), timeline(d, 'count'), { yLabel: daily ? '件 / 日' : '件 / 時間', xFormat, scale: yscale });
+    CRD.drawLine($('c-rate'), timeline(d, 'rate_per_min'), { yLabel: '件 / 分', xFormat, scale: yscale });
+    CRD.drawLine($('c-temp'), timeline(d, 'temp_c'), { yLabel: '℃', yMin: 'auto', xFormat, scale: yscale === 'log' ? 'linear' : yscale });
+    // The bar widths on offer, and the one the answer used (the server falls back to 64 until the narrow
+  // bars have been prepared).
+  const sel = $('adcbin');
+  sel.textContent = '';
+  for (const w of d.adc.widths) sel.appendChild(el('option', { value: String(w) }, String(w)));
+  sel.value = String(d.adc.bin_width);
+  adcBin = d.adc.bin_width;
+  $('adcnote').textContent = d.adc.fine_ready ? ' カウントごと' : ' カウントごと（64 より細かい幅は、準備中です）';
+  // the horizontal axis ends at the highest bar that holds anything
+  let top = d.adc.bins.length - 1;
+  while (top > 0 && !d.adc.bins[top]) top--;
+  const shownBins = d.adc.bins.slice(0, Math.min(d.adc.bins.length, Math.max(top + 2, 8)));
+  CRD.drawBars($('c-adc'), shownBins, { yLabel: '件', labelFor: (i) => String(i * d.adc.bin_width), scale: yscale });
 
     $('tablesum').textContent = daily ? '数値を表で見る（直近 60 日分）' : '数値を表で見る（直近 48 時間分）';
     const shown = rows.slice(daily ? -60 : -48).reverse();
@@ -114,7 +130,8 @@
     $('gate').classList.add('hidden');
     showMessage(msg, 'ok', '読み込んでいます…');
     const q = range ? 'from=' + encodeURIComponent(range.from) + '&to=' + encodeURIComponent(range.to) : 'days=' + days;
-    const r = await api('/stations/' + encodeURIComponent(id) + '/summary?' + q, { auth: true });
+    const qs = q + '&adc_bin=' + adcBin;
+    const r = await api('/stations/' + encodeURIComponent(id) + '/summary?' + qs, { auth: true });
     if (r.status === 401) { showMessage(msg, '', ''); needLogin(); return; }
     if (!r.ok) {
       showMessage(msg, 'error', r.status === 404 ? 'この観測局は見つかりません（地図に載っていないか、削除されました）。'
@@ -138,7 +155,14 @@
     range = { from: $('from').value, to: $('to').value };
     load();
   });
-  window.addEventListener('resize', () => { if (!$('content').classList.contains('hidden')) { bar.redraw(); load(); } });
+  $('adcbin').addEventListener('change', () => { adcBin = Number($('adcbin').value); load(); });
+  $('yscale').addEventListener('change', () => { yscale = $('yscale').value; if (last) render(last); });
+  // A resized window only redraws what was already fetched (and waits until the resizing stops).
+  let resizeTimer = null;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => { if (last && !$('content').classList.contains('hidden')) { bar.redraw(); render(last); } }, 150);
+  });
 
   if (!session()) needLogin(); else load();
 })();

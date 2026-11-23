@@ -56,6 +56,7 @@ async function createApp(cfg, { now = Date.now, ...deps } = {}) {
   if (!db.prepare("SELECT 1 FROM meta WHERE key = 'stats_built'").get()) {
     const n = stats.rebuild(db, cfg.dataDir);
     db.prepare("INSERT INTO meta (key, value) VALUES ('stats_built', ?)").run(new Date(now()).toISOString());
+    db.prepare("INSERT OR REPLACE INTO meta (key, value) VALUES ('adc_fine_built', ?)").run(new Date(now()).toISOString());   // that rebuild filled the fine table too
     if (!cfg.quiet) console.log(`built the statistics from ${n} existing events`);
   }
   const lim = {};

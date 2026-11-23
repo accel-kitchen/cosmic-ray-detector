@@ -26,6 +26,7 @@ async function send(t, tok, station, run, eventNumbers, { start = HOUR0, extra =
 const dump = (db) => JSON.stringify({
   h: db.prepare('SELECT * FROM stats_hourly ORDER BY station_id, run_id, hour').all(),
   a: db.prepare('SELECT * FROM stats_adc ORDER BY station_id, day, bin').all(),
+  f: db.prepare('SELECT * FROM stats_adc_fine ORDER BY station_id, day, bin').all(),
 });
 
 // ---------------------------------------------------------------------------- statistics
@@ -89,6 +90,90 @@ test('stats: a rebuild from the JSONL files gives exactly what the incremental u
     const adc = stats.adcHistogram(t.inst.db, 'osaka', '2026-11-01');
     assert.equal(adc.bins[63], 3, 'ADC 4095 lands in the last bin (4095/64 = 63)');
     assert.equal(adc.bins.reduce((a, b) => a + b, 0), 3);
+  } finally { await t.close(); }
+});
+
+test('ADC histogram: the bar width can be chosen; narrow bars come from the fine table once it is complete', async () => {
+  const t = await boot();
+  try {
+    await t.seed('sendai');
+    const tok = await t.loginToken('sendai');
+    for (const [n, adc] of [[1, 100], [2, 101], [3, 103], [4, 130], [5, 4095], [6, 5000]]) {
+      const r = await t.call('POST', '/upload-data/sendai', { token: tok, body: consoleEvent({ event: n, time: n * 1e6, run_id: 'r', adc, timestamp_utc: iso(HOUR0 + n * 1000) }) });
+      assert.equal(r.status, 200);
+    }
+    const db = t.inst.db;
+    const h = (w, fine = true) => stats.adcHistogram(db, 'sendai', '2026-11-01', null, w, fine);
+    const sum = (b) => b.reduce((a, c) => a + c, 0);
+
+    const f4 = h(4);
+    assert.equal(f4.bin_width, 4);
+    assert.equal(f4.bins.length, 1024);
+    assert.equal(f4.bins[25], 3, '100, 101 and 103 share the bar 100-103');
+    assert.equal(f4.bins[1023], 2, '4095 and 5000 both land in the last bar');
+    assert.equal(sum(f4.bins), 6);
+    assert.equal(h(8).bins[12], 3, '100, 101 and 103 are in 96-103');
+    assert.equal(h(16).bins[6], 3);
+    assert.equal(h(16).bins[8], 1, '130 is in 128-143');
+    assert.equal(h(256).bins.length, 16);
+    assert.equal(h(256).bins[0], 4);
+    for (const w of [4, 8, 16, 32, 64, 128, 256]) assert.equal(sum(h(w).bins), 6, 'width ' + w + ' keeps every event');
+    assert.equal(h(64).bins.length, 64);
+    assert.deepEqual(h(64).bins, stats.adcHistogram(db, 'sendai', '2026-11-01', null, 64, false).bins, 'the fine table and the 64-wide one agree at 64');
+    assert.equal(h(100).bin_width, 64, 'a width that is not offered gives 64');
+
+    // before the fine table is complete, narrow bars are not offered: 64 is answered instead
+    assert.equal(stats.adcHistogram(db, 'sendai', '2026-11-01', null, 8, false).bin_width, 64);
+    assert.equal(stats.adcHistogram(db, 'sendai', '2026-11-01', null, 128, false).bin_width, 128, 'wider bars never need it');
+  } finally { await t.close(); }
+});
+
+test('summary: adc_bin chooses the width; the answer says which widths exist and whether the narrow ones are ready', async () => {
+  const t = await boot();
+  try {
+    const tok = await populate(t);
+    const get = async (q) => (await t.call('GET', '/stations/shown/summary?days=7' + q, { token: tok.shown })).json.adc;
+    const a = await get('&adc_bin=16');
+    assert.equal(a.fine_ready, true);                                  // a fresh database is built complete
+    assert.equal(a.bin_width, 16);
+    assert.equal(a.bins.length, 256);
+    assert.deepEqual(a.widths, [4, 8, 16, 32, 64, 128, 256]);
+    assert.equal(a.bins.reduce((x, y) => x + y, 0), 3);
+    assert.equal((await get('')).bin_width, 64);
+    assert.equal((await get('&adc_bin=7')).bin_width, 64);
+    assert.equal((await get('&adc_bin=abc')).bin_width, 64);
+    t.inst.db.prepare("DELETE FROM meta WHERE key = 'adc_fine_built'").run();       // an upgraded database before rebuild-stats has run
+    const b = await get('&adc_bin=16');
+    assert.equal(b.fine_ready, false);
+    assert.equal(b.bin_width, 64, 'falls back');
+    assert.deepEqual(b.widths, [64, 128, 256]);
+    assert.equal(b.bins.reduce((x, y) => x + y, 0), 3, 'and still has the numbers');
+  } finally { await t.close(); }
+});
+
+test('rebuild-stats.js: every station one by one, the fine table equals what the live updates gave, and the mark is set', async () => {
+  const t = await boot();
+  try {
+    await t.seed('sendai'); await t.seed('osaka');
+    const s = await t.loginToken('sendai'); const o = await t.loginToken('osaka');
+    await send(t, s, 'sendai', 'run-a', [1, 2, 3, 4, 5]);
+    await send(t, o, 'osaka', 'run-x', [1, 2, 3], { extra: { adc: 777 } });
+    const before = dump(t.inst.db);
+    assert.ok(JSON.parse(before).f.length > 0);
+    // an upgraded database: the fine table is empty and unmarked
+    t.inst.db.exec("DELETE FROM stats_adc_fine; DELETE FROM meta WHERE key = 'adc_fine_built';");
+    const run = (...args) => spawnSync(process.execPath, [path.join(__dirname, '..', 'scripts', 'rebuild-stats.js'), ...args], {
+      encoding: 'utf-8', env: { ...process.env, DATA_DIR: t.dir, JWT_SECRET: 'test-secret-' + 'x'.repeat(40) },
+    });
+    const one = run('osaka');
+    assert.equal(one.status, 0, one.stderr);
+    assert.equal(t.inst.db.prepare("SELECT 1 FROM meta WHERE key = 'adc_fine_built'").get(), undefined, 'one station does not complete the table');
+    const all = run();
+    assert.equal(all.status, 0, all.stderr);
+    assert.match(all.stdout, /osaka: 3 events/);
+    assert.match(all.stdout, /sendai: 5 events/);
+    assert.ok(t.inst.db.prepare("SELECT 1 FROM meta WHERE key = 'adc_fine_built'").get());
+    assert.equal(dump(t.inst.db), before, 'the same numbers as the live updates gave');
   } finally { await t.close(); }
 });
 
@@ -416,7 +501,7 @@ test('deleteAccount removes the rows, the statistics and the files, and keeps th
     const r = deleteAccount(t.inst.db, t.dir, 'shown', { nowIso: iso(NOW) });
     assert.equal(r.filesRemoved, true);
     assert.equal(fs.existsSync(dir), false);
-    for (const [table, col] of [['users', 'id'], ['stations', 'id'], ['stats_hourly', 'station_id'], ['stats_adc', 'station_id'], ['ingest_keys', 'station_id'], ['auth_tokens', 'user_id']]) {
+    for (const [table, col] of [['users', 'id'], ['stations', 'id'], ['stats_hourly', 'station_id'], ['stats_adc', 'station_id'], ['stats_adc_fine', 'station_id'], ['ingest_keys', 'station_id'], ['auth_tokens', 'user_id']]) {
       assert.equal(t.inst.db.prepare(`SELECT COUNT(*) n FROM ${table} WHERE ${col} = 'shown'`).get().n, 0, table);
     }
     assert.equal(t.inst.db.prepare("SELECT COUNT(*) n FROM deleted_ids WHERE id='shown'").get().n, 1);

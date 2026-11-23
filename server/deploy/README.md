@@ -188,6 +188,12 @@ sudo systemctl start cosmicray-v3-backup.service && journalctl -u cosmicray-v3-b
 ### 10. 更新とロールバック
 更新は、コミット → 新しいタグ → 手順 2 → `sudo bash ./deploy.sh tarball …`。直近 5 件のリリースが残ります。
 
+**0.3.13 以降の最初のデプロイのあと（スキーマ 3 → 4）**：ADC 分布の細かい棒（4〜32 カウント）のための表が、空のまま追加されます。既存の測定から埋めるのは、起動では時間がかかりすぎる（`deploy.sh` は 20 秒しか待たない）ので、VPS で次を 1 回、手で実行します。局を 1 つずつ処理し、終わると細かい棒が選べるようになります（それまでは 64 カウント以上の棒だけ、画面にも「準備中」と出ます）。サービスは止めなくて構いません。
+
+```bash
+sudo -u cosmicray bash -c 'cd /opt/cosmicray-v3/current && /opt/node-v22.23.4/bin/node --env-file=/etc/cosmicray/env scripts/rebuild-stats.js'
+```
+
 **手元の PC から 1 行で出す**（`deploy-remote.ps1`）。タグから tarball を作り、`scp` で送り、VPS で `deploy.sh` と `smoke.sh` を続けて実行します。`sudo` のパスワードを 1 回聞かれるだけです。`deploy.sh` が失敗したときは、`smoke.sh` は走りません（切り戻しは `deploy.sh` が自分でします）。DB と環境ファイルには触れず、局を地図に載せることもしません。
 
 ```powershell

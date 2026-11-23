@@ -455,7 +455,7 @@ test('delete my account: needs the password, removes everything, and the id stay
     const gone = await t.call('POST', '/me/delete', { token: tok, body: { password: GOOD_PW } });
     assert.equal(gone.status, 200);
     assert.equal(fs.existsSync(dir), false);
-    for (const [table, col] of [['users', 'id'], ['stations', 'id'], ['stats_hourly', 'station_id'], ['stats_adc', 'station_id'], ['ingest_keys', 'station_id'], ['auth_tokens', 'user_id']]) {
+    for (const [table, col] of [['users', 'id'], ['stations', 'id'], ['stats_hourly', 'station_id'], ['stats_adc', 'station_id'], ['stats_adc_fine', 'station_id'], ['ingest_keys', 'station_id'], ['auth_tokens', 'user_id']]) {
       assert.equal(t.inst.db.prepare(`SELECT COUNT(*) n FROM ${table} WHERE ${col} = 'sakura'`).get().n, 0, table);
     }
     assert.equal((await t.call('GET', '/me', { token: tok })).status, 401, 'the login stops working');

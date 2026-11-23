@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const Database = require('better-sqlite3');
 
-const SCHEMA_VERSION = 3;
+const SCHEMA_VERSION = 4;
 
 // Forward-only migrations keyed on PRAGMA user_version. Never edit a step that has
 // shipped: add a new one. (Step 0 -> 1 shipped in server-v0.1.0.)
@@ -155,6 +155,20 @@ const MIGRATIONS = [
   -- The status an account had before an operator disabled it, so enabling it again does not
   -- skip e-mail confirmation (NULL for accounts disabled before this column existed).
   ALTER TABLE users ADD COLUMN prev_status TEXT;
+  `,
+
+  // 3 -> 4: the ADC histogram at a fine resolution, so the width of its bars can be chosen on the station page.
+  // stats_adc keeps its 64-count bars (what an older release reads). This one is created EMPTY: filling it
+  // from the files of millions of events takes longer than a start may (deploy.sh waits 20 s), so it is
+  // filled by scripts/rebuild-stats.js, which then sets meta 'adc_fine_built'. Until then the pages use stats_adc.
+  `
+  CREATE TABLE stats_adc_fine (
+    station_id TEXT    NOT NULL,
+    day        TEXT    NOT NULL,
+    bin        INTEGER NOT NULL,        -- floor(adc / 4), at most 1023 (the last bin also takes anything above 4095)
+    n          INTEGER NOT NULL,
+    PRIMARY KEY (station_id, day, bin)
+  ) WITHOUT ROWID;
   `,
 ];
 

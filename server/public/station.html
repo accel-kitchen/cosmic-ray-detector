@@ -37,15 +37,23 @@
       <button type="submit" class="secondary">表示</button>
     </form>
     <p id="bucketnote" class="lead hidden"></p>
+    <p class="scalebox"><label for="yscale">縦軸の目盛り</label>
+      <select id="yscale">
+        <option value="auto" selected>自動（飛び抜けた値は枠の外に出す）</option>
+        <option value="linear">そのまま（すべての値が入る）</option>
+        <option value="log">対数</option>
+      </select></p>
     <div class="charts">
       <div><h2 id="h-count">1 時間あたりのイベント数</h2><canvas id="c-count" class="chart" role="img" aria-label="1 時間あたりのイベント数の折れ線グラフ"></canvas></div>
       <div><h2>計数率（1 分あたり）</h2><canvas id="c-rate" class="chart" role="img" aria-label="計数率の折れ線グラフ"></canvas></div>
       <div><h2>温度（装置のセンサー）</h2><canvas id="c-temp" class="chart" role="img" aria-label="温度の折れ線グラフ"></canvas></div>
-      <div><h2>波高（ADC）の分布</h2><canvas id="c-adc" class="chart" role="img" aria-label="ADC 値の分布の棒グラフ"></canvas></div>
+      <div><h2>波高（ADC）の分布</h2>
+        <p class="scalebox"><label for="adcbin">棒の幅</label><select id="adcbin"></select><span id="adcnote" class="lead"></span></p>
+        <canvas id="c-adc" class="chart" role="img" aria-label="ADC 値の分布の棒グラフ"></canvas></div>
     </div>
     <div class="note">
       イベント数は、装置が数えたイベント番号から求めています（Console の「送る量」を間引きにしていても、実際の数になります）。
-      時刻は、お使いの端末の時間帯で表示しています。波高は 64 カウントごとにまとめた分布です。
+      時刻は、お使いの端末の時間帯で表示しています。波高の分布は、「棒の幅」で選んだカウント数ごとにまとめています。縦軸で飛び抜けた値は、「縦軸の目盛り」で扱いを選べます。
     </div>
     <details><summary id="tablesum">数値を表で見る（直近 48 時間分）</summary><div id="table"></div></details>
   </div>

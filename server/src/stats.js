@@ -18,8 +18,12 @@ const path = require('path');
 // while the run id stays the same, which under-counts that hour; and the first and last events of
 // an hour can be missing when thinning is on.
 
-const BIN_WIDTH = 64;
+const BIN_WIDTH = 64;                   // stats_adc: 64 bars of 64 counts
 const BINS = 64;
+const ADC_RANGE = 4096;                 // the board's ADC is 12 bit; anything above lands in the last bar
+const FINE_WIDTH = 4;                   // stats_adc_fine: 1024 bars of 4 counts (any wider bar is a sum of these)
+const FINE_BINS = ADC_RANGE / FINE_WIDTH;
+const ADC_WIDTHS = [4, 8, 16, 32, 64, 128, 256];     // the bar widths a page may ask for
 
 function prepare(db) {
   return {
@@ -37,6 +41,9 @@ function prepare(db) {
     upsertAdc: db.prepare(`
       INSERT INTO stats_adc (station_id, day, bin, n) VALUES (@station, @day, @bin, 1)
       ON CONFLICT (station_id, day, bin) DO UPDATE SET n = n + 1`),
+    upsertAdcFine: db.prepare(`
+      INSERT INTO stats_adc_fine (station_id, day, bin, n) VALUES (@station, @day, @bin, 1)
+      ON CONFLICT (station_id, day, bin) DO UPDATE SET n = n + 1`),
   };
 }
 
@@ -51,6 +58,7 @@ function applyEvent(stmts, station, e) {
   });
   const bin = Math.min(BINS - 1, Math.max(0, Math.floor(e.adc / BIN_WIDTH)));
   stmts.upsertAdc.run({ station, day, bin });
+  stmts.upsertAdcFine.run({ station, day, bin: Math.min(FINE_BINS - 1, Math.max(0, Math.floor(e.adc / FINE_WIDTH))) });
 }
 
 // --- reading ------------------------------------------------------------------------------------
@@ -98,12 +106,19 @@ function hoursWithData(db, station, sinceDay, untilDay = null) {
                       WHERE station_id = ? AND hour >= ? AND (? IS NULL OR substr(hour, 1, 10) <= ?)`).get(station, sinceDay, untilDay, untilDay).n;
 }
 
-function adcHistogram(db, station, sinceDay, untilDay = null) {
-  const bins = new Array(BINS).fill(0);
-  for (const r of db.prepare('SELECT bin, SUM(n) AS n FROM stats_adc WHERE station_id = ? AND day >= ? AND (? IS NULL OR day <= ?) GROUP BY bin').all(station, sinceDay, untilDay, untilDay)) {
-    bins[r.bin] = r.n;
-  }
-  return { bin_width: BIN_WIDTH, bins };
+// The ADC histogram in bars of `width` counts (one of ADC_WIDTHS). Bars narrower than 64 need the fine table, which
+// is complete only once `fine` is true (scripts/rebuild-stats.js has filled it); before that the width asked for is
+// replaced by 64 and the answer says so (bin_width).
+function adcHistogram(db, station, sinceDay, untilDay = null, width = BIN_WIDTH, fine = false) {
+  if (!ADC_WIDTHS.includes(width)) width = BIN_WIDTH;
+  if (!fine && width < BIN_WIDTH) width = BIN_WIDTH;
+  const bins = new Array(ADC_RANGE / width).fill(0);
+  const table = fine ? 'stats_adc_fine' : 'stats_adc';
+  const per = width / (fine ? FINE_WIDTH : BIN_WIDTH);                     // stored bars that make one shown bar
+  const rows = db.prepare(`SELECT CAST(bin / ? AS INTEGER) AS b, SUM(n) AS n FROM ${table}
+                            WHERE station_id = ? AND day >= ? AND (? IS NULL OR day <= ?) GROUP BY b`).all(per, station, sinceDay, untilDay, untilDay);
+  for (const r of rows) bins[Math.min(bins.length - 1, r.b)] = r.n;
+  return { bin_width: width, bins };
 }
 
 // --- rebuilding from the files -------------------------------------------------------------------
@@ -128,8 +143,9 @@ function rebuild(db, dataDir, station = null) {
     if (station) {
       db.prepare('DELETE FROM stats_hourly WHERE station_id = ?').run(station);
       db.prepare('DELETE FROM stats_adc WHERE station_id = ?').run(station);
+      db.prepare('DELETE FROM stats_adc_fine WHERE station_id = ?').run(station);
     } else {
-      db.exec('DELETE FROM stats_hourly; DELETE FROM stats_adc;');
+      db.exec('DELETE FROM stats_hourly; DELETE FROM stats_adc; DELETE FROM stats_adc_fine;');
     }
     for (const s of stations) {
       for (const file of mainStreamFiles(eventsDir, s)) {
@@ -149,4 +165,4 @@ function rebuild(db, dataDir, station = null) {
   return n;
 }
 
-module.exports = { prepare, applyEvent, hourlySeries, dailySeries, dailyCounts, hoursWithData, adcHistogram, rebuild, BIN_WIDTH, BINS };
+module.exports = { prepare, applyEvent, hourlySeries, dailySeries, dailyCounts, hoursWithData, adcHistogram, rebuild, BIN_WIDTH, BINS, ADC_WIDTHS, FINE_WIDTH };

@@ -43,7 +43,7 @@ test('migration 1 -> 2 keeps a deployed database intact and adds the new columns
     assert.equal(s.listed, 0, 'a station that existed before is NOT put on the public map by the upgrade');
     assert.equal(s.public_description, null);
     assert.equal(db.prepare('SELECT COUNT(*) n FROM ingest_keys').get().n, 1);
-    for (const t of ['auth_tokens', 'mail_counters', 'deleted_ids', 'stats_hourly', 'stats_adc', 'meta']) {
+    for (const t of ['auth_tokens', 'mail_counters', 'deleted_ids', 'stats_hourly', 'stats_adc', 'stats_adc_fine', 'meta']) {
       assert.equal(db.prepare('SELECT COUNT(*) n FROM ' + t).get().n, 0, t);
     }
     db.close();
@@ -88,7 +88,7 @@ test('migration 2 -> 3 (operator tools) keeps a deployed 0.2.x database and adds
     raw.close();
 
     const db = openDb(dir);
-    assert.equal(db.pragma('user_version', { simple: true }), 3);
+    assert.equal(db.pragma('user_version', { simple: true }), SCHEMA_VERSION, 'it goes on to the newest schema (3 -> 4 adds the empty fine ADC table)');
     const s = db.prepare("SELECT * FROM stations WHERE id='osaka'").get();
     assert.equal(s.listed, 1, 'what was on the map stays on the map');
     assert.equal(s.admin_hold, 0);
