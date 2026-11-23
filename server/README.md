@@ -113,11 +113,12 @@ The first five are what the console uses.
 | `GET /stations/:id/overview` | Bearer | `[day, events]` for every UTC day with data (last 3660 days): the station page draws its drag-to-pick-a-period bar from it. Same visibility as the summary |
 | `GET /stations/:id/summary?days=N` or `?from=YYYY-MM-DD&to=YYYY-MM-DD` (`&adc_bin=4|8|16|32|64|128|256` picks the ADC bar width) | Bearer | graphs: events, rate, temperature, ADC histogram. Up to 31 days: one point per UTC hour (`hourly`); longer (up to 3660 days): one per UTC day (`daily`); `bucket` says which. Listed stations, or one's own. Others never see the exact last-data time |
 | `GET /config.json` | – | whether registration is open, the map-tile setting |
+| `POST /auth/claim` | – | the owner of a reserved station of the old server takes it over: the single-use link an operator mailed (`scripts/admin.js claim <id> <email>`, 7 days), the terms, a password. Makes the account active with that address confirmed |
 | `POST /auth/register`, `/auth/verify-email`, `/auth/resend-verify`, `/auth/forgot`, `/auth/reset` | – | self-registration and password reset. Same answers whether or not an address is known; single-use tokens, stored hashed, in the mailed link's `#fragment`; mail rationed per recipient and in total |
 | `GET /me`, `PUT /me/profile`, `POST /me/password`, `POST /me/delete`, `GET /me/events[/:file]` | Bearer | the owner's account: introduction, leaving the map, password, deleting everything, downloading one's own files |
 
 Pages (same server, strict CSP, no inline script, nothing third-party; Leaflet is vendored): `/` map,
-`/station?id=`, `/register`, `/verify`, `/forgot`, `/reset`, `/account`, `/terms`, `/privacy`. The terms and
+`/station?id=`, `/register`, `/verify`, `/forgot`, `/reset`, `/claim`, `/account`, `/terms`, `/privacy`. The terms and
 privacy pages are marked as drafts until the person responsible approves them.
 
 Storage: `events/<station>/<UTC-day>.jsonl` (first line is a header record; the source of truth)

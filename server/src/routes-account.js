@@ -11,6 +11,7 @@ const { deleteAccount } = require('./accounts');
 //   POST /auth/resend-verify   send the confirmation mail again
 //   POST /auth/forgot          mail a password-reset link
 //   POST /auth/reset           choose a new password with that token
+//   POST /auth/claim           a reserved station of the old server: terms + password, with the link an operator mailed
 //   GET  /me                   the owner's own account
 //   PUT  /me/profile           public introduction, and taking the station off the map
 //   POST /me/password          change the password
@@ -99,6 +100,8 @@ function register(app, ctx) {
     activate: db.prepare(`UPDATE users SET status = 'active', email_verified_at = COALESCE(email_verified_at, ?) WHERE id = ? AND status = 'pending_email'`),
     autoList: db.prepare('UPDATE stations SET listed = 1 WHERE id = ? AND admin_hold = 0'),
     setPassword: db.prepare('UPDATE users SET password_hash = ?, token_version = token_version + 1 WHERE id = ?'),
+    claim: db.prepare(`UPDATE users SET password_hash = ?, status = 'active', email_verified_at = ?, consent_version = ?, consent_at = ?,
+                              token_version = token_version + 1 WHERE id = ? AND status = 'legacy_unclaimed'`),
     station: db.prepare('SELECT * FROM stations WHERE id = ?'),
     setProfile: db.prepare('UPDATE stations SET public_description = ? WHERE id = ?'),
     setListed: db.prepare('UPDATE stations SET listed = ? WHERE id = ?'),
@@ -274,6 +277,8 @@ function register(app, ctx) {
     const row = usableToken(b.token, 'reset');
     if (!row) return fail(res, 400, 'bad_token', 'このリンクは無効か、期限切れです。再設定のメールをもう一度送ってください。');
     const u = q.user.get(row.user_id);
+    // A link made for handing over an old station belongs to /auth/claim (it asks for the terms), not here.
+    if (!u || u.status === 'legacy_unclaimed') return fail(res, 400, 'bad_token', 'このリンクは無効か、期限切れです。再設定のメールをもう一度送ってください。');
     const problem = passwordProblem(b.password, row.user_id, u && u.email);
     if (problem) return fail(res, 400, 'weak_password', PASSWORD_JA[problem], 'weak password');   // the link stays usable
     const hash = await hashPassword(b.password, cfg.scryptN);
@@ -284,6 +289,37 @@ function register(app, ctx) {
       activate(row.user_id);                            // the link proves the mailbox is theirs
     })();
     return res.json({ success: true });
+  });
+
+  // The owner of a station that came over from the old server (status legacy_unclaimed) takes it over. The link
+  // was made by an operator for an address he chose (scripts/admin.js claim); using it proves the mailbox,
+  // and this is where the terms are agreed, as at registration.
+  app.post('/auth/claim', async (req, res) => {
+    const r = lim.token.take(req.ip);
+    if (!r.ok) return tooMany(res, r);
+    const b = req.body || {};
+    const bad = () => fail(res, 400, 'bad_token', 'このリンクは無効か、期限切れです。運営に、もう一度リンクを送るよう頼んでください。');
+    const row = usableToken(b.token, 'reset');
+    if (!row) return bad();
+    const u = q.user.get(row.user_id);
+    if (!u || u.status !== 'legacy_unclaimed') return bad();
+    if (b.consent !== true || b.consent_version !== cfg.consentVersion) {
+      return fail(res, 400, 'consent_required', '利用規約とプライバシーについてに同意してください。ページを開き直して、もう一度お試しください。');
+    }
+    const problem = passwordProblem(b.password, row.user_id, u.email);
+    if (problem) return fail(res, 400, 'weak_password', PASSWORD_JA[problem], 'weak password');   // the link stays usable
+    const hash = await hashPassword(b.password, cfg.scryptN);
+    const done = db.transaction(() => {
+      const at = nowIso();
+      const c = q.claim.run(hash, at, cfg.consentVersion, at, row.user_id);     // only while it is still unclaimed
+      if (!c.changes) return false;
+      q.useToken.run(at, row.id);
+      q.voidTokens.run(at, row.user_id, 'reset');
+      q.insertStation.run(row.user_id);
+      return true;
+    })();
+    if (!done) return bad();
+    return res.json({ success: true, id: row.user_id });
   });
 
   // ---------------------------------------------------------------- the owner's account

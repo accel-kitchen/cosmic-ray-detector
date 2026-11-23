@@ -586,7 +586,7 @@ test('on start, registrations never confirmed within UNVERIFIED_DAYS are swept a
 
 test('the Phase 3 pages exist, carry no draft marker once the text is approved, and never confirm by themselves', () => {
   const pub = path.join(__dirname, '..', 'public');
-  for (const f of ['register', 'verify', 'forgot', 'reset', 'account', 'terms', 'privacy', 'station', 'index']) {
+  for (const f of ['register', 'verify', 'forgot', 'reset', 'claim', 'account', 'terms', 'privacy', 'station', 'index']) {
     assert.ok(fs.existsSync(path.join(pub, f + '.html')), f);
   }
   for (const f of ['terms', 'privacy']) {
@@ -664,5 +664,114 @@ test('/healthz reports the version in package.json, so a deployed release can be
   try {
     const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf8'));
     assert.equal((await t.call('GET', '/healthz')).json.version, pkg.version);
+  } finally { await t.close(); }
+});
+
+// ------------------------------------------------------------------ handing an old station to its owner
+
+const { spawnSync } = require('child_process');
+const { createOperator } = require('../src/operator');
+const claim = (t, token, over = {}) => t.call('POST', '/auth/claim', { body: { token, password: GOOD_PW, consent: true, consent_version: CV, ...over }, ip: nextIp() });
+const claimAdmin = (t, ...args) => spawnSync(process.execPath, [path.join(__dirname, '..', 'scripts', 'admin.js'), ...args], {
+  env: { ...process.env, JWT_SECRET: t.cfg.jwtSecret, DATA_DIR: t.dir, SCRYPT_N: '1024', MAIL_TRANSPORT: 'outbox', PUBLIC_URL: 'https://cosmic.example' }, encoding: 'utf8' });
+
+test('claim: the operator makes a link for a reserved old station; the owner takes it over with the terms and a password', async () => {
+  const t = await boot({}, OPEN);
+  try {
+    await t.seed('sendai', 'legacy_unclaimed', '!legacy-reserved');
+    t.inst.db.prepare('INSERT OR IGNORE INTO stations (id, event_count) VALUES (?, ?)').run('sendai', 5);
+    const op = createOperator(t.inst.db, () => NOW);
+
+    // what the operator cannot do
+    assert.equal(op.claimLink('cli', 'nobody', 'a@example.org').code, 'not_found');
+    assert.equal(op.claimLink('cli', 'sendai', 'not-an-address').code, 'bad_email');
+    await t.seed('osaka'); t.inst.db.prepare("UPDATE users SET email = 'taken@example.org' WHERE id = 'osaka'").run();
+    assert.equal(op.claimLink('cli', 'sendai', 'Taken@Example.org').code, 'email_in_use');
+    assert.equal(op.claimLink('cli', 'osaka', 'x@example.org').code, 'not_legacy', 'an active account does not go through this');
+
+    const a = op.claimLink('cli', 'sendai', ' Owner@Example.org ');
+    assert.equal(a.ok, true);
+    const row = t.inst.db.prepare("SELECT email, email_verified_at, status FROM users WHERE id = 'sendai'").get();
+    assert.deepEqual([row.email, row.email_verified_at, row.status], ['owner@example.org', null, 'legacy_unclaimed'], 'the address is set but not confirmed, and nothing else changes');
+    const audit = JSON.stringify(t.inst.db.prepare("SELECT * FROM admin_audit WHERE action = 'claim-link'").all());
+    assert.ok(audit.includes('sendai') && !audit.includes('owner@example.org'), 'the audit names the station, never the address');
+    assert.equal((await login(t, 'sendai', '!legacy-reserved')).status, 403, 'still reserved until the link is used');
+
+    // a newer link voids the older one
+    const b = op.claimLink('cli', 'sendai', 'owner@example.org');
+    assert.equal((await claim(t, a.token)).json.code, 'bad_token', 'voided by the newer link');
+
+    // the link is not a password-reset link, and it asks for the terms
+    assert.equal((await t.call('POST', '/auth/reset', { body: { token: b.token, password: GOOD_PW }, ip: nextIp() })).json.code, 'bad_token');
+    assert.equal((await claim(t, b.token, { consent: false })).json.code, 'consent_required');
+    assert.equal((await claim(t, b.token, { consent_version: 'old' })).json.code, 'consent_required');
+    assert.equal((await claim(t, b.token, { password: 'short' })).json.code, 'weak_password');
+    assert.equal((await claim(t, 'x'.repeat(43))).json.code, 'bad_token');
+
+    // all that left the link usable
+    const ok = await claim(t, b.token);
+    assert.equal(ok.status, 200);
+    assert.equal(ok.json.id, 'sendai');
+    const u = t.inst.db.prepare("SELECT * FROM users WHERE id = 'sendai'").get();
+    assert.equal(u.status, 'active');
+    assert.ok(u.email_verified_at && u.consent_at);
+    assert.equal(u.consent_version, CV);
+    assert.equal(t.inst.db.prepare("SELECT event_count FROM stations WHERE id = 'sendai'").get().event_count, 5, 'the station and its data are untouched');
+    assert.equal((await login(t, 'sendai', '!legacy-reserved')).status, 401, 'the placeholder password is gone');
+    assert.equal((await login(t, 'sendai', GOOD_PW)).status, 200);
+    assert.equal((await claim(t, b.token)).json.code, 'bad_token', 'single use');
+    const me = await t.call('GET', '/me', { token: await t.loginToken('sendai', GOOD_PW) });
+    assert.equal(me.json.email, 'owner@example.org');
+    assert.equal(me.json.email_verified, true);
+  } finally { await t.close(); }
+});
+
+test('claim: the link expires after 7 days, and a link cannot be used on an account that is no longer reserved', async () => {
+  const t = await boot({}, OPEN);
+  try {
+    await t.seed('waseda', 'legacy_unclaimed', '!legacy-reserved');
+    let clock = NOW;
+    const op = createOperator(t.inst.db, () => clock);
+    const late = op.claimLink('cli', 'waseda', 'w@example.org');
+    t.advance(7 * 24 * 3600 * 1000 + 1000);
+    assert.equal((await claim(t, late.token)).json.code, 'bad_token', 'seven days are up');
+
+    clock = NOW + 7 * 24 * 3600 * 1000 + 1000;
+    const fresh = op.claimLink('cli', 'waseda', 'w@example.org');
+    // an operator disabling the account in the meantime takes the claim away
+    t.inst.db.prepare("UPDATE users SET status = 'disabled' WHERE id = 'waseda'").run();
+    assert.equal((await claim(t, fresh.token)).json.code, 'bad_token');
+    t.inst.db.prepare("UPDATE users SET status = 'legacy_unclaimed' WHERE id = 'waseda'").run();
+    assert.equal((await claim(t, fresh.token)).status, 200);
+  } finally { await t.close(); }
+});
+
+test('claim: scripts/admin.js claim mails the link (or prints it), and says why when it cannot', async () => {
+  const t = await boot({}, OPEN);
+  try {
+    await t.seed('ktt', 'legacy_unclaimed', '!legacy-reserved');
+    const bad = claimAdmin(t, 'claim', 'ktt', 'nonsense');
+    assert.notEqual(bad.status, 0);
+    assert.match(bad.stderr, /does not look right/);
+    assert.notEqual(claimAdmin(t, 'claim', 'ktt').status, 0, 'the address is required');
+
+    const sent = claimAdmin(t, 'claim', 'ktt', 'k@example.org');
+    assert.equal(sent.status, 0, sent.stderr);
+    assert.doesNotMatch(sent.stdout, /#token=/, 'a mailed link is not printed');
+    const mail = readOutbox(t.dir).pop();
+    assert.equal(mail.to, 'k@example.org');
+    assert.match(mail.text, /https:\/\/cosmic\.example\/claim#token=/);
+    assert.match(mail.text, /ktt/);
+    assert.equal((await claim(t, tokenIn(mail))).status, 200, 'the mailed link works');
+
+    await t.seed('nsr', 'legacy_unclaimed', '!legacy-reserved');
+    const printed = claimAdmin(t, 'claim', 'nsr', 'n@example.org', '--print-link');
+    assert.equal(printed.status, 0, printed.stderr);
+    const m = /\/claim#token=([A-Za-z0-9_-]+)/.exec(printed.stdout);
+    assert.ok(m, 'the link is printed');
+    assert.equal(readOutbox(t.dir).length, 1, 'and no mail is sent');
+    assert.equal((await claim(t, m[1])).status, 200);
+
+    assert.match(claimAdmin(t, 'claim', 'ktt', 'again@example.org').stderr, /active/, 'an account that is already claimed is refused');
   } finally { await t.close(); }
 });

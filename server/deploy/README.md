@@ -306,8 +306,17 @@ sudo -u cosmicray bash -c 'cd /opt/cosmicray-v3/current && /opt/node-v22.23.4/bi
 sudo -u cosmicray bash -c 'cd /opt/cosmicray-v3/current && /opt/node-v22.23.4/bin/node --env-file=/etc/cosmicray/env scripts/admin.js list-on-legacy'
 ```
 
-1 局だけなら `scripts/admin.js list-on <id>`、外すなら `list-off <id>`（運営の画面からもできます）。運営が外した局（保留）は、`list-on-legacy` では載せません。載った局は「旧サーバーから引き継いだ観測局（引き継ぎ待ち）」と表示され、ログインした人はグラフも見られます（持ち主としてログインすることは、まだできません）。
-**引き継ぎ**（持ち主が見つかったとき）の道具は、まだありません。予約した局は、運営の画面（`/admin`）に `legacy_unclaimed` として出ます。
+1 局だけなら `scripts/admin.js list-on <id>`、外すなら `list-off <id>`（運営の画面からもできます）。運営が外した局（保留）は、`list-on-legacy` では載せません。載った局は「旧サーバーから引き継いだ観測局（引き継ぎ待ち）」と表示され、ログインした人はグラフも見られます。
+**引き継ぎ**（持ち主が見つかったとき。server-v0.3.14）。運営が、持ち主のメールアドレスを指定して、1 回だけ使えるリンク（7 日間有効）を送ります:
+
+```bash
+sudo -u cosmicray bash -c 'cd /opt/cosmicray-v3/current && /opt/node-v22.23.4/bin/node --env-file=/etc/cosmicray/env scripts/admin.js claim sendai owner@example.org'
+```
+
+- 持ち主は、メールのリンク（`/claim`）を開き、利用規約に同意して、パスワードを決めます。局は「使用中」になり、そのメールアドレスが確認済みになります。観測データと、地図への掲載（載せていれば）は、そのままです。
+- メールが届かない、または届くか確かめたくないときは、最後に `--print-link` を付けると、リンクをこの画面に出します（リンクは秘密です。持ち主にだけ渡してください）。
+- 同じ局にもう一度実行すると、前のリンクは無効になり、新しいリンクが有効になります（宛先の打ち間違いの直しにも使えます）。使用中の局や、他の局が使っているアドレスは、断ります。
+- リンクを使うまで、局は予約のままです。パスワードは、旧サーバーのものも、誰のものも、ありません。
 
 ## 決めたこと（2026-11-22）と、環境ファイルの設定
 

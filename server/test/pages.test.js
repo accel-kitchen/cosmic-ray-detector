@@ -107,7 +107,7 @@ test('pages: the map and graph pages use only the API endpoints that exist', () 
     const src = fs.readFileSync(path.join(PUBLIC, 'js', f), 'utf8');
     for (const m of src.matchAll(/api\(\s*['"`]([^'"`?$]+)/g)) used.add(m[1].replace(/\/$/, ''));
   }
-  const known = ['/public/stations', '/stations', '/auth/login', '/auth/register', '/auth/verify-email', '/auth/forgot', '/auth/reset',
+  const known = ['/public/stations', '/stations', '/auth/login', '/auth/register', '/auth/verify-email', '/auth/forgot', '/auth/reset', '/auth/claim',
                  '/auth/resend-verify', '/me', '/me/profile', '/me/password', '/me/delete', '/me/export', '/me/events'];
   for (const u of used) assert.ok(known.some((k) => u === k || u.startsWith(k)), `unknown endpoint used by a page: ${u}`);
 });

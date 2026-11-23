@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>局の引き継ぎ | CosmicRay 観測ネットワーク</title>
+<link rel="stylesheet" href="/css/site.css">
+</head>
+<body>
+<header class="site"><div class="bar"><a class="brand" href="/"><img class="logo" src="/img/accel-kitchen-logo.png" alt="加速キッチン" width="1441" height="321"><span class="name">CosmicRay<small>観測ネットワーク</small></span></a><nav id="nav" aria-label="メニュー"></nav></div></header>
+<main>
+  <h1>局を引き継ぐ</h1>
+  <form id="form" class="stack hidden" novalidate>
+    <div class="note">
+      旧サーバーの時代から取ってある、あなたの観測データの局です。パスワードを決めると、この局を使えるようになります。<br>
+      メールアドレスは、確認とパスワードの再設定にだけ使い、公開されません。
+    </div>
+    <label>パスワード<small>8 文字以上。</small>
+      <input id="password" type="password" required minlength="8" maxlength="256" autocomplete="new-password">
+    </label>
+    <label>パスワード（もう一度）
+      <input id="password2" type="password" required minlength="8" maxlength="256" autocomplete="new-password">
+    </label>
+    <label class="check"><input id="consent" type="checkbox" required>
+      <span><a href="/terms" target="_blank" rel="noopener">利用規約</a>と<a href="/privacy" target="_blank" rel="noopener">プライバシーについて</a>を読み、同意します。</span>
+    </label>
+    <div class="row"><button id="go" type="submit">引き継ぐ</button></div>
+  </form>
+  <div id="msg"></div>
+  <div id="after" class="hidden">
+    <p>引き継ぎが終わりました。Console のパスワードも、決めたものに入れ直してください。</p>
+    <p><a class="btn" href="/account">ログインする</a></p>
+  </div>
+  <div id="bad" class="hidden">
+    <p>このページは、運営から届いたメールのリンクから開きます。リンクが無効なときや、メールが届かないときは、<a href="mailto:info@accel-kitchen.com">info@accel-kitchen.com</a> までご連絡ください。</p>
+  </div>
+</main>
+<footer class="site"><div class="foot-inner">
+  <div class="foot-grid">
+    <div class="foot-brand">
+      <p class="foot-title">CosmicRay 観測ネットワーク</p>
+      <p>自宅や学校で宇宙線を測る人たちの観測局を、地図とグラフでつなぐ場所です。運営は加速キッチンです。</p>
+    </div>
+    <div>
+      <h4>このサイト</h4>
+      <ul>
+        <li><a href="/">観測局マップ</a></li>
+        <li><a href="/account">ログイン</a></li>
+        <li><a href="/register">新規登録</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4>決まりごと</h4>
+      <ul>
+        <li><a href="/terms">利用規約</a></li>
+        <li><a href="/privacy">プライバシーについて</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4>加速キッチン</h4>
+      <ul>
+        <li><a href="https://accel-kitchen.com/">公式サイト</a></li>
+        <li><a href="https://accel-kitchen.com/cosmicray/">宇宙線の観測サポート</a></li>
+        <li><a href="mailto:info@accel-kitchen.com">info@accel-kitchen.com</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="foot-bottom">© 2026 加速キッチン合同会社</div>
+</div></footer>
+<script src="/js/common.js"></script>
+<script src="/js/claim.js"></script>
+</body>
+</html>

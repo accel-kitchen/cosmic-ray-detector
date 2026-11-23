@@ -8,6 +8,9 @@
 //     node scripts/admin.js show <id>
 //     node scripts/admin.js list-on <id>        put the station on the public map (clears an operator hold)
 //     node scripts/admin.js list-on-legacy      put every reserved station of the old server (with a position) on the map
+//     node scripts/admin.js claim <id> <email> [--print-link]
+//                                               hand a reserved station of the old server to its owner: mails a single-use
+//                                               link (7 days) to that address; --print-link prints it here instead of mailing
 //     node scripts/admin.js list-off <id>       take it off the map and HOLD it there: its owner cannot switch it back on
 //     node scripts/admin.js hide-description <id> | show-description <id>
 //     node scripts/admin.js disable <id>        stop it logging in and uploading (tokens are revoked)
@@ -27,7 +30,8 @@ const { loadConfig } = require('../src/config');
 const { openDb } = require('../src/db');
 const { deleteAccount, pruneUnverified } = require('../src/accounts');
 const { hashPassword } = require('../src/password');
-const { createOperator } = require('../src/operator');
+const { createOperator, claimMailText } = require('../src/operator');
+const { createMailer } = require('../src/mailer');
 const { STATION_ID } = require('../src/app');
 
 const ADMIN_MIN_PASSWORD = 8;      // the operator's choice (2026-11-22): 8+ characters, letters and digits are fine. The login limits do the rest.
@@ -118,6 +122,30 @@ async function main() {
       if (!rows.length) console.log('nothing to list (no reserved old station with a position that is off the map and not held)');
       break;
     }
+    case 'claim': {
+      needId();
+      const email = process.argv[4];
+      const printLink = process.argv.includes('--print-link');
+      if (!email || email.startsWith('--')) fail('usage: claim <id> <email> [--print-link]');
+      const r = op.claimLink('cli', id, email);
+      if (!r.ok) { db.close(); fail(r.message); }
+      const link = `${cfg.publicUrl}/claim#token=${r.token}`;
+      if (printLink) {
+        console.log(`${id}: the address is set (not yet confirmed). Give this link to its owner (secret, single use, ${r.days} days):
+
+${link}
+`);
+        break;
+      }
+      try {
+        await createMailer(cfg).send({ to: r.email, subject: '【CosmicRay】局の引き継ぎのご案内', text: claimMailText(cfg.publicUrl, id, r.token, r.days) });
+        console.log(`${id}: link mailed to ${r.email} (valid ${r.days} days, single use). The station stays reserved until it is used.`);
+      } catch (e) {
+        console.error(`${id}: the mail could not be sent (${e.message}). Run the same command again with --print-link to get the link here.`);
+        db.close(); process.exit(1);
+      }
+      break;
+    }
     case 'list-off': needId(); done(op.listOff('cli', id), `${id}: off the map, and held there (its owner cannot switch it back on)`); break;
     case 'hide-description': needId(); done(op.setDescriptionHidden('cli', id, true), `${id}: introduction text hidden from other people`); break;
     case 'show-description': needId(); done(op.setDescriptionHidden('cli', id, false), `${id}: introduction text shown again`); break;
@@ -173,7 +201,7 @@ async function main() {
       break;
     }
     default:
-      fail('commands: list | show <id> | list-on <id> | list-on-legacy | list-off <id> | hide-description <id> | show-description <id> | disable <id> | enable <id> | delete <id> --yes | prune-unverified\n' +
+      fail('commands: list | show <id> | list-on <id> | list-on-legacy | claim <id> <email> [--print-link] | list-off <id> | hide-description <id> | show-description <id> | disable <id> | enable <id> | delete <id> --yes | prune-unverified\n' +
            '          admin-create <name> | admin-password <name> | admin-disable <name> | admin-enable <name> | admin-list | audit [N]');
   }
   db.close();

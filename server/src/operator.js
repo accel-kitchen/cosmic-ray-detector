@@ -10,7 +10,11 @@
 // Deleting an account is NOT here on purpose: it is irreversible and stays a deliberate command on the
 // server (scripts/admin.js delete <id> --yes).
 
+const crypto = require('crypto');
+const { normEmail } = require('./routes-account');
+
 const RESTORABLE = ['active', 'pending_email', 'legacy_unclaimed'];
+const CLAIM_DAYS = 7;          // how long a claim link works (an operator sends it by hand, so longer than a password reset)
 
 function createOperator(db, now = Date.now) {
   const iso = () => new Date(now()).toISOString();
@@ -66,6 +70,31 @@ function createOperator(db, now = Date.now) {
       })();
     },
 
+    // Handing a reserved station of the old server (legacy_unclaimed) to its owner. The operator names the
+    // address; this makes a single-use link for it. The owner opens /claim#token=..., agrees to the terms and
+    // chooses a password (POST /auth/claim), which makes the account active with that address confirmed.
+    // The token is a 'reset' token (same table, hashed, single use); /auth/reset refuses it for a
+    // legacy_unclaimed account, so the one place it can be used is /auth/claim, where the terms are asked.
+    // The audit row names the station only, never the address.
+    claimLink(actor, id, rawEmail) {
+      return db.transaction(() => {
+        const u = getUser.get(id);
+        if (!u) return miss;
+        if (u.status !== 'legacy_unclaimed') return { ok: false, status: 409, code: 'not_legacy', message: `This account is ${u.status}: only a reserved station of the old server can be handed over this way (an active account resets its password at /forgot).` };
+        const email = normEmail(rawEmail);
+        if (!email) return { ok: false, status: 400, code: 'bad_email', message: 'That e-mail address does not look right.' };
+        const other = db.prepare('SELECT id FROM users WHERE email = ? AND id <> ?').get(email, id);
+        if (other) return { ok: false, status: 409, code: 'email_in_use', message: `That address is already used by the account ${other.id}.` };
+        const token = crypto.randomBytes(32).toString('base64url');
+        db.prepare('UPDATE auth_tokens SET used_at = ? WHERE user_id = ? AND kind = ? AND used_at IS NULL').run(iso(), id, 'reset');
+        db.prepare('INSERT INTO auth_tokens (user_id, kind, token_hash, expires_at, created_at) VALUES (?,?,?,?,?)')
+          .run(id, 'reset', crypto.createHash('sha256').update(token).digest('hex'), new Date(now() + CLAIM_DAYS * 24 * 3600 * 1000).toISOString(), iso());
+        db.prepare('UPDATE users SET email = ?, email_verified_at = NULL WHERE id = ?').run(email, id);   // confirmed when the link is used
+        audit(actor, 'claim-link', id);
+        return { ok: true, token, email, days: CLAIM_DAYS };
+      })();
+    },
+
     disable(actor, id) {
       return db.transaction(() => {
         const u = getUser.get(id);
@@ -92,4 +121,14 @@ function createOperator(db, now = Date.now) {
   return ops;
 }
 
-module.exports = { createOperator };
+// The mail that carries the link.
+function claimMailText(publicUrl, id, token, days) {
+  return `CosmicRay 観測ネットワークの、局 ID「${id}」を、あなたにお渡しします。\n` +
+    `これは、旧サーバーの時代から取ってある観測データの局です。\n` +
+    `次のリンクを開き、利用規約に同意して、パスワードを決めてください（${days} 日間有効、1 回だけ使えます）。\n\n` +
+    `${publicUrl}/claim#token=${token}\n\n` +
+    `心当たりがない場合は、このメールを無視してください。何も変わりません。\n` +
+    `（このメールへの返信は届きません。）\n`;
+}
+
+module.exports = { createOperator, claimMailText, CLAIM_DAYS };
